@@ -26,9 +26,9 @@ sys.path.insert(0, str(_root / "services" / "chatbot"))
 
 import pytest
 
-from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
-from image_pipeline.anime_pipeline.schemas import PassConfig, ControlInput
 from image_pipeline.anime_pipeline.config import StructureLayerConfig
+from image_pipeline.anime_pipeline.schemas import ControlInput, PassConfig
+from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
 
 
 @pytest.fixture
@@ -42,9 +42,13 @@ def composition_pc():
         pass_name="composition",
         model_slot="composition",
         checkpoint="animagine-xl-4.0-opt.safetensors",
-        width=832, height=1216,
-        sampler="euler_a", scheduler="normal",
-        steps=28, cfg=5.0, denoise=1.0,
+        width=832,
+        height=1216,
+        sampler="euler_a",
+        scheduler="normal",
+        steps=28,
+        cfg=5.0,
+        denoise=1.0,
         positive_prompt="masterpiece, 1girl, silver hair",
         negative_prompt="lowres, bad anatomy",
     )
@@ -56,9 +60,13 @@ def beauty_pc():
         pass_name="beauty",
         model_slot="final",
         checkpoint="noobai-xl-1.1.safetensors",
-        width=832, height=1216,
-        sampler="dpmpp_2m_sde", scheduler="karras",
-        steps=28, cfg=5.5, denoise=0.30,
+        width=832,
+        height=1216,
+        sampler="dpmpp_2m_sde",
+        scheduler="karras",
+        steps=28,
+        cfg=5.5,
+        denoise=0.30,
         positive_prompt="masterpiece, 1girl, silver hair, detailed eyes",
         negative_prompt="lowres, bad anatomy",
         control_inputs=[
@@ -81,6 +89,7 @@ SEED = 42
 # Version
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestVersion:
     def test_version_string(self, builder):
         assert builder.version == "2.0.0"
@@ -90,6 +99,7 @@ class TestVersion:
 # build_composition — txt2img
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestCompositionTxt2Img:
     def test_returns_dict(self, builder, composition_pc):
         wf = builder.build_composition(composition_pc, SEED)
@@ -98,7 +108,9 @@ class TestCompositionTxt2Img:
 
     def test_has_checkpoint_loader(self, builder, composition_pc):
         wf = builder.build_composition(composition_pc, SEED)
-        loaders = [n for n in wf.values() if n["class_type"] == "CheckpointLoaderSimple"]
+        loaders = [
+            n for n in wf.values() if n["class_type"] == "CheckpointLoaderSimple"
+        ]
         assert len(loaders) == 1
         assert loaders[0]["inputs"]["ckpt_name"] == composition_pc.checkpoint
 
@@ -155,23 +167,32 @@ class TestCompositionTxt2Img:
 # build_composition — img2img
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestCompositionImg2Img:
     def test_returns_dict_with_source(self, builder, composition_pc):
-        wf = builder.build_composition(composition_pc, SEED, source_image_b64="base64data")
+        wf = builder.build_composition(
+            composition_pc, SEED, source_image_b64="base64data"
+        )
         assert isinstance(wf, dict)
 
     def test_has_load_image(self, builder, composition_pc):
-        wf = builder.build_composition(composition_pc, SEED, source_image_b64="base64data")
+        wf = builder.build_composition(
+            composition_pc, SEED, source_image_b64="base64data"
+        )
         loaders = [n for n in wf.values() if n["class_type"] == "LoadImageFromBase64"]
         assert len(loaders) == 1
 
     def test_has_vae_encode(self, builder, composition_pc):
-        wf = builder.build_composition(composition_pc, SEED, source_image_b64="base64data")
+        wf = builder.build_composition(
+            composition_pc, SEED, source_image_b64="base64data"
+        )
         encoders = [n for n in wf.values() if n["class_type"] == "VAEEncode"]
         assert len(encoders) == 1
 
     def test_no_empty_latent(self, builder, composition_pc):
-        wf = builder.build_composition(composition_pc, SEED, source_image_b64="base64data")
+        wf = builder.build_composition(
+            composition_pc, SEED, source_image_b64="base64data"
+        )
         latents = [n for n in wf.values() if n["class_type"] == "EmptyLatentImage"]
         assert len(latents) == 0
 
@@ -184,6 +205,7 @@ class TestCompositionImg2Img:
 # ═══════════════════════════════════════════════════════════════════
 # build_cleanup
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestBuildCleanup:
     def test_returns_dict(self, builder, beauty_pc):
@@ -216,6 +238,7 @@ class TestBuildCleanup:
 # build_beauty
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestBuildBeauty:
     def test_returns_dict(self, builder, beauty_pc):
         wf = builder.build_beauty(beauty_pc, "source_b64", SEED)
@@ -236,6 +259,7 @@ class TestBuildBeauty:
 # build_txt2img / build_img2img (generic)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestGenericBuilders:
     def test_txt2img_basic(self, builder, composition_pc):
         wf = builder.build_txt2img(composition_pc, SEED)
@@ -253,6 +277,7 @@ class TestGenericBuilders:
 # build_structure_lock_layer
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestStructureLockLayer:
     def test_lineart_preprocessor(self, builder):
         lc = StructureLayerConfig(
@@ -260,7 +285,9 @@ class TestStructureLockLayer:
             preprocessor="AnimeLineArtPreprocessor",
         )
         wf = builder.build_structure_lock_layer("b64img", lc)
-        procs = [n for n in wf.values() if n["class_type"] == "AnimeLineArtPreprocessor"]
+        procs = [
+            n for n in wf.values() if n["class_type"] == "AnimeLineArtPreprocessor"
+        ]
         assert len(procs) == 1
         assert procs[0]["inputs"]["resolution"] == 1024
 
@@ -288,6 +315,7 @@ class TestStructureLockLayer:
 # Upscale variants
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestUpscaleBuilders:
     def test_basic_upscale(self, builder):
         wf = builder.build_upscale("b64img", "RealESRGAN_x4plus_anime_6B")
@@ -296,7 +324,9 @@ class TestUpscaleBuilders:
         assert "SaveImage" in [n["class_type"] for n in wf.values()]
 
     def test_simple_upscale_has_rescale(self, builder):
-        wf = builder.build_simple_upscale("b64", "RealESRGAN_x4plus_anime_6B", 1664, 2432)
+        wf = builder.build_simple_upscale(
+            "b64", "RealESRGAN_x4plus_anime_6B", 1664, 2432
+        )
         scales = [n for n in wf.values() if n["class_type"] == "ImageScale"]
         assert len(scales) == 1
         assert scales[0]["inputs"]["width"] == 1664
@@ -322,6 +352,7 @@ class TestUpscaleBuilders:
 # ControlNet attachment
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestControlNetAttachment:
     def test_no_controls_passthrough(self, builder, composition_pc):
         wf = builder.build_composition(composition_pc, SEED)
@@ -341,19 +372,27 @@ class TestControlNetAttachment:
             pass_name="beauty",
             model_slot="final",
             checkpoint="test.safetensors",
-            width=832, height=1216,
-            sampler="euler_a", scheduler="normal",
-            steps=20, cfg=5.0, denoise=0.30,
+            width=832,
+            height=1216,
+            sampler="euler_a",
+            scheduler="normal",
+            steps=20,
+            cfg=5.0,
+            denoise=0.30,
             positive_prompt="test",
             negative_prompt="bad",
             control_inputs=[
                 ControlInput(
-                    layer_type="lineart", controlnet_model="cn_lineart",
-                    strength=0.8, image_b64="la_b64",
+                    layer_type="lineart",
+                    controlnet_model="cn_lineart",
+                    strength=0.8,
+                    image_b64="la_b64",
                 ),
                 ControlInput(
-                    layer_type="depth", controlnet_model="cn_depth",
-                    strength=0.5, image_b64="depth_b64",
+                    layer_type="depth",
+                    controlnet_model="cn_depth",
+                    strength=0.5,
+                    image_b64="depth_b64",
                 ),
             ],
         )
@@ -366,14 +405,19 @@ class TestControlNetAttachment:
             pass_name="beauty",
             model_slot="final",
             checkpoint="test.safetensors",
-            width=832, height=1216,
-            sampler="euler_a", scheduler="normal",
-            steps=20, cfg=5.0, denoise=0.30,
+            width=832,
+            height=1216,
+            sampler="euler_a",
+            scheduler="normal",
+            steps=20,
+            cfg=5.0,
+            denoise=0.30,
             positive_prompt="test",
             negative_prompt="bad",
             control_inputs=[
                 ControlInput(
-                    layer_type="lineart", controlnet_model="cn_lineart",
+                    layer_type="lineart",
+                    controlnet_model="cn_lineart",
                     strength=0.8,
                     # no image_b64
                 ),
@@ -387,6 +431,7 @@ class TestControlNetAttachment:
 # ═══════════════════════════════════════════════════════════════════
 # Idempotency
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestIdempotency:
     def test_repeated_calls_reset_ids(self, builder, composition_pc):

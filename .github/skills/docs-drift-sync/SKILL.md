@@ -18,13 +18,13 @@ The **main README.md** is the single source of truth. When it conflicts with oth
 
 | Fact | Authoritative file | Stale copies to check |
 |---|---|---|
-| Service ports | `README.md` service table | `app/scripts/README.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `services/chatbot/.env*`, Docker compose files |
-| Entry points | `README.md` service table | `AGENTS.md`, `.github/copilot-instructions.md`, startup scripts in `app/scripts/` |
-| Env variable names | `services/chatbot/core/config.py` | `README.md`, `.env.example`, `app/config/.env*`, `AGENTS.md` |
+| Service ports | `README.md` service table | `app/scripts/README.md`, `.claude/skills/repo-guidelines/AGENTS.md`, `.github/copilot-instructions.md`, `services/chatbot/.env*`, Docker compose files |
+| Entry points | `README.md` service table | `.claude/skills/repo-guidelines/AGENTS.md`, `.github/copilot-instructions.md`, startup scripts in `app/scripts/` |
+| Env variable names | `services/chatbot/core/config.py` | `README.md`, `.env.example`, `app/config/.env*`, `.claude/skills/repo-guidelines/AGENTS.md` |
 | MCP transport | `services/mcp-server/server.py` (stdio) | `services/mcp-server/README.md`, `app/scripts/README.md` (stale port 8000) |
 | Startup commands | `services/chatbot/run.py` | `README.md`, `app/scripts/README.md` |
-| Dependency profiles | `app/requirements/*.txt` | `app/requirements/README.md`, `AGENTS.md` |
-| Test commands | `.github/workflows/tests.yml` | `README.md`, `AGENTS.md` |
+| Dependency profiles | `app/requirements/*.txt` | `app/requirements/README.md`, `.claude/skills/repo-guidelines/AGENTS.md` |
+| Test commands | `.github/workflows/tests.yml` | `README.md`, `.claude/skills/repo-guidelines/AGENTS.md` |
 
 ## Known drift (do not propagate)
 
@@ -40,12 +40,12 @@ The **main README.md** is the single source of truth. When it conflicts with oth
 
 | Trigger | Docs to update |
 |---|---|
-| Port changed (code or env default) | `README.md` service table, `AGENTS.md`, `.github/copilot-instructions.md`, affected `.env*` files |
-| Entry point changed | `README.md`, `AGENTS.md` |
+| Port changed (code or env default) | `README.md` service table, `.claude/skills/repo-guidelines/AGENTS.md`, `.github/copilot-instructions.md`, affected `.env*` files |
+| Entry point changed | `README.md`, `.claude/skills/repo-guidelines/AGENTS.md` |
 | New env variable added | `core/config.py`, `README.md` env table, `.env.example` |
 | Env variable renamed/removed | Same as above plus search all `.env*` and `.instructions.md` files |
 | New route added | Route docstring; `README.md` if user-facing |
-| Service added or removed | `README.md` service table, `AGENTS.md`, `.github/copilot-instructions.md`, `app/requirements/README.md` |
+| Service added or removed | `README.md` service table, `.claude/skills/repo-guidelines/AGENTS.md`, `.github/copilot-instructions.md`, `app/requirements/README.md` |
 | Startup command changed | `README.md` quick-start section, affected script files |
 | MCP tool added/changed | `services/mcp-server/README.md` |
 | Workflow changed | No doc update unless it changes user-visible behavior |
@@ -65,7 +65,7 @@ Before marking a behavioral change as complete, run this comparison:
 Ordered by frequency of drift:
 
 1. `app/scripts/README.md` — highest drift risk, multiple stale entries already
-2. `AGENTS.md` — duplicates the service table
+2. `.claude/skills/repo-guidelines/AGENTS.md` — duplicates the service table
 3. `.github/copilot-instructions.md` — duplicates ports and entry points
 4. `services/chatbot/.env*` — port defaults may diverge from code defaults
 5. `app/requirements/README.md` — lists archived services
@@ -77,7 +77,7 @@ After any change that alters runtime behavior:
 
 - [ ] The new value is correct in the **authoritative source**.
 - [ ] `README.md` service table matches runtime (ports, entry points, transport).
-- [ ] `AGENTS.md` service map matches `README.md`.
+- [ ] `.claude/skills/repo-guidelines/AGENTS.md` service map matches `README.md`.
 - [ ] `.github/copilot-instructions.md` entry-point table matches `README.md`.
 - [ ] No stale port or command was left in `app/scripts/README.md`.
 - [ ] If an env variable changed: `core/config.py`, `.env.example`, and `README.md` are aligned.

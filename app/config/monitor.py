@@ -2,6 +2,7 @@
 Monitor và Dashboard cho Rate Limits & Cache
 Hiển thị real-time stats về API usage
 """
+
 import sys
 from pathlib import Path
 from flask import Blueprint, jsonify, make_response
@@ -26,28 +27,29 @@ try:
     from .rate_limiter import get_rate_limit_stats
     from .response_cache import get_all_cache_stats
 except Exception:
+
     def get_rate_limit_stats():
         return {"enabled": False, "error": "rate_limiter module unavailable"}
 
     def get_all_cache_stats():
         return {"enabled": False, "error": "response_cache module unavailable"}
 
+
 # Blueprint
-monitor_bp = Blueprint('monitor', __name__)
+monitor_bp = Blueprint("monitor", __name__)
 
 
-@monitor_bp.route('/api/stats')
+@monitor_bp.route("/api/stats")
 def get_stats():
     """
     API endpoint để lấy stats
     """
-    return jsonify({
-        'rate_limits': get_rate_limit_stats(),
-        'cache': get_all_cache_stats()
-    })
+    return jsonify(
+        {"rate_limits": get_rate_limit_stats(), "cache": get_all_cache_stats()}
+    )
 
 
-@monitor_bp.route('/monitor')
+@monitor_bp.route("/monitor")
 def monitor_dashboard():
     """
     Dashboard hiển thị stats
@@ -326,14 +328,14 @@ def monitor_dashboard():
 </html>
     """
     response = make_response(html)
-    response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    response.headers["Content-Type"] = "text/html; charset=utf-8"
     return response
 
 
 def register_monitor(app):
     """
     Register monitor blueprint vào Flask app
-    
+
     Usage:
         from config.monitor import register_monitor
         register_monitor(app)

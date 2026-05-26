@@ -40,9 +40,11 @@ _CACHE_MAX = 64
 # Discrepancy report — returned by compare_target_vs_output
 # ═══════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class DiscrepancyReport:
     """Structured comparison between a target LayerPlan and a generated output."""
+
     match_score: float = 0.0
     subject_match: bool = True
     pose_match: bool = True
@@ -80,6 +82,7 @@ class DiscrepancyReport:
 # ═══════════════════════════════════════════════════════════════════════
 # VisionService
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class VisionService:
     """Image analysis via vision LLMs with caching and fallback.
@@ -125,7 +128,8 @@ class VisionService:
         result = self._run_analysis(
             system_prompt=prompts.FULL_ANALYSIS_SYSTEM,
             user_msg=prompts.full_analysis_user(
-                user_prompt, len(images_b64),
+                user_prompt,
+                len(images_b64),
             ),
             images_b64=images_b64,
         )
@@ -142,7 +146,9 @@ class VisionService:
         return self._run_analysis(
             system_prompt=prompts.FULL_ANALYSIS_SYSTEM,
             user_msg=prompts.full_analysis_user(
-                user_prompt, 1, stage=stage,
+                user_prompt,
+                1,
+                stage=stage,
             ),
             images_b64=[image_b64],
         )
@@ -163,7 +169,9 @@ class VisionService:
         # If we have the image, do a full LLM-based comparison
         if output_image_b64:
             return self._llm_compare(
-                target_plan, output_image_b64, user_prompt,
+                target_plan,
+                output_image_b64,
+                user_prompt,
             )
 
         # Fast heuristic: compare fields from plan vs analysis
@@ -201,9 +209,7 @@ class VisionService:
 
         # Quality risks → add to negative
         if analysis.quality_risks:
-            patches.append(
-                f"NEGATIVE_ADD: {', '.join(analysis.quality_risks)}"
-            )
+            patches.append(f"NEGATIVE_ADD: {', '.join(analysis.quality_risks)}")
 
         return patches
 
@@ -257,14 +263,19 @@ class VisionService:
             for model_name in self._config.vision_model_priority:
                 try:
                     analysis = self._call_cloud_model(
-                        model_name, system_prompt, user_msg, images_b64,
+                        model_name,
+                        system_prompt,
+                        user_msg,
+                        images_b64,
                     )
                     if analysis:
                         analysis.model_used = model_name
                         break
                 except Exception as e:
                     logger.warning(
-                        "[VisionService] %s failed: %s", model_name, e,
+                        "[VisionService] %s failed: %s",
+                        model_name,
+                        e,
                     )
 
         if not analysis:
@@ -290,14 +301,20 @@ class VisionService:
         name = model_name.lower()
         if name.startswith("grok"):
             return self._openai_compat(
-                model_name, system_prompt, user_msg, images_b64,
+                model_name,
+                system_prompt,
+                user_msg,
+                images_b64,
                 base_url="https://api.x.ai/v1/chat/completions",
                 api_key=os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY"),
                 key_label="GROK_API_KEY",
             )
         if name.startswith("step-") or name.startswith("stepfun"):
             return self._openai_compat(
-                model_name, system_prompt, user_msg, images_b64,
+                model_name,
+                system_prompt,
+                user_msg,
+                images_b64,
                 base_url="https://api.stepfun.com/v1/chat/completions",
                 api_key=os.getenv("STEPFUN_API_KEY"),
                 key_label="STEPFUN_API_KEY",
@@ -323,9 +340,11 @@ class VisionService:
         parts: list[dict] = [{"text": system_prompt + "\n\n" + user_msg}]
         for img in images_b64[:4]:
             raw = img.split(",", 1)[-1] if "," in img else img
-            parts.append({
-                "inline_data": {"mime_type": "image/png", "data": raw},
-            })
+            parts.append(
+                {
+                    "inline_data": {"mime_type": "image/png", "data": raw},
+                }
+            )
 
         payload = {
             "contents": [{"parts": parts}],
@@ -354,7 +373,10 @@ class VisionService:
         images_b64: list[str],
     ) -> Optional[VisionAnalysis]:
         return self._openai_compat(
-            model_name, system_prompt, user_msg, images_b64,
+            model_name,
+            system_prompt,
+            user_msg,
+            images_b64,
             base_url="https://api.openai.com/v1/chat/completions",
             api_key=os.getenv("OPENAI_API_KEY"),
             key_label="OPENAI_API_KEY",
@@ -378,13 +400,15 @@ class VisionService:
         user_content: list[dict] = [{"type": "text", "text": user_msg}]
         for img in images_b64[:4]:
             raw = img.split(",", 1)[-1] if "," in img else img
-            user_content.append({
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:image/png;base64,{raw}",
-                    "detail": "low",
-                },
-            })
+            user_content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{raw}",
+                        "detail": "low",
+                    },
+                }
+            )
 
         payload = {
             "model": model_name,
@@ -409,7 +433,9 @@ class VisionService:
     # ── Optional local models ─────────────────────────────────────────
 
     def _try_florence2(
-        self, user_msg: str, images_b64: list[str],
+        self,
+        user_msg: str,
+        images_b64: list[str],
     ) -> Optional[VisionAnalysis]:
         """Try Florence-2 endpoint if FLORENCE2_ENDPOINT is set."""
         endpoint = os.getenv("FLORENCE2_ENDPOINT")
@@ -450,7 +476,9 @@ class VisionService:
         return bool(os.getenv("JOYCAPTION_ENDPOINT"))
 
     def _try_joycaption(
-        self, user_msg: str, images_b64: list[str],
+        self,
+        user_msg: str,
+        images_b64: list[str],
     ) -> Optional[VisionAnalysis]:
         """Try JoyCaption endpoint for richer diffusion-oriented captions."""
         endpoint = os.getenv("JOYCAPTION_ENDPOINT")
@@ -518,13 +546,16 @@ class VisionService:
                     break
             except Exception as e:
                 logger.warning(
-                    "[VisionService] Discrepancy %s failed: %s", model_name, e,
+                    "[VisionService] Discrepancy %s failed: %s",
+                    model_name,
+                    e,
                 )
 
         if not report.model_used:
             # Fall back to heuristic — analyze the image first
             analysis = self.analyze_intermediate_output(
-                output_image_b64, user_prompt,
+                output_image_b64,
+                user_prompt,
             )
             report = self._heuristic_compare(target_plan, analysis)
 
@@ -542,31 +573,46 @@ class VisionService:
         name = model_name.lower()
         if name.startswith("grok"):
             return self._openai_raw_compat(
-                model_name, system_prompt, user_msg, images_b64,
+                model_name,
+                system_prompt,
+                user_msg,
+                images_b64,
                 base_url="https://api.x.ai/v1/chat/completions",
                 api_key=os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY"),
                 key_label="GROK_API_KEY",
             )
         if name.startswith("step-") or name.startswith("stepfun"):
             return self._openai_raw_compat(
-                model_name, system_prompt, user_msg, images_b64,
+                model_name,
+                system_prompt,
+                user_msg,
+                images_b64,
                 base_url="https://api.stepfun.com/v1/chat/completions",
                 api_key=os.getenv("STEPFUN_API_KEY"),
                 key_label="STEPFUN_API_KEY",
             )
         if name.startswith("gemini"):
             return self._gemini_raw(
-                model_name, system_prompt, user_msg, images_b64,
+                model_name,
+                system_prompt,
+                user_msg,
+                images_b64,
             )
         if name.startswith("gpt"):
             return self._openai_raw(
-                model_name, system_prompt, user_msg, images_b64,
+                model_name,
+                system_prompt,
+                user_msg,
+                images_b64,
             )
         return None
 
     def _gemini_raw(
-        self, model_name: str, system_prompt: str,
-        user_msg: str, images_b64: list[str],
+        self,
+        model_name: str,
+        system_prompt: str,
+        user_msg: str,
+        images_b64: list[str],
     ) -> Optional[dict]:
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         if not api_key:
@@ -575,9 +621,11 @@ class VisionService:
         parts: list[dict] = [{"text": system_prompt + "\n\n" + user_msg}]
         for img in images_b64[:4]:
             raw = img.split(",", 1)[-1] if "," in img else img
-            parts.append({
-                "inline_data": {"mime_type": "image/png", "data": raw},
-            })
+            parts.append(
+                {
+                    "inline_data": {"mime_type": "image/png", "data": raw},
+                }
+            )
 
         with httpx.Client(timeout=30) as client:
             resp = client.post(
@@ -597,19 +645,28 @@ class VisionService:
             return self._strip_and_parse(text)
 
     def _openai_raw(
-        self, model_name: str, system_prompt: str,
-        user_msg: str, images_b64: list[str],
+        self,
+        model_name: str,
+        system_prompt: str,
+        user_msg: str,
+        images_b64: list[str],
     ) -> Optional[dict]:
         return self._openai_raw_compat(
-            model_name, system_prompt, user_msg, images_b64,
+            model_name,
+            system_prompt,
+            user_msg,
+            images_b64,
             base_url="https://api.openai.com/v1/chat/completions",
             api_key=os.getenv("OPENAI_API_KEY"),
             key_label="OPENAI_API_KEY",
         )
 
     def _openai_raw_compat(
-        self, model_name: str, system_prompt: str,
-        user_msg: str, images_b64: list[str],
+        self,
+        model_name: str,
+        system_prompt: str,
+        user_msg: str,
+        images_b64: list[str],
         *,
         base_url: str,
         api_key: Optional[str],
@@ -622,13 +679,15 @@ class VisionService:
         user_content: list[dict] = [{"type": "text", "text": user_msg}]
         for img in images_b64[:4]:
             raw = img.split(",", 1)[-1] if "," in img else img
-            user_content.append({
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:image/png;base64,{raw}",
-                    "detail": "low",
-                },
-            })
+            user_content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{raw}",
+                        "detail": "low",
+                    },
+                }
+            )
 
         with httpx.Client(timeout=30) as client:
             resp = client.post(
@@ -674,27 +733,26 @@ class VisionService:
         # Color match
         plan_colors = {c.lower() for c in plan.palette}
         analysis_colors = {c.lower() for c in analysis.dominant_colors}
-        report.color_match = bool(
-            plan_colors & analysis_colors
-        ) if plan_colors else True
+        report.color_match = (
+            bool(plan_colors & analysis_colors) if plan_colors else True
+        )
 
         # Background match
         plan_bg = plan.background_plan.lower() if plan.background_plan else ""
         analysis_bg_str = " ".join(analysis.background_elements).lower()
-        report.background_match = (
-            not plan_bg or any(
-                word in analysis_bg_str
-                for word in plan_bg.split()[:3]
-            )
+        report.background_match = not plan_bg or any(
+            word in analysis_bg_str for word in plan_bg.split()[:3]
         )
 
         # Compute match score
-        matches = sum([
-            report.subject_match,
-            report.pose_match,
-            report.color_match,
-            report.background_match,
-        ])
+        matches = sum(
+            [
+                report.subject_match,
+                report.pose_match,
+                report.color_match,
+                report.background_match,
+            ]
+        )
         report.match_score = round(matches / 4.0, 2)
 
         # Severity
@@ -724,7 +782,8 @@ class VisionService:
             return json.loads(cleaned)
         except json.JSONDecodeError:
             logger.warning(
-                "[VisionService] Failed to parse JSON: %.100s…", cleaned,
+                "[VisionService] Failed to parse JSON: %.100s…",
+                cleaned,
             )
             return None
 
@@ -752,7 +811,8 @@ class VisionService:
             framing=data.get("framing", ""),
             background_elements=bg_elements,
             dominant_colors=data.get(
-                "dominant_colors", data.get("color_palette", []),
+                "dominant_colors",
+                data.get("color_palette", []),
             ),
             anime_tags=data.get("anime_tags", []),
             quality_risks=data.get("quality_risks", []),
@@ -784,9 +844,7 @@ class VisionService:
         return VisionAnalysis(
             caption_short=user_prompt[:200],
             caption_detailed=user_prompt,
-            subjects=(
-                [user_prompt.split(",")[0].strip()] if user_prompt else []
-            ),
+            subjects=([user_prompt.split(",")[0].strip()] if user_prompt else []),
             confidence=0.3,
             model_used="prompt_only",
         )
@@ -794,7 +852,9 @@ class VisionService:
     # ── LRU cache ─────────────────────────────────────────────────────
 
     def _cache_key(
-        self, prompt: str, images_b64: list[str],
+        self,
+        prompt: str,
+        images_b64: list[str],
     ) -> str:
         """Deterministic hash from prompt + first 256 chars of each image."""
         h = hashlib.sha256()

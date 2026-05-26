@@ -11,13 +11,11 @@ same gating (payload + env flag).
 
 from __future__ import annotations
 
+import base64
 import io
 import sys
-import base64
 from pathlib import Path
 from unittest.mock import MagicMock
-
-import pytest
 
 _ROOT = Path(__file__).resolve().parents[4]
 _CHATBOT_DIR = _ROOT / "services" / "chatbot"
@@ -48,6 +46,7 @@ def _make_app():
 
 def _patch(monkeypatch, *, flag: bool, pipeline_result: dict | None):
     from routes import image_gen as route_mod
+
     from core import config as core_cfg
 
     monkeypatch.setattr(core_cfg, "REASONING_PIPELINE_ENABLED", flag, raising=False)
@@ -63,8 +62,10 @@ def _patch(monkeypatch, *, flag: bool, pipeline_result: dict | None):
 
     sessions = MagicMock()
     sessions.get_or_create.return_value = MagicMock(
-        history=[], get_context_for_enhancement=lambda: None,
-        add_generation=lambda **kw: None, active_style=None,
+        history=[],
+        get_context_for_enhancement=lambda: None,
+        add_generation=lambda **kw: None,
+        active_style=None,
     )
     monkeypatch.setattr(route_mod, "_get_sessions", lambda: sessions)
 
@@ -73,18 +74,31 @@ def _patch(monkeypatch, *, flag: bool, pipeline_result: dict | None):
     # cases — its presence in the SSE output proves the bypass succeeded
     # OR failed).
     router = MagicMock()
+
     def _yield_router(*a, **kw):
-        yield {"event": "result", "data": {"success": False, "error": "router-ran",
-                                            "provider": "router", "model": "x",
-                                            "images_b64": [], "images_url": [],
-                                            "prompt_used": "", "metadata": {}}}
+        yield {
+            "event": "result",
+            "data": {
+                "success": False,
+                "error": "router-ran",
+                "provider": "router",
+                "model": "x",
+                "images_b64": [],
+                "images_url": [],
+                "prompt_used": "",
+                "metadata": {},
+            },
+        }
+
     router.generate_stream.side_effect = _yield_router
     monkeypatch.setattr(route_mod, "_get_router", lambda: router)
 
     if pipeline_result is not None:
         from routes import reasoning_image_gen as r_mod
+
         monkeypatch.setattr(
-            r_mod, "run_pipeline_for_prompt",
+            r_mod,
+            "run_pipeline_for_prompt",
             lambda *a, **kw: dict(pipeline_result),
         )
 
@@ -162,7 +176,7 @@ class TestStreamFastpathTaken:
         assert '"provider": "reasoning"' in body
         assert '"model": "comic-pipeline"' in body
         assert '"reason-stream-1"' in body
-        assert '/api/image-gen/images/stream123' in body
+        assert "/api/image-gen/images/stream123" in body
         # Router was bypassed.
         ctx["router"].generate_stream.assert_not_called()
         # Storage was hit with the pipeline base64.

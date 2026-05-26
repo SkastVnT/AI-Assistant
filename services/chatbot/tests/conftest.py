@@ -1,10 +1,12 @@
-﻿"""
+"""
 PyTest Configuration for ChatBot Service
 """
-import pytest
+
 import os
 import sys
 from pathlib import Path
+
+import pytest
 
 # Ensure services/chatbot/ is at sys.path[0] so that local packages like
 # `src` are always resolved to the correct location, even when other modules
@@ -16,7 +18,6 @@ sys.path.insert(0, _CHATBOT_DIR)
 
 # Pre-import src to cache the correct package in sys.modules before any
 # other import can displace it (core/__init__.py manipulates sys.path).
-import src  # noqa: E402
 
 
 @pytest.fixture
@@ -24,55 +25,58 @@ def app():
     """Create application instance for testing"""
     os.environ.setdefault("TESTING", "true")
     from app import app as flask_app
-    flask_app.config['TESTING'] = True
-    flask_app.config['DEBUG'] = False
+
+    flask_app.config["TESTING"] = True
+    flask_app.config["DEBUG"] = False
     return flask_app
+
 
 @pytest.fixture
 def client(app):
     """Create test client"""
     return app.test_client()
 
+
 @pytest.fixture
 def runner(app):
     """Create test CLI runner"""
     return app.test_cli_runner()
 
+
 @pytest.fixture
 def sample_message():
     """Sample chat message"""
-    return {
-        'message': 'Hello, how are you?',
-        'model': 'gemini',
-        'context': 'casual'
-    }
+    return {"message": "Hello, how are you?", "model": "gemini", "context": "casual"}
+
 
 @pytest.fixture
 def sample_file():
     """Sample file data"""
     return {
-        'name': 'test.py',
-        'content': 'print("Hello World")',
-        'type': 'code',
-        'size': 25
+        "name": "test.py",
+        "content": 'print("Hello World")',
+        "type": "code",
+        "size": 25,
     }
+
 
 @pytest.fixture
 def mock_gemini_response():
     """Mock Gemini API response"""
     return "Hello! I'm doing well, thank you for asking. How can I help you today?"
 
+
 @pytest.fixture
 def sample_image_params():
     """Sample image generation parameters"""
     return {
-        'prompt': 'A beautiful sunset over mountains',
-        'negative_prompt': 'blurry, low quality',
-        'steps': 30,
-        'cfg_scale': 7.5,
-        'width': 512,
-        'height': 512,
-        'sampler': 'Euler a'
+        "prompt": "A beautiful sunset over mountains",
+        "negative_prompt": "blurry, low quality",
+        "steps": 30,
+        "cfg_scale": 7.5,
+        "width": 512,
+        "height": 512,
+        "sampler": "Euler a",
     }
 
 

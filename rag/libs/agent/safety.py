@@ -52,7 +52,7 @@ class DelegatedAuth:
     """
 
     tenant_id: object  # UUID
-    user_id: object    # UUID | None
+    user_id: object  # UUID | None
     role: str
     max_sensitivity: str
     allowed_tools: frozenset[str]

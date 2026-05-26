@@ -21,6 +21,7 @@ Design decisions:
   to Hermes chat path).
 - No state, no singleton — pure function, safe to call from any context.
 """
+
 from __future__ import annotations
 
 import logging
@@ -37,13 +38,15 @@ logger = logging.getLogger(__name__)
 # IMAGE_EDIT, MULTI_IMAGE_COMPOSE, ITERATIVE_REFINE — also image work but
 # require attached images; Hermes route currently receives text-only, so these
 # are included for future-proofing but will rarely be triggered in practice.
-IMAGE_KINDS_NAMES: frozenset[str] = frozenset({
-    "text_to_image",
-    "comic_sequence",
-    "image_edit",
-    "multi_image_compose",
-    "iterative_refine",
-})
+IMAGE_KINDS_NAMES: frozenset[str] = frozenset(
+    {
+        "text_to_image",
+        "comic_sequence",
+        "image_edit",
+        "multi_image_compose",
+        "iterative_refine",
+    }
+)
 
 
 def is_reasoning_pipeline_enabled() -> bool:
@@ -56,7 +59,7 @@ def detect_image_intent(
     *,
     attached_images: int = 0,
     is_followup: bool = False,
-) -> "CapabilityDecision | None":
+) -> CapabilityDecision | None:
     """Classify *message* using capability_router and return a decision.
 
     Returns None if:
@@ -83,6 +86,7 @@ def detect_image_intent(
             CapabilityRequest,
             classify,
         )
+
         request = CapabilityRequest(
             text=message,
             attached_images=attached_images,
@@ -91,7 +95,9 @@ def detect_image_intent(
         decision = classify(request)
         logger.debug(
             "[IMAGE-INTENT] kind=%s confidence=%.2f reasons=%s",
-            decision.kind.value, decision.confidence, decision.reasons,
+            decision.kind.value,
+            decision.confidence,
+            decision.reasons,
         )
         return decision
     except ImportError:
@@ -100,7 +106,9 @@ def detect_image_intent(
         )
         return None
     except Exception as exc:
-        logger.warning("[IMAGE-INTENT] classify() raised %s: %s", type(exc).__name__, exc)
+        logger.warning(
+            "[IMAGE-INTENT] classify() raised %s: %s", type(exc).__name__, exc
+        )
         return None
 
 
@@ -119,7 +127,4 @@ def should_redirect_to_reasoning(message: str) -> bool:
     decision = detect_image_intent(message)
     if decision is None:
         return False
-    return (
-        decision.kind.value in IMAGE_KINDS_NAMES
-        and decision.confidence >= 0.75
-    )
+    return decision.kind.value in IMAGE_KINDS_NAMES and decision.confidence >= 0.75

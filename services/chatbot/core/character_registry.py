@@ -8,14 +8,14 @@ does not replace the existing parser. When the registry resolves a query
 explicitly (by key or alias), it returns a fully-qualified identity that the
 anime pipeline can use directly, bypassing the heuristic parser.
 """
+
 from __future__ import annotations
 
 import json
 import logging
 import threading
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +35,8 @@ class CharacterRecord:
     character_tag: str
     series_tag: str
     aliases: list[str] = field(default_factory=list)
-    thumbnail: Optional[str] = None
-    lora_hint: Optional[str] = None
+    thumbnail: str | None = None
+    lora_hint: str | None = None
     solo_recommended: bool = True
     category: str = "character"
 
@@ -50,7 +50,7 @@ class CharacterRegistry:
     Use ``CharacterRegistry.get_instance()`` to access the shared registry.
     """
 
-    _instance: Optional["CharacterRegistry"] = None
+    _instance: CharacterRegistry | None = None
     _lock = threading.Lock()
 
     def __init__(self) -> None:
@@ -60,7 +60,7 @@ class CharacterRegistry:
         self._loaded = False
 
     @classmethod
-    def get_instance(cls) -> "CharacterRegistry":
+    def get_instance(cls) -> CharacterRegistry:
         with cls._lock:
             if cls._instance is None:
                 cls._instance = cls()
@@ -82,24 +82,34 @@ class CharacterRegistry:
                         except TypeError as exc:
                             logger.warning("character_registry: skip %s — %s", key, exc)
                 except Exception as exc:
-                    logger.error("character_registry: failed to load characters.json: %s", exc)
+                    logger.error(
+                        "character_registry: failed to load characters.json: %s", exc
+                    )
             else:
                 logger.warning("character_registry: %s missing", _CHARACTERS_FILE)
             if _SERIES_ALIASES_FILE.exists():
                 try:
-                    self._series_aliases = json.loads(_SERIES_ALIASES_FILE.read_text(encoding="utf-8"))
+                    self._series_aliases = json.loads(
+                        _SERIES_ALIASES_FILE.read_text(encoding="utf-8")
+                    )
                 except Exception as exc:
-                    logger.error("character_registry: failed to load series_aliases.json: %s", exc)
+                    logger.error(
+                        "character_registry: failed to load series_aliases.json: %s",
+                        exc,
+                    )
             self._loaded = True
-            logger.info("character_registry: loaded %d characters, %d series aliases",
-                        len(self._records), len(self._series_aliases))
+            logger.info(
+                "character_registry: loaded %d characters, %d series aliases",
+                len(self._records),
+                len(self._series_aliases),
+            )
 
     def reload(self) -> None:
         self.load()
 
     # --- queries -------------------------------------------------------
 
-    def get(self, key: str) -> Optional[CharacterRecord]:
+    def get(self, key: str) -> CharacterRecord | None:
         return self._records.get(key)
 
     def list_all(self) -> list[CharacterRecord]:
@@ -111,7 +121,7 @@ class CharacterRegistry:
             seen.setdefault(rec.series_key, rec.series)
         return [{"key": k, "name": v} for k, v in sorted(seen.items())]
 
-    def normalize_series(self, raw: str) -> Optional[str]:
+    def normalize_series(self, raw: str) -> str | None:
         """Resolve a series alias (e.g. ``GI``) to canonical series_key."""
         if not raw:
             return None
@@ -132,7 +142,7 @@ class CharacterRegistry:
     def find(
         self,
         query: str = "",
-        series_filter: Optional[str] = None,
+        series_filter: str | None = None,
         limit: int = 50,
     ) -> list[CharacterRecord]:
         """Search by display_name / aliases / character_tag.
@@ -143,15 +153,21 @@ class CharacterRegistry:
         q = (query or "").strip().lower()
         series_key = None
         if series_filter:
-            series_key = self.normalize_series(series_filter) or series_filter.strip().lower()
+            series_key = (
+                self.normalize_series(series_filter) or series_filter.strip().lower()
+            )
 
         results: list[CharacterRecord] = []
         for rec in self._records.values():
             if series_key and rec.series_key != series_key:
                 continue
             if q:
-                hay = [rec.display_name.lower(), rec.character_tag.lower(),
-                       rec.series.lower(), rec.key.lower()]
+                hay = [
+                    rec.display_name.lower(),
+                    rec.character_tag.lower(),
+                    rec.series.lower(),
+                    rec.key.lower(),
+                ]
                 hay.extend(a.lower() for a in rec.aliases)
                 if not any(q in h for h in hay):
                     continue
@@ -160,7 +176,7 @@ class CharacterRegistry:
                 break
         return results
 
-    def resolve_query(self, query: str) -> Optional[CharacterRecord]:
+    def resolve_query(self, query: str) -> CharacterRecord | None:
         """Best-effort single-record resolution for an explicit query.
 
         Tries: exact key → exact display_name (case-insensitive) → alias →
@@ -220,7 +236,7 @@ def _normalize_token(s: str) -> str:
     return "".join(out).strip("_")
 
 
-def resolve_thumbnail_data_url(rec: CharacterRecord) -> Optional[str]:
+def resolve_thumbnail_data_url(rec: CharacterRecord) -> str | None:
     """Try the SAA WAI character DB for a base64 data-URL thumbnail.
 
     Used as a fallback when no on-disk image is found in
@@ -242,9 +258,7 @@ def resolve_thumbnail_data_url(rec: CharacterRecord) -> Optional[str]:
     if rec.character_tag:
         candidates.append(rec.character_tag.replace("_", " "))
     if rec.character_tag and rec.series_tag:
-        candidates.append(
-            f"{rec.character_tag} ({rec.series_tag})".replace("_", " ")
-        )
+        candidates.append(f"{rec.character_tag} ({rec.series_tag})".replace("_", " "))
     if rec.display_name and rec.series:
         candidates.append(f"{rec.display_name} ({rec.series})".lower())
     if rec.display_name:
@@ -264,7 +278,7 @@ def resolve_thumbnail_data_url(rec: CharacterRecord) -> Optional[str]:
     return None
 
 
-def resolve_thumbnail_path(rec: CharacterRecord) -> Optional[Path]:
+def resolve_thumbnail_path(rec: CharacterRecord) -> Path | None:
     """Resolve a usable on-disk thumbnail for ``rec``.
 
     Priority:

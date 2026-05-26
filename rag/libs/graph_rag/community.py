@@ -91,10 +91,7 @@ async def detect_communities(
         entity_uuids = [e.id for e in comm_entities if e.id]
 
         # Count relationships within community
-        rel_count = sum(
-            1 for u, v in graph.edges()
-            if u in node_ids and v in node_ids
-        )
+        rel_count = sum(1 for u, v in graph.edges() if u in node_ids and v in node_ids)
 
         community = Community(
             name=f"Community {comm_idx}",
@@ -107,7 +104,10 @@ async def detect_communities(
 
     logger.info(
         "community_detection: tenant=%s algorithm=%s found=%d (min_size=%d)",
-        tenant_id, algorithm, len(communities), min_community_size,
+        tenant_id,
+        algorithm,
+        len(communities),
+        min_community_size,
     )
     return communities
 
@@ -213,9 +213,7 @@ async def summarize_communities(
 
     for community in communities:
         # Build entity list text
-        entity_lines = [
-            f"- [ENTITY] {name}" for name in community.entity_names
-        ]
+        entity_lines = [f"- [ENTITY] {name}" for name in community.entity_names]
         entity_text = "\n".join(entity_lines[:30])  # cap for prompt size
 
         # Build relationship list text
@@ -261,6 +259,7 @@ async def summarize_communities(
 
     logger.info(
         "summarize_communities: tenant=%s summarized=%d",
-        tenant_id, len(communities),
+        tenant_id,
+        len(communities),
     )
     return communities

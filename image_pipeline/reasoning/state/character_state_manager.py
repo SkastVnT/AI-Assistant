@@ -112,7 +112,9 @@ class CharacterStateManager:
         char_tag = (getattr(record, "character_tag", "") or "").strip()
         series_tag = (getattr(record, "series_tag", "") or "").strip()
         series = (getattr(record, "series", "") or "").strip()
-        aliases = tuple(str(a).strip() for a in (getattr(record, "aliases", ()) or ()) if a)
+        aliases = tuple(
+            str(a).strip() for a in (getattr(record, "aliases", ()) or ()) if a
+        )
 
         canonical: list[str] = []
         for token in (char_tag, series_tag, *aliases):

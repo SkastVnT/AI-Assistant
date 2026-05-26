@@ -5,6 +5,7 @@ Covers the spec (2026-04-23):
    <ten session chat><dac trung><nhan vat><game/?><ts(HH/DD/MM/YYYY)>
    .<file_extension>"
 """
+
 from __future__ import annotations
 
 import base64
@@ -27,8 +28,8 @@ from image_pipeline.anime_pipeline.feature_crop_storage import (  # noqa: E402
     persist_feature_crops,
 )
 
-
 # ── helpers ─────────────────────────────────────────────────────────
+
 
 def _png_b64(w: int = 256, h: int = 256, color=(180, 90, 40)) -> str:
     buf = io.BytesIO()
@@ -38,13 +39,19 @@ def _png_b64(w: int = 256, h: int = 256, color=(180, 90, 40)) -> str:
 
 def _region(rtype: str, x1=10, y1=10, x2=80, y2=80, conf=0.91):
     return SimpleNamespace(
-        region_type=rtype, x1=x1, y1=y1, x2=x2, y2=y2,
-        confidence=conf, label=rtype,
+        region_type=rtype,
+        x1=x1,
+        y1=y1,
+        x2=x2,
+        y2=y2,
+        confidence=conf,
+        label=rtype,
     )
 
 
-def _job(session="chat-abc", char="Klee", series="Genshin Impact",
-         img_b64: str | None = None):
+def _job(
+    session="chat-abc", char="Klee", series="Genshin Impact", img_b64: str | None = None
+):
     return SimpleNamespace(
         job_id="job-001",
         session_id=session,
@@ -64,13 +71,17 @@ def _detection(regions: dict[str, list]):
 
 # ── slug ────────────────────────────────────────────────────────────
 
-@pytest.mark.parametrize("raw,expected", [
-    ("Genshin Impact", "Genshin_Impact"),
-    ("Re:Zero / kara Hajimeru", "Re_Zero_kara_Hajimeru"),
-    ("../../etc/passwd", "etc_passwd"),
-    ("", "fallback"),
-    ("   ", "fallback"),
-])
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("Genshin Impact", "Genshin_Impact"),
+        ("Re:Zero / kara Hajimeru", "Re_Zero_kara_Hajimeru"),
+        ("../../etc/passwd", "etc_passwd"),
+        ("", "fallback"),
+        ("   ", "fallback"),
+    ],
+)
 def test_slug_filesystem_safe(raw, expected):
     assert _slug(raw, fallback="fallback") == expected
 
@@ -80,6 +91,7 @@ def test_slug_truncates():
 
 
 # ── persist_feature_crops ───────────────────────────────────────────
+
 
 def test_persist_no_detection_returns_empty(tmp_path, monkeypatch):
     monkeypatch.setenv("FEATURE_LAYER_DIR", str(tmp_path))
@@ -96,12 +108,13 @@ def test_persist_no_image_returns_empty(tmp_path, monkeypatch):
 
 def test_persist_creates_files_per_region(tmp_path, monkeypatch):
     monkeypatch.setenv("FEATURE_LAYER_DIR", str(tmp_path))
-    det = _detection({
-        "face": [_region("face", 10, 10, 90, 90)],
-        "lips": [_region("lips", 30, 50, 70, 70)],
-        "iris": [_region("iris", 35, 35, 50, 50),
-                 _region("iris", 55, 35, 70, 50)],
-    })
+    det = _detection(
+        {
+            "face": [_region("face", 10, 10, 90, 90)],
+            "lips": [_region("lips", 30, 50, 70, 70)],
+            "iris": [_region("iris", 35, 35, 50, 50), _region("iris", 55, 35, 70, 50)],
+        }
+    )
     out = persist_feature_crops(_job(), det)
 
     assert len(out) == 4

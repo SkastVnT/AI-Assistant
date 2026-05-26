@@ -34,8 +34,13 @@ from .character_research import _CHARACTER_ALIASES, _SERIES_HINTS
 # Word prepositions: require \b boundaries. Slash separator handled
 # separately because it has no word boundary semantics.
 _PREP_WORDS: tuple[str, ...] = (
-    "from", "of", "in", "at",            # English
-    "trong", "của", "tại",               # Vietnamese
+    "from",
+    "of",
+    "in",
+    "at",  # English
+    "trong",
+    "của",
+    "tại",  # Vietnamese
 )
 _PREP_PATTERN = re.compile(
     r"(?:\b(?:" + "|".join(re.escape(p) for p in _PREP_WORDS) + r")\b|\s*/\s*)",
@@ -92,6 +97,7 @@ _OFF_DOMAIN_HOMONYMS: dict[str, tuple[str, ...]] = {
 # ══════════════════════════════════════════════════════════════════════
 # Public contract
 # ══════════════════════════════════════════════════════════════════════
+
 
 @dataclass
 class ParsedIdentity:
@@ -230,6 +236,7 @@ def parse_character_identity(user_prompt: str) -> ParsedIdentity:
 # Internals
 # ══════════════════════════════════════════════════════════════════════
 
+
 def _assign(
     result: ParsedIdentity,
     info: tuple[str, str, str, str],
@@ -288,11 +295,11 @@ def _find_explicit_pair(
         alias_match = _boundary_pattern(alias).search(lower)
         if not alias_match:
             continue
-        tail = lower[alias_match.end():]
+        tail = lower[alias_match.end() :]
         prep_match = _PREP_PATTERN.search(tail)
         if not prep_match:
             continue
-        window = tail[prep_match.end(): prep_match.end() + _EXPLICIT_PAIR_WINDOW]
+        window = tail[prep_match.end() : prep_match.end() + _EXPLICIT_PAIR_WINDOW]
         # Look for any series hint inside the window.
         for hint in sorted(_SERIES_HINTS.keys(), key=len, reverse=True):
             if _SERIES_HINTS[hint] != info[1]:
@@ -319,9 +326,9 @@ def _fill_collision_blocks(
     alias_matches: list[tuple[str, tuple[str, str, str, str]]],
 ) -> None:
     """Populate ``result.collision_blocks`` from:
-      * off-domain homonyms (Kafka → writer, ...)
-      * other alias matches that resolve to different characters
-      * solo-intent multi-subject negatives
+    * off-domain homonyms (Kafka → writer, ...)
+    * other alias matches that resolve to different characters
+    * solo-intent multi-subject negatives
     """
     blocks: list[str] = []
 
@@ -340,15 +347,17 @@ def _fill_collision_blocks(
 
     # Solo-intent multi-subject negatives.
     if result.solo_intent:
-        blocks.extend([
-            "2girls",
-            "2boys",
-            "multiple girls",
-            "multiple boys",
-            "group of people",
-            "crowd",
-            "duo",
-        ])
+        blocks.extend(
+            [
+                "2girls",
+                "2boys",
+                "multiple girls",
+                "multiple boys",
+                "group of people",
+                "crowd",
+                "duo",
+            ]
+        )
 
     # Deduplicate, case-insensitive, preserving first-seen order.
     seen: set[str] = set()
@@ -370,6 +379,7 @@ __all__ = ["ParsedIdentity", "parse_character_identity"]
 # ══════════════════════════════════════════════════════════════════════
 # SAA (Character Select Stand-Alone App) fallback
 # ══════════════════════════════════════════════════════════════════════
+
 
 def _resolve_via_saa(user_prompt: str) -> Optional[tuple[str, str, str, str]]:
     """Resolve a character via the SAA wai_characters.csv database.
@@ -398,8 +408,18 @@ def _resolve_via_saa(user_prompt: str) -> Optional[tuple[str, str, str, str]]:
 
     # Strip common prompt noise so candidate phrases are clean.
     cleaned = user_prompt
-    for junk in ("tạo ảnh", "vẽ", "draw", "generate", "make a picture of",
-                 "picture of", "image of", "character:", "char:", "subject:"):
+    for junk in (
+        "tạo ảnh",
+        "vẽ",
+        "draw",
+        "generate",
+        "make a picture of",
+        "picture of",
+        "image of",
+        "character:",
+        "char:",
+        "subject:",
+    ):
         cleaned = re.sub(rf"(?i)\b{re.escape(junk)}", " ", cleaned)
 
     # Split on common separators (comma, parens, colon, slash, newline).
@@ -512,7 +532,7 @@ def _resolve_explicit_via_saa(
             continue
 
         # ── Y candidate: up to 6 leading words after the preposition.
-        tail = text[prep_end:prep_end + 96]
+        tail = text[prep_end : prep_end + 96]
         tail_words = re.findall(r"[A-Za-z][A-Za-z0-9'_-]*", tail)
         y_phrase = " ".join(tail_words[:6]).lower()
         if not y_phrase:
@@ -535,15 +555,13 @@ def _resolve_explicit_via_saa(
             series_hint = (hit.series_hint or "").lower()
             if series_hint:
                 series_tokens = {
-                    t for t in re.split(r"[\s\-:_/]+", series_hint)
-                    if len(t) >= 3
+                    t for t in re.split(r"[\s\-:_/]+", series_hint) if len(t) >= 3
                 }
                 # Joined no-punct form too ("honkaistarrail").
                 series_tokens.add(re.sub(r"[^a-z0-9]", "", series_hint))
                 y_low_compact = re.sub(r"[^a-z0-9]", "", y_phrase)
-                matched = (
-                    any(tok in y_phrase for tok in series_tokens)
-                    or any(tok and tok in y_low_compact for tok in series_tokens)
+                matched = any(tok in y_phrase for tok in series_tokens) or any(
+                    tok and tok in y_low_compact for tok in series_tokens
                 )
                 if not matched:
                     continue
@@ -553,9 +571,7 @@ def _resolve_explicit_via_saa(
                 if hit.match_score < 1.0:
                     continue
 
-            series_tag = (
-                series_hint.replace(" ", "_") if series_hint else "unknown"
-            )
+            series_tag = series_hint.replace(" ", "_") if series_hint else "unknown"
             series_name = hit.series_hint or "Unknown"
             display = hit.display_name or hit.tag.title()
             return (hit.danbooru_tag, series_tag, display, series_name)

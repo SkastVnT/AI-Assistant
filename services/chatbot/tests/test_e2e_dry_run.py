@@ -22,7 +22,6 @@ Validates:
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
@@ -30,40 +29,45 @@ _root = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(_root))
 sys.path.insert(0, str(_root / "services" / "chatbot"))
 
-import pytest
-from unittest.mock import patch, MagicMock
 
+import pytest
+
+from image_pipeline.anime_pipeline.comfy_client import ComfyJobResult
 from image_pipeline.anime_pipeline.config import (
     AnimePipelineConfig,
     ModelConfig,
     VRAMProfile,
     VRAMProfileConfig,
 )
+from image_pipeline.anime_pipeline.orchestrator import AnimePipelineOrchestrator
 from image_pipeline.anime_pipeline.schemas import (
     AnimePipelineJob,
     AnimePipelineStatus,
     CritiqueReport,
     IntermediateImage,
-    VisionAnalysis,
     LayerPlan,
-    PassConfig,
+    VisionAnalysis,
 )
-from image_pipeline.anime_pipeline.orchestrator import AnimePipelineOrchestrator
-from image_pipeline.anime_pipeline.comfy_client import ComfyJobResult
-
 
 # ── Fixtures ─────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def config():
     return AnimePipelineConfig(
         composition_model=ModelConfig(
             checkpoint="animagine-xl-4.0-opt.safetensors",
-            sampler="euler_a", scheduler="normal", steps=10, cfg=5.0,
+            sampler="euler_a",
+            scheduler="normal",
+            steps=10,
+            cfg=5.0,
         ),
         beauty_model=ModelConfig(
             checkpoint="noobai-xl-1.1.safetensors",
-            sampler="dpmpp_2m_sde", scheduler="karras", steps=10, cfg=5.5,
+            sampler="dpmpp_2m_sde",
+            scheduler="karras",
+            steps=10,
+            cfg=5.5,
             denoise_strength=0.30,
         ),
         final_model=ModelConfig(
@@ -89,18 +93,29 @@ def job():
 
 def _good_critique() -> CritiqueReport:
     return CritiqueReport(
-        anatomy_score=8, face_score=8, eye_consistency_score=8,
-        hands_score=8, clothing_score=8,
-        composition_score=8, color_score=8, style_score=8,
-        background_score=8, accessories_score=8, pose_score=8,
+        anatomy_score=8,
+        face_score=8,
+        eye_consistency_score=8,
+        hands_score=8,
+        clothing_score=8,
+        composition_score=8,
+        color_score=8,
+        style_score=8,
+        background_score=8,
+        accessories_score=8,
+        pose_score=8,
         model_used="mock",
     )
 
 
 def _bad_critique() -> CritiqueReport:
     return CritiqueReport(
-        anatomy_score=3, face_score=4, hands_score=3,
-        composition_score=5, color_score=6, style_score=4,
+        anatomy_score=3,
+        face_score=4,
+        hands_score=3,
+        composition_score=5,
+        color_score=6,
+        style_score=4,
         background_score=4,
         retry_recommendation=True,
         model_used="mock",
@@ -140,11 +155,13 @@ def _mock_vision_execute(job: AnimePipelineJob) -> AnimePipelineJob:
 
 def _mock_composition_execute(job: AnimePipelineJob) -> AnimePipelineJob:
     """Mock CompositionPassAgent.execute — add intermediate image."""
-    job.intermediates.append(IntermediateImage(
-        stage="composition_pass",
-        image_b64="ZmFrZV9jb21wb3NpdGlvbg==",
-        metadata={"model": "animagine-xl-4.0"},
-    ))
+    job.intermediates.append(
+        IntermediateImage(
+            stage="composition_pass",
+            image_b64="ZmFrZV9jb21wb3NpdGlvbg==",
+            metadata={"model": "animagine-xl-4.0"},
+        )
+    )
     job.stages_executed.append("composition_pass")
     job.stage_timings_ms["composition_pass"] = 2000.0
     return job
@@ -152,11 +169,13 @@ def _mock_composition_execute(job: AnimePipelineJob) -> AnimePipelineJob:
 
 def _mock_structure_execute(job: AnimePipelineJob) -> AnimePipelineJob:
     """Mock StructureLockAgent.execute — add structure layer intermediates."""
-    job.intermediates.append(IntermediateImage(
-        stage="structure_lock",
-        image_b64="ZmFrZV9saW5lYXJ0",
-        metadata={"layer_type": "lineart_anime"},
-    ))
+    job.intermediates.append(
+        IntermediateImage(
+            stage="structure_lock",
+            image_b64="ZmFrZV9saW5lYXJ0",
+            metadata={"layer_type": "lineart_anime"},
+        )
+    )
     job.stages_executed.append("structure_lock")
     job.stage_timings_ms["structure_lock"] = 300.0
     return job
@@ -164,11 +183,13 @@ def _mock_structure_execute(job: AnimePipelineJob) -> AnimePipelineJob:
 
 def _mock_beauty_execute(job: AnimePipelineJob) -> AnimePipelineJob:
     """Mock BeautyPassAgent.execute — add beauty intermediate."""
-    job.intermediates.append(IntermediateImage(
-        stage="beauty_pass",
-        image_b64="ZmFrZV9iZWF1dHk=",
-        metadata={"model": "noobai-xl-1.1"},
-    ))
+    job.intermediates.append(
+        IntermediateImage(
+            stage="beauty_pass",
+            image_b64="ZmFrZV9iZWF1dHk=",
+            metadata={"model": "noobai-xl-1.1"},
+        )
+    )
     job.stages_executed.append("beauty_pass")
     job.stage_timings_ms["beauty_pass"] = 1500.0
     return job
@@ -177,11 +198,13 @@ def _mock_beauty_execute(job: AnimePipelineJob) -> AnimePipelineJob:
 def _mock_upscale_execute(job: AnimePipelineJob) -> AnimePipelineJob:
     """Mock UpscaleAgent.execute — set final image."""
     job.final_image_b64 = "ZmFrZV91cHNjYWxlZA=="
-    job.intermediates.append(IntermediateImage(
-        stage="upscale",
-        image_b64="ZmFrZV91cHNjYWxlZA==",
-        metadata={"upscale_model": "RealESRGAN_x4plus_anime_6B"},
-    ))
+    job.intermediates.append(
+        IntermediateImage(
+            stage="upscale",
+            image_b64="ZmFrZV91cHNjYWxlZA==",
+            metadata={"upscale_model": "RealESRGAN_x4plus_anime_6B"},
+        )
+    )
     job.stages_executed.append("upscale")
     job.stage_timings_ms["upscale"] = 800.0
     return job
@@ -190,6 +213,7 @@ def _mock_upscale_execute(job: AnimePipelineJob) -> AnimePipelineJob:
 # ═══════════════════════════════════════════════════════════════════
 # E2E: Full pipeline — critique passes first round
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestE2EDryRunPassFirst:
     """Full pipeline run where critique passes on the first round."""
@@ -208,10 +232,10 @@ class TestE2EDryRunPassFirst:
         # Patch all agents
         orch._vision.execute = _mock_vision_execute
         orch._planner.execute = lambda j: (
-            setattr(j, 'layer_plan', LayerPlan(passes=[])) or
-            j.stages_executed.append("layer_planning") or
-            j.stage_timings_ms.update({"layer_planning": 50.0}) or
-            j
+            setattr(j, "layer_plan", LayerPlan(passes=[]))
+            or j.stages_executed.append("layer_planning")
+            or j.stage_timings_ms.update({"layer_planning": 50.0})
+            or j
         )
         orch._composition.execute = _mock_composition_execute
         orch._structure.execute = _mock_structure_execute
@@ -232,7 +256,9 @@ class TestE2EDryRunPassFirst:
 
         # All stage_start/stage_complete pairs
         stage_starts = [e for e in events if e["event"] == "anime_pipeline_stage_start"]
-        stage_completes = [e for e in events if e["event"] == "anime_pipeline_stage_complete"]
+        stage_completes = [
+            e for e in events if e["event"] == "anime_pipeline_stage_complete"
+        ]
         assert len(stage_starts) == len(stage_completes)
 
         # Job completed
@@ -269,10 +295,10 @@ class TestE2EDryRunCritiqueRetry:
 
         orch._vision.execute = _mock_vision_execute
         orch._planner.execute = lambda j: (
-            setattr(j, 'layer_plan', LayerPlan(passes=[])) or
-            j.stages_executed.append("layer_planning") or
-            j.stage_timings_ms.update({"layer_planning": 50.0}) or
-            j
+            setattr(j, "layer_plan", LayerPlan(passes=[]))
+            or j.stages_executed.append("layer_planning")
+            or j.stage_timings_ms.update({"layer_planning": 50.0})
+            or j
         )
         orch._composition.execute = _mock_composition_execute
         orch._structure.execute = _mock_structure_execute
@@ -292,9 +318,7 @@ class TestE2EDryRunCritiqueRetry:
         assert job.refine_rounds >= 1
 
         # Beauty executed more than once (initial + refine)
-        beauty_stages = [
-            s for s in job.stages_executed if s == "beauty_pass"
-        ]
+        beauty_stages = [s for s in job.stages_executed if s == "beauty_pass"]
         assert len(beauty_stages) >= 2
 
 
@@ -306,9 +330,9 @@ class TestE2EAgentFailure:
 
         orch._vision.execute = _mock_vision_execute
         orch._planner.execute = lambda j: (
-            setattr(j, 'layer_plan', LayerPlan(passes=[])) or
-            j.stages_executed.append("layer_planning") or
-            j
+            setattr(j, "layer_plan", LayerPlan(passes=[]))
+            or j.stages_executed.append("layer_planning")
+            or j
         )
 
         def _failing_composition(j):
@@ -333,9 +357,9 @@ class TestE2EAgentFailure:
 
         orch._vision.execute = _mock_vision_execute
         orch._planner.execute = lambda j: (
-            setattr(j, 'layer_plan', LayerPlan(passes=[])) or
-            j.stages_executed.append("layer_planning") or
-            j
+            setattr(j, "layer_plan", LayerPlan(passes=[]))
+            or j.stages_executed.append("layer_planning")
+            or j
         )
         orch._composition.execute = _mock_composition_execute
         orch._structure.execute = _mock_structure_execute
@@ -359,22 +383,31 @@ class TestE2EEventStructure:
         orch = AnimePipelineOrchestrator(config)
         orch._vision.execute = _mock_vision_execute
         orch._planner.execute = lambda j: (
-            setattr(j, 'layer_plan', LayerPlan(passes=[])) or
-            j.stages_executed.append("layer_planning") or
-            j
+            setattr(j, "layer_plan", LayerPlan(passes=[]))
+            or j.stages_executed.append("layer_planning")
+            or j
         )
         orch._composition.execute = _mock_composition_execute
         orch._structure.execute = _mock_structure_execute
         orch._beauty.execute = _mock_beauty_execute
         orch._critique.execute = lambda j: (
-            j.critique_results.append(CritiqueReport(
-                anatomy_score=8, face_score=8, eye_consistency_score=8,
-                hands_score=8, clothing_score=8,
-                composition_score=8, color_score=8, style_score=8,
-                background_score=8, accessories_score=8, pose_score=8,
-            )) or
-            j.stages_executed.append("critique") or
-            j
+            j.critique_results.append(
+                CritiqueReport(
+                    anatomy_score=8,
+                    face_score=8,
+                    eye_consistency_score=8,
+                    hands_score=8,
+                    clothing_score=8,
+                    composition_score=8,
+                    color_score=8,
+                    style_score=8,
+                    background_score=8,
+                    accessories_score=8,
+                    pose_score=8,
+                )
+            )
+            or j.stages_executed.append("critique")
+            or j
         )
         orch._upscale.execute = _mock_upscale_execute
 
@@ -398,22 +431,31 @@ class TestE2EEventStructure:
         orch = AnimePipelineOrchestrator(config)
         orch._vision.execute = _mock_vision_execute
         orch._planner.execute = lambda j: (
-            setattr(j, 'layer_plan', LayerPlan(passes=[])) or
-            j.stages_executed.append("layer_planning") or
-            j
+            setattr(j, "layer_plan", LayerPlan(passes=[]))
+            or j.stages_executed.append("layer_planning")
+            or j
         )
         orch._composition.execute = _mock_composition_execute
         orch._structure.execute = _mock_structure_execute
         orch._beauty.execute = _mock_beauty_execute
         orch._critique.execute = lambda j: (
-            j.critique_results.append(CritiqueReport(
-                anatomy_score=8, face_score=8, eye_consistency_score=8,
-                hands_score=8, clothing_score=8,
-                composition_score=8, color_score=8, style_score=8,
-                background_score=8, accessories_score=8, pose_score=8,
-            )) or
-            j.stages_executed.append("critique") or
-            j
+            j.critique_results.append(
+                CritiqueReport(
+                    anatomy_score=8,
+                    face_score=8,
+                    eye_consistency_score=8,
+                    hands_score=8,
+                    clothing_score=8,
+                    composition_score=8,
+                    color_score=8,
+                    style_score=8,
+                    background_score=8,
+                    accessories_score=8,
+                    pose_score=8,
+                )
+            )
+            or j.stages_executed.append("critique")
+            or j
         )
         orch._upscale.execute = _mock_upscale_execute
 

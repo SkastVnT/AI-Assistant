@@ -16,6 +16,7 @@ from libs.core.schemas import (
 
 # --- Tenant ---
 
+
 def test_tenant_create_valid() -> None:
     t = TenantCreate(name="Acme Corp", slug="acme")
     assert t.name == "Acme Corp"
@@ -30,6 +31,7 @@ def test_tenant_create_invalid_slug() -> None:
 
 # --- User ---
 
+
 def test_user_create_defaults() -> None:
     u = UserCreate(email="test@example.com")
     assert u.role == "member"
@@ -37,6 +39,7 @@ def test_user_create_defaults() -> None:
 
 
 # --- Document ---
+
 
 def test_document_create_valid() -> None:
     d = DocumentCreate(title="Test Document")
@@ -56,6 +59,7 @@ def test_document_create_empty_title_fails() -> None:
 
 
 # --- QueryRequest ---
+
 
 def test_query_request_valid() -> None:
     req = QueryRequest(query="What is RAG?")
@@ -86,6 +90,7 @@ def test_query_request_top_k_bounds() -> None:
 
 
 # --- SourceChunk ---
+
 
 def test_source_chunk_fields() -> None:
     uid = uuid.uuid4()

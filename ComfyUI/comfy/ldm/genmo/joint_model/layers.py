@@ -1,5 +1,5 @@
-#original code from https://github.com/genmoai/models under apache 2.0 license
-#adapted to ComfyUI
+# original code from https://github.com/genmoai/models under apache 2.0 license
+# adapted to ComfyUI
 
 import collections.abc
 import math
@@ -40,9 +40,17 @@ class TimestepEmbedder(nn.Module):
     ):
         super().__init__()
         self.mlp = nn.Sequential(
-            operations.Linear(frequency_embedding_size, hidden_size, bias=bias, dtype=dtype, device=device),
+            operations.Linear(
+                frequency_embedding_size,
+                hidden_size,
+                bias=bias,
+                dtype=dtype,
+                device=device,
+            ),
             nn.SiLU(),
-            operations.Linear(hidden_size, hidden_size, bias=bias, dtype=dtype, device=device),
+            operations.Linear(
+                hidden_size, hidden_size, bias=bias, dtype=dtype, device=device
+            ),
         )
         self.frequency_embedding_size = frequency_embedding_size
         self.timestep_scale = timestep_scale
@@ -63,7 +71,9 @@ class TimestepEmbedder(nn.Module):
     def forward(self, t, out_dtype):
         if self.timestep_scale is not None:
             t = t * self.timestep_scale
-        t_freq = self.timestep_embedding(t, self.frequency_embedding_size).to(dtype=out_dtype)
+        t_freq = self.timestep_embedding(t, self.frequency_embedding_size).to(
+            dtype=out_dtype
+        )
         t_emb = self.mlp(t_freq)
         return t_emb
 
@@ -88,8 +98,12 @@ class FeedForward(nn.Module):
         hidden_size = multiple_of * ((hidden_size + multiple_of - 1) // multiple_of)
 
         self.hidden_dim = hidden_size
-        self.w1 = operations.Linear(in_features, 2 * hidden_size, bias=False, device=device, dtype=dtype)
-        self.w2 = operations.Linear(hidden_size, in_features, bias=False, device=device, dtype=dtype)
+        self.w1 = operations.Linear(
+            in_features, 2 * hidden_size, bias=False, device=device, dtype=dtype
+        )
+        self.w2 = operations.Linear(
+            hidden_size, in_features, bias=False, device=device, dtype=dtype
+        )
 
     def forward(self, x):
         x, gate = self.w1(x).chunk(2, dim=-1)
@@ -133,15 +147,21 @@ class PatchEmbed(nn.Module):
     def forward(self, x):
         B, _C, T, H, W = x.shape
         if not self.dynamic_img_pad:
-            assert H % self.patch_size[0] == 0, f"Input height ({H}) should be divisible by patch size ({self.patch_size[0]})."
-            assert W % self.patch_size[1] == 0, f"Input width ({W}) should be divisible by patch size ({self.patch_size[1]})."
+            assert H % self.patch_size[0] == 0, (
+                f"Input height ({H}) should be divisible by patch size ({self.patch_size[0]})."
+            )
+            assert W % self.patch_size[1] == 0, (
+                f"Input width ({W}) should be divisible by patch size ({self.patch_size[1]})."
+            )
         else:
             pad_h = (self.patch_size[0] - H % self.patch_size[0]) % self.patch_size[0]
             pad_w = (self.patch_size[1] - W % self.patch_size[1]) % self.patch_size[1]
             x = F.pad(x, (0, pad_w, 0, pad_h))
 
         x = rearrange(x, "B C T H W -> (B T) C H W", B=B, T=T)
-        x = comfy.ldm.common_dit.pad_to_patch_size(x, self.patch_size, padding_mode='circular')
+        x = comfy.ldm.common_dit.pad_to_patch_size(
+            x, self.patch_size, padding_mode="circular"
+        )
         x = self.proj(x)
 
         # Flatten temporal and spatial dimensions.

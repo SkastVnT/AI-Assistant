@@ -34,25 +34,27 @@ logger = logging.getLogger(__name__)
 
 # ─── Locate configs ────────────────────────────────────────────────
 
-_THIS_DIR = Path(__file__).resolve().parent             # image_pipeline/workflow/
-_REPO_ROOT = _THIS_DIR.parent.parent                    # AI-Assistant/
+_THIS_DIR = Path(__file__).resolve().parent  # image_pipeline/workflow/
+_REPO_ROOT = _THIS_DIR.parent.parent  # AI-Assistant/
 _CONFIGS_DIR = _REPO_ROOT / "configs"
 
-_MODELS_YAML   = _CONFIGS_DIR / "models.yaml"
+_MODELS_YAML = _CONFIGS_DIR / "models.yaml"
 _PIPELINE_YAML = _CONFIGS_DIR / "pipeline.yaml"
-_ROUTING_YAML  = _CONFIGS_DIR / "routing.yaml"
+_ROUTING_YAML = _CONFIGS_DIR / "routing.yaml"
 
 
 # ─── Data classes ──────────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class RouteDecision:
     """The output of a routing decision."""
+
     task_type: str
     model: str
     provider: str
-    location: str                       # local | vps | api
-    cost_usd: float                     # estimated per-image cost
+    location: str  # local | vps | api
+    cost_usd: float  # estimated per-image cost
     fallbacks: list[str] = field(default_factory=list)
     notes: str = ""
 
@@ -60,6 +62,7 @@ class RouteDecision:
 @dataclass
 class ModelInfo:
     """Parsed model entry from models.yaml."""
+
     name: str
     provider: str
     endpoint: str
@@ -74,6 +77,7 @@ class ModelInfo:
 
 # ─── Router ────────────────────────────────────────────────────────
 
+
 class CapabilityRouter:
     """
     Reads YAML configs and resolves (task_type, quality, availability) → RouteDecision.
@@ -85,9 +89,9 @@ class CapabilityRouter:
         pipeline_path: str | Path | None = None,
         routing_path: str | Path | None = None,
     ):
-        self._models_path   = Path(models_path   or _MODELS_YAML)
-        self._pipeline_path = Path(pipeline_path  or _PIPELINE_YAML)
-        self._routing_path  = Path(routing_path   or _ROUTING_YAML)
+        self._models_path = Path(models_path or _MODELS_YAML)
+        self._pipeline_path = Path(pipeline_path or _PIPELINE_YAML)
+        self._routing_path = Path(routing_path or _ROUTING_YAML)
 
         self._models: dict[str, ModelInfo] = {}
         self._task_routes: dict[str, dict[str, Any]] = {}
@@ -142,9 +146,7 @@ class CapabilityRouter:
         self._task_routes = raw.get("task_routes", {})
         self._quality_overrides = raw.get("quality_overrides", {})
         self._location_rules = raw.get("location_rules", {})
-        self._max_cost = float(
-            self._location_rules.get("max_cost_per_job", 0.50)
-        )
+        self._max_cost = float(self._location_rules.get("max_cost_per_job", 0.50))
 
     def _load_pipeline(self) -> None:
         # Pipeline config is loaded for future use (timeouts, thresholds).
@@ -206,9 +208,7 @@ class CapabilityRouter:
         ]
 
         # 3. Apply rerouting for unavailable locations
-        candidates = self._apply_reroutes(
-            task_type, candidates, unavailable
-        )
+        candidates = self._apply_reroutes(task_type, candidates, unavailable)
 
         # 4. Pick the first candidate whose location is available
         for model_name in candidates:
@@ -219,7 +219,8 @@ class CapabilityRouter:
             if info.location in unavailable:
                 logger.debug(
                     "Model %r location %r unavailable, skipping",
-                    model_name, info.location,
+                    model_name,
+                    info.location,
                 )
                 continue
 

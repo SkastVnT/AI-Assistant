@@ -166,11 +166,13 @@ class CorrectionResult:
 # ---------------------------------------------------------------------------
 
 
-_INPAINT_FAMILY: frozenset[StageKind] = frozenset({
-    StageKind.INPAINT,
-    StageKind.FACE_PATCH,
-    StageKind.PROP_PATCH,
-})
+_INPAINT_FAMILY: frozenset[StageKind] = frozenset(
+    {
+        StageKind.INPAINT,
+        StageKind.FACE_PATCH,
+        StageKind.PROP_PATCH,
+    }
+)
 
 
 def _is_eligible(required_stages: Iterable[str]) -> bool:

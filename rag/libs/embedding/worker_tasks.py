@@ -41,9 +41,7 @@ async def task_embed_pending(
     Safe to call repeatedly — idempotent via model+version check.
     """
     _, indexer = _build_services(db, provider)
-    result = await indexer.embed_pending(
-        tenant_id=tenant_id, batch_limit=batch_limit
-    )
+    result = await indexer.embed_pending(tenant_id=tenant_id, batch_limit=batch_limit)
     await db.commit()
     logger.info("task_embed_pending: %s", result.summary())
     return result

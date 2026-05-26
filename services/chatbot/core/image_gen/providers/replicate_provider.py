@@ -1,48 +1,51 @@
-﻿"""
+"""
 Replicate provider â€” run any model on the cloud.
 Supports FLUX, Grok-Imagine, Recraft, Seedream, and community models.
 """
 
 from __future__ import annotations
 
-import time
 import logging
+import time
+
 import httpx
-from typing import Optional
 
 from .base import (
-    BaseImageProvider, ImageRequest, ImageResult,
-    ImageMode, ProviderTier,
+    BaseImageProvider,
+    ImageMode,
+    ImageRequest,
+    ImageResult,
+    ProviderTier,
 )
 
 logger = logging.getLogger(__name__)
 
 REPLICATE_MODELS = {
-    "grok-imagine":     "xai/grok-imagine-image",
-    "flux2-pro":        "black-forest-labs/flux-2-pro",
-    "flux2-dev":        "black-forest-labs/flux-2-dev",
-    "flux2-klein-4b":   "black-forest-labs/flux-2-klein-4b",
+    "grok-imagine": "xai/grok-imagine-image",
+    "flux2-pro": "black-forest-labs/flux-2-pro",
+    "flux2-dev": "black-forest-labs/flux-2-dev",
+    "flux2-klein-4b": "black-forest-labs/flux-2-klein-4b",
     "flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
-    "recraft-v4":       "recraft-ai/recraft-v4",
-    "seedream5":        "bytedance/seedream-5-lite",
-    "nano-banana":      "google/nano-banana",
-    "nano-banana-pro":  "google/nano-banana",
-    "nano-banana-2":    "google/nano-banana-2",
-    "sdxl-lightning":   "bytedance/sdxl-lightning-4step",
+    "recraft-v4": "recraft-ai/recraft-v4",
+    "seedream5": "bytedance/seedream-5-lite",
+    "nano-banana": "google/nano-banana",
+    "nano-banana-pro": "google/nano-banana",
+    "nano-banana-2": "google/nano-banana-2",
+    "sdxl-lightning": "bytedance/sdxl-lightning-4step",
 }
 
 REPLICATE_COST = {
-    "grok-imagine":     0.020,
-    "flux2-pro":        0.055,
-    "flux2-dev":        0.025,
-    "flux2-klein-4b":   0.003,
+    "grok-imagine": 0.020,
+    "flux2-pro": 0.055,
+    "flux2-dev": 0.025,
+    "flux2-klein-4b": 0.003,
     "flux-kontext-pro": 0.040,
-    "recraft-v4":       0.020,
-    "seedream5":        0.018,
-    "nano-banana":      0.011,
-    "nano-banana-pro":  0.011,
-    "nano-banana-2":    0.005,
-    "sdxl-lightning":   0.002,
+    "recraft-v4": 0.020,
+    "seedream5": 0.018,
+    "nano-banana": 0.011,
+    "nano-banana-pro": 0.011,
+    "nano-banana-2": 0.005,
+    "sdxl-lightning": 0.002,
 }
 
 
@@ -75,7 +78,9 @@ class ReplicateProvider(BaseImageProvider):
         model_key = req.extra.get("model", self.default_model)
         model_version = REPLICATE_MODELS.get(model_key)
         if not model_version:
-            return ImageResult(success=False, error=f"Unknown Replicate model: {model_key}")
+            return ImageResult(
+                success=False, error=f"Unknown Replicate model: {model_key}"
+            )
 
         t0 = time.time()
 
@@ -116,8 +121,14 @@ class ReplicateProvider(BaseImageProvider):
             )
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"[Replicate] HTTP {e.response.status_code}: {e.response.text[:500]}")
-            return ImageResult(success=False, error=f"Replicate error: {e.response.status_code}", provider=self.name)
+            logger.error(
+                f"[Replicate] HTTP {e.response.status_code}: {e.response.text[:500]}"
+            )
+            return ImageResult(
+                success=False,
+                error=f"Replicate error: {e.response.status_code}",
+                provider=self.name,
+            )
         except Exception as e:
             logger.error(f"[Replicate] Error: {e}", exc_info=True)
             return ImageResult(success=False, error=str(e), provider=self.name)

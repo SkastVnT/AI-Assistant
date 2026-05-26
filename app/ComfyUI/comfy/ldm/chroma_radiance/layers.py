@@ -16,6 +16,7 @@ class NerfEmbedder(nn.Module):
     patch size, and enriches it with positional information before projecting
     it to a new hidden size.
     """
+
     def __init__(
         self,
         in_channels: int,
@@ -43,11 +44,18 @@ class NerfEmbedder(nn.Module):
         # A linear layer to project the concatenated input features and
         # positional encodings to the final output dimension.
         self.embedder = nn.Sequential(
-            operations.Linear(in_channels + max_freqs**2, hidden_size_input, dtype=dtype, device=device)
+            operations.Linear(
+                in_channels + max_freqs**2,
+                hidden_size_input,
+                dtype=dtype,
+                device=device,
+            )
         )
 
     @lru_cache(maxsize=4)
-    def fetch_pos(self, patch_size: int, device: torch.device, dtype: torch.dtype) -> torch.Tensor:
+    def fetch_pos(
+        self, patch_size: int, device: torch.device, dtype: torch.dtype
+    ) -> torch.Tensor:
         """
         Generates and caches 2D DCT-like positional embeddings for a given patch size.
 
@@ -76,7 +84,9 @@ class NerfEmbedder(nn.Module):
         pos_y = pos_y.reshape(-1, 1, 1)
 
         # Create a 1D tensor of frequency values from 0 to max_freqs-1.
-        freqs = torch.linspace(0, self.max_freqs - 1, self.max_freqs, dtype=dtype, device=device)
+        freqs = torch.linspace(
+            0, self.max_freqs - 1, self.max_freqs, dtype=dtype, device=device
+        )
 
         # Reshape frequencies to be broadcastable for creating 2D basis functions.
         # freqs_x shape: (1, max_freqs, 1)
@@ -97,7 +107,7 @@ class NerfEmbedder(nn.Module):
         # multiplication, and apply the custom coefficients. Broadcasting handles the
         # combination of all (pos_x, freqs_x) with all (pos_y, freqs_y).
         # The result is flattened into a feature vector for each position.
-        dct = (dct_x * dct_y * coeffs).view(1, -1, self.max_freqs ** 2)
+        dct = (dct_x * dct_y * coeffs).view(1, -1, self.max_freqs**2)
 
         return dct
 
@@ -115,7 +125,7 @@ class NerfEmbedder(nn.Module):
         B, P2, C = inputs.shape
 
         # Infer the patch side length from the number of pixels (P^2).
-        patch_size = int(P2 ** 0.5)
+        patch_size = int(P2**0.5)
 
         input_dtype = inputs.dtype
         inputs = inputs.to(dtype=self.dtype)
@@ -138,16 +148,28 @@ class NerfGLUBlock(nn.Module):
     """
     A NerfBlock using a Gated Linear Unit (GLU) like MLP.
     """
-    def __init__(self, hidden_size_s: int, hidden_size_x: int, mlp_ratio, dtype=None, device=None, operations=None):
+
+    def __init__(
+        self,
+        hidden_size_s: int,
+        hidden_size_x: int,
+        mlp_ratio,
+        dtype=None,
+        device=None,
+        operations=None,
+    ):
         super().__init__()
         # The total number of parameters for the MLP is increased to accommodate
         # the gate, value, and output projection matrices.
         # We now need to generate parameters for 3 matrices.
         total_params = 3 * hidden_size_x**2 * mlp_ratio
-        self.param_generator = operations.Linear(hidden_size_s, total_params, dtype=dtype, device=device)
-        self.norm = RMSNorm(hidden_size_x, dtype=dtype, device=device, operations=operations)
+        self.param_generator = operations.Linear(
+            hidden_size_s, total_params, dtype=dtype, device=device
+        )
+        self.norm = RMSNorm(
+            hidden_size_x, dtype=dtype, device=device, operations=operations
+        )
         self.mlp_ratio = mlp_ratio
-
 
     def forward(self, x: torch.Tensor, s: torch.Tensor) -> torch.Tensor:
         batch_size, num_x, hidden_size_x = x.shape
@@ -157,8 +179,12 @@ class NerfGLUBlock(nn.Module):
         fc1_gate_params, fc1_value_params, fc2_params = mlp_params.chunk(3, dim=-1)
 
         # Reshape the parameters into matrices for batch matrix multiplication.
-        fc1_gate = fc1_gate_params.view(batch_size, hidden_size_x, hidden_size_x * self.mlp_ratio)
-        fc1_value = fc1_value_params.view(batch_size, hidden_size_x, hidden_size_x * self.mlp_ratio)
+        fc1_gate = fc1_gate_params.view(
+            batch_size, hidden_size_x, hidden_size_x * self.mlp_ratio
+        )
+        fc1_value = fc1_value_params.view(
+            batch_size, hidden_size_x, hidden_size_x * self.mlp_ratio
+        )
         fc2 = fc2_params.view(batch_size, hidden_size_x * self.mlp_ratio, hidden_size_x)
 
         # Normalize the generated weight matrices as in the original implementation.
@@ -170,16 +196,25 @@ class NerfGLUBlock(nn.Module):
         x = self.norm(x)
 
         # Apply the final output projection.
-        x = torch.bmm(torch.nn.functional.silu(torch.bmm(x, fc1_gate)) * torch.bmm(x, fc1_value), fc2)
+        x = torch.bmm(
+            torch.nn.functional.silu(torch.bmm(x, fc1_gate)) * torch.bmm(x, fc1_value),
+            fc2,
+        )
 
         return x + res_x
 
 
 class NerfFinalLayer(nn.Module):
-    def __init__(self, hidden_size, out_channels, dtype=None, device=None, operations=None):
+    def __init__(
+        self, hidden_size, out_channels, dtype=None, device=None, operations=None
+    ):
         super().__init__()
-        self.norm = RMSNorm(hidden_size, dtype=dtype, device=device, operations=operations)
-        self.linear = operations.Linear(hidden_size, out_channels, dtype=dtype, device=device)
+        self.norm = RMSNorm(
+            hidden_size, dtype=dtype, device=device, operations=operations
+        )
+        self.linear = operations.Linear(
+            hidden_size, out_channels, dtype=dtype, device=device
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # RMSNorm normalizes over the last dimension, but our channel dim (C) is at dim=1.
@@ -188,9 +223,18 @@ class NerfFinalLayer(nn.Module):
 
 
 class NerfFinalLayerConv(nn.Module):
-    def __init__(self, hidden_size: int, out_channels: int, dtype=None, device=None, operations=None):
+    def __init__(
+        self,
+        hidden_size: int,
+        out_channels: int,
+        dtype=None,
+        device=None,
+        operations=None,
+    ):
         super().__init__()
-        self.norm = RMSNorm(hidden_size, dtype=dtype, device=device, operations=operations)
+        self.norm = RMSNorm(
+            hidden_size, dtype=dtype, device=device, operations=operations
+        )
         self.conv = operations.Conv2d(
             in_channels=hidden_size,
             out_channels=out_channels,

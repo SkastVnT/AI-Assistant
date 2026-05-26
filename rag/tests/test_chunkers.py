@@ -61,7 +61,9 @@ SAMPLE_TEXT = (
 
 SAMPLE_PARSE_RESULT = ParseResult(
     elements=[
-        ContentElement(type=ElementType.HEADING, content="Introduction to Machine Learning", level=1),
+        ContentElement(
+            type=ElementType.HEADING, content="Introduction to Machine Learning", level=1
+        ),
         ContentElement(
             type=ElementType.PARAGRAPH,
             content=(
@@ -568,9 +570,7 @@ class TestComparison:
             assert r.avg_tokens > 0
 
     def test_compare_subset(self):
-        results = compare_strategies(
-            SAMPLE_TEXT, preset_names=["general", "code_repository"]
-        )
+        results = compare_strategies(SAMPLE_TEXT, preset_names=["general", "code_repository"])
         assert len(results) == 2
         names = {r.preset_name for r in results}
         assert names == {"general", "code_repository"}

@@ -1,11 +1,12 @@
 """
 Retrieval pipeline — embed query → search collections → rank results.
 """
+
 import logging
 
 from ..config import RAG_DEFAULT_TOP_K, RAG_SIMILARITY_THRESHOLD
-from ..embeddings.base import EmbeddingProvider
 from ..db.chroma import VectorStore
+from ..embeddings.base import EmbeddingProvider
 from ..models import SearchResult
 
 logger = logging.getLogger(__name__)

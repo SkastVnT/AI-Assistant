@@ -27,9 +27,9 @@
 
 | Env flag | Mode | Entry |
 |---|---|---|
-| *(none)* | Flask legacy monolith | `chatbot_main.py` |
-| `USE_NEW_STRUCTURE=true` | Flask modular app factory | `run.py` → `app/` |
-| `USE_FASTAPI=true` | FastAPI + uvicorn | `run.py` → `fastapi_app/` |
+| *(none)* | Flask monolith | `run.py` |
+
+`USE_NEW_STRUCTURE` and `USE_FASTAPI` were removed in May 2026. Do not add FastAPI parity files without a separate migration task.
 
 ### 1.3 Request Path (Primary — Flask SSE)
 
@@ -281,7 +281,6 @@ New mode selector option "Hermes Agent" hoặc tool button "Delegate to Hermes".
 | `services/chatbot/routes/stream.py` | **EDIT** — add hermes-delegate tool dispatch | Route | Medium |
 | `services/chatbot/templates/index.html` | **EDIT** — add Hermes mode/tool option | UI | Low |
 | `services/chatbot/static/js/modules/api-service.js` | **EDIT** — add hermes tool ID | UI | Low |
-| `services/chatbot/fastapi_app/routers/` | **CREATE** — `hermes.py` for FastAPI parity | Route | Low |
 | `app/config/.env` | **EDIT** — add `HERMES_*` key placeholders | Config | Low |
 | `services/chatbot/tests/test_hermes_integration.py` | **CREATE** — integration tests | Test | Low |
 | `README.md` | **EDIT** — update service table, tools | Docs | Low |
@@ -401,7 +400,7 @@ New mode selector option "Hermes Agent" hoặc tool button "Delegate to Hermes".
 
 **Step 2.6** — Blueprint registration
 - Đăng ký `hermes_bp` trong `chatbot_main.py` (with try/except)
-- (Optional) FastAPI parity trong `fastapi_app/routers/hermes.py`
+- Do not add FastAPI parity without a separate migration task.
 
 **Step 2.7** — Auto-start (optional)
 - Thêm Hermes auto-start vào `run.py` (tương tự pattern ComfyUI auto-start)
@@ -459,7 +458,7 @@ New mode selector option "Hermes Agent" hoặc tool button "Delegate to Hermes".
 | 2.6 | Image services (SD 7861, ComfyUI 8100) không bị ảnh hưởng | Regression test |
 | 2.7 | All 14 existing blueprints vẫn register thành công | Startup test |
 | 2.8 | `shared_env.py` vẫn load một lần duy nhất | Code review |
-| 2.9 | Flask + FastAPI mode đều hoạt động | Manual verify both modes |
+| 2.9 | Flask mode hoạt động | Manual verify `python run.py` |
 | 2.10 | README.md updated với Hermes service entry | Manual verify |
 
 ### Phase 3: Advanced ⏳ OPEN
@@ -515,7 +514,6 @@ services/chatbot/
 │   └── rag/                    # RAG subsystem
 ├── templates/index.html        # Chat UI
 ├── static/js/modules/          # Frontend modules
-├── fastapi_app/                # FastAPI mode
 ├── app/                        # Modular Flask mode
 └── tests/                      # Test suite
 

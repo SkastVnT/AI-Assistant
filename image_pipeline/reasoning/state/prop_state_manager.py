@@ -25,14 +25,50 @@ from image_pipeline.reasoning.schemas import PropState
 
 # Color + noun → prop candidate (Midjourney short-prompt style).
 _COLOR_WORDS: tuple[str, ...] = (
-    "red", "blue", "green", "yellow", "orange", "purple", "pink", "white",
-    "black", "gray", "grey", "brown", "gold", "silver",
+    "red",
+    "blue",
+    "green",
+    "yellow",
+    "orange",
+    "purple",
+    "pink",
+    "white",
+    "black",
+    "gray",
+    "grey",
+    "brown",
+    "gold",
+    "silver",
 )
 _PROP_NOUNS: tuple[str, ...] = (
-    "phone", "mug", "cup", "book", "pillow", "blanket", "bed", "lamp",
-    "laptop", "card", "letter", "knife", "gun", "sword", "guitar",
-    "umbrella", "bag", "backpack", "hat", "mask", "ring", "necklace",
-    "id", "license", "ticket", "key", "watch", "camera",
+    "phone",
+    "mug",
+    "cup",
+    "book",
+    "pillow",
+    "blanket",
+    "bed",
+    "lamp",
+    "laptop",
+    "card",
+    "letter",
+    "knife",
+    "gun",
+    "sword",
+    "guitar",
+    "umbrella",
+    "bag",
+    "backpack",
+    "hat",
+    "mask",
+    "ring",
+    "necklace",
+    "id",
+    "license",
+    "ticket",
+    "key",
+    "watch",
+    "camera",
 )
 
 _PROP_RE = re.compile(
@@ -72,9 +108,7 @@ class PropStateManager:
         self._store[state.prop_key] = state
         return state
 
-    def extract_props_from_text(
-        self, text: str
-    ) -> tuple[tuple[str, PropState], ...]:
+    def extract_props_from_text(self, text: str) -> tuple[tuple[str, PropState], ...]:
         """Scan ``text``, register new props, and return the props seen here.
 
         The return value mirrors ``prompt_parser._extract_props`` (Cycle 1)

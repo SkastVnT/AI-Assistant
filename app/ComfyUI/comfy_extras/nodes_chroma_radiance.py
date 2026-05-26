@@ -8,6 +8,7 @@ from comfy_api.latest import ComfyExtension, io
 
 import nodes
 
+
 class EmptyChromaRadianceLatentImage(io.ComfyNode):
     @classmethod
     def define_schema(cls) -> io.Schema:
@@ -15,17 +16,24 @@ class EmptyChromaRadianceLatentImage(io.ComfyNode):
             node_id="EmptyChromaRadianceLatentImage",
             category="latent/chroma_radiance",
             inputs=[
-                io.Int.Input(id="width", default=1024, min=16, max=nodes.MAX_RESOLUTION, step=16),
-                io.Int.Input(id="height", default=1024, min=16, max=nodes.MAX_RESOLUTION, step=16),
+                io.Int.Input(
+                    id="width", default=1024, min=16, max=nodes.MAX_RESOLUTION, step=16
+                ),
+                io.Int.Input(
+                    id="height", default=1024, min=16, max=nodes.MAX_RESOLUTION, step=16
+                ),
                 io.Int.Input(id="batch_size", default=1, min=1, max=4096),
             ],
             outputs=[io.Latent().Output()],
         )
 
     @classmethod
-    def execute(cls, *, width: int, height: int, batch_size: int=1) -> io.NodeOutput:
-        latent = torch.zeros((batch_size, 3, height, width), device=comfy.model_management.intermediate_device())
-        return io.NodeOutput({"samples":latent})
+    def execute(cls, *, width: int, height: int, batch_size: int = 1) -> io.NodeOutput:
+        latent = torch.zeros(
+            (batch_size, 3, height, width),
+            device=comfy.model_management.intermediate_device(),
+        )
+        return io.NodeOutput({"samples": latent})
 
 
 class ChromaRadianceOptions(io.ComfyNode):

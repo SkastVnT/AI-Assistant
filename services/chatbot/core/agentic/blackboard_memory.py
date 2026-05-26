@@ -8,11 +8,10 @@ request usage and local development.
 Thread-safety: a ``threading.Lock`` guards mutations so concurrent
 test-runners or threaded ASGI servers won't corrupt state.
 """
+
 from __future__ import annotations
 
 import threading
-from datetime import datetime
-from typing import Any
 
 from core.agentic.config import CouncilConfig
 from core.agentic.contracts import (
@@ -91,15 +90,11 @@ class InMemoryBlackboard:
                 "rounds": state.current_round,
                 "total_llm_calls": state.total_llm_calls,
                 "total_tokens": state.total_tokens,
-                "planner_tasks": sum(
-                    len(p.tasks) for p in state.planner_outputs
-                ),
+                "planner_tasks": sum(len(p.tasks) for p in state.planner_outputs),
                 "evidence_items": sum(
                     len(r.evidence) for r in state.researcher_outputs
                 ),
-                "critic_issues": sum(
-                    len(c.issues) for c in state.critic_outputs
-                ),
+                "critic_issues": sum(len(c.issues) for c in state.critic_outputs),
                 "has_final_answer": state.synthesizer_output is not None,
                 "steps": [
                     {

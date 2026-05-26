@@ -25,22 +25,24 @@ class Mahiro(io.ComfyNode):
     @classmethod
     def execute(cls, model) -> io.NodeOutput:
         m = model.clone()
+
         def mahiro_normd(args):
-            scale: float = args['cond_scale']
-            cond_p: torch.Tensor = args['cond_denoised']
-            uncond_p: torch.Tensor = args['uncond_denoised']
-            #naive leap
+            scale: float = args["cond_scale"]
+            cond_p: torch.Tensor = args["cond_denoised"]
+            uncond_p: torch.Tensor = args["uncond_denoised"]
+            # naive leap
             leap = cond_p * scale
-            #sim with uncond leap
+            # sim with uncond leap
             u_leap = uncond_p * scale
             cfg = args["denoised"]
             merge = (leap + cfg) / 2
             normu = torch.sqrt(u_leap.abs()) * u_leap.sign()
             normm = torch.sqrt(merge.abs()) * merge.sign()
             sim = F.cosine_similarity(normu, normm).mean()
-            simsc = 2 * (sim+1)
-            wm = (simsc*cfg + (4-simsc)*leap) / 4
+            simsc = 2 * (sim + 1)
+            wm = (simsc * cfg + (4 - simsc) * leap) / 4
             return wm
+
         m.set_model_sampler_post_cfg_function(mahiro_normd)
         return io.NodeOutput(m)
 

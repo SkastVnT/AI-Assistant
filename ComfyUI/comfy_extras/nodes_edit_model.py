@@ -16,13 +16,15 @@ class ReferenceLatent(io.ComfyNode):
             ],
             outputs=[
                 io.Conditioning.Output(),
-            ]
+            ],
         )
 
     @classmethod
     def execute(cls, conditioning, latent=None) -> io.NodeOutput:
         if latent is not None:
-            conditioning = node_helpers.conditioning_set_values(conditioning, {"reference_latents": [latent["samples"]]}, append=True)
+            conditioning = node_helpers.conditioning_set_values(
+                conditioning, {"reference_latents": [latent["samples"]]}, append=True
+            )
         return io.NodeOutput(conditioning)
 
 

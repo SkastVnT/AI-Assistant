@@ -1,5 +1,6 @@
 import importlib.util
 from pathlib import Path
+
 import pytest
 
 module_path = Path(__file__).resolve().parents[2] / "mcp-server" / "tools" / "guard.py"

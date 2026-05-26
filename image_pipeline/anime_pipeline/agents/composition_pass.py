@@ -33,32 +33,91 @@ logger = logging.getLogger(__name__)
 # Tags that should be promoted to the front of the positive prompt
 # in the composition pass — they affect large shapes.
 _COMPOSITION_PRIORITY_TAGS = {
-    "pose", "stance", "sitting", "standing", "walking", "running",
-    "full body", "full-body", "upper body", "portrait", "close-up",
-    "from above", "from below", "from side", "looking at viewer",
-    "facing away", "back view", "looking_up", "looking_down",
-    "scenery", "outdoors", "indoors", "blue_sky", "flower_field",
-    "highland", "meadow", "landscape",
+    "pose",
+    "stance",
+    "sitting",
+    "standing",
+    "walking",
+    "running",
+    "full body",
+    "full-body",
+    "upper body",
+    "portrait",
+    "close-up",
+    "from above",
+    "from below",
+    "from side",
+    "looking at viewer",
+    "facing away",
+    "back view",
+    "looking_up",
+    "looking_down",
+    "scenery",
+    "outdoors",
+    "indoors",
+    "blue_sky",
+    "flower_field",
+    "highland",
+    "meadow",
+    "landscape",
 }
 
 # Tags that should be deprioritized or removed in pass 1
 # — micro-details that the beauty pass handles better.
 _DETAIL_DEFER_TAGS = {
-    "intricate details", "detailed fingers", "detailed eyes",
-    "detailed hair strands", "detailed jewelry", "detailed lace",
-    "filigree", "embroidery", "tiny accessories", "brooch",
-    "earring detail", "ring detail", "nail art",
+    "intricate details",
+    "detailed fingers",
+    "detailed eyes",
+    "detailed hair strands",
+    "detailed jewelry",
+    "detailed lace",
+    "filigree",
+    "embroidery",
+    "tiny accessories",
+    "brooch",
+    "earring detail",
+    "ring detail",
+    "nail art",
 }
 
 # Broad background descriptors kept for composition (readable shapes)
 _BACKGROUND_BROAD_TAGS = {
-    "outdoors", "indoors", "sky", "blue_sky", "forest", "city", "school",
-    "classroom", "park", "beach", "night sky", "sunset", "sunrise",
-    "simple background", "gradient background", "scenery",
-    "flower_field", "flower", "highland", "mountain", "meadow",
-    "ocean", "river", "lake", "field", "garden", "temple", "shrine",
-    "rain", "snow", "clouds", "starry_sky", "cherry_blossoms",
-    "wind", "sunlight", "moonlight",
+    "outdoors",
+    "indoors",
+    "sky",
+    "blue_sky",
+    "forest",
+    "city",
+    "school",
+    "classroom",
+    "park",
+    "beach",
+    "night sky",
+    "sunset",
+    "sunrise",
+    "simple background",
+    "gradient background",
+    "scenery",
+    "flower_field",
+    "flower",
+    "highland",
+    "mountain",
+    "meadow",
+    "ocean",
+    "river",
+    "lake",
+    "field",
+    "garden",
+    "temple",
+    "shrine",
+    "rain",
+    "snow",
+    "clouds",
+    "starry_sky",
+    "cherry_blossoms",
+    "wind",
+    "sunlight",
+    "moonlight",
 }
 
 
@@ -92,7 +151,8 @@ def refine_composition_prompt(positive: str) -> str:
     if deferred:
         logger.debug(
             "[CompositionPrompt] Deferred %d detail tags for beauty pass: %s",
-            len(deferred), deferred,
+            len(deferred),
+            deferred,
         )
 
     return ", ".join(priority + regular)
@@ -101,6 +161,7 @@ def refine_composition_prompt(positive: str) -> str:
 # ═══════════════════════════════════════════════════════════════════════
 # CompositionPassAgent
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class CompositionPassAgent:
     """Generate base composition image via ComfyUI.
@@ -164,7 +225,8 @@ class CompositionPassAgent:
         if not result.success:
             logger.error(
                 "[CompositionPass] Failed: %s (validation: %s)",
-                result.error, result.validation_error,
+                result.error,
+                result.validation_error,
             )
             job.error = f"Composition pass failed: {result.error}"
             job.status = AnimePipelineStatus.FAILED
@@ -177,7 +239,8 @@ class CompositionPassAgent:
 
         image_b64 = result.images_b64[0]
         job.add_intermediate(
-            "composition_pass", image_b64,
+            "composition_pass",
+            image_b64,
             seed=seed,
             checkpoint=comp.checkpoint,
             duration_ms=result.duration_ms,
@@ -193,7 +256,8 @@ class CompositionPassAgent:
             job.final_images_b64 = list(result.images_b64)
             for idx, alt_b64 in enumerate(result.images_b64[1:], start=1):
                 job.add_intermediate(
-                    f"composition_pass_alt_{idx}", alt_b64,
+                    f"composition_pass_alt_{idx}",
+                    alt_b64,
                     seed=seed,
                     checkpoint=comp.checkpoint,
                     duration_ms=result.duration_ms,
@@ -205,7 +269,11 @@ class CompositionPassAgent:
         job.mark_stage("composition_pass", latency)
         logger.info(
             "[CompositionPass] Done in %.0fms, checkpoint=%s, %dx%d, seed=%d",
-            latency, comp.checkpoint, comp.width, comp.height, seed,
+            latency,
+            comp.checkpoint,
+            comp.width,
+            comp.height,
+            seed,
         )
         return job
 
@@ -262,7 +330,8 @@ class CompositionPassAgent:
         """
         refined = self._prepare_pass_config(comp)
         return self._builder.build_composition(
-            refined, seed,
+            refined,
+            seed,
             source_image_b64=source_image_b64,
             clip_skip=clip_skip,
         )

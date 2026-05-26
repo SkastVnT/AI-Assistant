@@ -32,6 +32,7 @@ _DOWNLOAD_TIMEOUT = 15.0
 @dataclass
 class CharacterRefSet:
     """Cached reference images for a known character."""
+
     character_tag: str = ""
     series_tag: str = ""
     images_b64: list[str] = field(default_factory=list)
@@ -53,7 +54,12 @@ _CHARACTER_IDENTITY: dict[str, dict] = {
             "left_eye": "golden/yellow (normal pupil)",
             "right_eye": "red with clock face pattern (roman numerals visible in iris)",
             "pupil_detail": "right eye has roman numeral clock face, left eye is normal golden",
-            "critical_tags": ["heterochromia", "(yellow_left_eye:1.2)", "(red_right_eye:1.2)", "clock_eyes"],
+            "critical_tags": [
+                "heterochromia",
+                "(yellow_left_eye:1.2)",
+                "(red_right_eye:1.2)",
+                "clock_eyes",
+            ],
             "common_errors": [
                 "both eyes same color — WRONG, must be heterochromia",
                 "clock on wrong eye — clock is on RIGHT eye only",
@@ -68,7 +74,12 @@ _CHARACTER_IDENTITY: dict[str, dict] = {
         },
         "outfit_default": "black and red gothic lolita dress with frills and corset lacing",
         "skin_tone": "fair/pale, smooth porcelain skin",
-        "distinguishing": ["clock motif", "asymmetric eye design", "elegant gothic aesthetic", "confident/playful expression"],
+        "distinguishing": [
+            "clock motif",
+            "asymmetric eye design",
+            "elegant gothic aesthetic",
+            "confident/playful expression",
+        ],
     },
     "yatogami_tohka": {
         "series": "date_a_live",
@@ -237,7 +248,11 @@ def get_character_ref_set(danbooru_tag: str) -> CharacterRefSet:
 
     # Load cached images (PNG/JPG)
     image_files = sorted(
-        [f for f in cache_dir.iterdir() if f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp")],
+        [
+            f
+            for f in cache_dir.iterdir()
+            if f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp")
+        ],
         key=lambda f: f.stat().st_mtime,
         reverse=True,
     )[:_MAX_REFS_PER_CHARACTER]
@@ -254,7 +269,8 @@ def get_character_ref_set(danbooru_tag: str) -> CharacterRefSet:
         ref_set.loaded_from_cache = True
         logger.info(
             "[CharRef] Loaded %d reference(s) for %s from cache",
-            len(ref_set.images_b64), danbooru_tag,
+            len(ref_set.images_b64),
+            danbooru_tag,
         )
 
     return ref_set
@@ -288,7 +304,12 @@ def save_as_reference(danbooru_tag: str, image_b64: str, score: float) -> Option
     try:
         raw = image_b64.split(",", 1)[-1] if "," in image_b64 else image_b64
         filepath.write_bytes(base64.b64decode(raw))
-        logger.info("[CharRef] Saved reference for %s: %s (score=%.1f)", danbooru_tag, filename, score)
+        logger.info(
+            "[CharRef] Saved reference for %s: %s (score=%.1f)",
+            danbooru_tag,
+            filename,
+            score,
+        )
         return str(filepath)
     except Exception as e:
         logger.error("[CharRef] Failed to save reference: %s", e)
@@ -305,7 +326,9 @@ def build_identity_critique_context(danbooru_tag: str) -> str:
     if not identity:
         return ""
 
-    parts = [f"CHARACTER IDENTITY REFERENCE for {danbooru_tag} ({identity.get('series', '')}):\n"]
+    parts = [
+        f"CHARACTER IDENTITY REFERENCE for {danbooru_tag} ({identity.get('series', '')}):\n"
+    ]
 
     eye = identity.get("eye_detail", {})
     if eye:
@@ -334,11 +357,15 @@ def build_identity_critique_context(danbooru_tag: str) -> str:
         parts.append(f"- Skin tone: {identity['skin_tone']}")
 
     if identity.get("distinguishing"):
-        parts.append(f"- Distinguishing features: {', '.join(identity['distinguishing'])}")
+        parts.append(
+            f"- Distinguishing features: {', '.join(identity['distinguishing'])}"
+        )
 
-    parts.append("\nVERIFY these identity details match the generated image. "
-                 "Score eye_consistency LOW if eye colors don't match the character. "
-                 "For heterochromia characters, BOTH eye colors must be correct and distinct.")
+    parts.append(
+        "\nVERIFY these identity details match the generated image. "
+        "Score eye_consistency LOW if eye colors don't match the character. "
+        "For heterochromia characters, BOTH eye colors must be correct and distinct."
+    )
 
     # Add common errors if available
     common_errors = eye.get("common_errors", [])

@@ -441,9 +441,7 @@ class TestMetadataExtractor:
         assert meta["detected_title"] == "my_report"
 
     def test_word_count(self):
-        result = ParseResult(
-            elements=[], title=None, raw_text="one two three four five"
-        )
+        result = ParseResult(elements=[], title=None, raw_text="one two three four five")
         meta = extract_metadata(result, "f.txt")
         assert meta["word_count"] == 5
 

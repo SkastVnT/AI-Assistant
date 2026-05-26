@@ -54,6 +54,7 @@ _RESEARCH_TTL_SECONDS = 7 * 24 * 3600
 # Override with CHAR_RESEARCH_REUSE_REFS=1 to fall back to the old
 # "reuse cached refs" behaviour (e.g. when running offline).
 
+
 def _seen_registry_path(danbooru_tag: str) -> Path:
     return _REF_DIR / danbooru_tag / "seen_urls.json"
 
@@ -67,6 +68,7 @@ def _load_seen_registry(danbooru_tag: str) -> dict[str, dict[str, str]]:
     Never raises; missing/corrupt files yield empty maps.
     """
     import json
+
     reg: dict[str, dict[str, str]] = {"url_hashes": {}, "byte_hashes": {}}
     path = _seen_registry_path(danbooru_tag)
     if path.exists():
@@ -75,8 +77,9 @@ def _load_seen_registry(danbooru_tag: str) -> dict[str, dict[str, str]]:
             reg["url_hashes"] = dict(data.get("url_hashes") or {})
             reg["byte_hashes"] = dict(data.get("byte_hashes") or {})
         except Exception as e:
-            logger.warning("[CharResearch] seen_urls.json unreadable for %s: %s",
-                           danbooru_tag, e)
+            logger.warning(
+                "[CharResearch] seen_urls.json unreadable for %s: %s", danbooru_tag, e
+            )
 
     # Backfill: any image already in the ref dir but absent from the
     # registry should still be treated as seen.
@@ -107,6 +110,7 @@ def _load_seen_registry(danbooru_tag: str) -> dict[str, dict[str, str]]:
 def _save_seen_registry(danbooru_tag: str, reg: dict[str, dict[str, str]]) -> None:
     """Persist the seen registry. Never raises."""
     import json
+
     path = _seen_registry_path(danbooru_tag)
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -115,12 +119,17 @@ def _save_seen_registry(danbooru_tag: str, reg: dict[str, dict[str, str]]) -> No
             encoding="utf-8",
         )
     except Exception as e:
-        logger.warning("[CharResearch] could not persist seen_urls.json for %s: %s",
-                       danbooru_tag, e)
+        logger.warning(
+            "[CharResearch] could not persist seen_urls.json for %s: %s",
+            danbooru_tag,
+            e,
+        )
 
 
 def _url_hash(url: str) -> str:
-    return hashlib.md5(url.encode("utf-8", errors="ignore"), usedforsecurity=False).hexdigest()[:8]
+    return hashlib.md5(
+        url.encode("utf-8", errors="ignore"), usedforsecurity=False
+    ).hexdigest()[:8]
 
 
 def _bytes_hash(data: bytes) -> str:
@@ -176,10 +185,9 @@ def _persist_saa_thumbnail(danbooru_tag: str) -> Optional[Path]:
         return None
     try:
         # WAI keys use space-form tags.
-        b64 = (
-            get_character_thumbnail(danbooru_tag.replace("_", " "))
-            or get_character_thumbnail(danbooru_tag)
-        )
+        b64 = get_character_thumbnail(
+            danbooru_tag.replace("_", " ")
+        ) or get_character_thumbnail(danbooru_tag)
         if not b64:
             return None
         if "," in b64 and b64.startswith("data:"):
@@ -188,7 +196,8 @@ def _persist_saa_thumbnail(danbooru_tag: str) -> Optional[Path]:
         target.write_bytes(base64.b64decode(b64))
         logger.info(
             "[CharResearch] Persisted SAA thumbnail for %s -> %s",
-            danbooru_tag, target.name,
+            danbooru_tag,
+            target.name,
         )
         return target
     except Exception as exc:  # noqa: BLE001
@@ -233,7 +242,9 @@ def _collect_local_refs(
     if out:
         logger.info(
             "[CharResearch] SAA-first local refs: %d found for %s (saa=%s)",
-            len(out), danbooru_tag, bool(saa_path),
+            len(out),
+            danbooru_tag,
+            bool(saa_path),
         )
     return out
 
@@ -241,6 +252,7 @@ def _collect_local_refs(
 @dataclass
 class LayerDetail:
     """Visual detail for a specific body/outfit layer."""
+
     layer_name: str  # e.g. "eyes", "hair", "outfit_top", "accessories"
     description: str  # natural language description
     tags: list[str] = field(default_factory=list)  # danbooru-style tags
@@ -250,6 +262,7 @@ class LayerDetail:
 @dataclass
 class CharacterResearchResult:
     """Complete research output for a character."""
+
     danbooru_tag: str
     series_tag: str
     display_name: str = ""
@@ -284,16 +297,22 @@ class CharacterResearchResult:
     # 2026-04-29: source diagnostics so the UI can tell the user where
     # the reference images really came from. Filled in by the research
     # path that built the final reference_images_b64 list.
-    local_refs_count: int = 0          # served from storage/character_refs/
-    web_refs_count: int = 0            # downloaded via image_search_character
-    web_search_skipped: bool = False   # short-circuit triggered (≥ min refs)
-    nsfw_intent: bool = False          # NSFW priority chain was used
+    local_refs_count: int = 0  # served from storage/character_refs/
+    web_refs_count: int = 0  # downloaded via image_search_character
+    web_search_skipped: bool = False  # short-circuit triggered (≥ min refs)
+    nsfw_intent: bool = False  # NSFW priority chain was used
 
     def build_positive_tags(self) -> list[str]:
         """Build ordered tag list: character > identity > layers."""
         tags: list[str] = [self.danbooru_tag, self.series_tag]
-        for layer in [self.eyes, self.hair, self.face, self.outfit,
-                      self.accessories, self.body]:
+        for layer in [
+            self.eyes,
+            self.hair,
+            self.face,
+            self.outfit,
+            self.accessories,
+            self.body,
+        ]:
             if layer:
                 for t in layer.tags:
                     if t not in tags:
@@ -325,9 +344,7 @@ class CharacterResearchResult:
         if self.body:
             parts.append(f"BODY: {self.body.description}")
         if self.distinguishing_features:
-            parts.append(
-                f"KEY FEATURES: {', '.join(self.distinguishing_features)}"
-            )
+            parts.append(f"KEY FEATURES: {', '.join(self.distinguishing_features)}")
         parts.append(
             "\nScore LOW on eye_consistency if eye colors/patterns don't match. "
             "Score LOW on face_score if expression or face shape is wrong. "
@@ -389,13 +406,23 @@ def _dict_to_layer(d: Optional[dict]) -> Optional[LayerDetail]:
 _CHARACTER_ALIASES: dict[str, tuple[str, str, str, str]] = {
     # Date a Live
     "kurumi": ("tokisaki_kurumi", "date_a_live", "Tokisaki Kurumi", "Date A Live"),
-    "tokisaki kurumi": ("tokisaki_kurumi", "date_a_live", "Tokisaki Kurumi", "Date A Live"),
+    "tokisaki kurumi": (
+        "tokisaki_kurumi",
+        "date_a_live",
+        "Tokisaki Kurumi",
+        "Date A Live",
+    ),
     "tohka": ("yatogami_tohka", "date_a_live", "Yatogami Tohka", "Date A Live"),
     "kotori": ("itsuka_kotori", "date_a_live", "Itsuka Kotori", "Date A Live"),
     "origami": ("tobiichi_origami", "date_a_live", "Tobiichi Origami", "Date A Live"),
     # Sword Art Online
     "asuna": ("yuuki_asuna", "sword_art_online", "Yuuki Asuna", "Sword Art Online"),
-    "kirito": ("kirigaya_kazuto", "sword_art_online", "Kirigaya Kazuto", "Sword Art Online"),
+    "kirito": (
+        "kirigaya_kazuto",
+        "sword_art_online",
+        "Kirigaya Kazuto",
+        "Sword Art Online",
+    ),
     # Re:Zero
     "rem": ("rem_(re:zero)", "re:zero", "Rem", "Re:Zero"),
     "emilia": ("emilia_(re:zero)", "re:zero", "Emilia", "Re:Zero"),
@@ -407,7 +434,12 @@ _CHARACTER_ALIASES: dict[str, tuple[str, str, str, str]] = {
     # Genshin Impact
     "hu tao": ("hu_tao_(genshin_impact)", "genshin_impact", "Hu Tao", "Genshin Impact"),
     "hutao": ("hu_tao_(genshin_impact)", "genshin_impact", "Hu Tao", "Genshin Impact"),
-    "raiden shogun": ("raiden_shogun", "genshin_impact", "Raiden Shogun", "Genshin Impact"),
+    "raiden shogun": (
+        "raiden_shogun",
+        "genshin_impact",
+        "Raiden Shogun",
+        "Genshin Impact",
+    ),
     "raiden": ("raiden_shogun", "genshin_impact", "Raiden Shogun", "Genshin Impact"),
     "fischl": ("fischl_(genshin_impact)", "genshin_impact", "Fischl", "Genshin Impact"),
     "ganyu": ("ganyu_(genshin_impact)", "genshin_impact", "Ganyu", "Genshin Impact"),
@@ -415,22 +447,62 @@ _CHARACTER_ALIASES: dict[str, tuple[str, str, str, str]] = {
     "nahida": ("nahida_(genshin_impact)", "genshin_impact", "Nahida", "Genshin Impact"),
     "furina": ("furina_(genshin_impact)", "genshin_impact", "Furina", "Genshin Impact"),
     "yae miko": ("yae_miko", "genshin_impact", "Yae Miko", "Genshin Impact"),
-    "zhongli": ("zhongli_(genshin_impact)", "genshin_impact", "Zhongli", "Genshin Impact"),
+    "zhongli": (
+        "zhongli_(genshin_impact)",
+        "genshin_impact",
+        "Zhongli",
+        "Genshin Impact",
+    ),
     # Honkai: Star Rail
-    "kafka": ("kafka_(honkai:_star_rail)", "honkai:_star_rail", "Kafka", "Honkai: Star Rail"),
-    "silver wolf": ("silver_wolf_(honkai:_star_rail)", "honkai:_star_rail", "Silver Wolf", "Honkai: Star Rail"),
-    "seele": ("seele_(honkai:_star_rail)", "honkai:_star_rail", "Seele", "Honkai: Star Rail"),
-    "firefly": ("firefly_(honkai:_star_rail)", "honkai:_star_rail", "Firefly", "Honkai: Star Rail"),
+    "kafka": (
+        "kafka_(honkai:_star_rail)",
+        "honkai:_star_rail",
+        "Kafka",
+        "Honkai: Star Rail",
+    ),
+    "silver wolf": (
+        "silver_wolf_(honkai:_star_rail)",
+        "honkai:_star_rail",
+        "Silver Wolf",
+        "Honkai: Star Rail",
+    ),
+    "seele": (
+        "seele_(honkai:_star_rail)",
+        "honkai:_star_rail",
+        "Seele",
+        "Honkai: Star Rail",
+    ),
+    "firefly": (
+        "firefly_(honkai:_star_rail)",
+        "honkai:_star_rail",
+        "Firefly",
+        "Honkai: Star Rail",
+    ),
     # Fate series
-    "saber": ("artoria_pendragon", "fate/stay_night", "Artoria Pendragon", "Fate/stay night"),
+    "saber": (
+        "artoria_pendragon",
+        "fate/stay_night",
+        "Artoria Pendragon",
+        "Fate/stay night",
+    ),
     "rin": ("tohsaka_rin", "fate/stay_night", "Tohsaka Rin", "Fate/stay night"),
     "sakura": ("matou_sakura", "fate/stay_night", "Matou Sakura", "Fate/stay night"),
     # Naruto
     "hinata": ("hyuuga_hinata", "naruto", "Hyuuga Hinata", "Naruto"),
     "sakura haruno": ("haruno_sakura", "naruto", "Haruno Sakura", "Naruto"),
     # Attack on Titan
-    "mikasa": ("mikasa_ackerman", "shingeki_no_kyojin", "Mikasa Ackerman", "Attack on Titan"),
-    "historia": ("historia_reiss", "shingeki_no_kyojin", "Historia Reiss", "Attack on Titan"),
+    "mikasa": (
+        "mikasa_ackerman",
+        "shingeki_no_kyojin",
+        "Mikasa Ackerman",
+        "Attack on Titan",
+    ),
+    "historia": (
+        "historia_reiss",
+        "shingeki_no_kyojin",
+        "Historia Reiss",
+        "Attack on Titan",
+    ),
     # Spy x Family
     "yor": ("yor_forger", "spy_x_family", "Yor Forger", "Spy x Family"),
     "anya": ("anya_forger", "spy_x_family", "Anya Forger", "Spy x Family"),
@@ -442,8 +514,18 @@ _CHARACTER_ALIASES: dict[str, tuple[str, str, str, str]] = {
     # Blue Archive
     "arona": ("arona_(blue_archive)", "blue_archive", "Arona", "Blue Archive"),
     # Frieren
-    "frieren": ("frieren", "sousou_no_frieren", "Frieren", "Frieren: Beyond Journey's End"),
-    "fern": ("fern_(sousou_no_frieren)", "sousou_no_frieren", "Fern", "Frieren: Beyond Journey's End"),
+    "frieren": (
+        "frieren",
+        "sousou_no_frieren",
+        "Frieren",
+        "Frieren: Beyond Journey's End",
+    ),
+    "fern": (
+        "fern_(sousou_no_frieren)",
+        "sousou_no_frieren",
+        "Fern",
+        "Frieren: Beyond Journey's End",
+    ),
     # Hololive
     "fubuki": ("shirakami_fubuki", "hololive", "Shirakami Fubuki", "Hololive"),
     "pekora": ("usada_pekora", "hololive", "Usada Pekora", "Hololive"),
@@ -457,15 +539,40 @@ _CHARACTER_ALIASES: dict[str, tuple[str, str, str, str]] = {
     # Zenless Zone Zero
     "ellen": ("ellen_joe", "zenless_zone_zero", "Ellen Joe", "Zenless Zone Zero"),
     "ellen joe": ("ellen_joe", "zenless_zone_zero", "Ellen Joe", "Zenless Zone Zero"),
-    "miyabi": ("miyabi_(zenless_zone_zero)", "zenless_zone_zero", "Miyabi", "Zenless Zone Zero"),
+    "miyabi": (
+        "miyabi_(zenless_zone_zero)",
+        "zenless_zone_zero",
+        "Miyabi",
+        "Zenless Zone Zero",
+    ),
     "lycaon": ("von_lycaon", "zenless_zone_zero", "Von Lycaon", "Zenless Zone Zero"),
     "anby": ("anby_demara", "zenless_zone_zero", "Anby Demara", "Zenless Zone Zero"),
-    "nicole": ("nicole_demara", "zenless_zone_zero", "Nicole Demara", "Zenless Zone Zero"),
-    "nicole demara": ("nicole_demara", "zenless_zone_zero", "Nicole Demara", "Zenless Zone Zero"),
+    "nicole": (
+        "nicole_demara",
+        "zenless_zone_zero",
+        "Nicole Demara",
+        "Zenless Zone Zero",
+    ),
+    "nicole demara": (
+        "nicole_demara",
+        "zenless_zone_zero",
+        "Nicole Demara",
+        "Zenless Zone Zero",
+    ),
     "koleda": ("koleda_belobog", "zenless_zone_zero", "Koleda", "Zenless Zone Zero"),
-    "jane doe": ("jane_doe_(zenless_zone_zero)", "zenless_zone_zero", "Jane Doe", "Zenless Zone Zero"),
+    "jane doe": (
+        "jane_doe_(zenless_zone_zero)",
+        "zenless_zone_zero",
+        "Jane Doe",
+        "Zenless Zone Zero",
+    ),
     "zhu yuan": ("zhu_yuan", "zenless_zone_zero", "Zhu Yuan", "Zenless Zone Zero"),
-    "lucy": ("lucy_(zenless_zone_zero)", "zenless_zone_zero", "Lucy", "Zenless Zone Zero"),
+    "lucy": (
+        "lucy_(zenless_zone_zero)",
+        "zenless_zone_zero",
+        "Lucy",
+        "Zenless Zone Zero",
+    ),
     # NIKKE
     "rapi": ("rapi_(nikke)", "goddess_of_victory:_nikke", "Rapi", "NIKKE"),
     "marian": ("marian_(nikke)", "goddess_of_victory:_nikke", "Marian", "NIKKE"),
@@ -492,10 +599,25 @@ _CHARACTER_ALIASES: dict[str, tuple[str, str, str, str]] = {
     "kongou": ("kongou_(kancolle)", "kantai_collection", "Kongou", "KanColle"),
     "yamato": ("yamato_(kancolle)", "kantai_collection", "Yamato", "KanColle"),
     # Fate/Hollow Ataraxia
-    "caren": ("caren_hortensia", "fate/hollow_ataraxia", "Caren Hortensia", "Fate/Hollow Ataraxia"),
-    "bazett": ("bazett_fraga_mcremitz", "fate/hollow_ataraxia", "Bazett", "Fate/Hollow Ataraxia"),
+    "caren": (
+        "caren_hortensia",
+        "fate/hollow_ataraxia",
+        "Caren Hortensia",
+        "Fate/Hollow Ataraxia",
+    ),
+    "bazett": (
+        "bazett_fraga_mcremitz",
+        "fate/hollow_ataraxia",
+        "Bazett",
+        "Fate/Hollow Ataraxia",
+    ),
     "ishtar": ("ishtar_(fate)", "fate/grand_order", "Ishtar", "Fate/Grand Order"),
-    "ereshkigal": ("ereshkigal_(fate)", "fate/grand_order", "Ereshkigal", "Fate/Grand Order"),
+    "ereshkigal": (
+        "ereshkigal_(fate)",
+        "fate/grand_order",
+        "Ereshkigal",
+        "Fate/Grand Order",
+    ),
     # Touhou
     "reimu": ("hakurei_reimu", "touhou", "Hakurei Reimu", "Touhou"),
     "marisa": ("kirisame_marisa", "touhou", "Kirisame Marisa", "Touhou"),
@@ -508,43 +630,65 @@ _CHARACTER_ALIASES: dict[str, tuple[str, str, str, str]] = {
 # Maps lowercase keywords that might appear in a prompt → canonical series_tag
 _SERIES_HINTS: dict[str, str] = {
     # Genshin Impact
-    "genshin": "genshin_impact", "genshin impact": "genshin_impact",
+    "genshin": "genshin_impact",
+    "genshin impact": "genshin_impact",
     "gi": "genshin_impact",
-    "teyvat": "genshin_impact", "mondstadt": "genshin_impact",
-    "liyue": "genshin_impact", "inazuma": "genshin_impact",
-    "sumeru": "genshin_impact", "fontaine": "genshin_impact",
-    "snezhnaya": "genshin_impact", "natlan": "genshin_impact",
+    "teyvat": "genshin_impact",
+    "mondstadt": "genshin_impact",
+    "liyue": "genshin_impact",
+    "inazuma": "genshin_impact",
+    "sumeru": "genshin_impact",
+    "fontaine": "genshin_impact",
+    "snezhnaya": "genshin_impact",
+    "natlan": "genshin_impact",
     # Honkai: Star Rail
-    "hsr": "honkai:_star_rail", "star rail": "honkai:_star_rail",
-    "honkai star rail": "honkai:_star_rail", "astral express": "honkai:_star_rail",
-    "stellaron": "honkai:_star_rail", "xianzhou": "honkai:_star_rail",
-    "penacony": "honkai:_star_rail", "belobog": "honkai:_star_rail",
+    "hsr": "honkai:_star_rail",
+    "star rail": "honkai:_star_rail",
+    "honkai star rail": "honkai:_star_rail",
+    "astral express": "honkai:_star_rail",
+    "stellaron": "honkai:_star_rail",
+    "xianzhou": "honkai:_star_rail",
+    "penacony": "honkai:_star_rail",
+    "belobog": "honkai:_star_rail",
     # Honkai Impact 3rd
-    "hi3": "honkai_impact_3rd", "honkai impact": "honkai_impact_3rd",
+    "hi3": "honkai_impact_3rd",
+    "honkai impact": "honkai_impact_3rd",
     "honkai 3rd": "honkai_impact_3rd",
     # Zenless Zone Zero
-    "zzz": "zenless_zone_zero", "zenless": "zenless_zone_zero",
-    "zone zero": "zenless_zone_zero", "zenless zone zero": "zenless_zone_zero",
+    "zzz": "zenless_zone_zero",
+    "zenless": "zenless_zone_zero",
+    "zone zero": "zenless_zone_zero",
+    "zenless zone zero": "zenless_zone_zero",
     "new eridu": "zenless_zone_zero",
     # Date a Live
-    "date a live": "date_a_live", "dal": "date_a_live",
+    "date a live": "date_a_live",
+    "dal": "date_a_live",
     # Sword Art Online
-    "sao": "sword_art_online", "sword art": "sword_art_online",
+    "sao": "sword_art_online",
+    "sword art": "sword_art_online",
     # Re:Zero
-    "re:zero": "re:zero", "re zero": "re:zero", "rezero": "re:zero",
+    "re:zero": "re:zero",
+    "re zero": "re:zero",
+    "rezero": "re:zero",
     # Demon Slayer
-    "demon slayer": "kimetsu_no_yaiba", "kimetsu": "kimetsu_no_yaiba",
+    "demon slayer": "kimetsu_no_yaiba",
+    "kimetsu": "kimetsu_no_yaiba",
     # Fate
-    "fate": "fate/stay_night", "fgo": "fate/grand_order",
-    "fate grand order": "fate/grand_order", "fate stay night": "fate/stay_night",
+    "fate": "fate/stay_night",
+    "fgo": "fate/grand_order",
+    "fate grand order": "fate/grand_order",
+    "fate stay night": "fate/stay_night",
     "fate hollow": "fate/hollow_ataraxia",
     # Naruto
-    "naruto": "naruto", "konoha": "naruto",
+    "naruto": "naruto",
+    "konoha": "naruto",
     # Attack on Titan
-    "aot": "shingeki_no_kyojin", "attack on titan": "shingeki_no_kyojin",
+    "aot": "shingeki_no_kyojin",
+    "attack on titan": "shingeki_no_kyojin",
     "shingeki": "shingeki_no_kyojin",
     # Spy x Family
-    "spy x family": "spy_x_family", "spy family": "spy_x_family",
+    "spy x family": "spy_x_family",
+    "spy family": "spy_x_family",
     # Bocchi the Rock
     "bocchi the rock": "bocchi_the_rock!",
     # Oshi no Ko
@@ -556,27 +700,35 @@ _SERIES_HINTS: dict[str, str] = {
     # Hololive
     "hololive": "hololive",
     # Jujutsu Kaisen
-    "jjk": "jujutsu_kaisen", "jujutsu kaisen": "jujutsu_kaisen",
+    "jjk": "jujutsu_kaisen",
+    "jujutsu kaisen": "jujutsu_kaisen",
     # Chainsaw Man
-    "chainsaw man": "chainsaw_man", "csm": "chainsaw_man",
+    "chainsaw man": "chainsaw_man",
+    "csm": "chainsaw_man",
     # NIKKE
     "nikke": "goddess_of_victory:_nikke",
     # To Love-Ru
-    "to love": "to_love-ru", "to love-ru": "to_love-ru",
+    "to love": "to_love-ru",
+    "to love-ru": "to_love-ru",
     # Fire Emblem
-    "fire emblem": "fire_emblem", "fe3h": "fire_emblem",
+    "fire emblem": "fire_emblem",
+    "fe3h": "fire_emblem",
     # KanColle
-    "kancolle": "kantai_collection", "kantai": "kantai_collection",
+    "kancolle": "kantai_collection",
+    "kantai": "kantai_collection",
     # Touhou
-    "touhou": "touhou", "gensokyo": "touhou",
+    "touhou": "touhou",
+    "gensokyo": "touhou",
     # Arknights
     "arknights": "arknights",
     # Azur Lane
     "azur lane": "azur_lane",
     # League of Legends
-    "lol": "league_of_legends", "league": "league_of_legends",
+    "lol": "league_of_legends",
+    "league": "league_of_legends",
     # Wuthering Waves
-    "wuthering": "wuthering_waves", "wuwa": "wuthering_waves",
+    "wuthering": "wuthering_waves",
+    "wuwa": "wuthering_waves",
 }
 
 
@@ -598,18 +750,48 @@ def _detect_series_hint(text: str) -> Optional[str]:
 # AND silently bypasses safety-filter providers. If a word is ambiguous
 # (e.g. "lewd"), prefer not to add it; require explicit anatomical
 # vocabulary before flipping the chain.
-_NSFW_KEYWORDS: frozenset[str] = frozenset({
-    "nsfw", "r-18", "r18", "explicit", "uncensored",
-    "nude", "naked", "topless", "bottomless",
-    "pussy", "vagina", "vulva", "clitoris", "cervix", "urethra",
-    "cock", "penis", "dick", "cum", "semen", "sperm",
-    "sex", "fucking", "intercourse", "penetration", "creampie",
-    "ahegao", "orgasm",
-    "nipple", "nipples", "areola",
-    "spread pussy", "spread legs", "leg spread", "legs spread",
-    "anal", "anus",
-    "loli",  # explicit policy violation flag — handled upstream
-})
+_NSFW_KEYWORDS: frozenset[str] = frozenset(
+    {
+        "nsfw",
+        "r-18",
+        "r18",
+        "explicit",
+        "uncensored",
+        "nude",
+        "naked",
+        "topless",
+        "bottomless",
+        "pussy",
+        "vagina",
+        "vulva",
+        "clitoris",
+        "cervix",
+        "urethra",
+        "cock",
+        "penis",
+        "dick",
+        "cum",
+        "semen",
+        "sperm",
+        "sex",
+        "fucking",
+        "intercourse",
+        "penetration",
+        "creampie",
+        "ahegao",
+        "orgasm",
+        "nipple",
+        "nipples",
+        "areola",
+        "spread pussy",
+        "spread legs",
+        "leg spread",
+        "legs spread",
+        "anal",
+        "anus",
+        "loli",  # explicit policy violation flag — handled upstream
+    }
+)
 
 
 def _detect_nsfw_intent(user_prompt: str) -> bool:
@@ -658,6 +840,7 @@ def detect_character(user_prompt: str) -> Optional[tuple[str, str, str, str]]:
 # ════════════════════════════════════════════════════════════════════════
 # Web research: search for character appearance details
 # ════════════════════════════════════════════════════════════════════════
+
 
 def _get_serpapi_key() -> str:
     return os.getenv("SERPAPI_API_KEY", "")
@@ -710,11 +893,13 @@ def _web_search_character(display_name: str, series_name: str) -> dict:
         organic = data.get("organic_results", [])
         results["snippets"] = []
         for item in organic[:6]:
-            results["snippets"].append({
-                "title": item.get("title", ""),
-                "snippet": item.get("snippet", ""),
-                "link": item.get("link", ""),
-            })
+            results["snippets"].append(
+                {
+                    "title": item.get("title", ""),
+                    "snippet": item.get("snippet", ""),
+                    "link": item.get("link", ""),
+                }
+            )
 
         return results
 
@@ -724,7 +909,9 @@ def _web_search_character(display_name: str, series_name: str) -> dict:
 
 
 def _image_search_character(
-    display_name: str, series_name: str, danbooru_tag: str,
+    display_name: str,
+    series_name: str,
+    danbooru_tag: str,
     nsfw_intent: bool = False,
 ) -> list[dict]:
     """Search for character reference images via SerpAPI image search.
@@ -783,9 +970,7 @@ def _image_search_character(
     # → {"honkai", "star", "rail"}; for "Genshin Impact" → {"genshin",
     # "impact"}; for "Blue Archive" → {"blue", "archive"}.
     series_tokens: set[str] = {
-        t.lower()
-        for t in re.split(r"[\s\-:_/]+", series_name or "")
-        if len(t) >= 4
+        t.lower() for t in re.split(r"[\s\-:_/]+", series_name or "") if len(t) >= 4
     }
     # Always add the joined no-punct form too so "honkaistarrail.fandom.com"
     # passes when the series name is "Honkai: Star Rail".
@@ -794,19 +979,41 @@ def _image_search_character(
 
     # Common English words that would otherwise produce false-positives
     # without a series anchor. Grow this list when audit finds new ones.
-    _AMBIGUOUS_NAMES: frozenset[str] = frozenset({
-        "sparkle", "robin", "sunday", "march", "moze", "boothill",
-        "bronya", "luna", "nicole", "yuki", "rei", "asuka",
-        "ruby", "amber", "diona", "sara", "lisa", "rosa",
-        "may", "june", "april", "noel", "noelle",
-    })
+    _AMBIGUOUS_NAMES: frozenset[str] = frozenset(
+        {
+            "sparkle",
+            "robin",
+            "sunday",
+            "march",
+            "moze",
+            "boothill",
+            "bronya",
+            "luna",
+            "nicole",
+            "yuki",
+            "rei",
+            "asuka",
+            "ruby",
+            "amber",
+            "diona",
+            "sara",
+            "lisa",
+            "rosa",
+            "may",
+            "june",
+            "april",
+            "noel",
+            "noelle",
+        }
+    )
     name_is_ambiguous = display_name.strip().lower() in _AMBIGUOUS_NAMES
 
     # Pre-compile word-boundary patterns for the name tokens. Tokens with
     # underscores/spaces get escaped for safety.
     name_patterns = [
         re.compile(r"\b" + re.escape(tok) + r"\b", re.IGNORECASE)
-        for tok in sorted(name_tokens) if tok
+        for tok in sorted(name_tokens)
+        if tok
     ]
 
     # Duo / multi-character title heuristic. The secondary half is
@@ -875,14 +1082,16 @@ def _image_search_character(
                     skipped_irrelevant += 1
                     continue
                 seen_urls.add(url)
-                all_images.append({
-                    "url": url,
-                    "thumbnail": item.get("thumbnail", ""),
-                    "title": item.get("title", ""),
-                    "source": item.get("source", ""),
-                    "width": item.get("original_width", 0),
-                    "height": item.get("original_height", 0),
-                })
+                all_images.append(
+                    {
+                        "url": url,
+                        "thumbnail": item.get("thumbnail", ""),
+                        "title": item.get("title", ""),
+                        "source": item.get("source", ""),
+                        "width": item.get("original_width", 0),
+                        "height": item.get("original_height", 0),
+                    }
+                )
         except Exception as e:
             logger.warning("[CharResearch] Image search failed for '%s': %s", query, e)
 
@@ -905,9 +1114,9 @@ def _image_search_character(
     if len(all_images) < target_total:
         try:
             from .image_url_fallback import fetch_image_urls_fallback
-            allow_sensitive = (
-                nsfw_intent
-                or bool(os.getenv("CHAR_RESEARCH_ALLOW_SENSITIVE", "0") == "1")
+
+            allow_sensitive = nsfw_intent or bool(
+                os.getenv("CHAR_RESEARCH_ALLOW_SENSITIVE", "0") == "1"
             )
             extra = fetch_image_urls_fallback(
                 display_name=display_name,
@@ -931,7 +1140,9 @@ def _image_search_character(
                 logger.info(
                     "[CharResearch] Fallback chain added %d image URLs "
                     "(total %d, nsfw_intent=%s)",
-                    len(relevant), len(all_images) + len(relevant), nsfw_intent,
+                    len(relevant),
+                    len(all_images) + len(relevant),
+                    nsfw_intent,
                 )
                 all_images.extend(relevant)
         except Exception as e:
@@ -975,7 +1186,8 @@ def _download_reference_images(
         if existing:
             logger.info(
                 "[CharResearch] CHAR_RESEARCH_REUSE_REFS=1 — using %d cached refs for %s",
-                len(existing), danbooru_tag,
+                len(existing),
+                danbooru_tag,
             )
             for path in existing[:max_images]:
                 try:
@@ -1030,10 +1242,13 @@ def _download_reference_images(
             if byte_hash in registry["byte_hashes"]:
                 logger.info(
                     "[CharResearch] Rejected duplicate-by-bytes from %s (matches %s)",
-                    url[:60], registry["byte_hashes"][byte_hash],
+                    url[:60],
+                    registry["byte_hashes"][byte_hash],
                 )
                 # Still mark URL as seen so we don't retry it.
-                registry["url_hashes"][_url_hash(url)] = registry["byte_hashes"][byte_hash]
+                registry["url_hashes"][_url_hash(url)] = registry["byte_hashes"][
+                    byte_hash
+                ]
                 registry_dirty = True
                 continue
 
@@ -1049,7 +1264,8 @@ def _download_reference_images(
             fresh_b64.append(base64.b64encode(img_data).decode("ascii"))
             logger.info(
                 "[CharResearch] Downloaded FRESH ref: %s (%d KB)",
-                cache_path.name, len(img_data) // 1024,
+                cache_path.name,
+                len(img_data) // 1024,
             )
 
         except Exception as e:
@@ -1062,7 +1278,8 @@ def _download_reference_images(
         logger.info(
             "[CharResearch] Returned %d FRESH reference images for %s "
             "(no cached reuse)",
-            len(fresh_b64), danbooru_tag,
+            len(fresh_b64),
+            danbooru_tag,
         )
         return fresh_b64[:max_images]
 
@@ -1073,7 +1290,8 @@ def _download_reference_images(
         logger.warning(
             "[CharResearch] No fresh refs found for %s — falling back to "
             "%d cached refs as last resort",
-            danbooru_tag, len(existing),
+            danbooru_tag,
+            len(existing),
         )
         out: list[str] = []
         for path in existing[:max_images]:
@@ -1301,7 +1519,8 @@ def _analyze_reference_image(
     import httpx
 
     prompt = _VISION_REF_PROMPT.format(
-        display_name=display_name, series_name=series_name,
+        display_name=display_name,
+        series_name=series_name,
     )
 
     raw = image_b64.split(",", 1)[-1] if "," in image_b64 else image_b64
@@ -1312,12 +1531,14 @@ def _analyze_reference_image(
             "gemini-2.0-flash:generateContent",
             headers={"X-goog-api-key": gemini_key},
             json={
-                "contents": [{
-                    "parts": [
-                        {"text": prompt},
-                        {"inline_data": {"mime_type": "image/png", "data": raw}},
-                    ]
-                }],
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": prompt},
+                            {"inline_data": {"mime_type": "image/png", "data": raw}},
+                        ]
+                    }
+                ],
                 "generationConfig": {
                     "temperature": 0.1,
                     "maxOutputTokens": 500,
@@ -1343,6 +1564,7 @@ def _analyze_reference_image(
 # ════════════════════════════════════════════════════════════════════════
 # Main research pipeline
 # ════════════════════════════════════════════════════════════════════════
+
 
 def _load_cached_research(danbooru_tag: str) -> Optional[CharacterResearchResult]:
     """Load cached research if still valid."""
@@ -1377,8 +1599,11 @@ def _load_cached_research(danbooru_tag: str) -> Optional[CharacterResearchResult
             confidence=data.get("confidence", 0.0),
             cached=True,
         )
-        logger.info("[CharResearch] Loaded cached research for %s (conf=%.2f)",
-                     danbooru_tag, result.confidence)
+        logger.info(
+            "[CharResearch] Loaded cached research for %s (conf=%.2f)",
+            danbooru_tag,
+            result.confidence,
+        )
         return result
     except Exception as e:
         logger.warning("[CharResearch] Cache load failed: %s", e)
@@ -1463,7 +1688,9 @@ def research_character(
                 logger.info(
                     "[CharResearch] Cache+SAA path: %d local refs >= %d — "
                     "skipping web image search for %s",
-                    len(local_refs), _SAA_MIN_LOCAL_REFS, danbooru_tag,
+                    len(local_refs),
+                    _SAA_MIN_LOCAL_REFS,
+                    danbooru_tag,
                 )
                 cached.reference_images_b64 = local_refs[:10]
             else:
@@ -1474,19 +1701,24 @@ def research_character(
                 # duplicate is ever returned.
                 try:
                     fresh_results = _image_search_character(
-                        display_name, series_name, danbooru_tag,
+                        display_name,
+                        series_name,
+                        danbooru_tag,
                         nsfw_intent=nsfw_intent,
                     )
                 except Exception as e:
                     logger.warning(
-                        "[CharResearch] cache-path fresh search failed: %s", e,
+                        "[CharResearch] cache-path fresh search failed: %s",
+                        e,
                     )
                     fresh_results = [{"url": u} for u in cached.reference_image_urls]
 
                 cached.reference_images_b64 = (
                     local_refs
                     + _download_reference_images(
-                        fresh_results, danbooru_tag, max_images=10,
+                        fresh_results,
+                        danbooru_tag,
+                        max_images=10,
                     )
                 )[:12]
                 # Refresh the cached URL list so subsequent runs see the new
@@ -1503,8 +1735,10 @@ def research_character(
             cached.research_time_ms = (time.time() - t0) * 1000
             cached.local_refs_count = len(local_refs)
             cached.web_refs_count = max(
-                0, len(cached.reference_images_b64) - len(local_refs)
-                - (len(user_reference_images or []) if user_reference_images else 0)
+                0,
+                len(cached.reference_images_b64)
+                - len(local_refs)
+                - (len(user_reference_images or []) if user_reference_images else 0),
             )
             cached.web_search_skipped = skip_web_image_search
             cached.nsfw_intent = nsfw_intent
@@ -1519,20 +1753,27 @@ def research_character(
         logger.info(
             "[CharResearch] Fresh path: %d local refs satisfy minimum (%d) — "
             "skipping web image search for %s",
-            len(local_refs), _SAA_MIN_LOCAL_REFS, danbooru_tag,
+            len(local_refs),
+            _SAA_MIN_LOCAL_REFS,
+            danbooru_tag,
         )
         image_results = []
         ref_images = list(local_refs)
     else:
         logger.info("[CharResearch] Searching for reference images...")
         image_results = _image_search_character(
-            display_name, series_name, danbooru_tag, nsfw_intent=nsfw_intent,
+            display_name,
+            series_name,
+            danbooru_tag,
+            nsfw_intent=nsfw_intent,
         )
         # Local refs (incl. SAA thumb) come first; web fills the rest.
         ref_images = (
             local_refs
             + _download_reference_images(
-                image_results, danbooru_tag, max_images=10,
+                image_results,
+                danbooru_tag,
+                max_images=10,
             )
         )[:12]
 
@@ -1543,14 +1784,18 @@ def research_character(
 
     # Step 5: LLM extraction from web search
     appearance_data = _extract_appearance_from_search(
-        display_name, series_name, search_results,
+        display_name,
+        series_name,
+        search_results,
     )
 
     # Step 6: Vision analysis of best reference image
     vision_data = None
     if ref_images:
         vision_data = _analyze_reference_image(
-            ref_images[0], display_name, series_name,
+            ref_images[0],
+            display_name,
+            series_name,
         )
 
     # Step 7: Build result
@@ -1565,18 +1810,30 @@ def research_character(
     )
 
     if appearance_data:
-        result.eyes = _dict_to_layer_from_appearance(appearance_data.get("eyes"), "eyes")
-        result.hair = _dict_to_layer_from_appearance(appearance_data.get("hair"), "hair")
-        result.face = _dict_to_layer_from_appearance(appearance_data.get("face"), "face")
-        result.outfit = _dict_to_layer_from_appearance(appearance_data.get("outfit"), "outfit")
-        result.accessories = _dict_to_layer_from_appearance(
-            appearance_data.get("accessories"), "accessories",
+        result.eyes = _dict_to_layer_from_appearance(
+            appearance_data.get("eyes"), "eyes"
         )
-        result.body = _dict_to_layer_from_appearance(appearance_data.get("body"), "body")
+        result.hair = _dict_to_layer_from_appearance(
+            appearance_data.get("hair"), "hair"
+        )
+        result.face = _dict_to_layer_from_appearance(
+            appearance_data.get("face"), "face"
+        )
+        result.outfit = _dict_to_layer_from_appearance(
+            appearance_data.get("outfit"), "outfit"
+        )
+        result.accessories = _dict_to_layer_from_appearance(
+            appearance_data.get("accessories"),
+            "accessories",
+        )
+        result.body = _dict_to_layer_from_appearance(
+            appearance_data.get("body"), "body"
+        )
         result.identity_tags = appearance_data.get("identity_tags", [])
         result.appearance_summary = appearance_data.get("appearance_summary", "")
         result.distinguishing_features = appearance_data.get(
-            "distinguishing_features", [],
+            "distinguishing_features",
+            [],
         )
         result.confidence = 0.85
     else:
@@ -1598,23 +1855,30 @@ def research_character(
     result.research_time_ms = (time.time() - t0) * 1000
     result.local_refs_count = len(local_refs)
     result.web_refs_count = max(
-        0, len(ref_images) - len(local_refs)
-        - (len(user_reference_images or []) if user_reference_images else 0)
+        0,
+        len(ref_images)
+        - len(local_refs)
+        - (len(user_reference_images or []) if user_reference_images else 0),
     )
     result.web_search_skipped = skip_web_image_search
     result.nsfw_intent = nsfw_intent
     logger.info(
         "[CharResearch] Research complete: %s (conf=%.2f, %d refs [%d local + %d web], skip_web=%s, %.0fms)",
-        danbooru_tag, result.confidence, len(ref_images),
-        result.local_refs_count, result.web_refs_count,
-        result.web_search_skipped, result.research_time_ms,
+        danbooru_tag,
+        result.confidence,
+        len(ref_images),
+        result.local_refs_count,
+        result.web_refs_count,
+        result.web_search_skipped,
+        result.research_time_ms,
     )
 
     return result
 
 
 def _dict_to_layer_from_appearance(
-    data: Any, layer_name: str,
+    data: Any,
+    layer_name: str,
 ) -> Optional[LayerDetail]:
     """Convert LLM appearance extraction dict to LayerDetail."""
     if not data:

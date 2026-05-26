@@ -4,6 +4,7 @@ Local sentence-transformers embedding provider.
 Runs entirely on-device — no API key required.
 Model is loaded lazily on first call and cached for the process lifetime.
 """
+
 from __future__ import annotations
 
 import logging

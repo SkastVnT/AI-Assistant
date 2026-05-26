@@ -74,6 +74,7 @@ def _is_cancel_requested(job_id: str) -> bool:
         return False
     try:
         from core.job_queue import get_queue  # type: ignore[import-not-found]
+
         return bool(get_queue().is_cancel_requested(job_id))
     except Exception:
         return False
@@ -131,12 +132,14 @@ def _parse_lora_tags(prompt: str) -> tuple[str, list[dict[str, Any]]]:
         # Ensure the name ends with a known extension
         if not any(name.endswith(ext) for ext in (".safetensors", ".pt", ".ckpt")):
             name += ".safetensors"
-        loras.append({
-            "name": name,
-            "strength_model": round(min(max(weight, 0.0), 1.5), 2),
-            "strength_clip": round(min(max(weight, 0.0), 1.5), 2),
-            "enabled": True,
-        })
+        loras.append(
+            {
+                "name": name,
+                "strength_model": round(min(max(weight, 0.0), 1.5), 2),
+                "strength_clip": round(min(max(weight, 0.0), 1.5), 2),
+                "enabled": True,
+            }
+        )
     cleaned = _LORA_TAG_RE.sub("", prompt).strip()
     # Collapse multiple spaces left by removal
     cleaned = re.sub(r"  +", " ", cleaned)
@@ -171,9 +174,7 @@ class AnimePipelineOrchestrator:
         self._critique = CritiqueAgent(self._config)
         self._upscale = UpscaleAgent(self._config)
         self._ranker = FinalRanker()
-        self._result_store = ResultStore(
-            base_dir=self._config.intermediate_dir
-        )
+        self._result_store = ResultStore(base_dir=self._config.intermediate_dir)
         self._detected_character: Optional[str] = None
         self._research: Optional[CharacterResearchResult] = None
         self._verified_lora: Optional[LoRAVerificationResult] = None
@@ -210,15 +211,25 @@ class AnimePipelineOrchestrator:
         self._cancelled = False
         self._run_t0 = t0
 
-        yield self._event("pipeline_start", {
-            "job_id": job.job_id,
-            "user_prompt": job.user_prompt,
-            "stages": [
-                "vision_analysis", "character_research", "lora_search",
-                "layer_planning", "composition_pass", "structure_lock",
-                "beauty_pass", "detection_inpaint", "critique", "upscale",
-            ],
-        })
+        yield self._event(
+            "pipeline_start",
+            {
+                "job_id": job.job_id,
+                "user_prompt": job.user_prompt,
+                "stages": [
+                    "vision_analysis",
+                    "character_research",
+                    "lora_search",
+                    "layer_planning",
+                    "composition_pass",
+                    "structure_lock",
+                    "beauty_pass",
+                    "detection_inpaint",
+                    "critique",
+                    "upscale",
+                ],
+            },
+        )
 
         try:
             # Parse <lora:name:weight> tags from user prompt
@@ -240,7 +251,11 @@ class AnimePipelineOrchestrator:
 
             # Stage 1: Vision Analysis
             yield from self._run_stage(
-                "vision_analysis", self._vision, job, stage_num=1, total=8,
+                "vision_analysis",
+                self._vision,
+                job,
+                stage_num=1,
+                total=8,
             )
 
             # Snapshot ref count BEFORE character research so we can detect
@@ -271,12 +286,19 @@ class AnimePipelineOrchestrator:
                         _refs_after_research - _refs_before_research,
                     )
                     self._vision.execute(job)
-                    yield self._event("vision_reanalyzed", {
-                        "ref_count": _refs_after_research,
-                        "tags_count": len(
-                            (job.vision_analysis.anime_tags if job.vision_analysis else [])
-                        ),
-                    })
+                    yield self._event(
+                        "vision_reanalyzed",
+                        {
+                            "ref_count": _refs_after_research,
+                            "tags_count": len(
+                                (
+                                    job.vision_analysis.anime_tags
+                                    if job.vision_analysis
+                                    else []
+                                )
+                            ),
+                        },
+                    )
                 except Exception as _re_exc:  # pragma: no cover — defensive
                     logger.warning(
                         "[AnimePipeline] Vision re-analysis failed (non-fatal): %s",
@@ -298,8 +320,10 @@ class AnimePipelineOrchestrator:
                     self._critique.set_research_context(
                         self._research.build_critique_context()
                     )
-                logger.info("[AnimePipeline] Character detected: %s -- identity-aware critique enabled",
-                            self._detected_character)
+                logger.info(
+                    "[AnimePipeline] Character detected: %s -- identity-aware critique enabled",
+                    self._detected_character,
+                )
 
             # Stage 1.75: LoRA search, download, and vision verification
             yield from self._run_lora_stage(job)
@@ -310,7 +334,11 @@ class AnimePipelineOrchestrator:
 
             # Stage 2: Layer Planning
             yield from self._run_stage(
-                "layer_planning", self._planner, job, stage_num=4, total=9,
+                "layer_planning",
+                self._planner,
+                job,
+                stage_num=4,
+                total=9,
             )
 
             # Inject verified character LoRA into all passes
@@ -323,12 +351,18 @@ class AnimePipelineOrchestrator:
 
             # Stage 3: Composition Pass
             yield from self._run_stage(
-                "composition_pass", self._composition, job, stage_num=5, total=9,
+                "composition_pass",
+                self._composition,
+                job,
+                stage_num=5,
+                total=9,
             )
             if self._cancelled:
                 return
             if job.status == AnimePipelineStatus.FAILED:
-                yield self._event("pipeline_error", {"error": job.error, "job_id": job.job_id})
+                yield self._event(
+                    "pipeline_error", {"error": job.error, "job_id": job.job_id}
+                )
                 return
 
             # User cancellation checkpoint after composition (~30-60s in)
@@ -354,21 +388,25 @@ class AnimePipelineOrchestrator:
                 job.total_latency_ms = (time.time() - t0) * 1000
                 logger.info(
                     "[AnimePipeline] image_only fast path complete: %d candidate(s), %.0fms",
-                    len(job.final_images_b64), job.total_latency_ms,
+                    len(job.final_images_b64),
+                    job.total_latency_ms,
                 )
-                yield self._event("pipeline_complete", {
-                    "job_id": job.job_id,
-                    "status": "completed",
-                    "has_image": job.final_image_b64 is not None,
-                    "has_secondary_image": False,
-                    "image_only": True,
-                    "batch_count": len(job.final_images_b64),
-                    "total_latency_ms": job.total_latency_ms,
-                    "stages_executed": job.stages_executed,
-                    "refine_rounds": 0,
-                    "models_used": job.models_used,
-                    "vram_profile": self._config.vram.profile.value,
-                })
+                yield self._event(
+                    "pipeline_complete",
+                    {
+                        "job_id": job.job_id,
+                        "status": "completed",
+                        "has_image": job.final_image_b64 is not None,
+                        "has_secondary_image": False,
+                        "image_only": True,
+                        "batch_count": len(job.final_images_b64),
+                        "total_latency_ms": job.total_latency_ms,
+                        "stages_executed": job.stages_executed,
+                        "refine_rounds": 0,
+                        "models_used": job.models_used,
+                        "vram_profile": self._config.vram.profile.value,
+                    },
+                )
                 return
 
             # ── New flow (composition → upscale 2× → structure → YOLO → beauty
@@ -383,26 +421,40 @@ class AnimePipelineOrchestrator:
             # detection_inpaint pick it up via their existing
             # ``reversed(intermediates)`` filter.
             if v2:
-                yield self._event("stage_start", {
-                    "stage": "upscale_pre", "stage_num": 5.5, "total_stages": 9,
-                    "factor": 2.0,
-                    "vram_profile": self._config.vram.profile.value,
-                })
+                yield self._event(
+                    "stage_start",
+                    {
+                        "stage": "upscale_pre",
+                        "stage_num": 5.5,
+                        "total_stages": 9,
+                        "factor": 2.0,
+                        "vram_profile": self._config.vram.profile.value,
+                    },
+                )
                 self._upscale.execute_sdxl_pass(
-                    job, factor=2.0, denoise=0.20,
+                    job,
+                    factor=2.0,
+                    denoise=0.20,
                     stage_name="composition_pass",
                 )
-                yield self._event("stage_complete", {
-                    "stage": "upscale_pre",
-                    "latency_ms": job.stage_timings_ms.get("composition_pass", 0),
-                })
+                yield self._event(
+                    "stage_complete",
+                    {
+                        "stage": "upscale_pre",
+                        "latency_ms": job.stage_timings_ms.get("composition_pass", 0),
+                    },
+                )
                 if _is_cancel_requested(job.job_id):
                     yield self._build_cancellation_event(job, "upscale_pre", t0)
                     return
 
             # Stage 4: Structure Lock
             yield from self._run_stage(
-                "structure_lock", self._structure, job, stage_num=6, total=9,
+                "structure_lock",
+                self._structure,
+                job,
+                stage_num=6,
+                total=9,
             )
             if self._cancelled:
                 return
@@ -456,16 +508,19 @@ class AnimePipelineOrchestrator:
                 variant_prompt = self._generate_variant_prompt(job.user_prompt)
                 original_prompt = job.user_prompt
 
-                yield self._event("replan_start", {
-                    "attempt": 2,
-                    "reason": "4 consecutive beauty passes below quality threshold",
-                    "original_prompt": original_prompt,
-                    "variant_prompt": variant_prompt,
-                    "prompt_fidelity": "verbatim_100pct",
-                    "attempt_1_best_score": max(
-                        (c.overall_score for c in job.critique_results), default=0.0
-                    ),
-                })
+                yield self._event(
+                    "replan_start",
+                    {
+                        "attempt": 2,
+                        "reason": "4 consecutive beauty passes below quality threshold",
+                        "original_prompt": original_prompt,
+                        "variant_prompt": variant_prompt,
+                        "prompt_fidelity": "verbatim_100pct",
+                        "attempt_1_best_score": max(
+                            (c.overall_score for c in job.critique_results), default=0.0
+                        ),
+                    },
+                )
                 logger.info(
                     "[AnimePipeline] Re-plan attempt 2 (verbatim prompt): '%s'",
                     original_prompt[:80],
@@ -501,19 +556,26 @@ class AnimePipelineOrchestrator:
                 )
                 if not attempt_2_passed and self._attempt_1_best_image:
                     job.secondary_image_b64 = self._attempt_1_best_image
-                    yield self._event("dual_output", {
-                        "reason": "Both attempts failed quality threshold",
-                        "attempt_1_score": max(
-                            (c.overall_score for c in job.critique_results
-                             if not getattr(c, "_attempt2", False)),
-                            default=0.0,
-                        ),
-                        "attempt_2_score": (
-                            job.critique_results[-1].overall_score
-                            if job.critique_results else 0.0
-                        ),
-                        "has_secondary": True,
-                    })
+                    yield self._event(
+                        "dual_output",
+                        {
+                            "reason": "Both attempts failed quality threshold",
+                            "attempt_1_score": max(
+                                (
+                                    c.overall_score
+                                    for c in job.critique_results
+                                    if not getattr(c, "_attempt2", False)
+                                ),
+                                default=0.0,
+                            ),
+                            "attempt_2_score": (
+                                job.critique_results[-1].overall_score
+                                if job.critique_results
+                                else 0.0
+                            ),
+                            "has_secondary": True,
+                        },
+                    )
                     logger.info(
                         "[AnimePipeline] Dual output: both attempts below threshold. "
                         "Returning best of each."
@@ -524,20 +586,36 @@ class AnimePipelineOrchestrator:
             #     (refines detail without changing pose/identity).
             # v1: legacy ESRGAN single 4× pass.
             if getattr(self._config, "pipeline_v2_upscale_first", True):
-                yield self._event("stage_start", {
-                    "stage": "upscale", "stage_num": 9, "total_stages": 9, "factor": 1.5,
-                    "vram_profile": self._config.vram.profile.value,
-                })
-                self._upscale.execute_sdxl_pass(
-                    job, factor=1.5, denoise=0.18, stage_name="upscale",
+                yield self._event(
+                    "stage_start",
+                    {
+                        "stage": "upscale",
+                        "stage_num": 9,
+                        "total_stages": 9,
+                        "factor": 1.5,
+                        "vram_profile": self._config.vram.profile.value,
+                    },
                 )
-                yield self._event("stage_complete", {
-                    "stage": "upscale",
-                    "latency_ms": job.stage_timings_ms.get("upscale", 0),
-                })
+                self._upscale.execute_sdxl_pass(
+                    job,
+                    factor=1.5,
+                    denoise=0.18,
+                    stage_name="upscale",
+                )
+                yield self._event(
+                    "stage_complete",
+                    {
+                        "stage": "upscale",
+                        "latency_ms": job.stage_timings_ms.get("upscale", 0),
+                    },
+                )
             else:
                 yield from self._run_stage(
-                    "upscale", self._upscale, job, stage_num=9, total=9,
+                    "upscale",
+                    self._upscale,
+                    job,
+                    stage_num=9,
+                    total=9,
                 )
             if self._cancelled:
                 return
@@ -563,16 +641,21 @@ class AnimePipelineOrchestrator:
                 rank_result = self._ranker.execute(job)
                 if rank_result and rank_result.winner:
                     job.metadata["rank_result"] = rank_result.to_dict()
-                    yield self._event("final_ranking", {
-                        "job_id": job.job_id,
-                        "winner_stage": rank_result.winner.stage,
-                        "winner_score": round(rank_result.winner.composite_score, 2),
-                        "total_candidates": rank_result.total_candidates,
-                        "runner_ups": [
-                            {"stage": r.stage, "score": round(r.composite_score, 2)}
-                            for r in rank_result.runner_ups[:3]
-                        ],
-                    })
+                    yield self._event(
+                        "final_ranking",
+                        {
+                            "job_id": job.job_id,
+                            "winner_stage": rank_result.winner.stage,
+                            "winner_score": round(
+                                rank_result.winner.composite_score, 2
+                            ),
+                            "total_candidates": rank_result.total_candidates,
+                            "runner_ups": [
+                                {"stage": r.stage, "score": round(r.composite_score, 2)}
+                                for r in rank_result.runner_ups[:3]
+                            ],
+                        },
+                    )
             except Exception as rank_err:
                 logger.warning("[AnimePipeline] FinalRanker failed: %s", rank_err)
 
@@ -580,26 +663,31 @@ class AnimePipelineOrchestrator:
             if self._config.save_intermediates:
                 self._result_store.save_all(job, rank_result=rank_result)
 
-            yield self._event("pipeline_complete", {
-                "job_id": job.job_id,
-                "status": "completed",
-                "has_image": job.final_image_b64 is not None,
-                "has_secondary_image": job.secondary_image_b64 is not None,
-                "total_latency_ms": job.total_latency_ms,
-                "stages_executed": job.stages_executed,
-                "refine_rounds": job.refine_rounds,
-                "models_used": job.models_used,
-                "vram_profile": self._config.vram.profile.value,
-                "replan_count": self._replan_count,
-                "rank_winner_stage": (
-                    rank_result.winner.stage
-                    if rank_result and rank_result.winner else None
-                ),
-                "rank_winner_score": (
-                    round(rank_result.winner.composite_score, 2)
-                    if rank_result and rank_result.winner else None
-                ),
-            })
+            yield self._event(
+                "pipeline_complete",
+                {
+                    "job_id": job.job_id,
+                    "status": "completed",
+                    "has_image": job.final_image_b64 is not None,
+                    "has_secondary_image": job.secondary_image_b64 is not None,
+                    "total_latency_ms": job.total_latency_ms,
+                    "stages_executed": job.stages_executed,
+                    "refine_rounds": job.refine_rounds,
+                    "models_used": job.models_used,
+                    "vram_profile": self._config.vram.profile.value,
+                    "replan_count": self._replan_count,
+                    "rank_winner_stage": (
+                        rank_result.winner.stage
+                        if rank_result and rank_result.winner
+                        else None
+                    ),
+                    "rank_winner_score": (
+                        round(rank_result.winner.composite_score, 2)
+                        if rank_result and rank_result.winner
+                        else None
+                    ),
+                },
+            )
 
         except Exception as e:
             logger.error("[AnimePipeline] Unhandled error: %s", e, exc_info=True)
@@ -613,11 +701,14 @@ class AnimePipelineOrchestrator:
                 if fallback:
                     job.final_image_b64 = fallback
 
-            yield self._event("pipeline_error", {
-                "job_id": job.job_id,
-                "error": str(e),
-                "has_fallback_image": job.final_image_b64 is not None,
-            })
+            yield self._event(
+                "pipeline_error",
+                {
+                    "job_id": job.job_id,
+                    "error": str(e),
+                    "has_fallback_image": job.final_image_b64 is not None,
+                },
+            )
 
     def _beauty_critique_loop(
         self, job: AnimePipelineJob
@@ -653,15 +744,20 @@ class AnimePipelineOrchestrator:
 
         for round_num in range(max_rounds + 1):
             is_refine = round_num > 0
-            stage_label = f"beauty_pass{'_refine_' + str(round_num) if is_refine else ''}"
+            stage_label = (
+                f"beauty_pass{'_refine_' + str(round_num) if is_refine else ''}"
+            )
 
             if is_refine:
                 job.status = AnimePipelineStatus.REFINING
-                yield self._event("refine_start", {
-                    "round": round_num,
-                    "max_rounds": max_rounds,
-                    "previous_score": best_score,
-                })
+                yield self._event(
+                    "refine_start",
+                    {
+                        "round": round_num,
+                        "max_rounds": max_rounds,
+                        "previous_score": best_score,
+                    },
+                )
 
             # Feed latest critique into the next beauty round so it can
             # prioritize eye-focused correction when needed.
@@ -674,13 +770,17 @@ class AnimePipelineOrchestrator:
 
             # Beauty pass
             yield from self._run_stage(
-                "beauty_pass", self._beauty, job, stage_num=5, total=7,
+                "beauty_pass",
+                self._beauty,
+                job,
+                stage_num=5,
+                total=7,
                 extra={"round": round_num},
             )
             if self._cancelled:
                 return
 
-            beauty_failed = (job.status == AnimePipelineStatus.FAILED)
+            beauty_failed = job.status == AnimePipelineStatus.FAILED
             if beauty_failed:
                 # Reset status so critique can still run using the last available image
                 job.status = AnimePipelineStatus.CRITIQUING
@@ -697,7 +797,11 @@ class AnimePipelineOrchestrator:
 
             # Critique evaluates the post-YOLO image (or composition fallback)
             yield from self._run_stage(
-                "critique", self._critique, job, stage_num=6, total=7,
+                "critique",
+                self._critique,
+                job,
+                stage_num=6,
+                total=7,
                 extra={"round": round_num},
             )
             if self._cancelled:
@@ -728,42 +832,61 @@ class AnimePipelineOrchestrator:
 
                     # Re-run critique on eye-enhanced image
                     yield from self._run_stage(
-                        "critique", self._critique, job, stage_num=6, total=7,
+                        "critique",
+                        self._critique,
+                        job,
+                        stage_num=6,
+                        total=7,
                         extra={"round": round_num, "eye_emergency": True},
                     )
                     if job.critique_results:
                         latest_critique = job.critique_results[-1]
                         critique_for_next_round = latest_critique
                         score = latest_critique.overall_score
-                        yield self._event("eye_emergency_result", {
-                            "round": round_num,
-                            "eye_score_before": eye_score_before,
-                            "eye_score_after": latest_critique.eye_consistency_score,
-                            "overall_before": score_history[-1] if score_history else 0,
-                            "overall_after": round(score, 2),
-                        })
+                        yield self._event(
+                            "eye_emergency_result",
+                            {
+                                "round": round_num,
+                                "eye_score_before": eye_score_before,
+                                "eye_score_after": latest_critique.eye_consistency_score,
+                                "overall_before": score_history[-1]
+                                if score_history
+                                else 0,
+                                "overall_after": round(score, 2),
+                            },
+                        )
 
                 score_history.append(score)
 
                 # Emit deep critique reasoning with all dimension scores
-                yield self._event("critique_reasoning", {
-                    "round": round_num,
-                    "overall_score": round(score, 2),
-                    "passed": latest_critique.passed,
-                    "dimension_scores": {
-                        k: round(v, 1) for k, v in latest_critique.dimension_scores.items() if v > 0
+                yield self._event(
+                    "critique_reasoning",
+                    {
+                        "round": round_num,
+                        "overall_score": round(score, 2),
+                        "passed": latest_critique.passed,
+                        "dimension_scores": {
+                            k: round(v, 1)
+                            for k, v in latest_critique.dimension_scores.items()
+                            if v > 0
+                        },
+                        "face_score": latest_critique.face_score,
+                        "eye_consistency_score": latest_critique.eye_consistency_score,
+                        "eye_issues": latest_critique.eye_issues[:5],
+                        "weakest_dimensions": sorted(
+                            (
+                                (k, v)
+                                for k, v in latest_critique.dimension_scores.items()
+                                if v > 0
+                            ),
+                            key=lambda x: x[1],
+                        )[:3],
+                        "score_history": [round(s, 2) for s in score_history],
+                        "best_score": round(best_score, 2),
+                        "stagnant_count": stagnant_count
+                        + (0 if score > best_score else 1),
                     },
-                    "face_score": latest_critique.face_score,
-                    "eye_consistency_score": latest_critique.eye_consistency_score,
-                    "eye_issues": latest_critique.eye_issues[:5],
-                    "weakest_dimensions": sorted(
-                        ((k, v) for k, v in latest_critique.dimension_scores.items() if v > 0),
-                        key=lambda x: x[1],
-                    )[:3],
-                    "score_history": [round(s, 2) for s in score_history],
-                    "best_score": round(best_score, 2),
-                    "stagnant_count": stagnant_count + (0 if score > best_score else 1),
-                })
+                )
 
                 if score > best_score:
                     best_score = score
@@ -772,7 +895,10 @@ class AnimePipelineOrchestrator:
                     # Get the best image: prefer YOLO-enhanced (detail_*),
                     # fall back to beauty_pass, then composition_pass
                     for img in reversed(job.intermediates):
-                        if img.stage.startswith("detail_") or img.stage == "beauty_pass":
+                        if (
+                            img.stage.startswith("detail_")
+                            or img.stage == "beauty_pass"
+                        ):
                             best_image_b64 = img.image_b64
                             break
                 else:
@@ -807,15 +933,19 @@ class AnimePipelineOrchestrator:
                     self._replan_needed = True
                     logger.info(
                         "[AnimePipeline] Catastrophic score %.2f on round %d — replanning immediately",
-                        score, round_num,
+                        score,
+                        round_num,
                     )
-                    yield self._event("replan_scheduled", {
-                        "consecutive_fails": consecutive_fail_count,
-                        "best_score": round(best_score, 2),
-                        "score_history": [round(s, 2) for s in score_history],
-                        "reason": f"Catastrophic score {score:.1f} < {_CATASTROPHIC_SCORE} — prompt/character mismatch likely",
-                        "catastrophic": True,
-                    })
+                    yield self._event(
+                        "replan_scheduled",
+                        {
+                            "consecutive_fails": consecutive_fail_count,
+                            "best_score": round(best_score, 2),
+                            "score_history": [round(s, 2) for s in score_history],
+                            "reason": f"Catastrophic score {score:.1f} < {_CATASTROPHIC_SCORE} — prompt/character mismatch likely",
+                            "catastrophic": True,
+                        },
+                    )
                     break
 
                 if (
@@ -826,14 +956,18 @@ class AnimePipelineOrchestrator:
                     self._replan_needed = True
                     logger.info(
                         "[AnimePipeline] %d consecutive fails (best=%.1f) — scheduling re-plan",
-                        consecutive_fail_count, best_score,
+                        consecutive_fail_count,
+                        best_score,
                     )
-                    yield self._event("replan_scheduled", {
-                        "consecutive_fails": consecutive_fail_count,
-                        "best_score": round(best_score, 2),
-                        "score_history": [round(s, 2) for s in score_history],
-                        "reason": f"{consecutive_fail_count} consecutive rounds below {threshold_score:.1f}",
-                    })
+                    yield self._event(
+                        "replan_scheduled",
+                        {
+                            "consecutive_fails": consecutive_fail_count,
+                            "best_score": round(best_score, 2),
+                            "score_history": [round(s, 2) for s in score_history],
+                            "reason": f"{consecutive_fail_count} consecutive rounds below {threshold_score:.1f}",
+                        },
+                    )
                     break  # exit loop; orchestrator will re-plan
 
                 # ── Hard cap re-plan trigger: N TOTAL rounds without a pass ──
@@ -848,36 +982,41 @@ class AnimePipelineOrchestrator:
                     and not latest_critique.passed
                     and round_num < max_rounds
                 ):
-                    if (
-                        not self._replan_needed
-                        and self._replan_count < 1
-                    ):
+                    if not self._replan_needed and self._replan_count < 1:
                         # Attempt 1: trigger replan
                         self._replan_needed = True
                         logger.info(
                             "[AnimePipeline] Hard cap reached (attempt 1): %d rounds without pass (best=%.1f) — scheduling re-plan",
-                            rounds_done, best_score,
+                            rounds_done,
+                            best_score,
                         )
-                        yield self._event("replan_scheduled", {
-                            "consecutive_fails": consecutive_fail_count,
-                            "best_score": round(best_score, 2),
-                            "score_history": [round(s, 2) for s in score_history],
-                            "reason": f"Reached {rounds_done} total beauty rounds without passing (hard cap {hard_cap_total})",
-                            "hard_cap": True,
-                        })
+                        yield self._event(
+                            "replan_scheduled",
+                            {
+                                "consecutive_fails": consecutive_fail_count,
+                                "best_score": round(best_score, 2),
+                                "score_history": [round(s, 2) for s in score_history],
+                                "reason": f"Reached {rounds_done} total beauty rounds without passing (hard cap {hard_cap_total})",
+                                "hard_cap": True,
+                            },
+                        )
                     else:
                         # Attempt 2 (or beyond): plain hard stop, no further replan.
                         # Dual output will be emitted by orchestrator using best images.
                         logger.info(
                             "[AnimePipeline] Hard cap reached (attempt 2): %d rounds without pass (best=%.1f) — stopping refine loop",
-                            rounds_done, best_score,
+                            rounds_done,
+                            best_score,
                         )
-                        yield self._event("refine_hard_stop", {
-                            "rounds_done": rounds_done,
-                            "best_score": round(best_score, 2),
-                            "score_history": [round(s, 2) for s in score_history],
-                            "reason": f"Attempt 2 reached {rounds_done} rounds without passing (hard cap {hard_cap_total})",
-                        })
+                        yield self._event(
+                            "refine_hard_stop",
+                            {
+                                "rounds_done": rounds_done,
+                                "best_score": round(best_score, 2),
+                                "score_history": [round(s, 2) for s in score_history],
+                                "reason": f"Attempt 2 reached {rounds_done} rounds without passing (hard cap {hard_cap_total})",
+                            },
+                        )
                     break  # exit loop
 
                 # ── Stagnation detection: full restart ──────────────
@@ -892,27 +1031,41 @@ class AnimePipelineOrchestrator:
                     critique_for_next_round = None
                     eye_refine_round_used = False
                     # Emit restart event for UI
-                    yield self._event("full_restart", {
-                        "restart_num": restart_count,
-                        "best_score": best_score,
-                        "reason": f"Score stagnant for {max_stagnant} rounds (best={best_score:.1f})",
-                        "score_history": [round(s, 2) for s in score_history],
-                    })
+                    yield self._event(
+                        "full_restart",
+                        {
+                            "restart_num": restart_count,
+                            "best_score": best_score,
+                            "reason": f"Score stagnant for {max_stagnant} rounds (best={best_score:.1f})",
+                            "score_history": [round(s, 2) for s in score_history],
+                        },
+                    )
                     # Emit reasoning for the refine decision
                     worst_dims = sorted(
-                        ((k, v) for k, v in latest_critique.dimension_scores.items() if v > 0),
+                        (
+                            (k, v)
+                            for k, v in latest_critique.dimension_scores.items()
+                            if v > 0
+                        ),
                         key=lambda x: x[1],
                     )[:3]
-                    yield self._event("refine_reasoning", {
-                        "round": round_num,
-                        "reason": f"Full restart #{restart_count}: score stuck at {score:.1f}",
-                        "worst_dimensions": [{"name": k, "score": v} for k, v in worst_dims],
-                        "actions": ["new_seed", "reset_refine_context"],
-                        "score_history": [round(s, 2) for s in score_history],
-                    })
+                    yield self._event(
+                        "refine_reasoning",
+                        {
+                            "round": round_num,
+                            "reason": f"Full restart #{restart_count}: score stuck at {score:.1f}",
+                            "worst_dimensions": [
+                                {"name": k, "score": v} for k, v in worst_dims
+                            ],
+                            "actions": ["new_seed", "reset_refine_context"],
+                            "score_history": [round(s, 2) for s in score_history],
+                        },
+                    )
                     logger.info(
                         "[AnimePipeline] Full restart #%d: score stagnant for %d rounds (best=%.1f)",
-                        restart_count, max_stagnant, best_score,
+                        restart_count,
+                        max_stagnant,
+                        best_score,
                     )
                     job.refine_rounds += 1
                     continue
@@ -933,41 +1086,57 @@ class AnimePipelineOrchestrator:
                 #   ANIME_PIPELINE_GATE_FACE_MIN, ANIME_PIPELINE_GATE_EYE_MIN,
                 #   ANIME_PIPELINE_GATE_EYE_REF_MIN.
                 import os as _os
+
                 _gate_face_min = float(_os.getenv("ANIME_PIPELINE_GATE_FACE_MIN", "7"))
                 _gate_eye_min = float(_os.getenv("ANIME_PIPELINE_GATE_EYE_MIN", "7"))
-                _gate_eye_ref_min = float(_os.getenv("ANIME_PIPELINE_GATE_EYE_REF_MIN", "80"))
+                _gate_eye_ref_min = float(
+                    _os.getenv("ANIME_PIPELINE_GATE_EYE_REF_MIN", "80")
+                )
 
-                face_weak = has_character and latest_critique.face_score < _gate_face_min
+                face_weak = (
+                    has_character and latest_critique.face_score < _gate_face_min
+                )
                 eye_ref_pct = getattr(latest_critique, "eye_reference_match_pct", 0.0)
                 eye_ref_weak = eye_ref_pct > 0.0 and eye_ref_pct < _gate_eye_ref_min
                 eyes_weak = has_character and (
-                    latest_critique.eye_consistency_score < _gate_eye_min or eye_ref_weak
+                    latest_critique.eye_consistency_score < _gate_eye_min
+                    or eye_ref_weak
                 )
 
                 # Eye-refine scheduling: run focused refine when eyes are weak
                 if (
                     not eye_refine_round_used
                     and round_num < max_rounds
-                    and (self._beauty.should_apply_eye_refine(latest_critique) or eyes_weak)
+                    and (
+                        self._beauty.should_apply_eye_refine(latest_critique)
+                        or eyes_weak
+                    )
                 ):
                     eye_refine_round_used = True
                     job.refine_rounds += 1
-                    yield self._event("eye_refine_scheduled", {
-                        "round": round_num + 1,
-                        "eye_score": latest_critique.eye_consistency_score,
-                        "eye_reference_match_pct": getattr(latest_critique, "eye_reference_match_pct", 0.0),
-                        "face_score": latest_critique.face_score,
-                        "eye_issues": latest_critique.eye_issues[:3],
-                        "character": self._detected_character or "",
-                    })
+                    yield self._event(
+                        "eye_refine_scheduled",
+                        {
+                            "round": round_num + 1,
+                            "eye_score": latest_critique.eye_consistency_score,
+                            "eye_reference_match_pct": getattr(
+                                latest_critique, "eye_reference_match_pct", 0.0
+                            ),
+                            "face_score": latest_critique.face_score,
+                            "eye_issues": latest_critique.eye_issues[:3],
+                            "character": self._detected_character or "",
+                        },
+                    )
                     continue
 
                 # Force additional refine if face/eyes are below character threshold
                 if (face_weak or eyes_weak) and round_num < max_rounds:
                     logger.info(
                         "[AnimePipeline] Character face/eye quality gate: face=%d eyes=%d ref_match=%.0f%%, refining round %d",
-                        latest_critique.face_score, latest_critique.eye_consistency_score,
-                        getattr(latest_critique, "eye_reference_match_pct", 0.0), round_num + 1,
+                        latest_critique.face_score,
+                        latest_critique.eye_consistency_score,
+                        getattr(latest_critique, "eye_reference_match_pct", 0.0),
+                        round_num + 1,
                     )
                     job.refine_rounds += 1
                     continue
@@ -975,26 +1144,37 @@ class AnimePipelineOrchestrator:
                 if latest_critique.passed:
                     logger.info(
                         "[AnimePipeline] Critique passed (score=%.2f) on round %d",
-                        score, round_num,
+                        score,
+                        round_num,
                     )
                     break
 
                 if round_num < max_rounds:
                     # Emit reasoning for why we're refining
                     worst_dims = sorted(
-                        ((k, v) for k, v in latest_critique.dimension_scores.items() if v > 0),
+                        (
+                            (k, v)
+                            for k, v in latest_critique.dimension_scores.items()
+                            if v > 0
+                        ),
                         key=lambda x: x[1],
                     )[:3]
-                    yield self._event("refine_reasoning", {
-                        "round": round_num,
-                        "reason": f"Score {score:.1f}/10 below threshold",
-                        "worst_dimensions": [{"name": k, "score": v} for k, v in worst_dims],
-                        "actions": ["refine_with_critique_context"],
-                        "score_history": [round(s, 2) for s in score_history],
-                    })
+                    yield self._event(
+                        "refine_reasoning",
+                        {
+                            "round": round_num,
+                            "reason": f"Score {score:.1f}/10 below threshold",
+                            "worst_dimensions": [
+                                {"name": k, "score": v} for k, v in worst_dims
+                            ],
+                            "actions": ["refine_with_critique_context"],
+                            "score_history": [round(s, 2) for s in score_history],
+                        },
+                    )
                     logger.info(
                         "[AnimePipeline] Critique failed (score=%.2f), refining round %d",
-                        score, round_num + 1,
+                        score,
+                        round_num + 1,
                     )
                     job.refine_rounds += 1
                 else:
@@ -1005,9 +1185,12 @@ class AnimePipelineOrchestrator:
             else:
                 break
 
-
         # If we never passed but have a best image, use it
-        if self._config.return_best_on_fail and best_image_b64 and not job.final_image_b64:
+        if (
+            self._config.return_best_on_fail
+            and best_image_b64
+            and not job.final_image_b64
+        ):
             job.final_image_b64 = best_image_b64
 
         # Auto-save high-quality output as character reference for future use
@@ -1027,11 +1210,16 @@ class AnimePipelineOrchestrator:
           - Detection is disabled in config
         """
         if not self._detection_inpaint.is_available():
-            logger.info("[AnimePipeline] Detection inpaint skipped — dependencies not available")
-            yield self._event("stage_skip", {
-                "stage": "detection_inpaint",
-                "reason": "dependencies_unavailable",
-            })
+            logger.info(
+                "[AnimePipeline] Detection inpaint skipped — dependencies not available"
+            )
+            yield self._event(
+                "stage_skip",
+                {
+                    "stage": "detection_inpaint",
+                    "reason": "dependencies_unavailable",
+                },
+            )
             return
 
         # User contract: each layer must be a fully independent generation
@@ -1039,30 +1227,43 @@ class AnimePipelineOrchestrator:
         # a stage_skip event so the UI still knows the stage was reached
         # but did not run.
         if not getattr(self._config, "detection_inpaint_enabled", False):
-            logger.info("[AnimePipeline] Detection inpaint disabled by config — skipping")
-            yield self._event("stage_skip", {
-                "stage": "detection_inpaint",
-                "reason": "disabled_by_config",
-            })
+            logger.info(
+                "[AnimePipeline] Detection inpaint disabled by config — skipping"
+            )
+            yield self._event(
+                "stage_skip",
+                {
+                    "stage": "detection_inpaint",
+                    "reason": "disabled_by_config",
+                },
+            )
             return
 
-        yield self._event("stage_start", {
-            "stage": "detection_inpaint",
-            "stage_num": 8,
-            "total_stages": 10,
-            "description": "ADetailer: 27-model multi-region detection + inpaint",
-            "vram_profile": self._config.vram.profile.value,
-        })
+        yield self._event(
+            "stage_start",
+            {
+                "stage": "detection_inpaint",
+                "stage_num": 8,
+                "total_stages": 10,
+                "description": "ADetailer: 27-model multi-region detection + inpaint",
+                "vram_profile": self._config.vram.profile.value,
+            },
+        )
 
         try:
             self._detection_inpaint.execute(job)
         except Exception as e:
-            logger.warning("[AnimePipeline] Detection inpaint failed (non-fatal): %s", e)
-            yield self._event("stage_error", {
-                "stage": "detection_inpaint",
-                "error": str(e),
-                "fatal": False,
-            })
+            logger.warning(
+                "[AnimePipeline] Detection inpaint failed (non-fatal): %s", e
+            )
+            yield self._event(
+                "stage_error",
+                {
+                    "stage": "detection_inpaint",
+                    "error": str(e),
+                    "fatal": False,
+                },
+            )
             return
 
         # Spec (2026-04-23): persist every detected feature as a cropped
@@ -1074,6 +1275,7 @@ class AnimePipelineOrchestrator:
                 evaluate_reference_vs_generated,
                 persist_feature_crops,
             )
+
             crops = persist_feature_crops(
                 job,
                 getattr(self._detection_inpaint, "last_result", None),
@@ -1081,12 +1283,15 @@ class AnimePipelineOrchestrator:
             )
             if crops:
                 job.metadata["feature_crops"] = crops
-                yield self._event("feature_crops_persisted", {
-                    "stage": "detection_inpaint",
-                    "source": "generated",
-                    "count": len(crops),
-                    "feature_types": sorted({c["feature"] for c in crops}),
-                })
+                yield self._event(
+                    "feature_crops_persisted",
+                    {
+                        "stage": "detection_inpaint",
+                        "source": "generated",
+                        "count": len(crops),
+                        "feature_types": sorted({c["feature"] for c in crops}),
+                    },
+                )
             # 2026-04-26: face-priority ref-vs-gen evaluation.  Compares
             # crops in original/ (reference) vs ai_gen/ for face, eyes,
             # hair, mouth, nose.  Always best-effort; never fatal.
@@ -1097,7 +1302,8 @@ class AnimePipelineOrchestrator:
                     yield self._event("feature_ref_evaluation", eval_report)
             except Exception as exc:  # noqa: BLE001
                 logger.debug(
-                    "[AnimePipeline] feature ref evaluation failed: %s", exc,
+                    "[AnimePipeline] feature ref evaluation failed: %s",
+                    exc,
                 )
         except Exception as exc:  # noqa: BLE001
             logger.warning("[AnimePipeline] feature crop persistence failed: %s", exc)
@@ -1109,13 +1315,16 @@ class AnimePipelineOrchestrator:
         if detection_summary:
             yield self._event("detection_reasoning", detection_summary)
 
-        yield self._event("stage_complete", {
-            "stage": "detection_inpaint",
-            "stage_num": 8,
-            "total_stages": 10,
-            "latency_ms": latency,
-            "regions_processed": "detection_inpaint" in job.stages_executed,
-        })
+        yield self._event(
+            "stage_complete",
+            {
+                "stage": "detection_inpaint",
+                "stage_num": 8,
+                "total_stages": 10,
+                "latency_ms": latency,
+                "regions_processed": "detection_inpaint" in job.stages_executed,
+            },
+        )
 
     def _run_layer_painter(
         self, job: AnimePipelineJob
@@ -1131,13 +1340,16 @@ class AnimePipelineOrchestrator:
         if not job.final_image_b64:
             return
 
-        yield self._event("stage_start", {
-            "stage": "layer_painter",
-            "stage_num": 10,
-            "total_stages": 10,
-            "description": "Artistic layers (shadow/highlight/eye FX) + eye-state classifier",
-            "vram_profile": self._config.vram.profile.value,
-        })
+        yield self._event(
+            "stage_start",
+            {
+                "stage": "layer_painter",
+                "stage_num": 10,
+                "total_stages": 10,
+                "description": "Artistic layers (shadow/highlight/eye FX) + eye-state classifier",
+                "vram_profile": self._config.vram.profile.value,
+            },
+        )
 
         # Harvest face + eye bboxes from the most recent detection results.
         face_bbox = self._extract_face_bbox_for_layers(job)
@@ -1145,12 +1357,15 @@ class AnimePipelineOrchestrator:
 
         # Read FX spec from job metadata (set upstream by prompt analyzer
         # or user options). Missing metadata ⇒ no eye-FX.
-        fx_meta = (job.metadata or {}).get("eye_fx") if hasattr(job, "metadata") else None
+        fx_meta = (
+            (job.metadata or {}).get("eye_fx") if hasattr(job, "metadata") else None
+        )
         eye_fx = _eye_fx_from_meta(fx_meta)
 
         requested_state = (
             (job.metadata or {}).get("requested_eye_state", "open")
-            if hasattr(job, "metadata") else "open"
+            if hasattr(job, "metadata")
+            else "open"
         )
 
         try:
@@ -1166,36 +1381,46 @@ class AnimePipelineOrchestrator:
             )
         except Exception as e:
             logger.warning("[AnimePipeline] Layer painter crashed (non-fatal): %s", e)
-            yield self._event("stage_error", {
-                "stage": "layer_painter",
-                "error": str(e),
-                "fatal": False,
-            })
+            yield self._event(
+                "stage_error",
+                {
+                    "stage": "layer_painter",
+                    "error": str(e),
+                    "fatal": False,
+                },
+            )
             return
 
         # Only overwrite when at least one pass actually modified bytes.
         any_change = (
-            result.shadow_applied or result.highlight_applied
-            or result.eye_rolling_applied or result.bloodshot_applied
+            result.shadow_applied
+            or result.highlight_applied
+            or result.eye_rolling_applied
+            or result.bloodshot_applied
         )
         if any_change:
             job.final_image_b64 = result.final_b64
 
         # Stash classifier output on the job for the manifest/UI.
         if result.eye_state is not None and hasattr(job, "metadata"):
-            job.metadata = {**(job.metadata or {}),
-                            "eye_state_report": result.eye_state.to_dict()}
+            job.metadata = {
+                **(job.metadata or {}),
+                "eye_state_report": result.eye_state.to_dict(),
+            }
 
         latency = (time.time() - t0) * 1000
         job.stage_timings_ms["layer_painter"] = latency
 
-        yield self._event("stage_complete", {
-            "stage": "layer_painter",
-            "stage_num": 10,
-            "total_stages": 10,
-            "latency_ms": latency,
-            **result.to_dict(),
-        })
+        yield self._event(
+            "stage_complete",
+            {
+                "stage": "layer_painter",
+                "stage_num": 10,
+                "total_stages": 10,
+                "latency_ms": latency,
+                **result.to_dict(),
+            },
+        )
 
     def _extract_face_bbox_for_layers(self, job: AnimePipelineJob) -> Optional[EyeBBox]:
         """Pull the highest-confidence face bbox out of the detection agent.
@@ -1214,8 +1439,10 @@ class AnimePipelineOrchestrator:
                     continue
                 best = max(candidates, key=lambda r: getattr(r, "confidence", 0.0))
                 return EyeBBox(
-                    int(getattr(best, "x1", 0)), int(getattr(best, "y1", 0)),
-                    int(getattr(best, "x2", 0)), int(getattr(best, "y2", 0)),
+                    int(getattr(best, "x1", 0)),
+                    int(getattr(best, "y1", 0)),
+                    int(getattr(best, "x2", 0)),
+                    int(getattr(best, "y2", 0)),
                 )
         except Exception as e:
             logger.debug("[AnimePipeline] face bbox extract failed: %s", e)
@@ -1230,11 +1457,15 @@ class AnimePipelineOrchestrator:
                 return out
             regions_map = getattr(latest, "regions", {}) or {}
             for rtype in ("eyes", "full_eyes"):
-                for region in (regions_map.get(rtype) or []):
-                    out.append(EyeBBox(
-                        int(getattr(region, "x1", 0)), int(getattr(region, "y1", 0)),
-                        int(getattr(region, "x2", 0)), int(getattr(region, "y2", 0)),
-                    ))
+                for region in regions_map.get(rtype) or []:
+                    out.append(
+                        EyeBBox(
+                            int(getattr(region, "x1", 0)),
+                            int(getattr(region, "y1", 0)),
+                            int(getattr(region, "x2", 0)),
+                            int(getattr(region, "y2", 0)),
+                        )
+                    )
         except Exception as e:
             logger.debug("[AnimePipeline] eye bbox extract failed: %s", e)
         return out
@@ -1295,12 +1526,15 @@ class AnimePipelineOrchestrator:
         info, downloads reference images, and enriches the job with identity tags
         and reference images for better prompt generation.
         """
-        yield self._event("stage_start", {
-            "stage": "character_research",
-            "stage_num": 2,
-            "total_stages": 9,
-            "vram_profile": self._config.vram.profile.value,
-        })
+        yield self._event(
+            "stage_start",
+            {
+                "stage": "character_research",
+                "stage_num": 2,
+                "total_stages": 9,
+                "vram_profile": self._config.vram.profile.value,
+            },
+        )
 
         t0 = time.time()
 
@@ -1356,7 +1590,8 @@ class AnimePipelineOrchestrator:
                     job.reference_images_b64 = result.reference_images_b64[:3]
                     logger.info(
                         "[AnimePipeline] Injected %d web reference images for %s",
-                        len(job.reference_images_b64), result.display_name,
+                        len(job.reference_images_b64),
+                        result.display_name,
                     )
 
                 # Augment from local reference cache + attach identity detail.
@@ -1396,18 +1631,23 @@ class AnimePipelineOrchestrator:
                 # 2026-04-29: surface ref-source diagnostics so the chat
                 # UI can tell the user "Đã dùng N ảnh local cache, K ảnh
                 # web mới" instead of leaving the path opaque.
-                yield self._event("research_status", {
-                    "stage": "character_research",
-                    "danbooru_tag": result.danbooru_tag,
-                    "display_name": result.display_name,
-                    "local_refs": int(getattr(result, "local_refs_count", 0)),
-                    "web_refs": int(getattr(result, "web_refs_count", 0)),
-                    "web_search_skipped": bool(getattr(result, "web_search_skipped", False)),
-                    "nsfw_intent": bool(getattr(result, "nsfw_intent", False)),
-                    "cached": bool(getattr(result, "cached", False)),
-                    "confidence": float(getattr(result, "confidence", 0.0)),
-                    "latency_ms": latency,
-                })
+                yield self._event(
+                    "research_status",
+                    {
+                        "stage": "character_research",
+                        "danbooru_tag": result.danbooru_tag,
+                        "display_name": result.display_name,
+                        "local_refs": int(getattr(result, "local_refs_count", 0)),
+                        "web_refs": int(getattr(result, "web_refs_count", 0)),
+                        "web_search_skipped": bool(
+                            getattr(result, "web_search_skipped", False)
+                        ),
+                        "nsfw_intent": bool(getattr(result, "nsfw_intent", False)),
+                        "cached": bool(getattr(result, "cached", False)),
+                        "confidence": float(getattr(result, "confidence", 0.0)),
+                        "latency_ms": latency,
+                    },
+                )
 
                 # 2026-04-26: persist YOLO-detected feature crops from
                 # the reference images (SAA / cached / web) into
@@ -1416,16 +1656,22 @@ class AnimePipelineOrchestrator:
                 # face-priority evaluator diffs against the AI output.
                 try:
                     ref_crops = self._persist_reference_feature_crops(
-                        job, result.reference_images_b64 or [],
+                        job,
+                        result.reference_images_b64 or [],
                     )
                     if ref_crops:
                         job.metadata["reference_feature_crops"] = ref_crops
-                        yield self._event("feature_crops_persisted", {
-                            "stage": "character_research",
-                            "source": "reference",
-                            "count": len(ref_crops),
-                            "feature_types": sorted({c["feature"] for c in ref_crops}),
-                        })
+                        yield self._event(
+                            "feature_crops_persisted",
+                            {
+                                "stage": "character_research",
+                                "source": "reference",
+                                "count": len(ref_crops),
+                                "feature_types": sorted(
+                                    {c["feature"] for c in ref_crops}
+                                ),
+                            },
+                        )
                 except Exception as exc:  # noqa: BLE001
                     logger.debug(
                         "[AnimePipeline] reference feature crop persist failed: %s",
@@ -1436,56 +1682,68 @@ class AnimePipelineOrchestrator:
                 saa_thumbnail: Optional[str] = None
                 try:
                     from .saa_character_db import get_character_thumbnail
+
                     # The WAI DB keys are the space-form tag, so convert.
                     tag_space = (result.danbooru_tag or "").replace("_", " ")
                     saa_thumbnail = get_character_thumbnail(tag_space)
                 except Exception:
                     saa_thumbnail = None
 
-                yield self._event("stage_complete", {
-                    "stage": "character_research",
-                    "stage_num": 2,
-                    "total_stages": 9,
-                    "latency_ms": latency,
-                    "character": result.display_name,
-                    "series": result.series_name,
-                    "confidence": result.confidence,
-                    "ref_images_count": len(result.reference_images_b64),
-                    "identity_tags_count": len(result.identity_tags),
-                    "cached": result.cached,
-                    # New: expose resolution provenance so the UI can show
-                    # whether the match came from the hand-curated table,
-                    # the SAA 5149-char offline DB, or the web fallback.
-                    "alias_source": getattr(job, "alias_source", None),
-                    "character_tag": getattr(job, "character_tag", None),
-                    "saa_thumbnail": saa_thumbnail,
-                })
+                yield self._event(
+                    "stage_complete",
+                    {
+                        "stage": "character_research",
+                        "stage_num": 2,
+                        "total_stages": 9,
+                        "latency_ms": latency,
+                        "character": result.display_name,
+                        "series": result.series_name,
+                        "confidence": result.confidence,
+                        "ref_images_count": len(result.reference_images_b64),
+                        "identity_tags_count": len(result.identity_tags),
+                        "cached": result.cached,
+                        # New: expose resolution provenance so the UI can show
+                        # whether the match came from the hand-curated table,
+                        # the SAA 5149-char offline DB, or the web fallback.
+                        "alias_source": getattr(job, "alias_source", None),
+                        "character_tag": getattr(job, "character_tag", None),
+                        "saa_thumbnail": saa_thumbnail,
+                    },
+                )
             else:
                 latency = (time.time() - t0) * 1000
                 job.stage_timings_ms["character_research"] = latency
                 job.stages_executed.append("character_research")
-                yield self._event("stage_complete", {
+                yield self._event(
+                    "stage_complete",
+                    {
+                        "stage": "character_research",
+                        "stage_num": 2,
+                        "total_stages": 9,
+                        "latency_ms": latency,
+                        "character": None,
+                        "skipped": True,
+                    },
+                )
+                logger.info("[AnimePipeline] No character detected, research skipped")
+
+        except Exception as e:
+            logger.warning(
+                "[AnimePipeline] Character research failed (non-fatal): %s", e
+            )
+            latency = (time.time() - t0) * 1000
+            job.stage_timings_ms["character_research"] = latency
+            yield self._event(
+                "stage_complete",
+                {
                     "stage": "character_research",
                     "stage_num": 2,
                     "total_stages": 9,
                     "latency_ms": latency,
-                    "character": None,
+                    "error": str(e),
                     "skipped": True,
-                })
-                logger.info("[AnimePipeline] No character detected, research skipped")
-
-        except Exception as e:
-            logger.warning("[AnimePipeline] Character research failed (non-fatal): %s", e)
-            latency = (time.time() - t0) * 1000
-            job.stage_timings_ms["character_research"] = latency
-            yield self._event("stage_complete", {
-                "stage": "character_research",
-                "stage_num": 2,
-                "total_stages": 9,
-                "latency_ms": latency,
-                "error": str(e),
-                "skipped": True,
-            })
+                },
+            )
 
     def _run_lora_stage(
         self, job: AnimePipelineJob
@@ -1496,12 +1754,15 @@ class AnimePipelineOrchestrator:
         Stores result in self._verified_lora.
         Non-fatal: if anything goes wrong, pipeline continues without a character LoRA.
         """
-        yield self._event("stage_start", {
-            "stage": "lora_search",
-            "stage_num": 3,
-            "total_stages": 9,
-            "vram_profile": self._config.vram.profile.value,
-        })
+        yield self._event(
+            "stage_start",
+            {
+                "stage": "lora_search",
+                "stage_num": 3,
+                "total_stages": 9,
+                "vram_profile": self._config.vram.profile.value,
+            },
+        )
 
         t0 = time.time()
 
@@ -1510,8 +1771,7 @@ class AnimePipelineOrchestrator:
         # working on offline / rate-limited / search-disabled environments.
         if not self._research and job.character_tag and job.series_tag:
             logger.info(
-                "[AnimePipeline] LoRA stage running with parser-only identity: "
-                "%s (%s)",
+                "[AnimePipeline] LoRA stage running with parser-only identity: %s (%s)",
                 job.character_name or job.character_tag,
                 job.series_name or job.series_tag,
             )
@@ -1535,14 +1795,17 @@ class AnimePipelineOrchestrator:
             latency = (time.time() - t0) * 1000
             job.stage_timings_ms["lora_search"] = latency
             job.stages_executed.append("lora_search")
-            yield self._event("stage_complete", {
-                "stage": "lora_search",
-                "stage_num": 3,
-                "total_stages": 9,
-                "latency_ms": latency,
-                "skipped": True,
-                "reason": "no_character_detected",
-            })
+            yield self._event(
+                "stage_complete",
+                {
+                    "stage": "lora_search",
+                    "stage_num": 3,
+                    "total_stages": 9,
+                    "latency_ms": latency,
+                    "skipped": True,
+                    "reason": "no_character_detected",
+                },
+            )
             return
 
         research = self._research
@@ -1568,7 +1831,8 @@ class AnimePipelineOrchestrator:
                 appearance_description=research.appearance_summary or "",
                 comfyui_url=comfyui_url,
                 base_checkpoint=base_checkpoint,
-                reference_images=research.reference_images_b64 or job.reference_images_b64,
+                reference_images=research.reference_images_b64
+                or job.reference_images_b64,
             )
             self._verified_lora = lora_result
             latency = (time.time() - t0) * 1000
@@ -1578,49 +1842,58 @@ class AnimePipelineOrchestrator:
             if lora_result.accepted:
                 logger.info(
                     "[AnimePipeline] Character LoRA accepted: %s (score=%.1f)",
-                    lora_result.lora_filename, lora_result.vision_score,
+                    lora_result.lora_filename,
+                    lora_result.vision_score,
                 )
-                yield self._event("stage_complete", {
-                    "stage": "lora_search",
-                    "stage_num": 3,
-                    "total_stages": 9,
-                    "latency_ms": latency,
-                    "accepted": True,
-                    "lora_name": lora_result.lora_filename,
-                    "vision_score": lora_result.vision_score,
-                    "trigger_words": lora_result.trigger_words,
-                })
+                yield self._event(
+                    "stage_complete",
+                    {
+                        "stage": "lora_search",
+                        "stage_num": 3,
+                        "total_stages": 9,
+                        "latency_ms": latency,
+                        "accepted": True,
+                        "lora_name": lora_result.lora_filename,
+                        "vision_score": lora_result.vision_score,
+                        "trigger_words": lora_result.trigger_words,
+                    },
+                )
             else:
                 logger.info(
                     "[AnimePipeline] No character LoRA accepted for %s: %s",
-                    research.display_name, lora_result.rejection_reason,
+                    research.display_name,
+                    lora_result.rejection_reason,
                 )
-                yield self._event("stage_complete", {
-                    "stage": "lora_search",
-                    "stage_num": 3,
-                    "total_stages": 9,
-                    "latency_ms": latency,
-                    "accepted": False,
-                    "rejection_reason": lora_result.rejection_reason,
-                })
+                yield self._event(
+                    "stage_complete",
+                    {
+                        "stage": "lora_search",
+                        "stage_num": 3,
+                        "total_stages": 9,
+                        "latency_ms": latency,
+                        "accepted": False,
+                        "rejection_reason": lora_result.rejection_reason,
+                    },
+                )
 
         except Exception as e:
             logger.warning("[AnimePipeline] LoRA stage failed (non-fatal): %s", e)
             latency = (time.time() - t0) * 1000
             job.stage_timings_ms["lora_search"] = latency
-            yield self._event("stage_complete", {
-                "stage": "lora_search",
-                "stage_num": 3,
-                "total_stages": 9,
-                "latency_ms": latency,
-                "accepted": False,
-                "error": str(e),
-                "skipped": True,
-            })
+            yield self._event(
+                "stage_complete",
+                {
+                    "stage": "lora_search",
+                    "stage_num": 3,
+                    "total_stages": 9,
+                    "latency_ms": latency,
+                    "accepted": False,
+                    "error": str(e),
+                    "skipped": True,
+                },
+            )
 
-    def _inject_character_lora(
-        self, job: AnimePipelineJob
-    ) -> None:
+    def _inject_character_lora(self, job: AnimePipelineJob) -> None:
         """Prepend the verified character LoRA to every PassConfig in the layer plan.
 
         The character LoRA is placed first (highest priority) so it establishes
@@ -1673,7 +1946,8 @@ class AnimePipelineOrchestrator:
 
         logger.info(
             "[AnimePipeline] Injected character LoRA '%s' into %d passes",
-            lora_dict["name"], len(job.layer_plan.passes),
+            lora_dict["name"],
+            len(job.layer_plan.passes),
         )
 
     def _inject_user_loras(self, job: AnimePipelineJob) -> None:
@@ -1699,7 +1973,8 @@ class AnimePipelineOrchestrator:
         if missing:
             logger.warning(
                 "[AnimePipeline] Skipping %d missing user LoRA(s): %s",
-                len(missing), missing,
+                len(missing),
+                missing,
             )
             meta = job.metadata or {}
             meta["user_loras_missing"] = missing
@@ -1726,7 +2001,8 @@ class AnimePipelineOrchestrator:
         if injected:
             logger.info(
                 "[AnimePipeline] Injected %d user LoRAs into %d passes: %s",
-                len(present), len(job.layer_plan.passes),
+                len(present),
+                len(job.layer_plan.passes),
                 [l["name"] for l in present],
             )
 
@@ -1767,46 +2043,62 @@ class AnimePipelineOrchestrator:
             yield self._build_cancellation_event(job, stage_name, self._run_t0)
             return
 
-        yield self._event("stage_start", {
-            "stage": stage_name,
-            "stage_num": stage_num,
-            "total_stages": total,
-            "vram_profile": vram.profile.value,
-            **(extra or {}),
-        })
+        yield self._event(
+            "stage_start",
+            {
+                "stage": stage_name,
+                "stage_num": stage_num,
+                "total_stages": total,
+                "vram_profile": vram.profile.value,
+                **(extra or {}),
+            },
+        )
 
         try:
             agent.execute(job)
         except Exception as e:
             logger.error("[AnimePipeline] Stage %s failed: %s", stage_name, e)
-            yield self._event("stage_error", {
-                "stage": stage_name,
-                "error": str(e),
-            })
+            yield self._event(
+                "stage_error",
+                {
+                    "stage": stage_name,
+                    "error": str(e),
+                },
+            )
             raise
 
         # Agent may fail silently by setting job.status = FAILED instead of raising
         if job.status == AnimePipelineStatus.FAILED:
-            yield self._event("stage_error", {
-                "stage": stage_name,
-                "error": job.error or f"{stage_name} failed",
-            })
+            yield self._event(
+                "stage_error",
+                {
+                    "stage": stage_name,
+                    "error": job.error or f"{stage_name} failed",
+                },
+            )
             return
 
         latency = job.stage_timings_ms.get(stage_name, 0.0)
-        yield self._event("stage_complete", {
-            "stage": stage_name,
-            "stage_num": stage_num,
-            "total_stages": total,
-            "latency_ms": latency,
-            **(extra or {}),
-        })
+        yield self._event(
+            "stage_complete",
+            {
+                "stage": stage_name,
+                "stage_num": stage_num,
+                "total_stages": total,
+                "latency_ms": latency,
+                **(extra or {}),
+            },
+        )
 
     def _save_intermediates(self, job: AnimePipelineJob) -> None:
         """Save intermediate images to disk via ResultStore."""
         try:
             paths = self._result_store.save_all(job)
-            logger.info("[AnimePipeline] Saved %d items to %s", len(paths), self._config.intermediate_dir)
+            logger.info(
+                "[AnimePipeline] Saved %d items to %s",
+                len(paths),
+                self._config.intermediate_dir,
+            )
         except Exception as e:
             logger.warning("[AnimePipeline] Failed to save intermediates: %s", e)
 
@@ -1821,13 +2113,16 @@ class AnimePipelineOrchestrator:
         Uses the council to deeply analyze the user's creative intent,
         producing structured guidance for the layer planner.
         """
-        yield self._event("stage_start", {
-            "stage": "council_reasoning",
-            "stage_num": 3.5,
-            "total_stages": 10,
-            "description": "4-Agents council: analyzing creative intent",
-            "vram_profile": self._config.vram.profile.value,
-        })
+        yield self._event(
+            "stage_start",
+            {
+                "stage": "council_reasoning",
+                "stage_num": 3.5,
+                "total_stages": 10,
+                "description": "4-Agents council: analyzing creative intent",
+                "vram_profile": self._config.vram.profile.value,
+            },
+        )
 
         t0 = time.time()
         try:
@@ -1870,47 +2165,64 @@ class AnimePipelineOrchestrator:
                 job.stage_timings_ms["council_reasoning"] = latency
                 job.stages_executed.append("council_reasoning")
 
-                yield self._event("council_reasoning", {
-                    "key_points": guidance.get("key_points", []),
-                    "confidence": guidance.get("confidence", 0.0),
-                    "creative_direction": guidance.get("content", "")[:500],
-                })
-                yield self._event("stage_complete", {
-                    "stage": "council_reasoning",
-                    "stage_num": 3.5,
-                    "total_stages": 10,
-                    "latency_ms": latency,
-                    "has_guidance": True,
-                })
+                yield self._event(
+                    "council_reasoning",
+                    {
+                        "key_points": guidance.get("key_points", []),
+                        "confidence": guidance.get("confidence", 0.0),
+                        "creative_direction": guidance.get("content", "")[:500],
+                    },
+                )
+                yield self._event(
+                    "stage_complete",
+                    {
+                        "stage": "council_reasoning",
+                        "stage_num": 3.5,
+                        "total_stages": 10,
+                        "latency_ms": latency,
+                        "has_guidance": True,
+                    },
+                )
                 logger.info(
                     "[AnimePipeline] Council reasoning complete (%.1fms, confidence=%.2f)",
-                    latency, guidance.get("confidence", 0.0),
+                    latency,
+                    guidance.get("confidence", 0.0),
                 )
             else:
                 latency = (time.time() - t0) * 1000
-                yield self._event("stage_complete", {
+                yield self._event(
+                    "stage_complete",
+                    {
+                        "stage": "council_reasoning",
+                        "stage_num": 3.5,
+                        "total_stages": 10,
+                        "latency_ms": latency,
+                        "has_guidance": False,
+                        "skipped": True,
+                    },
+                )
+
+        except Exception as e:
+            logger.warning(
+                "[AnimePipeline] Council reasoning failed (non-fatal): %s", e
+            )
+            latency = (time.time() - t0) * 1000
+            yield self._event(
+                "stage_complete",
+                {
                     "stage": "council_reasoning",
                     "stage_num": 3.5,
                     "total_stages": 10,
                     "latency_ms": latency,
-                    "has_guidance": False,
+                    "error": str(e),
                     "skipped": True,
-                })
-
-        except Exception as e:
-            logger.warning("[AnimePipeline] Council reasoning failed (non-fatal): %s", e)
-            latency = (time.time() - t0) * 1000
-            yield self._event("stage_complete", {
-                "stage": "council_reasoning",
-                "stage_num": 3.5,
-                "total_stages": 10,
-                "latency_ms": latency,
-                "error": str(e),
-                "skipped": True,
-            })
+                },
+            )
 
     @staticmethod
-    def _invoke_council_sync(prompt: str, language: str = "en") -> dict[str, Any] | None:
+    def _invoke_council_sync(
+        prompt: str, language: str = "en"
+    ) -> dict[str, Any] | None:
         """Invoke the 4-agent council synchronously.
 
         Returns a dict with 'content', 'key_points', 'confidence' or None on failure.
@@ -1920,7 +2232,9 @@ class AnimePipelineOrchestrator:
             from core.agentic.entrypoint import run_council, is_council_enabled
 
             if not is_council_enabled():
-                logger.debug("[AnimePipeline] Council not enabled (AGENTIC_V1_ENABLED=false)")
+                logger.debug(
+                    "[AnimePipeline] Council not enabled (AGENTIC_V1_ENABLED=false)"
+                )
                 return None
 
             async def _run() -> dict[str, Any]:
@@ -1937,6 +2251,7 @@ class AnimePipelineOrchestrator:
                 loop = asyncio.get_running_loop()
                 # Already in an async context — schedule as task
                 import concurrent.futures
+
                 with concurrent.futures.ThreadPoolExecutor() as pool:
                     result = loop.run_in_executor(pool, lambda: asyncio.run(_run()))
                     # Can't await here in sync — fall through to new loop
@@ -1947,15 +2262,23 @@ class AnimePipelineOrchestrator:
             if isinstance(result, dict) and result.get("response"):
                 return {
                     "content": result["response"],
-                    "key_points": result.get("agent_trace_summary", {}).get("key_points", [])
-                        if isinstance(result.get("agent_trace_summary"), dict) else [],
-                    "confidence": result.get("agent_trace_summary", {}).get("confidence", 0.0)
-                        if isinstance(result.get("agent_trace_summary"), dict) else 0.5,
+                    "key_points": result.get("agent_trace_summary", {}).get(
+                        "key_points", []
+                    )
+                    if isinstance(result.get("agent_trace_summary"), dict)
+                    else [],
+                    "confidence": result.get("agent_trace_summary", {}).get(
+                        "confidence", 0.0
+                    )
+                    if isinstance(result.get("agent_trace_summary"), dict)
+                    else 0.5,
                 }
             return None
 
         except ImportError:
-            logger.debug("[AnimePipeline] Council modules not available in this environment")
+            logger.debug(
+                "[AnimePipeline] Council modules not available in this environment"
+            )
             return None
         except Exception as e:
             logger.warning("[AnimePipeline] Council invocation failed: %s", e)
@@ -1990,18 +2313,26 @@ class AnimePipelineOrchestrator:
     def _build_detection_reasoning(job: AnimePipelineJob) -> dict[str, Any] | None:
         """Build reasoning payload from YOLO detection inpaint results."""
         # Check job metadata for detection results
-        det_meta = job.stage_metadata.get("detection_inpaint", {}) if hasattr(job, "stage_metadata") else {}
+        det_meta = (
+            job.stage_metadata.get("detection_inpaint", {})
+            if hasattr(job, "stage_metadata")
+            else {}
+        )
         # Also check intermediates for detail_* stages
-        detail_stages = [img for img in job.intermediates if img.stage.startswith("detail_")]
+        detail_stages = [
+            img for img in job.intermediates if img.stage.startswith("detail_")
+        ]
         if not detail_stages and not det_meta:
             return None
 
         regions_fixed = []
         for img in detail_stages:
-            regions_fixed.append({
-                "region_type": img.stage.replace("detail_", ""),
-                "stage": img.stage,
-            })
+            regions_fixed.append(
+                {
+                    "region_type": img.stage.replace("detail_", ""),
+                    "stage": img.stage,
+                }
+            )
 
         return {
             "stage": "detection_inpaint",
@@ -2011,7 +2342,9 @@ class AnimePipelineOrchestrator:
             "reasoning": (
                 f"YOLO detected and inpainted {len(regions_fixed)} regions: "
                 + ", ".join(r["region_type"] for r in regions_fixed[:10])
-            ) if regions_fixed else "No regions detected for inpainting",
+            )
+            if regions_fixed
+            else "No regions detected for inpainting",
         }
 
     @staticmethod
@@ -2025,6 +2358,7 @@ class AnimePipelineOrchestrator:
     @staticmethod
     def _now_iso() -> str:
         from datetime import datetime, timezone
+
         return datetime.now(timezone.utc).isoformat()
 
     def _detect_character_from_vision(self, job: AnimePipelineJob) -> Optional[str]:
@@ -2040,6 +2374,7 @@ class AnimePipelineOrchestrator:
         # Check if any vision tag matches a known character
         try:
             from .character_references import _CHARACTER_IDENTITY
+
             for tag in va.anime_tags[:5]:
                 if tag in _CHARACTER_IDENTITY:
                     return tag
@@ -2049,6 +2384,7 @@ class AnimePipelineOrchestrator:
         # Also try detect_character from research module
         try:
             from .character_research import detect_character
+
             result = detect_character(job.user_prompt)
             if result:
                 return result[0]  # danbooru_tag
@@ -2057,7 +2393,9 @@ class AnimePipelineOrchestrator:
 
         return None
 
-    def _maybe_save_character_reference(self, job: AnimePipelineJob, best_score: float) -> None:
+    def _maybe_save_character_reference(
+        self, job: AnimePipelineJob, best_score: float
+    ) -> None:
         """Auto-save the final image as a character reference if score is high enough."""
         if not self._detected_character:
             return
@@ -2065,15 +2403,23 @@ class AnimePipelineOrchestrator:
             return
         try:
             from .character_references import save_as_reference
-            saved = save_as_reference(self._detected_character, job.final_image_b64, best_score)
+
+            saved = save_as_reference(
+                self._detected_character, job.final_image_b64, best_score
+            )
             if saved:
-                logger.info("[AnimePipeline] Auto-saved character reference: %s (score=%.1f)",
-                            saved, best_score)
+                logger.info(
+                    "[AnimePipeline] Auto-saved character reference: %s (score=%.1f)",
+                    saved,
+                    best_score,
+                )
         except Exception as e:
             logger.warning("[AnimePipeline] Could not save character reference: %s", e)
 
     def _augment_references_from_cache(
-        self, job: AnimePipelineJob, danbooru_tag: str,
+        self,
+        job: AnimePipelineJob,
+        danbooru_tag: str,
     ) -> None:
         """Safe-only reference augmentation from ``storage/character_refs/<tag>/``.
 
@@ -2092,7 +2438,8 @@ class AnimePipelineOrchestrator:
         except Exception as exc:  # pragma: no cover - defensive
             logger.debug(
                 "[AnimePipeline] character_refs cache lookup failed for %s: %s",
-                danbooru_tag, exc,
+                danbooru_tag,
+                exc,
             )
             return
 
@@ -2100,7 +2447,8 @@ class AnimePipelineOrchestrator:
             job.reference_images_b64 = ref_set.images_b64[:3]
             logger.info(
                 "[AnimePipeline] Loaded %d cached reference(s) for %s",
-                len(job.reference_images_b64), danbooru_tag,
+                len(job.reference_images_b64),
+                danbooru_tag,
             )
 
         if ref_set.eye_detail:
@@ -2126,11 +2474,14 @@ class AnimePipelineOrchestrator:
         eye_score = getattr(critique, "eye_consistency_score", 10)
         eye_issues = list(getattr(critique, "eye_issues", []))
 
-        yield self._event("eye_emergency_start", {
-            "eye_score": eye_score,
-            "eye_issues": eye_issues[:5],
-            "character": self._detected_character or "",
-        })
+        yield self._event(
+            "eye_emergency_start",
+            {
+                "eye_score": eye_score,
+                "eye_issues": eye_issues[:5],
+                "character": self._detected_character or "",
+            },
+        )
 
         # Get character eye description from research
         char_eye_desc = ""
@@ -2164,15 +2515,21 @@ class AnimePipelineOrchestrator:
             )
             guidance = self._invoke_council_sync(council_prompt, job.language)
             if guidance:
-                yield self._event("eye_council_guidance", {
-                    "eye_score": eye_score,
-                    "guidance_summary": guidance.get("content", "")[:300],
-                    "confidence": guidance.get("confidence", 0.0),
-                })
+                yield self._event(
+                    "eye_council_guidance",
+                    {
+                        "eye_score": eye_score,
+                        "guidance_summary": guidance.get("content", "")[:300],
+                        "confidence": guidance.get("confidence", 0.0),
+                    },
+                )
                 # Parse denoise recommendation from council if present
                 content = guidance.get("content", "")
                 import re as _re
-                denoise_match = _re.search(r"denoise[:\s]+([0-9]\.[0-9]+)", content, _re.IGNORECASE)
+
+                denoise_match = _re.search(
+                    r"denoise[:\s]+([0-9]\.[0-9]+)", content, _re.IGNORECASE
+                )
                 if denoise_match:
                     try:
                         recommended_denoise = float(denoise_match.group(1))
@@ -2200,13 +2557,18 @@ class AnimePipelineOrchestrator:
                 character_eye_description=char_eye_desc,
             )
         except Exception as exc:
-            logger.warning("[AnimePipeline] Eye emergency inpaint failed (non-fatal): %s", exc)
+            logger.warning(
+                "[AnimePipeline] Eye emergency inpaint failed (non-fatal): %s", exc
+            )
 
-        yield self._event("eye_emergency_complete", {
-            "eye_score": eye_score,
-            "denoise_used": eye_score_denoise,
-            "crops_used": len(reference_crops),
-        })
+        yield self._event(
+            "eye_emergency_complete",
+            {
+                "eye_score": eye_score,
+                "denoise_used": eye_score_denoise,
+                "crops_used": len(reference_crops),
+            },
+        )
 
     def _persist_reference_feature_crops(
         self,
@@ -2249,7 +2611,8 @@ class AnimePipelineOrchestrator:
             except Exception as exc:  # noqa: BLE001
                 logger.debug(
                     "[AnimePipeline] ref crop persist failed for ref %d: %s",
-                    idx, exc,
+                    idx,
+                    exc,
                 )
         return manifest
 
@@ -2272,9 +2635,9 @@ class AnimePipelineOrchestrator:
                 detection = detector.detect(ref_b64)
                 # Priority: most precise eye region first
                 face_regions = (
-                    detection.get("full_eyes") or
-                    detection.get("eyes") or
-                    detection.get("face")
+                    detection.get("full_eyes")
+                    or detection.get("eyes")
+                    or detection.get("face")
                 )
                 if not face_regions:
                     continue
@@ -2321,6 +2684,7 @@ class AnimePipelineOrchestrator:
         """Check if the 4-agents council is available (fast, no import errors)."""
         try:
             from core.agentic.entrypoint import is_council_enabled
+
             return is_council_enabled()
         except Exception:
             return False
@@ -2351,7 +2715,11 @@ class AnimePipelineOrchestrator:
 
         # Stage: Layer Planning (attempt 2)
         yield from self._run_stage(
-            "layer_planning", self._planner, job, stage_num=4, total=9,
+            "layer_planning",
+            self._planner,
+            job,
+            stage_num=4,
+            total=9,
             extra={"attempt": 2},
         )
 
@@ -2360,7 +2728,11 @@ class AnimePipelineOrchestrator:
 
         # Stage: Composition Pass (attempt 2)
         yield from self._run_stage(
-            "composition_pass", self._composition, job, stage_num=5, total=9,
+            "composition_pass",
+            self._composition,
+            job,
+            stage_num=5,
+            total=9,
             extra={"attempt": 2},
         )
 
@@ -2369,7 +2741,11 @@ class AnimePipelineOrchestrator:
 
         # Stage: Structure Lock (attempt 2)
         yield from self._run_stage(
-            "structure_lock", self._structure, job, stage_num=6, total=9,
+            "structure_lock",
+            self._structure,
+            job,
+            stage_num=6,
+            total=9,
             extra={"attempt": 2},
         )
 
@@ -2437,7 +2813,10 @@ class AnimePipelineOrchestrator:
                     headers={"X-goog-api-key": gemini_key},
                     json={
                         "contents": [{"parts": [{"text": system + "\n\n" + user_msg}]}],
-                        "generationConfig": {"maxOutputTokens": 300, "temperature": 0.7},
+                        "generationConfig": {
+                            "maxOutputTokens": 300,
+                            "temperature": 0.7,
+                        },
                     },
                     timeout=15.0,
                 )
@@ -2463,6 +2842,7 @@ class AnimePipelineOrchestrator:
             "beautiful, intricate detail",
         ]
         import random as _rand
+
         suffix = _rand.choice(style_variants)
         return f"{original_prompt}, {suffix}"
 
@@ -2477,7 +2857,10 @@ class AnimePipelineOrchestrator:
         return job.latest_render_image()
 
     def _build_cancellation_event(
-        self, job: AnimePipelineJob, stage: str, t0: float,
+        self,
+        job: AnimePipelineJob,
+        stage: str,
+        t0: float,
     ) -> dict[str, Any]:
         """Snapshot the best-so-far image, mark the job complete, and
         return a ``pipeline_cancelled`` event dict.
@@ -2496,11 +2879,16 @@ class AnimePipelineOrchestrator:
         job.total_latency_ms = (time.time() - t0) * 1000
         logger.info(
             "[AnimePipeline] job=%s cancelled at stage=%s (has_image=%s)",
-            job.job_id, stage, bool(job.final_image_b64),
+            job.job_id,
+            stage,
+            bool(job.final_image_b64),
         )
-        return self._event("pipeline_cancelled", {
-            "job_id": job.job_id,
-            "stage": stage,
-            "has_image": bool(job.final_image_b64),
-            "message": f"Đã ngưng pipeline tại stage {stage}",
-        })
+        return self._event(
+            "pipeline_cancelled",
+            {
+                "job_id": job.job_id,
+                "stage": stage,
+                "has_image": bool(job.final_image_b64),
+                "message": f"Đã ngưng pipeline tại stage {stage}",
+            },
+        )

@@ -39,8 +39,7 @@ from libs.ingestion.parsers.base import ParseResult
 class SentenceEmbedder(Protocol):
     """Any callable that maps a list of strings to a list of float-vectors."""
 
-    def embed_sentences(self, sentences: list[str]) -> list[list[float]]:
-        ...
+    def embed_sentences(self, sentences: list[str]) -> list[list[float]]: ...
 
 
 # ---------------------------------------------------------------------------
@@ -131,9 +130,7 @@ class SemanticChunker:
             if sim >= self._threshold and group_tokens <= self._max_tokens:
                 groups[-1].append(sentences[i])
                 # Running average embedding
-                group_emb = [
-                    (a + b) / 2 for a, b in zip(group_emb, embeddings[i])
-                ]
+                group_emb = [(a + b) / 2 for a, b in zip(group_emb, embeddings[i])]
             else:
                 groups.append([sentences[i]])
                 group_emb = embeddings[i]

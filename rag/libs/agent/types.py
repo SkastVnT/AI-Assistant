@@ -19,24 +19,24 @@ from uuid import UUID, uuid4
 class AgentPhase(Enum):
     """Phases in the agentic loop."""
 
-    PLAN = "plan"           # Decompose the task into sub-goals
-    ACT = "act"             # Select and execute a tool
-    OBSERVE = "observe"     # Process the tool result
-    REFLECT = "reflect"     # Self-check: is evidence sufficient?
-    ANSWER = "answer"       # Synthesise final grounded answer
-    DONE = "done"           # Terminal state — success
-    ERROR = "error"         # Terminal state — failure / limit hit
+    PLAN = "plan"  # Decompose the task into sub-goals
+    ACT = "act"  # Select and execute a tool
+    OBSERVE = "observe"  # Process the tool result
+    REFLECT = "reflect"  # Self-check: is evidence sufficient?
+    ANSWER = "answer"  # Synthesise final grounded answer
+    DONE = "done"  # Terminal state — success
+    ERROR = "error"  # Terminal state — failure / limit hit
 
 
 class StopReason(Enum):
     """Why the agent loop terminated."""
 
-    ANSWERED = "answered"                   # Agent produced a final answer
-    MAX_ITERATIONS = "max_iterations"       # Hit iteration budget
-    MAX_TOKENS = "max_tokens"               # Token budget exhausted
-    NO_TOOLS_SELECTED = "no_tools_selected" # Planner couldn't pick a tool
-    POLICY_BLOCKED = "policy_blocked"       # Safety check rejected the task
-    ERROR = "error"                         # Unrecoverable error
+    ANSWERED = "answered"  # Agent produced a final answer
+    MAX_ITERATIONS = "max_iterations"  # Hit iteration budget
+    MAX_TOKENS = "max_tokens"  # Token budget exhausted
+    NO_TOOLS_SELECTED = "no_tools_selected"  # Planner couldn't pick a tool
+    POLICY_BLOCKED = "policy_blocked"  # Safety check rejected the task
+    ERROR = "error"  # Unrecoverable error
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -60,7 +60,7 @@ class ToolResult:
 
     call_id: str
     tool_name: str
-    output: str = ""            # Serialised result (for the LLM context)
+    output: str = ""  # Serialised result (for the LLM context)
     success: bool = True
     error: str | None = None
     metadata: dict = field(default_factory=dict)  # timing, token counts, etc.

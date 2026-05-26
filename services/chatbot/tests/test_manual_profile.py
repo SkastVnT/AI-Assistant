@@ -11,6 +11,7 @@ Verifies:
 No real generation is invoked — the route handler only calls the pure
 builder.
 """
+
 from __future__ import annotations
 
 import json
@@ -33,14 +34,16 @@ if str(_CHATBOT_DIR) not in sys.path:
 def test_preview_low_data_profile_unsafe_lora():
     from core.manual_profile import preview_manual_profile
 
-    out = preview_manual_profile({
-        "display_name": "Original Mage Aria",
-        "series_name": "Custom Setting",
-        "series_slug": "custom_setting",
-        "visual_traits": ["silver hair", "violet eyes"],
-        "outfit_traits": ["dark robe"],
-        "negative_identity_guard": ["no canon characters"],
-    })
+    out = preview_manual_profile(
+        {
+            "display_name": "Original Mage Aria",
+            "series_name": "Custom Setting",
+            "series_slug": "custom_setting",
+            "visual_traits": ["silver hair", "violet eyes"],
+            "outfit_traits": ["dark robe"],
+            "negative_identity_guard": ["no canon characters"],
+        }
+    )
     assert out["mode"] == "low_data_profile"
     assert out["safe_to_attach_lora"] is False
     assert out["needs_review"] is True
@@ -65,13 +68,15 @@ def test_preview_invalid_profile_returns_warnings():
 def test_preview_handles_textarea_string_input():
     from core.manual_profile import preview_manual_profile
 
-    out = preview_manual_profile({
-        "display_name": "Test",
-        "series_slug": "demo",
-        # textarea-style multi-line string instead of list
-        "visual_traits": "blue hair\ngreen eyes",
-        "negative_identity_guard": "no realistic faces",
-    })
+    out = preview_manual_profile(
+        {
+            "display_name": "Test",
+            "series_slug": "demo",
+            # textarea-style multi-line string instead of list
+            "visual_traits": "blue hair\ngreen eyes",
+            "negative_identity_guard": "no realistic faces",
+        }
+    )
     assert out["normalized"]["visual_traits"] == ["blue hair", "green eyes"]
     assert out["normalized"]["negative_identity_guard"] == ["no realistic faces"]
 
@@ -79,12 +84,14 @@ def test_preview_handles_textarea_string_input():
 def test_preview_bad_reference_image_warning():
     from core.manual_profile import preview_manual_profile
 
-    out = preview_manual_profile({
-        "display_name": "Test",
-        "series_slug": "demo",
-        "visual_traits": ["x"],
-        "reference_images": ["not-a-url", "https://example.com/ok.png"],
-    })
+    out = preview_manual_profile(
+        {
+            "display_name": "Test",
+            "series_slug": "demo",
+            "visual_traits": ["x"],
+            "reference_images": ["not-a-url", "https://example.com/ok.png"],
+        }
+    )
     assert any("reference_images" in w for w in out["warnings"])
 
 
@@ -94,18 +101,24 @@ def test_preview_bad_reference_image_warning():
 def test_duplicate_in_overrides_returns_warning(monkeypatch):
     import core.manual_profile as mp
 
-    monkeypatch.setattr(mp, "_load_manual_overrides", lambda path=None: [
+    monkeypatch.setattr(
+        mp,
+        "_load_manual_overrides",
+        lambda path=None: [
+            {
+                "canonical_id": "aria@custom_setting",
+                "display_name": "Aria",
+                "aliases": ["aria"],
+            }
+        ],
+    )
+    out = mp.preview_manual_profile(
         {
-            "canonical_id": "aria@custom_setting",
             "display_name": "Aria",
-            "aliases": ["aria"],
+            "series_slug": "custom_setting",
+            "visual_traits": ["silver hair"],
         }
-    ])
-    out = mp.preview_manual_profile({
-        "display_name": "Aria",
-        "series_slug": "custom_setting",
-        "visual_traits": ["silver hair"],
-    })
+    )
     assert any(d["source"] == "override" for d in out["duplicates"])
     assert any("duplicate detected" in w for w in out["warnings"])
 
@@ -117,25 +130,38 @@ def test_save_refuses_silent_overwrite(monkeypatch, tmp_path):
     import core.manual_profile as mp
 
     target = tmp_path / "character_overrides.json"
-    target.write_text(json.dumps({
-        "characters": [{
-            "canonical_id": "aria@custom_setting",
-            "display_name": "Aria",
-        }]
-    }), encoding="utf-8")
+    target.write_text(
+        json.dumps(
+            {
+                "characters": [
+                    {
+                        "canonical_id": "aria@custom_setting",
+                        "display_name": "Aria",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
     monkeypatch.setattr(mp, "OVERRIDES_PATH", target)
     monkeypatch.setattr(
-        mp, "_load_manual_overrides",
+        mp,
+        "_load_manual_overrides",
         lambda path=None: json.loads(target.read_text(encoding="utf-8"))["characters"],
     )
 
-    out = mp.save_manual_profile({
-        "display_name": "Aria",
-        "series_slug": "custom_setting",
-        "visual_traits": ["silver hair"],
-    })
+    out = mp.save_manual_profile(
+        {
+            "display_name": "Aria",
+            "series_slug": "custom_setting",
+            "visual_traits": ["silver hair"],
+        }
+    )
     assert out["saved"] is False
-    assert "duplicate" in out["reason"].lower() or "already exists" in out["reason"].lower()
+    assert (
+        "duplicate" in out["reason"].lower()
+        or "already exists" in out["reason"].lower()
+    )
     assert "suggested_json" in out
     # File must NOT have been mutated.
     after = json.loads(target.read_text(encoding="utf-8"))
@@ -162,12 +188,14 @@ def test_save_writes_when_safe(monkeypatch, tmp_path):
     monkeypatch.setattr(mp, "OVERRIDES_PATH", target)
     monkeypatch.setattr(mp, "_load_manual_overrides", lambda path=None: [])
 
-    out = mp.save_manual_profile({
-        "display_name": "Brand New Char",
-        "series_name": "Brand New Series",
-        "series_slug": "brand_new_series",
-        "visual_traits": ["red hair", "horn"],
-    })
+    out = mp.save_manual_profile(
+        {
+            "display_name": "Brand New Char",
+            "series_name": "Brand New Series",
+            "series_slug": "brand_new_series",
+            "visual_traits": ["red hair", "horn"],
+        }
+    )
     assert out["saved"] is True
     assert target.exists()
     data = json.loads(target.read_text(encoding="utf-8"))
@@ -193,8 +221,9 @@ def test_force_does_not_bypass_validation(monkeypatch, tmp_path):
 @pytest.fixture()
 def client(monkeypatch, tmp_path):
     from flask import Flask
-    import core.manual_profile as mp
     from routes.characters import characters_bp
+
+    import core.manual_profile as mp
 
     monkeypatch.setattr(mp, "OVERRIDES_PATH", tmp_path / "character_overrides.json")
     monkeypatch.setattr(mp, "_load_manual_overrides", lambda path=None: [])
@@ -204,13 +233,16 @@ def client(monkeypatch, tmp_path):
 
 
 def test_route_preview_returns_low_data_profile(client):
-    res = client.post("/api/characters/profile/preview", json={
-        "manual_profile": {
-            "display_name": "Aria",
-            "series_slug": "custom_setting",
-            "visual_traits": ["silver hair"],
+    res = client.post(
+        "/api/characters/profile/preview",
+        json={
+            "manual_profile": {
+                "display_name": "Aria",
+                "series_slug": "custom_setting",
+                "visual_traits": ["silver hair"],
+            },
         },
-    })
+    )
     assert res.status_code == 200
     body = res.get_json()
     assert body["mode"] == "low_data_profile"
@@ -219,11 +251,14 @@ def test_route_preview_returns_low_data_profile(client):
 
 def test_route_preview_accepts_flat_payload(client):
     # No "manual_profile" wrapper — handler tolerates flat shape too.
-    res = client.post("/api/characters/profile/preview", json={
-        "display_name": "Aria",
-        "series_slug": "custom_setting",
-        "visual_traits": ["silver hair"],
-    })
+    res = client.post(
+        "/api/characters/profile/preview",
+        json={
+            "display_name": "Aria",
+            "series_slug": "custom_setting",
+            "visual_traits": ["silver hair"],
+        },
+    )
     assert res.status_code == 200
     assert res.get_json()["safe_to_attach_lora"] is False
 
@@ -237,12 +272,15 @@ def test_route_preview_invalid_returns_warnings(client):
 
 
 def test_route_save_writes_when_safe(client):
-    res = client.post("/api/characters/profile/save", json={
-        "manual_profile": {
-            "display_name": "Brand New Char",
-            "series_slug": "brand_new_series",
-            "visual_traits": ["red hair"],
+    res = client.post(
+        "/api/characters/profile/save",
+        json={
+            "manual_profile": {
+                "display_name": "Brand New Char",
+                "series_slug": "brand_new_series",
+                "visual_traits": ["red hair"],
+            },
         },
-    })
+    )
     assert res.status_code == 200
     assert res.get_json()["saved"] is True

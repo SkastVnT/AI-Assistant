@@ -67,7 +67,12 @@ _EYE_REFINEMENT_NEGATIVE = (
 )
 
 _EYE_LORA_HINTS = (
-    "eye", "eyes", "iris", "pupil", "huespark", "anime_artistic",
+    "eye",
+    "eyes",
+    "iris",
+    "pupil",
+    "huespark",
+    "anime_artistic",
 )
 
 # Default factor to reduce structure-lock strengths for beauty pass
@@ -118,6 +123,7 @@ def build_beauty_negative(base_negative: str, allow_text: bool = False) -> str:
 # BeautyPassAgent
 # ═══════════════════════════════════════════════════════════════════
 
+
 class BeautyPassAgent:
     """Final beauty redraw using the strongest anime checkpoint.
 
@@ -155,15 +161,10 @@ class BeautyPassAgent:
             critique.eye_consistency_score > 0
             and critique.eye_consistency_score <= threshold
         )
-        face_score_flag = (
-            critique.face_score > 0
-            and critique.face_score <= max(1, threshold - 1)
+        face_score_flag = critique.face_score > 0 and critique.face_score <= max(
+            1, threshold - 1
         )
-        return (
-            eye_score_flag
-            or bool(critique.eye_issues)
-            or face_score_flag
-        )
+        return eye_score_flag or bool(critique.eye_issues) or face_score_flag
 
     def execute(
         self,
@@ -198,7 +199,11 @@ class BeautyPassAgent:
             return job
 
         # Resolve seed (anti-duplicate: avoid reusing previous seeds)
-        seed = retry_seed if retry_seed is not None else self._resolve_seed(beauty_pc.seed, self._used_seeds)
+        seed = (
+            retry_seed
+            if retry_seed is not None
+            else self._resolve_seed(beauty_pc.seed, self._used_seeds)
+        )
         self._used_seeds.add(seed)
 
         critique = self._pending_critique
@@ -206,11 +211,17 @@ class BeautyPassAgent:
 
         # Apply strength preset + final_model
         resolved_strength = strength or self._config.beauty_strength
-        from ..agents.layer_planner import _user_requests_text  # local import to avoid cycle
+        from ..agents.layer_planner import (
+            _user_requests_text,
+        )  # local import to avoid cycle
+
         allow_text = _user_requests_text(job.user_prompt)
         adjusted_pc = self._prepare_pass_config(
-            beauty_pc, resolved_strength, job.structure_layers,
-            critique=critique, allow_text=allow_text,
+            beauty_pc,
+            resolved_strength,
+            job.structure_layers,
+            critique=critique,
+            allow_text=allow_text,
         )
 
         eye_refine_steps = self._choose_eye_refine_steps(critique)
@@ -237,7 +248,8 @@ class BeautyPassAgent:
         if not result.success:
             logger.error(
                 "[BeautyPass] Failed: %s (validation: %s)",
-                result.error, result.validation_error,
+                result.error,
+                result.validation_error,
             )
             job.error = f"Beauty pass failed: {result.error}"
             job.status = AnimePipelineStatus.FAILED
@@ -250,7 +262,8 @@ class BeautyPassAgent:
 
         image_b64 = result.images_b64[0]
         job.add_intermediate(
-            "beauty_pass", image_b64,
+            "beauty_pass",
+            image_b64,
             seed=seed,
             checkpoint=adjusted_pc.checkpoint,
             denoise=adjusted_pc.denoise,
@@ -263,8 +276,12 @@ class BeautyPassAgent:
         logger.info(
             "[BeautyPass] Done in %.0fms, checkpoint=%s, denoise=%.2f, "
             "strength=%s, eye_refine_steps=%d, %d controls",
-            latency, adjusted_pc.checkpoint, adjusted_pc.denoise,
-            resolved_strength, eye_refine_steps, len(adjusted_pc.control_inputs),
+            latency,
+            adjusted_pc.checkpoint,
+            adjusted_pc.denoise,
+            resolved_strength,
+            eye_refine_steps,
+            len(adjusted_pc.control_inputs),
         )
         return job
 
@@ -287,7 +304,10 @@ class BeautyPassAgent:
         """
         resolved_strength = strength or self._config.beauty_strength
         adjusted_pc = self._prepare_pass_config(
-            pc, resolved_strength, structure_layers or [], critique=critique,
+            pc,
+            resolved_strength,
+            structure_layers or [],
+            critique=critique,
         )
         eye_refine_steps = self._choose_eye_refine_steps(critique)
         return self._builder.build_beauty(
@@ -405,10 +425,7 @@ class BeautyPassAgent:
             if not isinstance(lora, dict):
                 continue
             name = str(
-                lora.get("name")
-                or lora.get("model")
-                or lora.get("filename")
-                or ""
+                lora.get("name") or lora.get("model") or lora.get("filename") or ""
             )
             lower_name = name.lower()
             if not any(hint in lower_name for hint in _EYE_LORA_HINTS):
@@ -443,29 +460,33 @@ class BeautyPassAgent:
         controls: list[ControlInput] = []
         factor = _CONTROL_STRENGTH_FACTOR
 
-        for layer in structure_layers[:self._config.max_simultaneous_layers]:
+        for layer in structure_layers[: self._config.max_simultaneous_layers]:
             if not layer.controlnet_model or not layer.image_b64:
                 continue
-            controls.append(ControlInput(
-                layer_type=layer.layer_type.value,
-                controlnet_model=layer.controlnet_model,
-                strength=layer.strength * factor,
-                start_percent=layer.start_percent,
-                end_percent=layer.end_percent,
-                image_b64=layer.image_b64,
-            ))
+            controls.append(
+                ControlInput(
+                    layer_type=layer.layer_type.value,
+                    controlnet_model=layer.controlnet_model,
+                    strength=layer.strength * factor,
+                    start_percent=layer.start_percent,
+                    end_percent=layer.end_percent,
+                    image_b64=layer.image_b64,
+                )
+            )
 
         # Also include any controls already in the PassConfig
         for ci in existing_controls:
             if ci.image_b64 and ci.controlnet_model:
-                controls.append(ControlInput(
-                    layer_type=ci.layer_type,
-                    controlnet_model=ci.controlnet_model,
-                    strength=ci.strength * factor,
-                    start_percent=ci.start_percent,
-                    end_percent=ci.end_percent,
-                    image_b64=ci.image_b64,
-                ))
+                controls.append(
+                    ControlInput(
+                        layer_type=ci.layer_type,
+                        controlnet_model=ci.controlnet_model,
+                        strength=ci.strength * factor,
+                        start_percent=ci.start_percent,
+                        end_percent=ci.end_percent,
+                        image_b64=ci.image_b64,
+                    )
+                )
 
         return controls
 

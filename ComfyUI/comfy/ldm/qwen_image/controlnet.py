@@ -11,16 +11,31 @@ class QwenImageControlNetModel(QwenImageTransformer2DModel):
         dtype=None,
         device=None,
         operations=None,
-        **kwargs
+        **kwargs,
     ):
-        super().__init__(final_layer=False, dtype=dtype, device=device, operations=operations, **kwargs)
+        super().__init__(
+            final_layer=False,
+            dtype=dtype,
+            device=device,
+            operations=operations,
+            **kwargs,
+        )
         self.main_model_double = 60
 
         # controlnet_blocks
         self.controlnet_blocks = torch.nn.ModuleList([])
         for _ in range(len(self.transformer_blocks)):
-            self.controlnet_blocks.append(operations.Linear(self.inner_dim, self.inner_dim, device=device, dtype=dtype))
-        self.controlnet_x_embedder = operations.Linear(self.in_channels + extra_condition_channels, self.inner_dim, device=device, dtype=dtype)
+            self.controlnet_blocks.append(
+                operations.Linear(
+                    self.inner_dim, self.inner_dim, device=device, dtype=dtype
+                )
+            )
+        self.controlnet_x_embedder = operations.Linear(
+            self.in_channels + extra_condition_channels,
+            self.inner_dim,
+            device=device,
+            dtype=dtype,
+        )
 
     def forward(
         self,
@@ -32,7 +47,7 @@ class QwenImageControlNetModel(QwenImageTransformer2DModel):
         ref_latents=None,
         hint=None,
         transformer_options={},
-        **kwargs
+        **kwargs,
     ):
         timestep = timesteps
         encoder_hidden_states = context
@@ -41,8 +56,17 @@ class QwenImageControlNetModel(QwenImageTransformer2DModel):
         hidden_states, img_ids, orig_shape = self.process_img(x)
         hint, _, _ = self.process_img(hint)
 
-        txt_start = round(max(((x.shape[-1] + (self.patch_size // 2)) // self.patch_size) // 2, ((x.shape[-2] + (self.patch_size // 2)) // self.patch_size) // 2))
-        txt_ids = torch.arange(txt_start, txt_start + context.shape[1], device=x.device).reshape(1, -1, 1).repeat(x.shape[0], 1, 3)
+        txt_start = round(
+            max(
+                ((x.shape[-1] + (self.patch_size // 2)) // self.patch_size) // 2,
+                ((x.shape[-2] + (self.patch_size // 2)) // self.patch_size) // 2,
+            )
+        )
+        txt_ids = (
+            torch.arange(txt_start, txt_start + context.shape[1], device=x.device)
+            .reshape(1, -1, 1)
+            .repeat(x.shape[0], 1, 3)
+        )
         ids = torch.cat((txt_ids, img_ids), dim=1)
         image_rotary_emb = self.pe_embedder(ids).to(x.dtype).contiguous()
         del ids, txt_ids, img_ids
@@ -72,6 +96,9 @@ class QwenImageControlNetModel(QwenImageTransformer2DModel):
                 image_rotary_emb=image_rotary_emb,
             )
 
-            controlnet_block_samples = controlnet_block_samples + (self.controlnet_blocks[i](hidden_states),) * repeat
+            controlnet_block_samples = (
+                controlnet_block_samples
+                + (self.controlnet_blocks[i](hidden_states),) * repeat
+            )
 
-        return {"input": controlnet_block_samples[:self.main_model_double]}
+        return {"input": controlnet_block_samples[: self.main_model_double]}

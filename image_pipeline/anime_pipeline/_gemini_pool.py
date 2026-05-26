@@ -8,6 +8,7 @@ keys are exhausted the pool returns ``None`` and callers should skip
 Gemini and fall through to their OpenAI fallback. This avoids spamming
 the same dead key on every refine round.
 """
+
 from __future__ import annotations
 
 import logging
@@ -75,7 +76,10 @@ def mark_exhausted(key: str | None, reason: str = "429") -> None:
         remaining = len(_keys) - len(_exhausted)
         logger.warning(
             "[GeminiPool] Key ...%s marked exhausted (%s); %d/%d keys remain",
-            key[-6:], reason, remaining, len(_keys),
+            key[-6:],
+            reason,
+            remaining,
+            len(_keys),
         )
 
 
@@ -88,7 +92,12 @@ def all_exhausted() -> bool:
 def is_quota_error(exc: BaseException) -> bool:
     """Detect 429 / quota / rate limit errors from httpx or generic responses."""
     msg = str(exc).lower()
-    if "429" in msg or "too many requests" in msg or "quota" in msg or "rate limit" in msg:
+    if (
+        "429" in msg
+        or "too many requests" in msg
+        or "quota" in msg
+        or "rate limit" in msg
+    ):
         return True
     # httpx.HTTPStatusError exposes .response
     response = getattr(exc, "response", None)

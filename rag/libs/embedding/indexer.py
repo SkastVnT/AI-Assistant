@@ -95,15 +95,15 @@ class IndexingService:
         """
         t_start = _now_ms()
 
-        chunks = await self._chunk_repo.get_unembedded(
-            tenant_id=tenant_id, limit=batch_limit
-        )
+        chunks = await self._chunk_repo.get_unembedded(tenant_id=tenant_id, limit=batch_limit)
 
         if not chunks:
             return IndexResult(
                 operation="embed_pending",
-                chunks_processed=0, chunks_embedded=0,
-                chunks_skipped=0, chunks_failed=0,
+                chunks_processed=0,
+                chunks_embedded=0,
+                chunks_skipped=0,
+                chunks_failed=0,
                 versions_superseded=0,
                 model=self._embed_svc.model_name,
                 version=self._embed_svc.model_version,
@@ -115,7 +115,9 @@ class IndexingService:
 
         logger.info(
             "embed_pending: %d embedded, %d skipped, %d failed",
-            result.embedded, result.skipped, result.failed,
+            result.embedded,
+            result.skipped,
+            result.failed,
         )
 
         return IndexResult(
@@ -155,8 +157,10 @@ class IndexingService:
         if not chunks:
             return IndexResult(
                 operation="reembed_version",
-                chunks_processed=0, chunks_embedded=0,
-                chunks_skipped=0, chunks_failed=0,
+                chunks_processed=0,
+                chunks_embedded=0,
+                chunks_skipped=0,
+                chunks_failed=0,
                 versions_superseded=0,
                 model=self._embed_svc.model_name,
                 version=self._embed_svc.model_version,
@@ -182,7 +186,9 @@ class IndexingService:
 
         logger.info(
             "reembed_version %s: %d embedded, %d failed",
-            version_id, result.embedded, result.failed,
+            version_id,
+            result.embedded,
+            result.failed,
         )
 
         return IndexResult(
@@ -237,12 +243,17 @@ class IndexingService:
 
             logger.info(
                 "full_reindex tenant=%s: page offset=%d, embedded=%d",
-                tenant_id, offset, result.embedded,
+                tenant_id,
+                offset,
+                result.embedded,
             )
 
         logger.info(
             "full_reindex tenant=%s complete: %d total, %d embedded, %d failed",
-            tenant_id, total_processed, total_embedded, total_failed,
+            tenant_id,
+            total_processed,
+            total_embedded,
+            total_failed,
         )
 
         return IndexResult(
@@ -275,7 +286,9 @@ class IndexingService:
         if count:
             logger.info(
                 "Marked %d old versions superseded for document %s (current=%s)",
-                count, document_id, current_version_id,
+                count,
+                document_id,
+                current_version_id,
             )
         return count
 
@@ -311,9 +324,7 @@ class IndexingService:
             }
 
             # Mark old versions as superseded
-            await self.mark_old_versions_superseded(
-                version.document_id, version.id
-            )
+            await self.mark_old_versions_superseded(version.document_id, version.id)
 
         await self._db.flush()
         return result

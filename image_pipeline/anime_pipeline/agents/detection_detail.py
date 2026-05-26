@@ -41,12 +41,14 @@ _ULTRALYTICS_AVAILABLE = False
 
 try:
     from PIL import Image, ImageDraw, ImageFilter
+
     _PIL_AVAILABLE = True
 except ImportError:
     pass
 
 try:
     from ultralytics import YOLO
+
     _ULTRALYTICS_AVAILABLE = True
 except ImportError:
     pass
@@ -54,16 +56,18 @@ except ImportError:
 
 # ── Data contracts ──────────────────────────────────────────────────
 
+
 @dataclass
 class DetectedRegion:
     """A single detected region (face, eye, hand, etc.)."""
-    region_type: str       # "face", "eyes", "hand"
+
+    region_type: str  # "face", "eyes", "hand"
     x1: int = 0
     y1: int = 0
     x2: int = 0
     y2: int = 0
     confidence: float = 0.0
-    mask_b64: str = ""     # feathered mask as base64 PNG
+    mask_b64: str = ""  # feathered mask as base64 PNG
     label: str = ""
 
     @property
@@ -92,6 +96,7 @@ class DetectedRegion:
 @dataclass
 class DetectionResult:
     """All detected regions for a single image — supports arbitrary region types."""
+
     # Generic region storage: maps region_type → list of detections
     regions: dict[str, list[DetectedRegion]] = field(default_factory=dict)
     latency_ms: float = 0.0
@@ -139,19 +144,21 @@ class DetectionResult:
 
 # ── Detection model registry ───────────────────────────────────────
 
+
 @dataclass
 class DetectionModelConfig:
     """Configuration for a YOLO detection model."""
-    model_path: str         # Relative to ComfyUI/models/ultralytics/
-    region_type: str        # "face", "eyes", "hand"
+
+    model_path: str  # Relative to ComfyUI/models/ultralytics/
+    region_type: str  # "face", "eyes", "hand"
     confidence_threshold: float = 0.3
     enabled: bool = True
     # Inpaint settings for regions detected by this model
     denoise: float = 0.35
-    padding_ratio: float = 0.25   # expand bbox by this ratio for context
-    feather_radius: int = 20      # mask feathering in pixels
-    prompt_suffix: str = ""       # appended to positive prompt for this region
-    negative_suffix: str = ""     # appended to negative prompt
+    padding_ratio: float = 0.25  # expand bbox by this ratio for context
+    feather_radius: int = 20  # mask feathering in pixels
+    prompt_suffix: str = ""  # appended to positive prompt for this region
+    negative_suffix: str = ""  # appended to negative prompt
 
 
 # Default detection layer configs — ordered by priority tier:
@@ -166,7 +173,6 @@ class DetectionModelConfig:
 
 DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
     # ── Tier 1: Core anatomy ─────────────────────────────────────────
-
     # 1. Anime girl face — segmentation (precise, excludes males)
     DetectionModelConfig(
         model_path="segm/adetailerAnimeGirlFace_segment.zip",
@@ -187,7 +193,6 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "distorted features, bad nose, bad mouth"
         ),
     ),
-
     # 2. Full eyes detection (both eyes as pair — prevents mismatched irises)
     DetectionModelConfig(
         model_path="bbox/fullEyesDetection_v10.zip",
@@ -208,7 +213,6 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "flat eyes, dull eyes, lifeless eyes"
         ),
     ),
-
     # 3. Individual eye detection (fallback if full_eyes misses)
     DetectionModelConfig(
         model_path="bbox/eyesDetection_v10.zip",
@@ -222,11 +226,8 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "sharp eyelashes, beautiful anime eye, "
             "vivid catchlight, bright specular highlight"
         ),
-        negative_suffix=(
-            "blurry eye, deformed pupil, bad iris, flat eye, dull eye"
-        ),
+        negative_suffix=("blurry eye, deformed pupil, bad iris, flat eye, dull eye"),
     ),
-
     # 4. Mouth detection (2D anime-optimized, yolo11n)
     DetectionModelConfig(
         model_path="segm/adetailer2dMouth_v10.pt",
@@ -246,7 +247,6 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "open wound, gaping mouth"
         ),
     ),
-
     # 5. Hand segmentation (trained on 2D/anime, better than generic yolov8n)
     DetectionModelConfig(
         model_path="segm/handDetailer_v2V9c.zip",
@@ -268,7 +268,6 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "blob hands, mitten hands"
         ),
     ),
-
     # 6. Generic face bbox (backup if segm misses — includes males)
     DetectionModelConfig(
         model_path="bbox/face_yolov8n.pt",
@@ -282,11 +281,8 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "beautiful detailed face, perfect features, "
             "detailed skin texture, vivid expression"
         ),
-        negative_suffix=(
-            "blurry face, deformed face, ugly face"
-        ),
+        negative_suffix=("blurry face, deformed face, ugly face"),
     ),
-
     # 7. Generic hand bbox (backup if segm misses)
     DetectionModelConfig(
         model_path="bbox/hand_yolov8n.pt",
@@ -296,16 +292,10 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
         padding_ratio=0.18,
         feather_radius=16,
         enabled=False,  # disabled by default — segm version preferred
-        prompt_suffix=(
-            "detailed hands, correct fingers, well-drawn hands"
-        ),
-        negative_suffix=(
-            "bad hands, extra fingers, deformed hands"
-        ),
+        prompt_suffix=("detailed hands, correct fingers, well-drawn hands"),
+        negative_suffix=("bad hands, extra fingers, deformed hands"),
     ),
-
     # ── Tier 2: Body regions ─────────────────────────────────────────
-
     # 8. Animal ear detection (cat ears, fox ears, etc.)
     DetectionModelConfig(
         model_path="bbox/animalEarDetection_v10.zip",
@@ -325,7 +315,6 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "missing ears, melted ears, plastic texture"
         ),
     ),
-
     # 9. Anime girl hair detection (yolo11n-based)
     DetectionModelConfig(
         model_path="segm/AdetailerAnimeGirlHair_v10.pt",
@@ -346,7 +335,6 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "plastic hair, no hair detail"
         ),
     ),
-
     # 10. Belly/torso/stomach segmentation
     DetectionModelConfig(
         model_path="segm/adetailer2dBellyTorso_v242Lg.zip",
@@ -366,7 +354,6 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "extra ribs, deformed navel, unnatural waist"
         ),
     ),
-
     # 11. Armpit detection (yolov8 bbox + segmentation)
     DetectionModelConfig(
         model_path="segm/adetailer2dArmpitYolov8_v10Segmentation.zip",
@@ -379,11 +366,8 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "detailed armpit, smooth skin, proper arm anatomy, "
             "natural skin texture, clean skin detail"
         ),
-        negative_suffix=(
-            "blurry skin, deformed arm, bad skin texture"
-        ),
+        negative_suffix=("blurry skin, deformed arm, bad skin texture"),
     ),
-
     # 12. Female body detection (full body segmentation)
     DetectionModelConfig(
         model_path="segm/femaleBodyDetection_yolo26.pt",
@@ -394,14 +378,10 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
         feather_radius=24,
         enabled=False,  # disabled by default — use specific regions instead
         prompt_suffix=(
-            "detailed body, proper anatomy, beautiful figure, "
-            "smooth skin texture"
+            "detailed body, proper anatomy, beautiful figure, smooth skin texture"
         ),
-        negative_suffix=(
-            "bad anatomy, deformed body, extra limbs"
-        ),
+        negative_suffix=("bad anatomy, deformed body, extra limbs"),
     ),
-
     # 13. Person female detection (bbox)
     DetectionModelConfig(
         model_path="bbox/personFemale_v10.pt",
@@ -411,14 +391,9 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
         padding_ratio=0.08,
         feather_radius=20,
         enabled=False,  # disabled by default — too broad, use specific regions
-        prompt_suffix=(
-            "detailed character, proper anatomy, beautiful"
-        ),
-        negative_suffix=(
-            "bad anatomy, deformed"
-        ),
+        prompt_suffix=("detailed character, proper anatomy, beautiful"),
+        negative_suffix=("bad anatomy, deformed"),
     ),
-
     # 14. Feet/soles detection (bbox)
     DetectionModelConfig(
         model_path="bbox/reignyolov8nsolesPt_solesDetectionV10.pt",
@@ -438,9 +413,7 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "blob feet, mitten feet"
         ),
     ),
-
     # ── Tier 3: Clothing and accessories ─────────────────────────────
-
     # 15. Clothes detection (tops — suit, shirt, sweater, bikini, etc.)
     DetectionModelConfig(
         model_path="segm/clothesDetection_tops.zip",
@@ -460,7 +433,6 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "missing clothing detail, torn fabric"
         ),
     ),
-
     # 16. Women's underwear detection (segmentation)
     DetectionModelConfig(
         model_path="segm/womensUnderwear_pantiesSegV3b.pt",
@@ -475,11 +447,9 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "clean fabric shading, elastic band detail"
         ),
         negative_suffix=(
-            "blurry fabric, deformed underwear, "
-            "missing detail, flat texture"
+            "blurry fabric, deformed underwear, missing detail, flat texture"
         ),
     ),
-
     # 17. Thigh high detection (stockings, thigh highs)
     DetectionModelConfig(
         model_path="bbox/thighhighDetectionFor_thighhighv50.pt",
@@ -493,11 +463,8 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "realistic stockings, elastic band detail, "
             "transparent stocking texture, leg contour through fabric"
         ),
-        negative_suffix=(
-            "blurry stockings, deformed fabric, flat texture"
-        ),
+        negative_suffix=("blurry stockings, deformed fabric, flat texture"),
     ),
-
     # 18. One-piece swimsuit detection (segmentation)
     DetectionModelConfig(
         model_path="segm/adetailer2dOnePieceSwimsuit_v1042.zip",
@@ -511,11 +478,8 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "realistic material, tight fit, "
             "clean strap detail, proper body contour"
         ),
-        negative_suffix=(
-            "blurry fabric, deformed swimsuit, flat texture"
-        ),
+        negative_suffix=("blurry fabric, deformed swimsuit, flat texture"),
     ),
-
     # 19. Strapless leotard detection (segmentation)
     DetectionModelConfig(
         model_path="segm/adetailer2dStrapless_v10Yolo8n.zip",
@@ -529,13 +493,9 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "realistic material, strapless design, "
             "tight fit, body contour, clean edges"
         ),
-        negative_suffix=(
-            "blurry fabric, deformed leotard, flat texture"
-        ),
+        negative_suffix=("blurry fabric, deformed leotard, flat texture"),
     ),
-
     # ── Tier 4: Cleanup / post-processing ────────────────────────────
-
     # 20. Text / speech bubble / watermark detection
     DetectionModelConfig(
         model_path="bbox/adetailerForTextSpeech_v20.zip",
@@ -545,15 +505,12 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
         padding_ratio=0.10,
         feather_radius=12,
         prompt_suffix=(
-            "clean background, smooth area, no text, "
-            "no watermark, no speech bubble"
+            "clean background, smooth area, no text, no watermark, no speech bubble"
         ),
         negative_suffix=(
-            "text, watermark, speech bubble, logo, signature, "
-            "username, copyright"
+            "text, watermark, speech bubble, logo, signature, username, copyright"
         ),
     ),
-
     # 21. Bar censor detection
     DetectionModelConfig(
         model_path="bbox/barCensorDetection_yolo26.pt",
@@ -563,16 +520,11 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
         padding_ratio=0.10,
         feather_radius=10,
         prompt_suffix=(
-            "clean uncensored area, detailed skin, "
-            "natural anatomy, smooth texture"
+            "clean uncensored area, detailed skin, natural anatomy, smooth texture"
         ),
-        negative_suffix=(
-            "censored, mosaic, bar, black bar, white bar"
-        ),
+        negative_suffix=("censored, mosaic, bar, black bar, white bar"),
     ),
-
     # ── Tier 5: NSFW-specific regions ────────────────────────────────
-
     # 22. Breast detection (bbox)
     DetectionModelConfig(
         model_path="bbox/boobaDetection_v11.zip",
@@ -592,7 +544,6 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "unnatural shape, saggy, plastic looking"
         ),
     ),
-
     # 23. Nipple detection (segmentation)
     DetectionModelConfig(
         model_path="segm/adetailerNipples_v20Segm.zip",
@@ -607,11 +558,9 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "realistic skin texture, proper areola color"
         ),
         negative_suffix=(
-            "deformed nipples, bad anatomy, "
-            "missing nipples, extra nipples"
+            "deformed nipples, bad anatomy, missing nipples, extra nipples"
         ),
     ),
-
     # 24. NSFW region detection (genital area)
     DetectionModelConfig(
         model_path="bbox/pussyAdetailer_v5SegBboxYolo11s.zip",
@@ -626,11 +575,9 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "realistic anatomical detail, natural proportions"
         ),
         negative_suffix=(
-            "deformed anatomy, bad anatomy, unnatural, "
-            "censored, mosaic, blur"
+            "deformed anatomy, bad anatomy, unnatural, censored, mosaic, blur"
         ),
     ),
-
     # 25. Pubic hair detection (bbox)
     DetectionModelConfig(
         model_path="bbox/adetailer2dFemalePubic_v10.zip",
@@ -643,12 +590,8 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
             "detailed skin texture, natural body, proper anatomy, "
             "realistic skin shading, natural proportions"
         ),
-        negative_suffix=(
-            "deformed, unnatural, bad anatomy, "
-            "censored, mosaic, blur"
-        ),
+        negative_suffix=("deformed, unnatural, bad anatomy, censored, mosaic, blur"),
     ),
-
     # 26. Anime NSFW all-in-one detection (multi-class)
     DetectionModelConfig(
         model_path="segm/animeNSFWDetection_v50Variant1.zip",
@@ -658,14 +601,9 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
         padding_ratio=0.15,
         feather_radius=16,
         enabled=False,  # disabled by default — use specific models above
-        prompt_suffix=(
-            "detailed anatomy, natural skin, proper proportions"
-        ),
-        negative_suffix=(
-            "deformed anatomy, bad anatomy"
-        ),
+        prompt_suffix=("detailed anatomy, natural skin, proper proportions"),
+        negative_suffix=("deformed anatomy, bad anatomy"),
     ),
-
     # 27. Multi-class face/body adetailer (face/anus/penis/breasts/vagina/nipples)
     DetectionModelConfig(
         model_path="bbox/adetailers_facef.pt",
@@ -675,12 +613,8 @@ DEFAULT_DETECTION_LAYERS: list[DetectionModelConfig] = [
         padding_ratio=0.15,
         feather_radius=18,
         enabled=False,  # disabled by default — use specific models above
-        prompt_suffix=(
-            "detailed anatomy, proper proportions"
-        ),
-        negative_suffix=(
-            "deformed, bad anatomy"
-        ),
+        prompt_suffix=("detailed anatomy, proper proportions"),
+        negative_suffix=("deformed, bad anatomy"),
     ),
 ]
 
@@ -722,7 +656,9 @@ class DetectionDetailAgent:
         ComfyUI's SetLatentNoiseMask inpaint workflow.
         """
         if not self.available():
-            logger.warning("[DetectionDetail] PIL or ultralytics not available, skipping detection")
+            logger.warning(
+                "[DetectionDetail] PIL or ultralytics not available, skipping detection"
+            )
             return DetectionResult()
 
         t0 = time.time()
@@ -763,13 +699,21 @@ class DetectionDetailAgent:
 
                         # Create feathered mask
                         mask_b64 = self._create_feathered_mask(
-                            img_w, img_h, x1, y1, x2, y2,
+                            img_w,
+                            img_h,
+                            x1,
+                            y1,
+                            x2,
+                            y2,
                             feather_radius=layer.feather_radius,
                         )
 
                         region = DetectedRegion(
                             region_type=layer.region_type,
-                            x1=x1, y1=y1, x2=x2, y2=y2,
+                            x1=x1,
+                            y1=y1,
+                            x2=x2,
+                            y2=y2,
                             confidence=conf,
                             mask_b64=mask_b64,
                             label=f"{layer.region_type}_{conf:.2f}",
@@ -778,7 +722,9 @@ class DetectionDetailAgent:
                         result.add(region)
 
             except Exception as e:
-                logger.warning("[DetectionDetail] Detection failed for %s: %s", layer.model_path, e)
+                logger.warning(
+                    "[DetectionDetail] Detection failed for %s: %s", layer.model_path, e
+                )
                 continue
 
         # Deduplicate: remove individual eye detections if full_eyes already found
@@ -792,7 +738,8 @@ class DetectionDetailAgent:
         for eye_type in ("eyes", "full_eyes"):
             if result.get(eye_type) and result.faces:
                 result.regions[eye_type] = self._filter_nested_regions(
-                    result.regions[eye_type], result.faces,
+                    result.regions[eye_type],
+                    result.faces,
                 )
 
         # Deduplicate: remove nipple detections inside breast regions
@@ -810,7 +757,9 @@ class DetectionDetailAgent:
         )
         logger.info(
             "[DetectionDetail] Detected %d regions (%s) in %.0fms",
-            result.total_regions, region_summary, result.latency_ms,
+            result.total_regions,
+            region_summary,
+            result.latency_ms,
         )
         return result
 
@@ -851,7 +800,8 @@ class DetectionDetailAgent:
                 pt_names = [n for n in zf.namelist() if n.lower().endswith(".pt")]
                 if not pt_names:
                     logger.warning(
-                        "[DetectionDetail] No .pt file found inside %s, trying raw load", p.name
+                        "[DetectionDetail] No .pt file found inside %s, trying raw load",
+                        p.name,
                     )
                     return model_path
                 # Pick the first .pt (CivitAI zips usually contain exactly one)
@@ -859,13 +809,13 @@ class DetectionDetailAgent:
                 extract_dir.mkdir(parents=True, exist_ok=True)
                 with zf.open(pt_name) as src, open(cached_pt, "wb") as dst:
                     dst.write(src.read())
-            logger.info(
-                "[DetectionDetail] Extracted %s → %s", p.name, cached_pt.name
-            )
+            logger.info("[DetectionDetail] Extracted %s → %s", p.name, cached_pt.name)
             return str(cached_pt)
         except Exception as exc:
             logger.warning(
-                "[DetectionDetail] Failed to extract %s: %s — trying raw load", p.name, exc
+                "[DetectionDetail] Failed to extract %s: %s — trying raw load",
+                p.name,
+                exc,
             )
             return model_path
 

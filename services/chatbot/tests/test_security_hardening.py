@@ -7,6 +7,7 @@ Scope (verbatim from task):
   4. hardcoded secret fallback                — none found in audit
   5. bare except blocks                       — deferred per scope rule
 """
+
 from __future__ import annotations
 
 import os
@@ -30,7 +31,6 @@ from core.url_safety import (  # noqa: E402  (import after sys.path tweak)
     assert_safe_external_url,
     is_safe_external_url,
 )
-
 
 _UNSAFE_LITERAL_URLS = [
     # scheme attacks
@@ -163,7 +163,9 @@ def test_code_interpreter_block_present_in_source():
     """Defensive: the gating wording must remain in the source so accidental
     refactors do not silently re-enable code execution.
     """
-    src = (_CHATBOT_DIR / "chatbot_main.py").read_text(encoding="utf-8-sig", errors="replace")
+    src = (_CHATBOT_DIR / "chatbot_main.py").read_text(
+        encoding="utf-8-sig", errors="replace"
+    )
     assert "ENABLE_CODE_INTERPRETER" in src
     # The refusal message must mention the env var so users can fix it.
     assert "code-execution requests are refused" in src
@@ -183,7 +185,9 @@ def test_serpapi_reverse_image_refuses_loopback(monkeypatch):
     import core.tools as tools_mod
 
     # Force a configured key so the function reaches the URL check.
-    monkeypatch.setattr(tools_mod, "SERPAPI_API_KEY", "fake-key-for-test", raising=False)
+    monkeypatch.setattr(
+        tools_mod, "SERPAPI_API_KEY", "fake-key-for-test", raising=False
+    )
 
     called = {"count": 0}
 
@@ -202,7 +206,9 @@ def test_serpapi_reverse_image_refuses_loopback(monkeypatch):
 def test_serpapi_reverse_image_refuses_metadata_endpoint(monkeypatch):
     import core.tools as tools_mod
 
-    monkeypatch.setattr(tools_mod, "SERPAPI_API_KEY", "fake-key-for-test", raising=False)
+    monkeypatch.setattr(
+        tools_mod, "SERPAPI_API_KEY", "fake-key-for-test", raising=False
+    )
 
     def fake_get(*args, **kwargs):  # pragma: no cover
         raise AssertionError("network must not be touched for unsafe URL")

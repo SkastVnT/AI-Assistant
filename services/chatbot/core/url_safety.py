@@ -19,31 +19,36 @@ trustworthy fetch path would use a separate egress proxy.
 
 Pure stdlib so it works inside venv-core without new dependencies.
 """
+
 from __future__ import annotations
 
 import ipaddress
 import socket
-from typing import Iterable
+from collections.abc import Iterable
 from urllib.parse import urlsplit
 
 # Hostnames that resolve to internal infrastructure on every major cloud.
 # Lower-case match. We compare the host portion case-insensitively.
-_BLOCKED_HOSTNAMES: frozenset[str] = frozenset({
-    "localhost",
-    "metadata",
-    "metadata.google.internal",
-    "metadata.goog",
-    "metadata.azure.com",
-    "instance-data",
-    "instance-data.ec2.internal",
-})
+_BLOCKED_HOSTNAMES: frozenset[str] = frozenset(
+    {
+        "localhost",
+        "metadata",
+        "metadata.google.internal",
+        "metadata.goog",
+        "metadata.azure.com",
+        "instance-data",
+        "instance-data.ec2.internal",
+    }
+)
 
 # Hostnames that obviously mean loopback even before DNS.
-_LOOPBACK_HOSTNAMES: frozenset[str] = frozenset({
-    "localhost",
-    "ip6-localhost",
-    "ip6-loopback",
-})
+_LOOPBACK_HOSTNAMES: frozenset[str] = frozenset(
+    {
+        "localhost",
+        "ip6-localhost",
+        "ip6-loopback",
+    }
+)
 
 _ALLOWED_SCHEMES: frozenset[str] = frozenset({"http", "https"})
 

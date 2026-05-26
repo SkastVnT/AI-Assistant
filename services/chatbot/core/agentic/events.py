@@ -15,20 +15,22 @@ Usage in the orchestrator::
     async for event in emitter.events():
         yield _sse("council_event", event.model_dump())
 """
+
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from enum import Enum
-from typing import AsyncGenerator
 
 from pydantic import BaseModel, Field
 
-
 # ── Enums ──────────────────────────────────────────────────────────────
+
 
 class EventStage(str, Enum):
     """Logical pipeline stage."""
+
     planning = "planning"
     researching = "researching"
     synthesizing = "synthesizing"
@@ -40,6 +42,7 @@ class EventStage(str, Enum):
 
 class EventStatus(str, Enum):
     """Per-stage lifecycle."""
+
     started = "started"
     progress = "progress"
     completed = "completed"
@@ -48,16 +51,20 @@ class EventStatus(str, Enum):
 
 # ── Event payload ──────────────────────────────────────────────────────
 
+
 class CouncilEvent(BaseModel):
     """A single SSE-safe progress event.
 
     Serialised to JSON and sent as ``event: council_event\\ndata: …``
     on the ``/chat/council/stream`` endpoint.
     """
+
     run_id: str = Field(..., description="Council run ID for correlation")
     stage: EventStage = Field(..., description="Current pipeline stage")
     role: str = Field(..., description="Agent role name (planner/researcher/…)")
-    status: EventStatus = Field(..., description="started | progress | completed | skipped")
+    status: EventStatus = Field(
+        ..., description="started | progress | completed | skipped"
+    )
     round: int = Field(1, ge=1, description="Current iteration round")
     timestamp: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat(),
@@ -74,6 +81,7 @@ _SENTINEL = object()
 
 
 # ── Async emitter ──────────────────────────────────────────────────────
+
 
 class CouncilEventEmitter:
     """Publish / subscribe bridge between the orchestrator and the SSE route.

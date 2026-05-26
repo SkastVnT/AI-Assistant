@@ -46,9 +46,7 @@ async def cmd_embed_pending(
     """Embed all chunks that don't have embeddings yet."""
     async with async_session_factory() as db:
         chunk_repo = SqlDocumentChunkRepository(db)
-        chunks = await chunk_repo.get_unembedded(
-            tenant_id=tenant_id, limit=batch_limit
-        )
+        chunks = await chunk_repo.get_unembedded(tenant_id=tenant_id, limit=batch_limit)
 
         if not chunks:
             logger.info("No unembedded chunks found.")
@@ -64,9 +62,7 @@ async def cmd_embed_pending(
         embed_svc = EmbeddingService(provider)
         indexer = IndexingService(db, embed_svc)
 
-        result = await indexer.embed_pending(
-            tenant_id=tenant_id, batch_limit=batch_limit
-        )
+        result = await indexer.embed_pending(tenant_id=tenant_id, batch_limit=batch_limit)
         await db.commit()
 
         logger.info("Result: %s", result.summary())
@@ -88,14 +84,10 @@ async def cmd_reembed_version(
             logger.info("No chunks found for version %s", version_id)
             return
 
-        logger.info(
-            "Found %d chunks for version %s", len(chunks), version_id
-        )
+        logger.info("Found %d chunks for version %s", len(chunks), version_id)
 
         if dry_run:
-            logger.info(
-                "[DRY RUN] Would re-embed %d chunks. Exiting.", len(chunks)
-            )
+            logger.info("[DRY RUN] Would re-embed %d chunks. Exiting.", len(chunks))
             return
 
         provider = get_embedding_provider()
@@ -118,28 +110,24 @@ async def cmd_full_reindex(
         chunk_repo = SqlDocumentChunkRepository(db)
         # Count total chunks for the tenant
         from sqlalchemy import func, select
+
         # Count total chunks for the tenant
         from sqlalchemy import func, select
 
         from libs.core.models import DocumentChunk
 
-        total = await db.scalar(
-            select(func.count())
-            .where(DocumentChunk.tenant_id == tenant_id)
-        ) or 0
+        total = (
+            await db.scalar(select(func.count()).where(DocumentChunk.tenant_id == tenant_id)) or 0
+        )
 
         if total == 0:
             logger.info("No chunks found for tenant %s", tenant_id)
             return
 
-        logger.info(
-            "Found %d total chunks for tenant %s", total, tenant_id
-        )
+        logger.info("Found %d total chunks for tenant %s", total, tenant_id)
 
         if dry_run:
-            logger.info(
-                "[DRY RUN] Would re-embed %d chunks. Exiting.", total
-            )
+            logger.info("[DRY RUN] Would re-embed %d chunks. Exiting.", total)
             return
 
         provider = get_embedding_provider()

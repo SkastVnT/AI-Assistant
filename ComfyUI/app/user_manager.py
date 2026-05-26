@@ -25,14 +25,14 @@ class FileInfo(TypedDict):
 
 def get_file_info(path: str, relative_to: str) -> FileInfo:
     return {
-        "path": os.path.relpath(path, relative_to).replace(os.sep, '/'),
+        "path": os.path.relpath(path, relative_to).replace(os.sep, "/"),
         "size": os.path.getsize(path),
         "modified": os.path.getmtime(path),
-        "created": os.path.getctime(path)
+        "created": os.path.getctime(path),
     }
 
 
-class UserManager():
+class UserManager:
     def __init__(self):
         user_directory = folder_paths.get_user_directory()
 
@@ -40,8 +40,12 @@ class UserManager():
         if not os.path.exists(user_directory):
             os.makedirs(user_directory, exist_ok=True)
             if not args.multi_user:
-                logging.warning("****** User settings have been changed to be stored on the server instead of browser storage. ******")
-                logging.warning("****** For multi-user setups add the --multi-user CLI argument to enable multiple user profiles. ******")
+                logging.warning(
+                    "****** User settings have been changed to be stored on the server instead of browser storage. ******"
+                )
+                logging.warning(
+                    "****** For multi-user setups add the --multi-user CLI argument to enable multiple user profiles. ******"
+                )
 
         if args.multi_user:
             if os.path.isfile(self.get_users_file()):
@@ -68,7 +72,9 @@ class UserManager():
 
         return user
 
-    def get_request_user_filepath(self, request, file, type="userdata", create_dir=True):
+    def get_request_user_filepath(
+        self, request, file, type="userdata", create_dir=True
+    ):
         if type == "userdata":
             root_dir = folder_paths.get_user_directory()
         else:
@@ -107,7 +113,7 @@ class UserManager():
             raise ValueError("username not provided")
         if name.startswith(folder_paths.SYSTEM_USER_PREFIX):
             raise ValueError("System User prefix not allowed")
-        user_id = re.sub("[^a-zA-Z0-9-_]+", '-', name)
+        user_id = re.sub("[^a-zA-Z0-9-_]+", "-", name)
         if user_id.startswith(folder_paths.SYSTEM_USER_PREFIX):
             raise ValueError("System User prefix not allowed")
         user_id = user_id + "_" + str(uuid.uuid4())
@@ -127,11 +133,12 @@ class UserManager():
             if args.multi_user:
                 return web.json_response({"storage": "server", "users": self.users})
             else:
-                user_dir = self.get_request_user_filepath(request, None, create_dir=False)
-                return web.json_response({
-                    "storage": "server",
-                    "migrated": os.path.exists(user_dir)
-                })
+                user_dir = self.get_request_user_filepath(
+                    request, None, create_dir=False
+                )
+                return web.json_response(
+                    {"storage": "server", "migrated": os.path.exists(user_dir)}
+                )
 
         @routes.post("/users")
         async def post_users(request):
@@ -171,7 +178,7 @@ class UserManager():
             - full_info=true: List of dictionaries with file details.
             - split=true (and full_info=false): List of lists, each containing path components.
             """
-            directory = request.rel_url.query.get('dir', '')
+            directory = request.rel_url.query.get("dir", "")
             if not directory:
                 return web.Response(status=400, text="Directory not provided")
 
@@ -182,23 +189,23 @@ class UserManager():
             if not os.path.exists(path):
                 return web.Response(status=404, text="Directory not found")
 
-            recurse = request.rel_url.query.get('recurse', '').lower() == "true"
-            full_info = request.rel_url.query.get('full_info', '').lower() == "true"
-            split_path = request.rel_url.query.get('split', '').lower() == "true"
+            recurse = request.rel_url.query.get("recurse", "").lower() == "true"
+            full_info = request.rel_url.query.get("full_info", "").lower() == "true"
+            split_path = request.rel_url.query.get("split", "").lower() == "true"
 
             # Use different patterns based on whether we're recursing or not
             if recurse:
-                pattern = os.path.join(glob.escape(path), '**', '*')
+                pattern = os.path.join(glob.escape(path), "**", "*")
             else:
-                pattern = os.path.join(glob.escape(path), '*')
+                pattern = os.path.join(glob.escape(path), "*")
 
             def process_full_path(full_path: str) -> FileInfo | str | list[str]:
                 if full_info:
                     return get_file_info(full_path, path)
 
-                rel_path = os.path.relpath(full_path, path).replace(os.sep, '/')
+                rel_path = os.path.relpath(full_path, path).replace(os.sep, "/")
                 if split_path:
-                    return [rel_path] + rel_path.split('/')
+                    return [rel_path] + rel_path.split("/")
 
                 return rel_path
 
@@ -235,47 +242,57 @@ class UserManager():
                    - size (for files): The size in bytes.
                    - modified (for files): The last modified timestamp (Unix epoch).
             """
-            requested_rel_path = request.rel_url.query.get('path', '')
+            requested_rel_path = request.rel_url.query.get("path", "")
 
             # URL-decode the path parameter
             try:
                 requested_rel_path = parse.unquote(requested_rel_path)
             except Exception as e:
-                logging.warning(f"Failed to decode path parameter: {requested_rel_path}, Error: {e}")
-                return web.Response(status=400, text="Invalid characters in path parameter")
-
+                logging.warning(
+                    f"Failed to decode path parameter: {requested_rel_path}, Error: {e}"
+                )
+                return web.Response(
+                    status=400, text="Invalid characters in path parameter"
+                )
 
             # Check user validity and get the absolute path for the requested directory
             try:
-                 base_user_path = self.get_request_user_filepath(request, None, create_dir=False)
+                base_user_path = self.get_request_user_filepath(
+                    request, None, create_dir=False
+                )
 
-                 if requested_rel_path:
-                     target_abs_path = self.get_request_user_filepath(request, requested_rel_path, create_dir=False)
-                 else:
-                     target_abs_path = base_user_path
+                if requested_rel_path:
+                    target_abs_path = self.get_request_user_filepath(
+                        request, requested_rel_path, create_dir=False
+                    )
+                else:
+                    target_abs_path = base_user_path
 
             except KeyError as e:
-                 # Invalid user detected by get_request_user_id inside get_request_user_filepath
-                 logging.warning(f"Access denied for user: {e}")
-                 return web.Response(status=403, text="Invalid user specified in request")
-
+                # Invalid user detected by get_request_user_id inside get_request_user_filepath
+                logging.warning(f"Access denied for user: {e}")
+                return web.Response(
+                    status=403, text="Invalid user specified in request"
+                )
 
             if not target_abs_path:
-                 # Path traversal or other issue detected by get_request_user_filepath
-                 return web.Response(status=400, text="Invalid path requested")
+                # Path traversal or other issue detected by get_request_user_filepath
+                return web.Response(status=400, text="Invalid path requested")
 
             # Handle cases where the user directory or target path doesn't exist
             if not os.path.exists(target_abs_path):
                 # Check if it's the base user directory that's missing (new user case)
                 if target_abs_path == base_user_path:
                     # It's okay if the base user directory doesn't exist yet, return empty list
-                     return web.json_response([])
+                    return web.json_response([])
                 else:
                     # A specific subdirectory was requested but doesn't exist
-                     return web.Response(status=404, text="Requested path not found")
+                    return web.Response(status=404, text="Requested path not found")
 
             if not os.path.isdir(target_abs_path):
-                 return web.Response(status=400, text="Requested path is not a directory")
+                return web.Response(
+                    status=400, text="Requested path is not a directory"
+                )
 
             results = []
             try:
@@ -283,40 +300,46 @@ class UserManager():
                     # Process directories
                     for dir_name in dirs:
                         dir_path = os.path.join(root, dir_name)
-                        rel_path = os.path.relpath(dir_path, base_user_path).replace(os.sep, '/')
-                        results.append({
-                            "name": dir_name,
-                            "path": rel_path,
-                            "type": "directory"
-                        })
+                        rel_path = os.path.relpath(dir_path, base_user_path).replace(
+                            os.sep, "/"
+                        )
+                        results.append(
+                            {"name": dir_name, "path": rel_path, "type": "directory"}
+                        )
 
                     # Process files
                     for file_name in files:
                         file_path = os.path.join(root, file_name)
-                        rel_path = os.path.relpath(file_path, base_user_path).replace(os.sep, '/')
+                        rel_path = os.path.relpath(file_path, base_user_path).replace(
+                            os.sep, "/"
+                        )
                         entry_info = {
                             "name": file_name,
                             "path": rel_path,
-                            "type": "file"
+                            "type": "file",
                         }
                         try:
-                            stats = os.stat(file_path) # Use os.stat for potentially better performance with os.walk
+                            stats = os.stat(
+                                file_path
+                            )  # Use os.stat for potentially better performance with os.walk
                             entry_info["size"] = stats.st_size
                             entry_info["modified"] = stats.st_mtime
                         except OSError as stat_error:
-                            logging.warning(f"Could not stat file {file_path}: {stat_error}")
-                            pass # Include file with available info
+                            logging.warning(
+                                f"Could not stat file {file_path}: {stat_error}"
+                            )
+                            pass  # Include file with available info
                         results.append(entry_info)
             except OSError as e:
                 logging.error(f"Error listing directory {target_abs_path}: {e}")
                 return web.Response(status=500, text="Error reading directory contents")
 
             # Sort results alphabetically, directories first then files
-            results.sort(key=lambda x: (x['type'] != 'directory', x['name'].lower()))
+            results.sort(key=lambda x: (x["type"] != "directory", x["name"].lower()))
 
             return web.json_response(results)
 
-        def get_user_data_path(request, check_exists = False, param = "file"):
+        def get_user_data_path(request, check_exists=False, param="file"):
             file = request.match_info.get(param, None)
             if not file:
                 return web.Response(status=400)
@@ -368,8 +391,8 @@ class UserManager():
             if not isinstance(path, str):
                 return path
 
-            overwrite = request.query.get("overwrite", 'true') != "false"
-            full_info = request.query.get('full_info', 'false').lower() == "true"
+            overwrite = request.query.get("overwrite", "true") != "false"
+            full_info = request.query.get("full_info", "false").lower() == "true"
 
             if not overwrite and os.path.exists(path):
                 return web.Response(status=409, text="File already exists")
@@ -383,7 +406,7 @@ class UserManager():
                 logging.warning(f"Error saving file '{path}': {e}")
                 return web.Response(
                     status=400,
-                    reason="Invalid filename. Please avoid special characters like :\\/*?\"<>|"
+                    reason='Invalid filename. Please avoid special characters like :\\/*?"<>|',
                 )
 
             user_path = self.get_request_user_filepath(request, None)
@@ -438,8 +461,8 @@ class UserManager():
             if not isinstance(dest, str):
                 return dest
 
-            overwrite = request.query.get("overwrite", 'true') != "false"
-            full_info = request.query.get('full_info', 'false').lower() == "true"
+            overwrite = request.query.get("overwrite", "true") != "false"
+            full_info = request.query.get("full_info", "false").lower() == "true"
 
             if not overwrite and os.path.exists(dest):
                 return web.Response(status=409, text="File already exists")

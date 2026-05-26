@@ -6,13 +6,14 @@ Models: sora-2 ($0.10/s), sora-2-pro ($0.30/s)
 Sizes:  720x1280, 1280x720, 1024x1792, 1792x1024
 Durations: 4, 8, or 12 seconds
 """
+
 import json
 import logging
 import os
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 from openai import OpenAI
 
@@ -31,11 +32,11 @@ VALID_SIZES: set[str] = {"720x1280", "1280x720", "1024x1792", "1792x1024"}
 
 # Map user-facing aspect-ratio values to Sora 2 API sizes
 ASPECT_RATIO_MAP: dict[str, str] = {
-    "1280x720": "1280x720",       # 16:9 landscape
-    "720x1280": "720x1280",       # 9:16 portrait
-    "1080x1920": "1280x720",      # 1:1 square → use landscape, post-crop later
-    "1792x1024": "1792x1024",     # legacy wide
-    "1024x1792": "1024x1792",     # legacy tall
+    "1280x720": "1280x720",  # 16:9 landscape
+    "720x1280": "720x1280",  # 9:16 portrait
+    "1080x1920": "1280x720",  # 1:1 square → use landscape, post-crop later
+    "1792x1024": "1792x1024",  # legacy wide
+    "1024x1792": "1024x1792",  # legacy tall
 }
 
 # Pretty labels for display
@@ -74,13 +75,17 @@ def _resolve_aspect_ratio(size: str) -> tuple[str, str]:
         return normalized, ASPECT_LABELS.get(normalized, normalized)
 
     allowed = sorted(set(ASPECT_RATIO_MAP.keys()) | VALID_SIZES)
-    raise ValueError(f"Unsupported video size/aspect ratio '{size}'. Allowed: {', '.join(allowed)}")
+    raise ValueError(
+        f"Unsupported video size/aspect ratio '{size}'. Allowed: {', '.join(allowed)}"
+    )
 
 
 def _get_client() -> OpenAI:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        raise RuntimeError("OPENAI_API_KEY not set — required for Sora 2 video generation")
+        raise RuntimeError(
+            "OPENAI_API_KEY not set — required for Sora 2 video generation"
+        )
     return OpenAI(api_key=api_key)
 
 
@@ -157,10 +162,28 @@ def _build_reference_collage(image_paths: list[str | Path], size: str) -> Path:
         # Simple responsive grid for 1..5 images
         layouts = {
             1: [(0, 0, target_w, target_h)],
-            2: [(0, 0, target_w // 2, target_h), (target_w // 2, 0, target_w, target_h)],
-            3: [(0, 0, target_w // 2, target_h), (target_w // 2, 0, target_w, target_h // 2), (target_w // 2, target_h // 2, target_w, target_h)],
-            4: [(0, 0, target_w // 2, target_h // 2), (target_w // 2, 0, target_w, target_h // 2), (0, target_h // 2, target_w // 2, target_h), (target_w // 2, target_h // 2, target_w, target_h)],
-            5: [(0, 0, target_w // 2, target_h // 2), (target_w // 2, 0, target_w, target_h // 2), (0, target_h // 2, target_w // 3, target_h), (target_w // 3, target_h // 2, 2 * target_w // 3, target_h), (2 * target_w // 3, target_h // 2, target_w, target_h)],
+            2: [
+                (0, 0, target_w // 2, target_h),
+                (target_w // 2, 0, target_w, target_h),
+            ],
+            3: [
+                (0, 0, target_w // 2, target_h),
+                (target_w // 2, 0, target_w, target_h // 2),
+                (target_w // 2, target_h // 2, target_w, target_h),
+            ],
+            4: [
+                (0, 0, target_w // 2, target_h // 2),
+                (target_w // 2, 0, target_w, target_h // 2),
+                (0, target_h // 2, target_w // 2, target_h),
+                (target_w // 2, target_h // 2, target_w, target_h),
+            ],
+            5: [
+                (0, 0, target_w // 2, target_h // 2),
+                (target_w // 2, 0, target_w, target_h // 2),
+                (0, target_h // 2, target_w // 3, target_h),
+                (target_w // 3, target_h // 2, 2 * target_w // 3, target_h),
+                (2 * target_w // 3, target_h // 2, target_w, target_h),
+            ],
         }
 
         slots = layouts[len(opened)]
@@ -215,7 +238,9 @@ def generate_video(
     )
 
     client = _get_client()
-    create_kwargs: dict[str, Any] = dict(prompt=prompt, model=model, seconds=sec, size=api_size)
+    create_kwargs: dict[str, Any] = dict(
+        prompt=prompt, model=model, seconds=sec, size=api_size
+    )
     temp_collage: Path | None = None
     if len(imgs) == 1:
         temp_collage = _build_single_reference(imgs[0], api_size)
@@ -265,7 +290,9 @@ def generate_video_sync(
     )
 
     client = _get_client()
-    create_kwargs: dict[str, Any] = dict(prompt=prompt, model=model, seconds=sec, size=api_size)
+    create_kwargs: dict[str, Any] = dict(
+        prompt=prompt, model=model, seconds=sec, size=api_size
+    )
     temp_collage: Path | None = None
     if len(imgs) == 1:
         temp_collage = _build_single_reference(imgs[0], api_size)
@@ -318,16 +345,17 @@ def download_video(video_id: str) -> Path:
     logger.info(f"[Sora2] Video saved: {dest}")
     try:
         from core.image_storage import archive_legacy_asset
+
         job_meta = get_job_status(video_id) or {}
-        with open(dest, 'rb') as vf:
+        with open(dest, "rb") as vf:
             legacy_id = archive_legacy_asset(
-                asset_type='video',
+                asset_type="video",
                 asset_id=video_id,
                 metadata=job_meta,
-                raw_payload={'legacy_format': 'sora2_video_file'},
+                raw_payload={"legacy_format": "sora2_video_file"},
                 file_bytes=vf.read(),
                 filename=dest.name,
-                mime_type='video/mp4',
+                mime_type="video/mp4",
             )
         if legacy_id:
             logger.info(f"[Sora2] Video archived to Mongo legacy store: {legacy_id}")
@@ -344,18 +372,21 @@ def download_thumbnail(video_id: str) -> Path:
     content.stream_to_file(str(dest))
     try:
         from core.image_storage import archive_legacy_asset
-        with open(dest, 'rb') as tf:
+
+        with open(dest, "rb") as tf:
             legacy_id = archive_legacy_asset(
-                asset_type='video_thumbnail',
+                asset_type="video_thumbnail",
                 asset_id=f"{video_id}_thumb",
-                metadata={'video_id': video_id, 'variant': 'thumbnail'},
-                raw_payload={'legacy_format': 'sora2_thumbnail_file'},
+                metadata={"video_id": video_id, "variant": "thumbnail"},
+                raw_payload={"legacy_format": "sora2_thumbnail_file"},
                 file_bytes=tf.read(),
                 filename=dest.name,
-                mime_type='image/jpeg',
+                mime_type="image/jpeg",
             )
         if legacy_id:
-            logger.info(f"[Sora2] Thumbnail archived to Mongo legacy store: {legacy_id}")
+            logger.info(
+                f"[Sora2] Thumbnail archived to Mongo legacy store: {legacy_id}"
+            )
     except Exception as archive_err:
         logger.warning(f"[Sora2] Thumbnail archive failed: {archive_err}")
     return dest
@@ -372,7 +403,9 @@ def cancel_video(video_id: str) -> dict[str, Any]:
         if meta_path.exists():
             job = json.loads(meta_path.read_text("utf-8"))
             job["status"] = "cancelled"
-            meta_path.write_text(json.dumps(job, ensure_ascii=False, indent=2), encoding="utf-8")
+            meta_path.write_text(
+                json.dumps(job, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
             return job
         return {"id": video_id, "status": "cancelled"}
     except Exception as e:
@@ -405,6 +438,7 @@ def list_jobs(limit: int = 20) -> list[dict[str, Any]]:
 
 
 # ── Helpers ────────────────────────────────────────────────────────────
+
 
 def _video_to_dict(video) -> dict[str, Any]:
     """Convert an openai.types.Video object to a plain dict."""
@@ -439,13 +473,14 @@ def _save_meta(job: dict[str, Any]) -> None:
     path.write_text(json.dumps(job, ensure_ascii=False, indent=2), encoding="utf-8")
     try:
         from core.image_storage import archive_legacy_asset
+
         archive_legacy_asset(
-            asset_type='video_job',
-            asset_id=str(job.get('id', 'unknown')),
+            asset_type="video_job",
+            asset_id=str(job.get("id", "unknown")),
             metadata=job,
-            raw_payload={'legacy_format': 'sora2_job_json', 'job': job},
+            raw_payload={"legacy_format": "sora2_job_json", "job": job},
             filename=path.name,
-            mime_type='application/json',
+            mime_type="application/json",
         )
     except Exception as archive_err:
         logger.warning(f"[Sora2] Job metadata archive failed: {archive_err}")

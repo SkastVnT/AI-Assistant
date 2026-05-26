@@ -34,7 +34,9 @@ def _utc_now() -> str:
 def record_stream_start(*, backend: str, request_id: str) -> None:
     with _LOCK:
         _COUNTERS["total_requests"] += 1
-        _BY_BACKEND.setdefault(backend, {"requests": 0, "completed": 0, "errors": 0, "fallback": 0})
+        _BY_BACKEND.setdefault(
+            backend, {"requests": 0, "completed": 0, "errors": 0, "fallback": 0}
+        )
         _BY_BACKEND[backend]["requests"] += 1
 
 
@@ -51,7 +53,9 @@ def record_stream_complete(
 ) -> None:
     with _LOCK:
         _COUNTERS["completed_requests"] += 1
-        _BY_BACKEND.setdefault(backend, {"requests": 0, "completed": 0, "errors": 0, "fallback": 0})
+        _BY_BACKEND.setdefault(
+            backend, {"requests": 0, "completed": 0, "errors": 0, "fallback": 0}
+        )
         _BY_BACKEND[backend]["completed"] += 1
 
         token_util = (tokens / max_tokens) if max_tokens > 0 else 0.0
@@ -68,7 +72,11 @@ def record_stream_complete(
                 "request_id": request_id,
                 "backend": backend,
                 "elapsed_s": round(float(elapsed_s), 3),
-                "ttfc_s": round(float(time_to_first_chunk_s), 3) if time_to_first_chunk_s is not None else None,
+                "ttfc_s": (
+                    round(float(time_to_first_chunk_s), 3)
+                    if time_to_first_chunk_s is not None
+                    else None
+                ),
                 "chunk_count": int(chunk_count),
                 "tokens": int(tokens),
                 "max_tokens": int(max_tokens),
@@ -81,7 +89,9 @@ def record_stream_complete(
 def record_stream_error(*, backend: str, request_id: str, error: str) -> None:
     with _LOCK:
         _COUNTERS["errored_requests"] += 1
-        _BY_BACKEND.setdefault(backend, {"requests": 0, "completed": 0, "errors": 0, "fallback": 0})
+        _BY_BACKEND.setdefault(
+            backend, {"requests": 0, "completed": 0, "errors": 0, "fallback": 0}
+        )
         _BY_BACKEND[backend]["errors"] += 1
         _RECENT_ERRORS.append(
             {

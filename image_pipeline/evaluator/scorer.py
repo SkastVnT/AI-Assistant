@@ -127,14 +127,16 @@ Evaluate this generated image against the user's instruction.
 @dataclass
 class JudgeConfig:
     """Configuration for a judge model backend."""
+
     name: str
-    provider: str           # "vps" | "openai"
-    endpoint: str           # URL or model identifier
+    provider: str  # "vps" | "openai"
+    endpoint: str  # URL or model identifier
     max_tokens: int = 1024
     temperature: float = 0.1
 
 
 # ── Main scorer ───────────────────────────────────────────────────
+
 
 class Scorer:
     """
@@ -149,9 +151,7 @@ class Scorer:
         pipeline_cfg_path: str | Path | None = None,
         benchmark_cfg_path: str | Path | None = None,
     ):
-        self._pipeline_cfg = self._load_yaml(
-            Path(pipeline_cfg_path or _PIPELINE_YAML)
-        )
+        self._pipeline_cfg = self._load_yaml(Path(pipeline_cfg_path or _PIPELINE_YAML))
         self._benchmark_cfg = self._load_yaml(
             Path(benchmark_cfg_path or _BENCHMARK_YAML)
         )
@@ -222,17 +222,12 @@ class Scorer:
         raw_response, judge_model = await self._call_judge_chain(prompt, images)
 
         # 5. Parse response into EvalResult
-        result = self._parse_judge_response(
-            raw_response, dimensions, judge_model
-        )
+        result = self._parse_judge_response(raw_response, dimensions, judge_model)
 
         result.eval_latency_ms = (time.monotonic() * 1000) - start_ms
 
         # 6. Apply thresholds and compute pass/fail
-        result.thresholds = {
-            dim: self._thresholds.get(dim, 0.7)
-            for dim in dimensions
-        }
+        result.thresholds = {dim: self._thresholds.get(dim, 0.7) for dim in dimensions}
         result.evaluate()
 
         logger.info(
@@ -266,10 +261,15 @@ class Scorer:
             - correction round → + correction_success
         """
         intent = job.intent or "t2i"
-        dims = list(_INTENT_DIMENSIONS.get(intent, [
-            EvalDimension.INSTRUCTION_ADHERENCE,
-            EvalDimension.DETAIL_HANDLING,
-        ]))
+        dims = list(
+            _INTENT_DIMENSIONS.get(
+                intent,
+                [
+                    EvalDimension.INSTRUCTION_ADHERENCE,
+                    EvalDimension.DETAIL_HANDLING,
+                ],
+            )
+        )
 
         # Add text_rendering if instruction mentions text
         text_keywords = ["text", "sign", "letter", "write", "spell", "chữ", "viết"]
@@ -351,26 +351,32 @@ class Scorer:
 
         output_path = Path(output_path)
         if output_path.exists():
-            images.append({
-                "role": "output",
-                "b64": base64.b64encode(output_path.read_bytes()).decode(),
-            })
+            images.append(
+                {
+                    "role": "output",
+                    "b64": base64.b64encode(output_path.read_bytes()).decode(),
+                }
+            )
 
         if source_path:
             src = Path(source_path)
             if src.exists():
-                images.append({
-                    "role": "source",
-                    "b64": base64.b64encode(src.read_bytes()).decode(),
-                })
+                images.append(
+                    {
+                        "role": "source",
+                        "b64": base64.b64encode(src.read_bytes()).decode(),
+                    }
+                )
 
         for i, ref_path in enumerate(reference_paths or []):
             rp = Path(ref_path)
             if rp.exists():
-                images.append({
-                    "role": f"ref_{i}",
-                    "b64": base64.b64encode(rp.read_bytes()).decode(),
-                })
+                images.append(
+                    {
+                        "role": f"ref_{i}",
+                        "b64": base64.b64encode(rp.read_bytes()).decode(),
+                    }
+                )
 
         return images
 
@@ -398,13 +404,13 @@ class Scorer:
             except Exception as e:
                 logger.warning(
                     "Judge %s failed: %s — trying next",
-                    judge.name, str(e)[:200],
+                    judge.name,
+                    str(e)[:200],
                 )
                 last_error = e
 
         raise RuntimeError(
-            f"All {len(self._judge_chain)} judges failed. "
-            f"Last error: {last_error}"
+            f"All {len(self._judge_chain)} judges failed. Last error: {last_error}"
         )
 
     async def _call_single_judge(
@@ -441,17 +447,21 @@ class Scorer:
         content: list[dict[str, Any]] = []
 
         for img in images:
-            content.append({
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:image/png;base64,{img['b64']}",
-                    "detail": "high",
-                },
-            })
-            content.append({
-                "type": "text",
-                "text": f"[{img['role']} image above]",
-            })
+            content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{img['b64']}",
+                        "detail": "high",
+                    },
+                }
+            )
+            content.append(
+                {
+                    "type": "text",
+                    "text": f"[{img['role']} image above]",
+                }
+            )
 
         content.append({"type": "text", "text": prompt})
 
@@ -496,17 +506,21 @@ class Scorer:
         content: list[dict[str, Any]] = []
 
         for img in images:
-            content.append({
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:image/png;base64,{img['b64']}",
-                    "detail": "high",
-                },
-            })
-            content.append({
-                "type": "text",
-                "text": f"[{img['role']} image above]",
-            })
+            content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{img['b64']}",
+                        "detail": "high",
+                    },
+                }
+            )
+            content.append(
+                {
+                    "type": "text",
+                    "text": f"[{img['role']} image above]",
+                }
+            )
 
         content.append({"type": "text", "text": prompt})
 
@@ -599,8 +613,7 @@ class Scorer:
 
         # Extract reasoning
         result.judge_reasoning = {
-            dim: parsed.get("reasoning", {}).get(dim, "")
-            for dim in dimensions
+            dim: parsed.get("reasoning", {}).get(dim, "") for dim in dimensions
         }
 
         # Extract correction hints

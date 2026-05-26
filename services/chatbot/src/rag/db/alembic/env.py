@@ -4,13 +4,13 @@ Alembic env.py — drives migrations for the RAG database.
 Reads the real database URL from RAG_DATABASE_URL (via rag_settings)
 and falls back to the value in alembic.ini for offline mode.
 """
-import os
+
 import sys
 from logging.config import fileConfig
 from pathlib import Path
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool, text
+from sqlalchemy import engine_from_config, pool
 
 # ---------------------------------------------------------------------------
 # Make sure the chatbot package root is on sys.path so that
@@ -21,11 +21,11 @@ _chatbot_root = Path(__file__).resolve().parents[4]  # …/services/chatbot
 if str(_chatbot_root) not in sys.path:
     sys.path.insert(0, str(_chatbot_root))
 
-from core.rag_settings import get_rag_settings  # noqa: E402
-from src.rag.db.base import Base  # noqa: E402
-
 # Import models so Base.metadata knows about them.
 import src.rag.db.models  # noqa: F401, E402
+from src.rag.db.base import Base  # noqa: E402
+
+from core.rag_settings import get_rag_settings  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Alembic Config object — gives access to values in alembic.ini.
@@ -39,7 +39,9 @@ target_metadata = Base.metadata
 
 # Override sqlalchemy.url with env-based setting when available.
 _settings = get_rag_settings()
-_sync_url = _settings.database_url.replace("+aiosqlite", "").replace("+asyncpg", "+psycopg2")
+_sync_url = _settings.database_url.replace("+aiosqlite", "").replace(
+    "+asyncpg", "+psycopg2"
+)
 config.set_main_option("sqlalchemy.url", _sync_url)
 
 

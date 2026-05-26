@@ -2,22 +2,24 @@
 User Authentication Module
 Handles user creation, authentication, admin management, and quota enforcement.
 """
+
 import logging
 from datetime import datetime
-from werkzeug.security import generate_password_hash, check_password_hash
+
+from werkzeug.security import check_password_hash, generate_password_hash
 
 logger = logging.getLogger(__name__)
 
 # Admins with no limits and full access
 ADMIN_USERS = [
-    {"username": "admin",    "email": "admin@assistant.local",    "role": "admin"},
+    {"username": "admin", "email": "admin@assistant.local", "role": "admin"},
     {"username": "skastvnt", "email": "skastvnt@assistant.local", "role": "admin"},
 ]
 ADMIN_DEFAULT_PASSWORD = "04122003"
 ADMIN_USERNAMES = {a["username"] for a in ADMIN_USERS}
 
 # Quota defaults for regular users
-IMAGE_GEN_LIMIT = 5   # images per user total (lifetime for now)
+IMAGE_GEN_LIMIT = 5  # images per user total (lifetime for now)
 VIDEO_GEN_ENABLED = False  # video is premium — requires payment approval
 
 
@@ -35,24 +37,32 @@ def init_admin_users(db):
         try:
             users_col.update_one(
                 {"username": admin["username"]},
-                {"$setOnInsert": {
-                    "username": admin["username"],
-                    "email": admin["email"],
-                    "password_hash": generate_password_hash(ADMIN_DEFAULT_PASSWORD),
-                    "role": admin["role"],
-                    "display_name": admin["username"].title(),
-                    "created_at": datetime.utcnow(),
-                    "updated_at": datetime.utcnow(),
-                    "is_active": True,
-                    "image_quota_used": 0,
-                    "video_unlocked": True,   # admins always unlocked
-                }},
+                {
+                    "$setOnInsert": {
+                        "username": admin["username"],
+                        "email": admin["email"],
+                        "password_hash": generate_password_hash(ADMIN_DEFAULT_PASSWORD),
+                        "role": admin["role"],
+                        "display_name": admin["username"].title(),
+                        "created_at": datetime.utcnow(),
+                        "updated_at": datetime.utcnow(),
+                        "is_active": True,
+                        "image_quota_used": 0,
+                        "video_unlocked": True,  # admins always unlocked
+                    }
+                },
                 upsert=True,
             )
             # Always ensure role=admin + video_unlocked for existing admin records
             users_col.update_one(
                 {"username": admin["username"]},
-                {"$set": {"role": "admin", "video_unlocked": True, "updated_at": datetime.utcnow()}},
+                {
+                    "$set": {
+                        "role": "admin",
+                        "video_unlocked": True,
+                        "updated_at": datetime.utcnow(),
+                    }
+                },
             )
             logger.info(f"[Auth] Ensured admin user: {admin['username']}")
         except Exception as e:
@@ -106,7 +116,11 @@ def create_user(db, username, password, role="user", display_name=None, email=No
     if email:
         doc["email"] = email
     users_col.insert_one(doc)
-    return {"username": username, "role": role, "display_name": display_name or username}
+    return {
+        "username": username,
+        "role": role,
+        "display_name": display_name or username,
+    }
 
 
 def change_password(db, username, new_password):
@@ -116,7 +130,12 @@ def change_password(db, username, new_password):
     users_col = db["users"]
     result = users_col.update_one(
         {"username": username},
-        {"$set": {"password_hash": generate_password_hash(new_password), "updated_at": datetime.utcnow()}},
+        {
+            "$set": {
+                "password_hash": generate_password_hash(new_password),
+                "updated_at": datetime.utcnow(),
+            }
+        },
     )
     return result.modified_count > 0
 
@@ -148,15 +167,30 @@ def toggle_user_active(db, username, active):
 
 # ─── Quota helpers ────────────────────────────────────────────────────────────
 
+
 def get_user_quota(db, username: str) -> dict:
     """Return quota info for a user."""
     if db is None:
-        return {"image_quota_used": 0, "image_quota_limit": IMAGE_GEN_LIMIT, "video_unlocked": False}
+        return {
+            "image_quota_used": 0,
+            "image_quota_limit": IMAGE_GEN_LIMIT,
+            "video_unlocked": False,
+        }
     if is_admin(username):
-        return {"image_quota_used": 0, "image_quota_limit": None, "video_unlocked": True}
-    user = db["users"].find_one({"username": username}, {"image_quota_used": 1, "video_unlocked": 1})
+        return {
+            "image_quota_used": 0,
+            "image_quota_limit": None,
+            "video_unlocked": True,
+        }
+    user = db["users"].find_one(
+        {"username": username}, {"image_quota_used": 1, "video_unlocked": 1}
+    )
     if not user:
-        return {"image_quota_used": 0, "image_quota_limit": IMAGE_GEN_LIMIT, "video_unlocked": False}
+        return {
+            "image_quota_used": 0,
+            "image_quota_limit": IMAGE_GEN_LIMIT,
+            "video_unlocked": False,
+        }
     return {
         "image_quota_used": user.get("image_quota_used", 0),
         "image_quota_limit": IMAGE_GEN_LIMIT,
@@ -172,7 +206,10 @@ def check_image_quota(db, username: str) -> tuple[bool, str]:
     used = quota["image_quota_used"]
     limit = quota["image_quota_limit"]
     if used >= limit:
-        return False, f"Bạn đã dùng hết {limit} lượt tạo ảnh. Liên hệ admin để được nâng cấp."
+        return (
+            False,
+            f"Bạn đã dùng hết {limit} lượt tạo ảnh. Liên hệ admin để được nâng cấp.",
+        )
     return True, ""
 
 
@@ -199,10 +236,14 @@ def check_video_access(db, username: str) -> tuple[bool, str]:
     )
     if pending:
         return False, "Yêu cầu mở khóa đang chờ admin xét duyệt."
-    return False, "Tính năng tạo video yêu cầu thanh toán. Vui lòng quét mã QR để mở khóa."
+    return (
+        False,
+        "Tính năng tạo video yêu cầu thanh toán. Vui lòng quét mã QR để mở khóa.",
+    )
 
 
 # ─── Payment requests ─────────────────────────────────────────────────────────
+
 
 def create_payment_request(db, username: str, note: str = "") -> dict:
     """Create a video unlock payment request."""
@@ -231,6 +272,7 @@ def create_payment_request(db, username: str, note: str = "") -> dict:
 def approve_payment_request(db, request_id: str, admin_username: str) -> bool:
     """Approve a payment request — unlock video for that user."""
     from bson import ObjectId
+
     col = db["payment_requests"]
     req = col.find_one({"_id": ObjectId(request_id), "status": "pending"})
     if not req:
@@ -242,7 +284,13 @@ def approve_payment_request(db, request_id: str, admin_username: str) -> bool:
     )
     col.update_one(
         {"_id": ObjectId(request_id)},
-        {"$set": {"status": "approved", "reviewed_at": datetime.utcnow(), "reviewed_by": admin_username}},
+        {
+            "$set": {
+                "status": "approved",
+                "reviewed_at": datetime.utcnow(),
+                "reviewed_by": admin_username,
+            }
+        },
     )
     logger.info(f"[Auth] Video unlocked for {username} by {admin_username}")
     return True
@@ -251,10 +299,17 @@ def approve_payment_request(db, request_id: str, admin_username: str) -> bool:
 def reject_payment_request(db, request_id: str, admin_username: str) -> bool:
     """Reject a payment request."""
     from bson import ObjectId
+
     col = db["payment_requests"]
     result = col.update_one(
         {"_id": ObjectId(request_id), "status": "pending"},
-        {"$set": {"status": "rejected", "reviewed_at": datetime.utcnow(), "reviewed_by": admin_username}},
+        {
+            "$set": {
+                "status": "rejected",
+                "reviewed_at": datetime.utcnow(),
+                "reviewed_by": admin_username,
+            }
+        },
     )
     return result.modified_count > 0
 
@@ -285,10 +340,14 @@ def set_image_quota_limit(db, username: str, limit: int) -> bool:
     """Set custom image quota limit for a user (stored as override)."""
     result = db["users"].update_one(
         {"username": username},
-        {"$set": {"image_quota_limit_override": limit, "updated_at": datetime.utcnow()}},
+        {
+            "$set": {
+                "image_quota_limit_override": limit,
+                "updated_at": datetime.utcnow(),
+            }
+        },
     )
     return result.modified_count > 0
-
 
 
 def init_admin_users(db):
@@ -306,16 +365,18 @@ def init_admin_users(db):
         try:
             users_col.update_one(
                 {"username": admin["username"]},
-                {"$setOnInsert": {
-                    "username": admin["username"],
-                    "email": admin["email"],
-                    "password_hash": generate_password_hash(ADMIN_DEFAULT_PASSWORD),
-                    "role": admin["role"],
-                    "display_name": admin["username"].title(),
-                    "created_at": datetime.utcnow(),
-                    "updated_at": datetime.utcnow(),
-                    "is_active": True,
-                }},
+                {
+                    "$setOnInsert": {
+                        "username": admin["username"],
+                        "email": admin["email"],
+                        "password_hash": generate_password_hash(ADMIN_DEFAULT_PASSWORD),
+                        "role": admin["role"],
+                        "display_name": admin["username"].title(),
+                        "created_at": datetime.utcnow(),
+                        "updated_at": datetime.utcnow(),
+                        "is_active": True,
+                    }
+                },
                 upsert=True,
             )
             # Always ensure role = admin for existing records
@@ -367,7 +428,11 @@ def create_user(db, username, password, role="user", display_name=None, email=No
     if email:
         doc["email"] = email
     users_col.insert_one(doc)
-    return {"username": username, "role": role, "display_name": display_name or username}
+    return {
+        "username": username,
+        "role": role,
+        "display_name": display_name or username,
+    }
 
 
 def change_password(db, username, new_password):
@@ -377,7 +442,12 @@ def change_password(db, username, new_password):
     users_col = db["users"]
     result = users_col.update_one(
         {"username": username},
-        {"$set": {"password_hash": generate_password_hash(new_password), "updated_at": datetime.utcnow()}},
+        {
+            "$set": {
+                "password_hash": generate_password_hash(new_password),
+                "updated_at": datetime.utcnow(),
+            }
+        },
     )
     return result.modified_count > 0
 
@@ -432,4 +502,3 @@ def update_user_profile(db, username, display_name=None, avatar_data=None, bio=N
             "bio": user.get("bio", ""),
         }
     return None
-

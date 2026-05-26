@@ -106,10 +106,7 @@ Rules:
 
 def tag_extraction_user(user_prompt: str, num_images: int) -> str:
     ctx = f"{num_images} image(s)" if num_images else "prompt only"
-    return (
-        f"User request: {user_prompt}\n"
-        f"Extract anime tags from {ctx}."
-    )
+    return f"User request: {user_prompt}\nExtract anime tags from {ctx}."
 
 
 # ═══════════════════════════════════════════════════════════════════════

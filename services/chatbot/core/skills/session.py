@@ -19,11 +19,11 @@ Usage in the chat pipeline::
     # Deactivate
     clear_session_skill(session_id)
 """
+
 from __future__ import annotations
 
 import logging
 import threading
-from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +33,9 @@ class SkillSessionStore:
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._active: Dict[str, str] = {}
+        self._active: dict[str, str] = {}
 
-    def get(self, session_id: str) -> Optional[str]:
+    def get(self, session_id: str) -> str | None:
         """Return the active skill id for *session_id*, or ``None``."""
         with self._lock:
             return self._active.get(session_id)
@@ -51,7 +51,7 @@ class SkillSessionStore:
         with self._lock:
             return self._active.pop(session_id, None) is not None
 
-    def list_active(self) -> Dict[str, str]:
+    def list_active(self) -> dict[str, str]:
         """Snapshot of all active session→skill bindings."""
         with self._lock:
             return dict(self._active)
@@ -67,7 +67,7 @@ class SkillSessionStore:
 
 # ── Singleton accessor ───────────────────────────────────────────────────
 
-_store: Optional[SkillSessionStore] = None
+_store: SkillSessionStore | None = None
 
 
 def _get_store() -> SkillSessionStore:
@@ -77,7 +77,7 @@ def _get_store() -> SkillSessionStore:
     return _store
 
 
-def get_session_skill(session_id: str) -> Optional[str]:
+def get_session_skill(session_id: str) -> str | None:
     """Return the active skill id for the session, or None."""
     return _get_store().get(session_id)
 

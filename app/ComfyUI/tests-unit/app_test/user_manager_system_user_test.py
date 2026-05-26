@@ -28,7 +28,7 @@ def mock_user_directory():
 @pytest.fixture
 def user_manager(mock_user_directory):
     """Create a UserManager instance for testing."""
-    with patch('app.user_manager.args') as mock_args:
+    with patch("app.user_manager.args") as mock_args:
         mock_args.multi_user = True
         manager = UserManager()
         # Add a default user for testing
@@ -56,7 +56,7 @@ class TestGetRequestUserId:
         """Test System User in header raises KeyError."""
         mock_request.headers = {"comfy-user": "__system"}
 
-        with patch('app.user_manager.args') as mock_args:
+        with patch("app.user_manager.args") as mock_args:
             mock_args.multi_user = True
             with pytest.raises(KeyError, match="Unknown user"):
                 user_manager.get_request_user_id(mock_request)
@@ -65,7 +65,7 @@ class TestGetRequestUserId:
         """Test System User cache raises KeyError."""
         mock_request.headers = {"comfy-user": "__cache"}
 
-        with patch('app.user_manager.args') as mock_args:
+        with patch("app.user_manager.args") as mock_args:
             mock_args.multi_user = True
             with pytest.raises(KeyError, match="Unknown user"):
                 user_manager.get_request_user_id(mock_request)
@@ -74,7 +74,7 @@ class TestGetRequestUserId:
         """Test normal user access works."""
         mock_request.headers = {"comfy-user": "default"}
 
-        with patch('app.user_manager.args') as mock_args:
+        with patch("app.user_manager.args") as mock_args:
             mock_args.multi_user = True
             user_id = user_manager.get_request_user_id(mock_request)
             assert user_id == "default"
@@ -83,7 +83,7 @@ class TestGetRequestUserId:
         """Test unknown user raises KeyError."""
         mock_request.headers = {"comfy-user": "unknown_user"}
 
-        with patch('app.user_manager.args') as mock_args:
+        with patch("app.user_manager.args") as mock_args:
             mock_args.multi_user = True
             with pytest.raises(KeyError, match="Unknown user"):
                 user_manager.get_request_user_id(mock_request)
@@ -97,25 +97,33 @@ class TestGetRequestUserFilepath:
     - Acts as backup defense if 1st layer is bypassed
     """
 
-    def test_system_user_returns_none(self, user_manager, mock_request, mock_user_directory):
+    def test_system_user_returns_none(
+        self, user_manager, mock_request, mock_user_directory
+    ):
         """Test System User returns None (structural blocking)."""
         # First, we need to mock get_request_user_id to return System User
         # But actually, get_request_user_id will raise KeyError first
         # So we test via get_public_user_directory returning None
         mock_request.headers = {"comfy-user": "default"}
 
-        with patch('app.user_manager.args') as mock_args:
+        with patch("app.user_manager.args") as mock_args:
             mock_args.multi_user = True
             # Patch get_public_user_directory to return None for testing
-            with patch.object(folder_paths, 'get_public_user_directory', return_value=None):
-                result = user_manager.get_request_user_filepath(mock_request, "test.txt")
+            with patch.object(
+                folder_paths, "get_public_user_directory", return_value=None
+            ):
+                result = user_manager.get_request_user_filepath(
+                    mock_request, "test.txt"
+                )
                 assert result is None
 
-    def test_normal_user_gets_path(self, user_manager, mock_request, mock_user_directory):
+    def test_normal_user_gets_path(
+        self, user_manager, mock_request, mock_user_directory
+    ):
         """Test normal user gets valid filepath."""
         mock_request.headers = {"comfy-user": "default"}
 
-        with patch('app.user_manager.args') as mock_args:
+        with patch("app.user_manager.args") as mock_args:
             mock_args.multi_user = True
             path = user_manager.get_request_user_filepath(mock_request, "test.txt")
             assert path is not None
@@ -177,7 +185,7 @@ class TestDefenseLayers:
         """Test 1st defense layer blocks System Users."""
         mock_request.headers = {"comfy-user": "__system"}
 
-        with patch('app.user_manager.args') as mock_args:
+        with patch("app.user_manager.args") as mock_args:
             mock_args.multi_user = True
             with pytest.raises(KeyError):
                 user_manager.get_request_user_id(mock_request)

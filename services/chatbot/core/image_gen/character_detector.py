@@ -9,10 +9,9 @@ picks the right checkpoint, and returns everything the router needs.
 
 from __future__ import annotations
 
-import re
 import logging
+import re
 from dataclasses import dataclass, field
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -20,23 +19,25 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CharacterMatch:
     """A detected character with its LoRA info."""
-    key: str                          # catalog key e.g. "firefly"
-    display_name: str                 # human name e.g. "Firefly"
-    lora_file: str                    # e.g. "Firefly-1024-v1.safetensors", "" if none
+
+    key: str  # catalog key e.g. "firefly"
+    display_name: str  # human name e.g. "Firefly"
+    lora_file: str  # e.g. "Firefly-1024-v1.safetensors", "" if none
     weight: float = 0.85
     trigger_words: list[str] = field(default_factory=list)
-    base: str = "sdxl"                # "sdxl" or "sd15"
-    franchise: str = ""               # "hsr", "genshin", "opm", etc.
+    base: str = "sdxl"  # "sdxl" or "sd15"
+    franchise: str = ""  # "hsr", "genshin", "opm", etc.
     traits: list[str] = field(default_factory=list)  # canonical appearance tags
 
 
 @dataclass
 class DetectionResult:
     """Result of character detection on a prompt."""
+
     characters: list[CharacterMatch] = field(default_factory=list)
-    suggested_checkpoint: Optional[str] = None
-    suggested_preset_id: Optional[str] = None
-    clean_prompt: str = ""            # prompt with aliases normalised
+    suggested_checkpoint: str | None = None
+    suggested_preset_id: str | None = None
+    clean_prompt: str = ""  # prompt with aliases normalised
 
     @property
     def has_characters(self) -> bool:
@@ -63,66 +64,105 @@ class DetectionResult:
 CHARACTER_ALIASES: dict[str, list[str]] = {
     # ── Honkai Star Rail ─────────────────────────────────────────────────
     "sparkle": [
-        "sparkle", "bạch lộ", "백로",
+        "sparkle",
+        "bạch lộ",
+        "백로",
     ],
     "firefly": [
-        "firefly", "fire fly", "hotaru", "đom đóm",
-        "sam", "SAM",  # her other identity
-    ],    "huohuo": [
-        "huohuo", "huo huo", "hỏa hỏa",
+        "firefly",
+        "fire fly",
+        "hotaru",
+        "đom đóm",
+        "sam",
+        "SAM",  # her other identity
+    ],
+    "huohuo": [
+        "huohuo",
+        "huo huo",
+        "hỏa hỏa",
     ],
     "stelle": [
-        "stelle", "trailblazer female", "khai phá giả nữ",
+        "stelle",
+        "trailblazer female",
+        "khai phá giả nữ",
     ],
     "silver_wolf": [
-        "silver wolf", "silverwolf", "sói bạc",
-    ],    "kafka": [
+        "silver wolf",
+        "silverwolf",
+        "sói bạc",
+    ],
+    "kafka": [
         "kafka",
     ],
     "jingliu": [
-        "jingliu", "jing liu", "cảnh lưu",
+        "jingliu",
+        "jing liu",
+        "cảnh lưu",
     ],
     "seele": [
-        "seele", "seele vollerei",
+        "seele",
+        "seele vollerei",
     ],
     "clara": [
-        "clara", "klara",
+        "clara",
+        "klara",
     ],
     "march7th": [
-        "march 7th", "march7th", "march 7", "ba tháng bảy",
-        "tháng ba", "march",
+        "march 7th",
+        "march7th",
+        "march 7",
+        "ba tháng bảy",
+        "tháng ba",
+        "march",
     ],
     "bronya": [
-        "bronya rand", "bronya", "bronya zaychik",
+        "bronya rand",
+        "bronya",
+        "bronya zaychik",
     ],
     "trailblazer": [
-        "trailblazer", "stelle", "caelus",
-        "khai phá giả", "nhân vật chính hsr",
+        "trailblazer",
+        "stelle",
+        "caelus",
+        "khai phá giả",
+        "nhân vật chính hsr",
     ],
-
     # ── Genshin Impact ───────────────────────────────────────────────────
     "nahida": [
-        "nahida", "kusanali", "lesser lord kusanali",
-        "tiểu cát thảo", "nữ thần cỏ",
+        "nahida",
+        "kusanali",
+        "lesser lord kusanali",
+        "tiểu cát thảo",
+        "nữ thần cỏ",
     ],
     "furina": [
-        "furina", "focalors", "thủy thần",
+        "furina",
+        "focalors",
+        "thủy thần",
     ],
     "eula": [
-        "eula", "eula lawrence",
+        "eula",
+        "eula lawrence",
     ],
     "raiden": [
-        "raiden shogun", "raiden", "ei", "baal",
-        "lôi thần", "tướng quân sấm sét",
+        "raiden shogun",
+        "raiden",
+        "ei",
+        "baal",
+        "lôi thần",
+        "tướng quân sấm sét",
     ],
     "yae_miko": [
-        "yae miko", "yae", "miko",
+        "yae miko",
+        "yae",
+        "miko",
         "bát trùng thần tử",
     ],
-
     # ── Other ────────────────────────────────────────────────────────────
     "tatsumaki": [
-        "tatsumaki", "tornado of terror", "cuồng phong",
+        "tatsumaki",
+        "tornado of terror",
+        "cuồng phong",
     ],
     "atri": [
         "atri",
@@ -130,14 +170,19 @@ CHARACTER_ALIASES: dict[str, list[str]] = {
     "maki_custom": [
         "maki",
     ],
-
     # ── NSFW LoRAs — keyword-triggered (Illustrious XL base) ─────────────
     "xray_ilxl": [
-        "xray", "x-ray", "x ray", "xuyên thấu", "nội soi",
-        "see-through body", "transparent body",
+        "xray",
+        "x-ray",
+        "x ray",
+        "xuyên thấu",
+        "nội soi",
+        "see-through body",
+        "transparent body",
     ],
     "speculum_ilxl": [
-        "speculum", "mỏ vịt",
+        "speculum",
+        "mỏ vịt",
     ],
     "speculum_insertion_ilxl": [
         "speculum insertion",
@@ -146,24 +191,30 @@ CHARACTER_ALIASES: dict[str, list[str]] = {
         "vibrator on clitoris",
     ],
     "vibrator_panties_ilxl": [
-        "vibrator under panties", "vibrator panties",
+        "vibrator under panties",
+        "vibrator panties",
     ],
     "spread_anal_il": [
-        "spread pussy", "extreme spread", "anal spread",
+        "spread pussy",
+        "extreme spread",
+        "anal spread",
     ],
     "cameltoe_ilxl": [
-        "cameltoe", "camel toe",
+        "cameltoe",
+        "camel toe",
     ],
-
     # ── NSFW LoRAs — keyword-triggered (SDXL base) ───────────────────────
     "xray_window": [
-        "x-ray window", "xray window",
+        "x-ray window",
+        "xray window",
     ],
     "xray_creampie": [
-        "xray creampie", "x-ray creampie",
+        "xray creampie",
+        "x-ray creampie",
     ],
     "xray_cum": [
-        "cum inflation", "xray inflation",
+        "cum inflation",
+        "xray inflation",
     ],
     "tape_gape": [
         "tape gape",
@@ -173,60 +224,99 @@ CHARACTER_ALIASES: dict[str, list[str]] = {
     ],
     "taped_eyes_il": [
         # English natural phrases
-        "taped eyes", "eyes taped", "eyes taped open", "taped eyes open",
-        "eyes forced open", "eyes held open", "forced eyes open",
-        "duct tape eyes", "tape on eyes", "eyelids taped",
+        "taped eyes",
+        "eyes taped",
+        "eyes taped open",
+        "taped eyes open",
+        "eyes forced open",
+        "eyes held open",
+        "forced eyes open",
+        "duct tape eyes",
+        "tape on eyes",
+        "eyelids taped",
         "unconscious taped eyes",
         # Vietnamese natural phrases
-        "mắt dán băng", "băng dán mắt", "dán băng mắt",
-        "mắt bị dán", "mắt bị buộc mở", "mắt bị giữ mở",
-        "mắt trợn dán băng", "bất tỉnh mắt dán",
+        "mắt dán băng",
+        "băng dán mắt",
+        "dán băng mắt",
+        "mắt bị dán",
+        "mắt bị buộc mở",
+        "mắt bị giữ mở",
+        "mắt trợn dán băng",
+        "bất tỉnh mắt dán",
     ],
     "sleeping_eyes_open_il": [
         # English
         "0utc0ld",
-        "unconscious eyes open", "sleeping with eyes open", "eyes open while sleeping",
-        "eyes open unconscious", "open eyes unconscious", "glazed open eyes",
+        "unconscious eyes open",
+        "sleeping with eyes open",
+        "eyes open while sleeping",
+        "eyes open unconscious",
+        "open eyes unconscious",
+        "glazed open eyes",
         # Vietnamese
-        "ngủ mở mắt", "mắt mở khi ngủ", "bất tỉnh mắt mở",
-        "mắt mở lúc ngủ", "ngủ mà mắt mở",
+        "ngủ mở mắt",
+        "mắt mở khi ngủ",
+        "bất tỉnh mắt mở",
+        "mắt mở lúc ngủ",
+        "ngủ mà mắt mở",
     ],
     "unconscious_taped_combo": [
         # Vietnamese combo phrases — primary triggers
-        "ngủ mở mắt dán băng", "mắt mở dán băng",
-        "mắt bị dán khi ngủ", "bất tỉnh mắt dán băng",
-        "dán băng mắt khi ngủ", "mắt mở cố định băng dính",
+        "ngủ mở mắt dán băng",
+        "mắt mở dán băng",
+        "mắt bị dán khi ngủ",
+        "bất tỉnh mắt dán băng",
+        "dán băng mắt khi ngủ",
+        "mắt mở cố định băng dính",
         "băng dính cố định mắt mở",
         # English combo phrases
-        "sleeping eyes taped open", "unconscious taped eyes open",
-        "eyes forced open taped", "taped sleeping eyes",
-        "unconscious with taped open eyes", "sleep taped eyes",
+        "sleeping eyes taped open",
+        "unconscious taped eyes open",
+        "eyes forced open taped",
+        "taped sleeping eyes",
+        "unconscious with taped open eyes",
+        "sleep taped eyes",
     ],
     "vibrator_thigh": [
-        "vibrator thighhighs", "vibrator thigh highs",
+        "vibrator thighhighs",
+        "vibrator thigh highs",
     ],
     "vibrator_underwear": [
         "vibrator in underwear",
     ],
     "cervix": [
-        "cervix view", "cervix",
+        "cervix view",
+        "cervix",
     ],
     "armpit_hair": [
-        "armpit hair", "hairy armpit",
+        "armpit hair",
+        "hairy armpit",
     ],
 }
 
 # ── Franchise metadata (for checkpoint selection) ────────────────────────
 CHARACTER_FRANCHISE: dict[str, str] = {
     "sparkle": "hsr",
-    "firefly": "hsr", "kafka": "hsr", "jingliu": "hsr",
-    "seele": "hsr", "clara": "hsr", "march7th": "hsr",
-    "bronya": "hsr", "trailblazer": "hsr",
-    "huohuo": "hsr", "stelle": "hsr", "silver_wolf": "hsr",
+    "firefly": "hsr",
+    "kafka": "hsr",
+    "jingliu": "hsr",
+    "seele": "hsr",
+    "clara": "hsr",
+    "march7th": "hsr",
+    "bronya": "hsr",
+    "trailblazer": "hsr",
+    "huohuo": "hsr",
+    "stelle": "hsr",
+    "silver_wolf": "hsr",
     "firefly_pony": "hsr",
-    "nahida": "genshin", "furina": "genshin", "eula": "genshin",
-    "raiden": "genshin", "yae_miko": "genshin",
-    "tatsumaki": "opm", "atri": "anime",
+    "nahida": "genshin",
+    "furina": "genshin",
+    "eula": "genshin",
+    "raiden": "genshin",
+    "yae_miko": "genshin",
+    "tatsumaki": "opm",
+    "atri": "anime",
     "maki_custom": "custom",
 }
 
@@ -250,33 +340,45 @@ DEFAULT_WEIGHT = 0.85
 # Format: Danbooru-style tags (appearance only, NOT outfit or scene).
 CHARACTER_TRAITS: dict[str, list[str]] = {
     # ── Honkai Star Rail ─────────────────────────────────────────────────
-    "sparkle":     ["black hair", "long hair", "wavy hair", "purple eyes", "flower-shaped pupils", "hair ornament", "multicolored hair"],
-    "firefly":     ["grey hair", "short hair", "green eyes"],
-    "kafka":       ["purple hair", "long hair", "purple eyes"],
-    "jingliu":     ["white hair", "long hair", "blue eyes"],
-    "seele":       ["purple hair", "long hair", "twin braids", "blue eyes"],
-    "clara":       ["pink hair", "long hair", "blue eyes", "hair ribbon"],
-    "march7th":    ["pink hair", "medium hair", "blue eyes", "hair clip"],
-    "bronya":      ["silver hair", "long hair", "blue eyes", "hair ornament"],
+    "sparkle": [
+        "black hair",
+        "long hair",
+        "wavy hair",
+        "purple eyes",
+        "flower-shaped pupils",
+        "hair ornament",
+        "multicolored hair",
+    ],
+    "firefly": ["grey hair", "short hair", "green eyes"],
+    "kafka": ["purple hair", "long hair", "purple eyes"],
+    "jingliu": ["white hair", "long hair", "blue eyes"],
+    "seele": ["purple hair", "long hair", "twin braids", "blue eyes"],
+    "clara": ["pink hair", "long hair", "blue eyes", "hair ribbon"],
+    "march7th": ["pink hair", "medium hair", "blue eyes", "hair clip"],
+    "bronya": ["silver hair", "long hair", "blue eyes", "hair ornament"],
     "trailblazer": ["black hair", "short hair", "brown eyes"],
-
     # ── Genshin Impact ───────────────────────────────────────────────────
-    "nahida":      ["green hair", "short hair", "green eyes", "small stature", "ahoge"],
-    "furina":      ["light blue hair", "white hair streaks", "medium hair", "blue eyes", "ahoge"],
-    "eula":        ["blonde hair", "long hair", "blue eyes"],
-    "raiden":      ["purple hair", "long hair", "purple eyes"],
-    "yae_miko":    ["pink hair", "long hair", "fox ears", "fox tail", "purple eyes"],
-
+    "nahida": ["green hair", "short hair", "green eyes", "small stature", "ahoge"],
+    "furina": [
+        "light blue hair",
+        "white hair streaks",
+        "medium hair",
+        "blue eyes",
+        "ahoge",
+    ],
+    "eula": ["blonde hair", "long hair", "blue eyes"],
+    "raiden": ["purple hair", "long hair", "purple eyes"],
+    "yae_miko": ["pink hair", "long hair", "fox ears", "fox tail", "purple eyes"],
     # ── Other ────────────────────────────────────────────────────────────
-    "tatsumaki":   ["green hair", "short hair", "green eyes", "small stature"],
-    "atri":        ["light blue hair", "twintails", "blue eyes"],
+    "tatsumaki": ["green hair", "short hair", "green eyes", "small stature"],
+    "atri": ["light blue hair", "twintails", "blue eyes"],
 }
 
 # ── Best checkpoint per base model ───────────────────────────────────────
 BEST_CHECKPOINTS = {
-    "sdxl":  "noobaiXLVpred_v11.safetensors",           # NoobAI V-Pred — default SDXL anime
-    "ilxl":  "ChenkinNoob-XL-V0.2.safetensors",         # NoobAI/Illustrious XL — best for ILXL LoRAs
-    "sd15":  "abyssorangemix3AOM3_aom3a1b.safetensors",  # SD 1.5
+    "sdxl": "noobaiXLVpred_v11.safetensors",  # NoobAI V-Pred — default SDXL anime
+    "ilxl": "ChenkinNoob-XL-V0.2.safetensors",  # NoobAI/Illustrious XL — best for ILXL LoRAs
+    "sd15": "abyssorangemix3AOM3_aom3a1b.safetensors",  # SD 1.5
 }
 
 # ── Preset mapping for known characters ──────────────────────────────────
@@ -284,7 +386,7 @@ BEST_CHECKPOINTS = {
 CHARACTER_PRESET_MAP: dict[str, str] = {
     "jingliu": "anime_hsr_jingliu",
     "firefly": "anime_hsr_firefly",
-    "furina":  "anime_genshin_furina",
+    "furina": "anime_genshin_furina",
     # Combo preset: sleeping-eyes-open + taped-eyes stacked
     "unconscious_taped_combo": "anime_unconscious_taped_eyes",
 }
@@ -293,7 +395,7 @@ CHARACTER_PRESET_MAP: dict[str, str] = {
 class CharacterDetector:
     """
     Detects character names in a prompt and resolves LoRA + checkpoint info.
-    
+
     Usage:
         detector = CharacterDetector(lora_catalog)
         result = detector.detect("tạo ảnh Firefly mặc áo dài")
@@ -349,16 +451,18 @@ class CharacterDetector:
         characters: list[CharacterMatch] = []
         for key in found_keys:
             entry = self._catalog.get(key)  # may be None if trait-only
-            characters.append(CharacterMatch(
-                key=key,
-                display_name=self._display_name(key),
-                lora_file=entry["file"] if entry else "",
-                weight=CHARACTER_WEIGHTS.get(key, DEFAULT_WEIGHT) if entry else 0.0,
-                trigger_words=entry.get("trigger", []) if entry else [],
-                base=entry.get("base", "sdxl") if entry else "sdxl",
-                franchise=CHARACTER_FRANCHISE.get(key, ""),
-                traits=CHARACTER_TRAITS.get(key, []),
-            ))
+            characters.append(
+                CharacterMatch(
+                    key=key,
+                    display_name=self._display_name(key),
+                    lora_file=entry["file"] if entry else "",
+                    weight=CHARACTER_WEIGHTS.get(key, DEFAULT_WEIGHT) if entry else 0.0,
+                    trigger_words=entry.get("trigger", []) if entry else [],
+                    base=entry.get("base", "sdxl") if entry else "sdxl",
+                    franchise=CHARACTER_FRANCHISE.get(key, ""),
+                    traits=CHARACTER_TRAITS.get(key, []),
+                )
+            )
 
         # Pick checkpoint based on detected characters' base model
         checkpoint = self._select_checkpoint(characters)
@@ -412,13 +516,15 @@ class CharacterDetector:
             if key not in self._catalog:
                 continue
             entry = self._catalog[key]
-            result.append({
-                "key": key,
-                "name": self._display_name(key),
-                "aliases": CHARACTER_ALIASES[key],
-                "franchise": CHARACTER_FRANCHISE.get(key, ""),
-                "base": entry.get("base", "sdxl"),
-                "lora_file": entry["file"],
-                "category": entry.get("category", "character"),
-            })
+            result.append(
+                {
+                    "key": key,
+                    "name": self._display_name(key),
+                    "aliases": CHARACTER_ALIASES[key],
+                    "franchise": CHARACTER_FRANCHISE.get(key, ""),
+                    "base": entry.get("base", "sdxl"),
+                    "lora_file": entry["file"],
+                    "category": entry.get("category", "character"),
+                }
+            )
         return result

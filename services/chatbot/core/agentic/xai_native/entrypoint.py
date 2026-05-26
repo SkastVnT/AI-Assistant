@@ -13,19 +13,20 @@ Usage from routers::
     from core.agentic.xai_native.entrypoint import run_xai_native
     result = await run_xai_native(message=..., ...)
 """
+
 from __future__ import annotations
 
 import json
 import logging
 import os
-from typing import Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 
 from core.agentic.xai_native.adapter import XaiResponsesAdapter
 from core.agentic.xai_native.contracts import (
     ReasoningEffort,
     XaiNativeConfig,
     XaiNativeResult,
-    XaiNativeStatus,
 )
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,7 @@ def is_xai_native_enabled() -> bool:
 
 # ── Adapter factory ───────────────────────────────────────────────────
 
+
 def _get_adapter() -> XaiResponsesAdapter | None:
     """Create an adapter using the GROK_API_KEY env var."""
     from core.config import GROK_API_KEY
@@ -63,6 +65,8 @@ def _get_adapter() -> XaiResponsesAdapter | None:
             exc,
         )
         return None
+
+
 def _build_system_prompt(
     *,
     context_type: str,
@@ -152,7 +156,9 @@ async def run_xai_native(
 
     logger.info(
         "[XaiNative] Starting — model=%s effort=%s web_search=%s",
-        config.model, config.reasoning_effort.value, config.enable_web_search,
+        config.model,
+        config.reasoning_effort.value,
+        config.enable_web_search,
     )
 
     adapter = _get_adapter()
@@ -167,14 +173,17 @@ async def run_xai_native(
 
     logger.info(
         "[XaiNative] Completed — id=%s status=%s tokens=%d elapsed=%.1fs",
-        result.response_id, result.status.value,
-        result.usage.total_tokens, result.elapsed_seconds,
+        result.response_id,
+        result.status.value,
+        result.usage.total_tokens,
+        result.elapsed_seconds,
     )
 
     return _build_response_dict(result, config, context_type, rag_citations)
 
 
 # ── Streaming entry point ─────────────────────────────────────────────
+
 
 def _sse(event: str, data: dict | str) -> str:
     payload = data if isinstance(data, str) else json.dumps(data, ensure_ascii=False)
@@ -221,17 +230,23 @@ async def run_xai_native_stream(
     )
 
     # Emit start event
-    yield _sse("xai_native_event", {
-        "stage": "starting",
-        "model": config.model,
-        "reasoning_effort": config.reasoning_effort.value,
-    })
+    yield _sse(
+        "xai_native_event",
+        {
+            "stage": "starting",
+            "model": config.model,
+            "reasoning_effort": config.reasoning_effort.value,
+        },
+    )
 
     adapter = _get_adapter()
     if adapter is None:
-        yield _sse("xai_native_error", {
-            "error": "xAI adapter could not be initialized. Check GROK_API_KEY.",
-        })
+        yield _sse(
+            "xai_native_error",
+            {
+                "error": "xAI adapter could not be initialized. Check GROK_API_KEY.",
+            },
+        )
         return
 
     async for chunk in adapter.stream(
@@ -242,27 +257,39 @@ async def run_xai_native_stream(
         chunk_type = chunk.get("type")
 
         if chunk_type == "thinking":
-            yield _sse("xai_native_event", {
-                "stage": "thinking",
-                "reasoning_tokens": chunk["reasoning_tokens"],
-            })
+            yield _sse(
+                "xai_native_event",
+                {
+                    "stage": "thinking",
+                    "reasoning_tokens": chunk["reasoning_tokens"],
+                },
+            )
 
         elif chunk_type == "content":
-            yield _sse("xai_native_chunk", {
-                "text": chunk["text"],
-            })
+            yield _sse(
+                "xai_native_chunk",
+                {
+                    "text": chunk["text"],
+                },
+            )
 
         elif chunk_type == "done":
             result: XaiNativeResult = chunk["result"]
             response_dict = _build_response_dict(
-                result, config, context_type, rag_citations,
+                result,
+                config,
+                context_type,
+                rag_citations,
             )
             yield _sse("xai_native_result", response_dict)
 
         elif chunk_type == "error":
-            yield _sse("xai_native_error", {
-                "error": chunk["error"],
-            })
+            yield _sse(
+                "xai_native_error",
+                {
+                    "error": chunk["error"],
+                },
+            )
 
 
 # ── Response builders ──────────────────────────────────────────────────
@@ -302,11 +329,13 @@ def _build_response_dict(
     merged_citations = list(rag_citations) if rag_citations else []
     for ann in result.annotations:
         if ann.url:
-            merged_citations.append({
-                "url": ann.url,
-                "title": ann.title or "",
-                "source": "xai_web_search",
-            })
+            merged_citations.append(
+                {
+                    "url": ann.url,
+                    "title": ann.title or "",
+                    "source": "xai_web_search",
+                }
+            )
 
     thinking_lines = [
         f"xAI multi-agent research completed in {result.elapsed_seconds:.1f}s.",

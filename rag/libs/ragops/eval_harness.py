@@ -167,7 +167,9 @@ async def evaluate_case(
         # ── Retriever evaluation ──────────────────────────────────
         if case.context:
             cr = await eval_context_relevance(
-                judge, query=case.query, context=case.context,
+                judge,
+                query=case.query,
+                context=case.context,
             )
             result.context_relevance = cr.score
             result.context_relevance_reasoning = cr.reasoning
@@ -175,25 +177,31 @@ async def evaluate_case(
         # ── Generator evaluation ──────────────────────────────────
         if case.answer and case.context:
             gr = await eval_groundedness(
-                judge, context=case.context, answer=case.answer,
+                judge,
+                context=case.context,
+                answer=case.answer,
             )
             result.groundedness = gr.score
             result.groundedness_reasoning = gr.reasoning
 
         if case.answer:
             ar = await eval_answer_relevance(
-                judge, query=case.query, answer=case.answer,
+                judge,
+                query=case.query,
+                answer=case.answer,
             )
             result.answer_relevance = ar.score
             result.answer_relevance_reasoning = ar.reasoning
 
         # ── Aggregate ─────────────────────────────────────────────
         scores = [
-            s for s in [
+            s
+            for s in [
                 result.context_relevance,
                 result.groundedness,
                 result.answer_relevance,
-            ] if s is not None
+            ]
+            if s is not None
         ]
         if scores:
             result.overall_score = sum(scores) / len(scores)
@@ -274,9 +282,11 @@ async def run_evaluation(
     )
 
     logger.info(
-        "eval_run dataset=%s total=%d passed=%d failed=%d "
-        "avg_cr=%.2f avg_gr=%.2f avg_ar=%.2f",
-        dataset.name, total, passed, failed,
+        "eval_run dataset=%s total=%d passed=%d failed=%d avg_cr=%.2f avg_gr=%.2f avg_ar=%.2f",
+        dataset.name,
+        total,
+        passed,
+        failed,
         result.avg_context_relevance,
         result.avg_groundedness,
         result.avg_answer_relevance,

@@ -13,14 +13,13 @@ Covers:
 Run from services/chatbot/:
     python -m pytest tests/test_agentic_entrypoint.py -v
 """
+
 from __future__ import annotations
 
-import asyncio
-import json
 import os
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -46,8 +45,8 @@ from core.agentic.entrypoint import (
     run_council_stream,
 )
 
-
 # ── Helpers ────────────────────────────────────────────────────────────
+
 
 def _mock_council_result(
     content: str = "Final answer",
@@ -79,6 +78,7 @@ def _mock_council_result(
 # Feature flag
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestFeatureFlag:
     def test_default_is_disabled(self):
         with patch.dict(os.environ, {}, clear=False):
@@ -95,6 +95,7 @@ class TestFeatureFlag:
 # ═══════════════════════════════════════════════════════════════════════
 # _disabled_response
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestDisabledResponse:
     def test_contains_message(self):
@@ -114,6 +115,7 @@ class TestDisabledResponse:
 # ═══════════════════════════════════════════════════════════════════════
 # _build_config
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestBuildConfig:
     def test_default_config(self):
@@ -147,6 +149,7 @@ class TestBuildConfig:
 # ═══════════════════════════════════════════════════════════════════════
 # _build_pre_context
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestBuildPreContext:
     def test_basic(self):
@@ -188,6 +191,7 @@ class TestBuildPreContext:
 # _build_response_dict
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestBuildResponseDict:
     def test_contains_required_fields(self):
         result = _mock_council_result()
@@ -220,6 +224,7 @@ class TestBuildResponseDict:
 # _sse helper
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestSSEHelper:
     def test_dict_serialization(self):
         s = _sse("test_event", {"key": "value"})
@@ -240,6 +245,7 @@ class TestSSEHelper:
 # run_council (non-streaming)
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestRunCouncil:
     @pytest.mark.asyncio
     async def test_disabled_returns_graceful_dict(self):
@@ -255,8 +261,10 @@ class TestRunCouncil:
     async def test_enabled_runs_orchestrator(self):
         mock_result = _mock_council_result()
 
-        with patch("core.agentic.entrypoint.AGENTIC_V1_ENABLED", True), \
-             patch("core.agentic.entrypoint.CouncilOrchestrator") as MockOrch:
+        with (
+            patch("core.agentic.entrypoint.AGENTIC_V1_ENABLED", True),
+            patch("core.agentic.entrypoint.CouncilOrchestrator") as MockOrch,
+        ):
             MockOrch.return_value.run = AsyncMock(return_value=mock_result)
 
             result = await run_council(
@@ -275,8 +283,10 @@ class TestRunCouncil:
         mock_result = _mock_council_result()
         cites = [{"url": "http://example.com"}]
 
-        with patch("core.agentic.entrypoint.AGENTIC_V1_ENABLED", True), \
-             patch("core.agentic.entrypoint.CouncilOrchestrator") as MockOrch:
+        with (
+            patch("core.agentic.entrypoint.AGENTIC_V1_ENABLED", True),
+            patch("core.agentic.entrypoint.CouncilOrchestrator") as MockOrch,
+        ):
             MockOrch.return_value.run = AsyncMock(return_value=mock_result)
 
             result = await run_council(
@@ -291,6 +301,7 @@ class TestRunCouncil:
 # ═══════════════════════════════════════════════════════════════════════
 # run_council_stream
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestRunCouncilStream:
     @pytest.mark.asyncio
@@ -311,8 +322,10 @@ class TestRunCouncilStream:
     async def test_enabled_yields_events_and_result(self):
         mock_result = _mock_council_result()
 
-        with patch("core.agentic.entrypoint.AGENTIC_V1_ENABLED", True), \
-             patch("core.agentic.entrypoint.CouncilOrchestrator") as MockOrch:
+        with (
+            patch("core.agentic.entrypoint.AGENTIC_V1_ENABLED", True),
+            patch("core.agentic.entrypoint.CouncilOrchestrator") as MockOrch,
+        ):
             MockOrch.return_value.run = AsyncMock(return_value=mock_result)
 
             events = []

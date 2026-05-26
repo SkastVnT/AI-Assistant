@@ -1,18 +1,22 @@
-﻿"""
+"""
 OpenAI image provider â€” GPT-Image-1 / DALL-E API.
 Supports conversational image generation & editing via OpenAI's /images endpoint.
 """
 
 from __future__ import annotations
 
-import time
 import base64
 import logging
+import time
+
 import httpx
 
 from .base import (
-    BaseImageProvider, ImageRequest, ImageResult,
-    ImageMode, ProviderTier,
+    BaseImageProvider,
+    ImageMode,
+    ImageRequest,
+    ImageResult,
+    ProviderTier,
 )
 
 logger = logging.getLogger(__name__)
@@ -66,8 +70,14 @@ class OpenAIImageProvider(BaseImageProvider):
                 return self._generate(req, t0)
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"[OpenAI Image] HTTP {e.response.status_code}: {e.response.text[:500]}")
-            return ImageResult(success=False, error=f"OpenAI error: {e.response.status_code}", provider=self.name)
+            logger.error(
+                f"[OpenAI Image] HTTP {e.response.status_code}: {e.response.text[:500]}"
+            )
+            return ImageResult(
+                success=False,
+                error=f"OpenAI error: {e.response.status_code}",
+                provider=self.name,
+            )
         except Exception as e:
             logger.error(f"[OpenAI Image] Error: {e}", exc_info=True)
             return ImageResult(success=False, error=str(e), provider=self.name)
@@ -137,7 +147,6 @@ class OpenAIImageProvider(BaseImageProvider):
     def _edit(self, req: ImageRequest, t0: float) -> ImageResult:
         """Use /images/edits for inpainting."""
         # Build multipart form
-        import io
         files = {
             "image": ("image.png", base64.b64decode(req.source_image_b64), "image/png"),
             "prompt": (None, req.prompt),

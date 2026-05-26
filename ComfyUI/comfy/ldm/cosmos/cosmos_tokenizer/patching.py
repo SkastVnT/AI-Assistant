@@ -77,7 +77,11 @@ class Patcher(torch.nn.Module):
         n = h.shape[0]
         g = x.shape[1]
         hl = h.flip(0).reshape(1, 1, -1).repeat(g, 1, 1)
-        hh = (h * ((-1) ** self._arange.to(device=x.device))).reshape(1, 1, -1).repeat(g, 1, 1)
+        hh = (
+            (h * ((-1) ** self._arange.to(device=x.device)))
+            .reshape(1, 1, -1)
+            .repeat(g, 1, 1)
+        )
         hh = hh.to(dtype=dtype)
         hl = hl.to(dtype=dtype)
 
@@ -127,7 +131,11 @@ class Patcher3D(Patcher):
         n = h.shape[0]
         g = x.shape[1]
         hl = h.flip(0).reshape(1, 1, -1).repeat(g, 1, 1)
-        hh = (h * ((-1) ** self._arange.to(device=x.device))).reshape(1, 1, -1).repeat(g, 1, 1)
+        hh = (
+            (h * ((-1) ** self._arange.to(device=x.device)))
+            .reshape(1, 1, -1)
+            .repeat(g, 1, 1)
+        )
         hh = hh.to(dtype=dtype)
         hl = hl.to(dtype=dtype)
 
@@ -219,7 +227,11 @@ class UnPatcher(torch.nn.Module):
 
         g = x.shape[1] // 4
         hl = h.flip([0]).reshape(1, 1, -1).repeat([g, 1, 1])
-        hh = (h * ((-1) ** self._arange.to(device=x.device))).reshape(1, 1, -1).repeat(g, 1, 1)
+        hh = (
+            (h * ((-1) ** self._arange.to(device=x.device)))
+            .reshape(1, 1, -1)
+            .repeat(g, 1, 1)
+        )
         hh = hh.to(dtype=dtype)
         hl = hl.to(dtype=dtype)
 
@@ -276,7 +288,11 @@ class UnPatcher3D(UnPatcher):
 
         g = x.shape[1] // 8  # split into 8 spatio-temporal filtered tesnors.
         hl = h.flip([0]).reshape(1, 1, -1).repeat([g, 1, 1])
-        hh = (h * ((-1) ** self._arange.to(device=x.device))).reshape(1, 1, -1).repeat(g, 1, 1)
+        hh = (
+            (h * ((-1) ** self._arange.to(device=x.device)))
+            .reshape(1, 1, -1)
+            .repeat(g, 1, 1)
+        )
         hl = hl.to(dtype=dtype)
         hh = hh.to(dtype=dtype)
 

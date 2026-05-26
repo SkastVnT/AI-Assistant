@@ -8,7 +8,6 @@ Replaces hardcoded workflow dicts with a composable builder approach.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from .providers.base import ImageRequest, LoraSpec
 
@@ -30,15 +29,15 @@ def build_txt2img_workflow(
     req: ImageRequest,
     seed: int,
     checkpoint: str,
-    vae_name: Optional[str] = None,
+    vae_name: str | None = None,
     *,
     sampler: str = "euler_ancestral",
     scheduler: str = "normal",
-    steps: Optional[int] = None,
-    cfg: Optional[float] = None,
+    steps: int | None = None,
+    cfg: float | None = None,
     clip_skip: int = 1,
     quality_prefix: str = "",
-    negative_prompt: Optional[str] = None,
+    negative_prompt: str | None = None,
 ) -> dict:
     """
     Build a txt2img workflow with optional LoRA chain and VAE override.
@@ -61,7 +60,11 @@ def build_txt2img_workflow(
 
     # ── 2. LoRA chain ───────────────────────────────────────────────────
     model_out, clip_out = _inject_lora_chain(
-        workflow, nc, model_out, clip_out, req.lora_models,
+        workflow,
+        nc,
+        model_out,
+        clip_out,
+        req.lora_models,
     )
 
     # ── 3. Optional VAE override ────────────────────────────────────────
@@ -84,7 +87,9 @@ def build_txt2img_workflow(
 
     # ── 4. Prompt encoding ──────────────────────────────────────────────
     prompt_text = _build_prompt_with_triggers(req.prompt, req.lora_models)
-    if quality_prefix and not prompt_text.lower().startswith(("masterpiece", "best quality")):
+    if quality_prefix and not prompt_text.lower().startswith(
+        ("masterpiece", "best quality")
+    ):
         prompt_text = quality_prefix + prompt_text
 
     pos_id = nc.next()
@@ -93,7 +98,9 @@ def build_txt2img_workflow(
         "inputs": {"text": prompt_text, "clip": clip_out},
     }
     neg_id = nc.next()
-    eff_neg = negative_prompt if negative_prompt is not None else (req.negative_prompt or "")
+    eff_neg = (
+        negative_prompt if negative_prompt is not None else (req.negative_prompt or "")
+    )
     workflow[neg_id] = {
         "class_type": "CLIPTextEncode",
         "inputs": {"text": eff_neg, "clip": clip_out},
@@ -147,15 +154,15 @@ def build_img2img_workflow(
     seed: int,
     checkpoint: str,
     image_name: str,
-    vae_name: Optional[str] = None,
+    vae_name: str | None = None,
     *,
     sampler: str = "euler_ancestral",
     scheduler: str = "normal",
-    steps: Optional[int] = None,
-    cfg: Optional[float] = None,
+    steps: int | None = None,
+    cfg: float | None = None,
     clip_skip: int = 1,
     quality_prefix: str = "",
-    negative_prompt: Optional[str] = None,
+    negative_prompt: str | None = None,
 ) -> dict:
     """
     Build an img2img workflow with optional LoRA chain and VAE override.
@@ -197,7 +204,11 @@ def build_img2img_workflow(
 
     # ── LoRA chain ──────────────────────────────────────────────────────
     model_out, clip_out = _inject_lora_chain(
-        workflow, nc, model_out, clip_out, req.lora_models,
+        workflow,
+        nc,
+        model_out,
+        clip_out,
+        req.lora_models,
     )
 
     # ── VAE override ────────────────────────────────────────────────────
@@ -227,7 +238,9 @@ def build_img2img_workflow(
 
     # ── Prompts ─────────────────────────────────────────────────────────
     prompt_text = _build_prompt_with_triggers(req.prompt, req.lora_models)
-    if quality_prefix and not prompt_text.lower().startswith(("masterpiece", "best quality")):
+    if quality_prefix and not prompt_text.lower().startswith(
+        ("masterpiece", "best quality")
+    ):
         prompt_text = quality_prefix + prompt_text
 
     pos_id = nc.next()
@@ -236,7 +249,9 @@ def build_img2img_workflow(
         "inputs": {"text": prompt_text, "clip": clip_out},
     }
     neg_id = nc.next()
-    eff_neg = negative_prompt if negative_prompt is not None else (req.negative_prompt or "")
+    eff_neg = (
+        negative_prompt if negative_prompt is not None else (req.negative_prompt or "")
+    )
     workflow[neg_id] = {
         "class_type": "CLIPTextEncode",
         "inputs": {"text": eff_neg, "clip": clip_out},
@@ -281,18 +296,18 @@ def build_hires_fix_workflow(
     req: ImageRequest,
     seed: int,
     checkpoint: str,
-    vae_name: Optional[str] = None,
+    vae_name: str | None = None,
     hires_scale: float = 1.5,
     hires_denoise: float = 0.45,
     hires_steps: int = 15,
     *,
     sampler: str = "euler_ancestral",
     scheduler: str = "normal",
-    steps: Optional[int] = None,
-    cfg: Optional[float] = None,
+    steps: int | None = None,
+    cfg: float | None = None,
     clip_skip: int = 1,
     quality_prefix: str = "",
-    negative_prompt: Optional[str] = None,
+    negative_prompt: str | None = None,
 ) -> dict:
     """
     Two-pass hi-res fix workflow:
@@ -316,7 +331,11 @@ def build_hires_fix_workflow(
 
     # ── LoRA chain ──────────────────────────────────────────────────────
     model_out, clip_out = _inject_lora_chain(
-        workflow, nc, model_out, clip_out, req.lora_models,
+        workflow,
+        nc,
+        model_out,
+        clip_out,
+        req.lora_models,
     )
 
     # ── VAE override ────────────────────────────────────────────────────
@@ -339,7 +358,9 @@ def build_hires_fix_workflow(
 
     # ── Prompts ─────────────────────────────────────────────────────────
     prompt_text = _build_prompt_with_triggers(req.prompt, req.lora_models)
-    if quality_prefix and not prompt_text.lower().startswith(("masterpiece", "best quality")):
+    if quality_prefix and not prompt_text.lower().startswith(
+        ("masterpiece", "best quality")
+    ):
         prompt_text = quality_prefix + prompt_text
 
     pos_id = nc.next()
@@ -348,7 +369,9 @@ def build_hires_fix_workflow(
         "inputs": {"text": prompt_text, "clip": clip_out},
     }
     neg_id = nc.next()
-    eff_neg = negative_prompt if negative_prompt is not None else (req.negative_prompt or "")
+    eff_neg = (
+        negative_prompt if negative_prompt is not None else (req.negative_prompt or "")
+    )
     workflow[neg_id] = {
         "class_type": "CLIPTextEncode",
         "inputs": {"text": eff_neg, "clip": clip_out},
@@ -440,6 +463,7 @@ def build_hires_fix_workflow(
 
 
 # ── Private helpers ──────────────────────────────────────────────────────
+
 
 def _inject_lora_chain(
     workflow: dict,

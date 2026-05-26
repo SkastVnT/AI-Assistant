@@ -14,6 +14,7 @@ from .music_log_mel import LogMelSpectrogram
 
 import comfy.model_management
 import comfy.ops
+
 ops = comfy.ops.disable_weight_init
 
 
@@ -54,7 +55,7 @@ class DropPath(nn.Module):
         return drop_path(x, self.drop_prob, self.training, self.scale_by_keep)
 
     def extra_repr(self):
-        return f"drop_prob={round(self.drop_prob,3):0.3f}"
+        return f"drop_prob={round(self.drop_prob, 3):0.3f}"
 
 
 class LayerNorm(nn.Module):
@@ -77,13 +78,25 @@ class LayerNorm(nn.Module):
     def forward(self, x):
         if self.data_format == "channels_last":
             return F.layer_norm(
-                x, self.normalized_shape, comfy.model_management.cast_to(self.weight, dtype=x.dtype, device=x.device), comfy.model_management.cast_to(self.bias, dtype=x.dtype, device=x.device), self.eps
+                x,
+                self.normalized_shape,
+                comfy.model_management.cast_to(
+                    self.weight, dtype=x.dtype, device=x.device
+                ),
+                comfy.model_management.cast_to(
+                    self.bias, dtype=x.dtype, device=x.device
+                ),
+                self.eps,
             )
         elif self.data_format == "channels_first":
             u = x.mean(1, keepdim=True)
             s = (x - u).pow(2).mean(1, keepdim=True)
             x = (x - u) / torch.sqrt(s + self.eps)
-            x = comfy.model_management.cast_to(self.weight[:, None], dtype=x.dtype, device=x.device) * x + comfy.model_management.cast_to(self.bias[:, None], dtype=x.dtype, device=x.device)
+            x = comfy.model_management.cast_to(
+                self.weight[:, None], dtype=x.dtype, device=x.device
+            ) * x + comfy.model_management.cast_to(
+                self.bias[:, None], dtype=x.dtype, device=x.device
+            )
             return x
 
 
@@ -131,8 +144,7 @@ class ConvNeXtBlock(nn.Module):
             if layer_scale_init_value > 0
             else None
         )
-        self.drop_path = DropPath(
-            drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
     def forward(self, x, apply_residual: bool = True):
         input = x
@@ -145,7 +157,12 @@ class ConvNeXtBlock(nn.Module):
         x = self.pwconv2(x)
 
         if self.gamma is not None:
-            x = comfy.model_management.cast_to(self.gamma, dtype=x.dtype, device=x.device) * x
+            x = (
+                comfy.model_management.cast_to(
+                    self.gamma, dtype=x.dtype, device=x.device
+                )
+                * x
+            )
 
         x = x.permute(0, 2, 1)  # (N, L, C) -> (N, C, L)
         x = self.drop_path(x)
@@ -347,8 +364,7 @@ class HiFiGANGenerator(nn.Module):
         upsample_rates: Tuple[int] = (8, 8, 2, 2, 2),
         upsample_kernel_sizes: Tuple[int] = (16, 16, 8, 2, 2),
         resblock_kernel_sizes: Tuple[int] = (3, 7, 11),
-        resblock_dilation_sizes: Tuple[Tuple[int]] = (
-            (1, 3, 5), (1, 3, 5), (1, 3, 5)),
+        resblock_dilation_sizes: Tuple[Tuple[int]] = ((1, 3, 5), (1, 3, 5), (1, 3, 5)),
         num_mels: int = 128,
         upsample_initial_channel: int = 512,
         use_template: bool = True,
@@ -358,9 +374,9 @@ class HiFiGANGenerator(nn.Module):
     ):
         super().__init__()
 
-        assert (
-            prod(upsample_rates) == hop_length
-        ), f"hop_length must be {prod(upsample_rates)}"
+        assert prod(upsample_rates) == hop_length, (
+            f"hop_length must be {prod(upsample_rates)}"
+        )
 
         self.conv_pre = torch.nn.utils.parametrizations.weight_norm(
             ops.Conv1d(
@@ -397,7 +413,7 @@ class HiFiGANGenerator(nn.Module):
                 continue
 
             if i + 1 < len(upsample_rates):
-                stride_f0 = np.prod(upsample_rates[i + 1:])
+                stride_f0 = np.prod(upsample_rates[i + 1 :])
                 self.noise_convs.append(
                     ops.Conv1d(
                         1,
@@ -474,7 +490,11 @@ class ADaMoSHiFiGANV1(nn.Module):
         upsample_kernel_sizes: Tuple[int] = (8, 8, 4, 4, 4, 4, 4),
         resblock_kernel_sizes: Tuple[int] = (3, 7, 11, 13),
         resblock_dilation_sizes: Tuple[Tuple[int]] = (
-            (1, 3, 5), (1, 3, 5), (1, 3, 5), (1, 3, 5)),
+            (1, 3, 5),
+            (1, 3, 5),
+            (1, 3, 5),
+            (1, 3, 5),
+        ),
         num_mels: int = 512,
         upsample_initial_channel: int = 1024,
         use_template: bool = False,

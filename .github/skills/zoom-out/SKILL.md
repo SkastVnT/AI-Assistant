@@ -18,7 +18,7 @@ Before touching unfamiliar code, get a mental model of the surrounding system. P
 
 ### 1. Identify the module's role
 
-Read the relevant section of `AGENTS.md` file map first. Answer:
+Read the relevant section of `.claude/skills/repo-guidelines/AGENTS.md` file map first. Answer:
 - What is this module responsible for?
 - What calls it? What does it call?
 - What does it NOT do (boundaries)?

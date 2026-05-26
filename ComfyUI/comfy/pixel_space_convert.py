@@ -13,4 +13,3 @@ class PixelspaceConversionVAE(torch.nn.Module):
 
     def decode(self, samples: torch.Tensor, *_args, **_kwargs) -> torch.Tensor:
         return samples
-

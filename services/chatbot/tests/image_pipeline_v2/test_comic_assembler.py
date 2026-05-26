@@ -35,11 +35,9 @@ import pytest
 from PIL import Image
 
 from image_pipeline.reasoning.execution import (
-    AssembledComic,
     assemble_comic,
 )
 from image_pipeline.reasoning.schemas import OutputLayout
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -107,9 +105,7 @@ class TestSingle:
 class TestHorizontalStrip:
     def test_three_panel_strip(self):
         panels = [_png(50, 40) for _ in range(3)]
-        result = assemble_comic(
-            OutputLayout.HORIZONTAL_STRIP, panels, gutter_px=10
-        )
+        result = assemble_comic(OutputLayout.HORIZONTAL_STRIP, panels, gutter_px=10)
         assert result.cell_width == 50
         assert result.cell_height == 40
         # 3 cols × 50 + 4 × 10 gutter
@@ -121,9 +117,7 @@ class TestHorizontalStrip:
 class TestVerticalStrip:
     def test_two_panel_strip(self):
         panels = [_png(60, 30) for _ in range(2)]
-        result = assemble_comic(
-            OutputLayout.VERTICAL_STRIP, panels, gutter_px=5
-        )
+        result = assemble_comic(OutputLayout.VERTICAL_STRIP, panels, gutter_px=5)
         assert result.width == 60 + 2 * 5
         assert result.height == 2 * 30 + 3 * 5
 
@@ -201,12 +195,12 @@ class TestArgValidation:
     @pytest.mark.parametrize(
         "bg",
         [
-            (255, 255),                # too short
-            (255, 255, 255, 0),        # too long
-            (-1, 0, 0),                # out of range
-            (0, 0, 256),               # out of range
-            "white",                   # wrong type
-            (1.0, 1.0, 1.0),           # floats not ints
+            (255, 255),  # too short
+            (255, 255, 255, 0),  # too long
+            (-1, 0, 0),  # out of range
+            (0, 0, 256),  # out of range
+            "white",  # wrong type
+            (1.0, 1.0, 1.0),  # floats not ints
         ],
     )
     def test_invalid_background_rejected(self, bg):
@@ -293,7 +287,9 @@ class TestResultSerialization:
 # ---------------------------------------------------------------------------
 
 
-_EXEC_DIR = Path(__file__).resolve().parents[4] / "image_pipeline" / "reasoning" / "execution"
+_EXEC_DIR = (
+    Path(__file__).resolve().parents[4] / "image_pipeline" / "reasoning" / "execution"
+)
 _ASSEMBLER = _EXEC_DIR / "comic_assembler.py"
 
 

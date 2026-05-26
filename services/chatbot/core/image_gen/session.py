@@ -1,4 +1,4 @@
-﻿"""
+"""
 ImageSession â€” per-conversation image state management.
 Tracks generated images, enables conversational editing ("add a rainbow"),
 and maintains style/character consistency across a conversation.
@@ -9,15 +9,11 @@ refine images by chatting naturally.
 
 from __future__ import annotations
 
-import time
-import base64
 import logging
-from dataclasses import dataclass, field
-from typing import Optional
-from collections import deque
+import time
+from dataclasses import dataclass
 
-from .providers.base import ImageResult, ImageMode
-from .enhancer import PromptEnhancer
+from .providers.base import ImageResult
 
 logger = logging.getLogger(__name__)
 
@@ -25,18 +21,19 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ImageHistoryEntry:
     """Single image generation record within a conversation."""
+
     timestamp: float
-    prompt: str               # user's original prompt
-    enhanced_prompt: str      # what was sent to the model
+    prompt: str  # user's original prompt
+    enhanced_prompt: str  # what was sent to the model
     result: ImageResult
-    is_edit: bool = False     # was this an edit of a previous image?
-    parent_index: Optional[int] = None  # index of image this was edited from
+    is_edit: bool = False  # was this an edit of a previous image?
+    parent_index: int | None = None  # index of image this was edited from
 
 
 class ImageSession:
     """
     Per-conversation image session.
-    
+
     Maintains:
     - History of all generated images
     - Last generated image (for iterative editing)
@@ -49,16 +46,16 @@ class ImageSession:
     def __init__(self, conversation_id: str = ""):
         self.conversation_id = conversation_id
         self.history: list[ImageHistoryEntry] = []
-        self.active_style: Optional[str] = None
+        self.active_style: str | None = None
         self._created_at = time.time()
 
     @property
-    def last_image(self) -> Optional[ImageHistoryEntry]:
+    def last_image(self) -> ImageHistoryEntry | None:
         """Most recently generated image."""
         return self.history[-1] if self.history else None
 
     @property
-    def last_image_b64(self) -> Optional[str]:
+    def last_image_b64(self) -> str | None:
         """Base64 of last generated image (for img2img editing)."""
         if not self.history:
             return None
@@ -68,7 +65,7 @@ class ImageSession:
         return None
 
     @property
-    def last_image_url(self) -> Optional[str]:
+    def last_image_url(self) -> str | None:
         """URL of last generated image."""
         if not self.history:
             return None
@@ -98,7 +95,7 @@ class ImageSession:
 
         # Trim old entries
         if len(self.history) > self.MAX_HISTORY:
-            self.history = self.history[-self.MAX_HISTORY:]
+            self.history = self.history[-self.MAX_HISTORY :]
 
     def get_context_for_enhancement(self) -> str:
         """
@@ -111,7 +108,7 @@ class ImageSession:
         recent = self.history[-3:]  # last 3 images
         parts = ["Previous images in this conversation:"]
         for i, entry in enumerate(recent):
-            parts.append(f"- Image {i+1}: \"{entry.prompt}\" â†’ {entry.result.model}")
+            parts.append(f'- Image {i + 1}: "{entry.prompt}" â†’ {entry.result.model}')
 
         if self.active_style:
             parts.append(f"Active style: {self.active_style}")
@@ -170,7 +167,7 @@ class ImageSession:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ImageSession":
+    def from_dict(cls, data: dict) -> ImageSession:
         """Deserialize session from storage."""
         session = cls(conversation_id=data.get("conversation_id", ""))
         session._created_at = data.get("created_at", time.time())
@@ -206,7 +203,7 @@ class SessionManager:
             self._sessions[conversation_id] = ImageSession(conversation_id)
         return self._sessions[conversation_id]
 
-    def get(self, conversation_id: str) -> Optional[ImageSession]:
+    def get(self, conversation_id: str) -> ImageSession | None:
         return self._sessions.get(conversation_id)
 
     def delete(self, conversation_id: str):
@@ -216,8 +213,7 @@ class SessionManager:
         """Remove sessions older than max_age_hours."""
         cutoff = time.time() - (max_age_hours * 3600)
         expired = [
-            cid for cid, sess in self._sessions.items()
-            if sess._created_at < cutoff
+            cid for cid, sess in self._sessions.items() if sess._created_at < cutoff
         ]
         for cid in expired:
             del self._sessions[cid]

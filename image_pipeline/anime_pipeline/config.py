@@ -47,14 +47,16 @@ class ModelConfig:
 
 class VRAMProfile(str, enum.Enum):
     """VRAM management profile — controls resolution caps, model loading, and VAE offload."""
-    AUTO = "auto"              # detect from system info or default to normalvram
+
+    AUTO = "auto"  # detect from system info or default to normalvram
     NORMALVRAM = "normalvram"  # 12 GB — SDXL-class, sequential model loading
-    LOWVRAM = "lowvram"        # 8 GB — aggressive caps, CPU VAE, fewer steps
+    LOWVRAM = "lowvram"  # 8 GB — aggressive caps, CPU VAE, fewer steps
 
 
 @dataclass
 class VRAMProfileConfig:
     """Resolved VRAM limits for a given profile."""
+
     profile: VRAMProfile = VRAMProfile.NORMALVRAM
     max_resolution: int = 1216
     step_cap: int = 35
@@ -118,10 +120,13 @@ _VRAM_PROFILE_DEFAULTS: dict[VRAMProfile, dict[str, Any]] = {
 def _detect_gpu_vram_gb() -> int | None:
     """Query nvidia-smi for total VRAM in GB. Returns None if unavailable."""
     import subprocess
+
     try:
         result = subprocess.run(
             ["nvidia-smi", "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0:
             mb = int(result.stdout.strip().splitlines()[0].strip())
@@ -138,7 +143,9 @@ def _vram_gb_to_profile(vram_gb: int) -> VRAMProfile:
     return VRAMProfile.LOWVRAM
 
 
-def resolve_vram_profile(profile: VRAMProfile | str = VRAMProfile.AUTO) -> VRAMProfileConfig:
+def resolve_vram_profile(
+    profile: VRAMProfile | str = VRAMProfile.AUTO,
+) -> VRAMProfileConfig:
     """Resolve a VRAMProfile enum (or string) to concrete limits.
 
     For ``auto``, reads ``ANIME_PIPELINE_VRAM_PROFILE`` env var first.
@@ -150,7 +157,9 @@ def resolve_vram_profile(profile: VRAMProfile | str = VRAMProfile.AUTO) -> VRAMP
         try:
             profile = VRAMProfile(profile.lower())
         except ValueError:
-            logger.warning("[VRAMProfile] Unknown profile '%s', using normalvram", profile)
+            logger.warning(
+                "[VRAMProfile] Unknown profile '%s', using normalvram", profile
+            )
             profile = VRAMProfile.NORMALVRAM
 
     if profile == VRAMProfile.AUTO:
@@ -166,28 +175,33 @@ def resolve_vram_profile(profile: VRAMProfile | str = VRAMProfile.AUTO) -> VRAMP
                 profile = _vram_gb_to_profile(vram_gb)
                 logger.info(
                     "[VRAMProfile] Auto-detected %d GB VRAM → profile=%s",
-                    vram_gb, profile.value,
+                    vram_gb,
+                    profile.value,
                 )
             else:
                 profile = VRAMProfile.NORMALVRAM
-                logger.warning("[VRAMProfile] nvidia-smi unavailable, defaulting to normalvram")
+                logger.warning(
+                    "[VRAMProfile] nvidia-smi unavailable, defaulting to normalvram"
+                )
 
     defaults = _VRAM_PROFILE_DEFAULTS.get(
-        profile, _VRAM_PROFILE_DEFAULTS[VRAMProfile.NORMALVRAM],
+        profile,
+        _VRAM_PROFILE_DEFAULTS[VRAMProfile.NORMALVRAM],
     )
     return VRAMProfileConfig(profile=profile, **defaults)
 
 
 class BeautyStrength(str, enum.Enum):
     """Preset intensity for the beauty pass."""
-    SUBTLE = "subtle"          # denoise 0.15–0.20, minimal redraw
-    BALANCED = "balanced"      # denoise 0.25–0.35, default
+
+    SUBTLE = "subtle"  # denoise 0.15–0.20, minimal redraw
+    BALANCED = "balanced"  # denoise 0.25–0.35, default
     AGGRESSIVE = "aggressive"  # denoise 0.40–0.55, heavy detail add
 
 
 _BEAUTY_PRESETS: dict[BeautyStrength, dict] = {
-    BeautyStrength.SUBTLE:     {"denoise": 0.18, "cfg": 5.0, "steps": 25},
-    BeautyStrength.BALANCED:   {"denoise": 0.30, "cfg": 5.5, "steps": 28},
+    BeautyStrength.SUBTLE: {"denoise": 0.18, "cfg": 5.0, "steps": 25},
+    BeautyStrength.BALANCED: {"denoise": 0.30, "cfg": 5.5, "steps": 28},
     BeautyStrength.AGGRESSIVE: {"denoise": 0.48, "cfg": 6.0, "steps": 30},
 }
 
@@ -290,7 +304,9 @@ class AnimePipelineConfig:
     force_replan_after_rounds: int = 3
     critique_dimensions: list[str] = field(
         default_factory=lambda: [
-            "instruction_adherence", "detail_handling", "identity_consistency"
+            "instruction_adherence",
+            "detail_handling",
+            "identity_consistency",
         ]
     )
     return_best_on_fail: bool = True
@@ -305,10 +321,16 @@ class AnimePipelineConfig:
     refine_control_reduce: float = 0.05
     refine_dimension_thresholds: dict[str, int] = field(
         default_factory=lambda: {
-            "anatomy": 6, "face_symmetry": 7, "eye_consistency": 7,
-            "hand_quality": 5, "clothing_consistency": 6,
-            "style_drift": 6, "color_drift": 6, "background_clutter": 5,
-            "missing_accessories": 5, "pose_drift": 6,
+            "anatomy": 6,
+            "face_symmetry": 7,
+            "eye_consistency": 7,
+            "hand_quality": 5,
+            "clothing_consistency": 6,
+            "style_drift": 6,
+            "color_drift": 6,
+            "background_clutter": 5,
+            "missing_accessories": 5,
+            "pose_drift": 6,
         }
     )
     refine_artifact_accumulation_limit: int = 8
@@ -438,7 +460,9 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
             cfg=float(final_raw.get("cfg", cfg.beauty_model.cfg)),
             clip_skip=int(final_raw.get("clip_skip", cfg.beauty_model.clip_skip)),
             vae=final_raw.get("vae", "") or "",
-            denoise_strength=float(final_raw.get("denoise_strength", cfg.beauty_model.denoise_strength)),
+            denoise_strength=float(
+                final_raw.get("denoise_strength", cfg.beauty_model.denoise_strength)
+            ),
         )
     else:
         # Fall back to beauty_model when no dedicated final slot
@@ -464,7 +488,9 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
     # Upscale
     upscale = models.get("upscale", {})
     cfg.upscale_model = upscale.get("model", cfg.upscale_model)
-    cfg.upscale_fallback_model = upscale.get("fallback_model", cfg.upscale_fallback_model)
+    cfg.upscale_fallback_model = upscale.get(
+        "fallback_model", cfg.upscale_fallback_model
+    )
     cfg.upscale_factor = int(upscale.get("scale_factor", cfg.upscale_factor))
 
     # Optional LoRA stack (applied on composition/cleanup/beauty passes)
@@ -490,17 +516,19 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
     layers_raw = sl.get("layers", [])
     cfg.structure_layers = []
     for layer in layers_raw:
-        cfg.structure_layers.append(StructureLayerConfig(
-            layer_type=layer.get("type", "lineart_anime"),
-            preprocessor=layer.get("preprocessor", ""),
-            controlnet_model=layer.get("controlnet_model", ""),
-            strength=float(layer.get("strength", 0.8)),
-            start_percent=float(layer.get("start_percent", 0.0)),
-            end_percent=float(layer.get("end_percent", 0.8)),
-            priority=int(layer.get("priority", 1)),
-            optional=bool(layer.get("optional", False)),
-            enabled=bool(layer.get("enabled", True)),
-        ))
+        cfg.structure_layers.append(
+            StructureLayerConfig(
+                layer_type=layer.get("type", "lineart_anime"),
+                preprocessor=layer.get("preprocessor", ""),
+                controlnet_model=layer.get("controlnet_model", ""),
+                strength=float(layer.get("strength", 0.8)),
+                start_percent=float(layer.get("start_percent", 0.0)),
+                end_percent=float(layer.get("end_percent", 0.8)),
+                priority=int(layer.get("priority", 1)),
+                optional=bool(layer.get("optional", False)),
+                enabled=bool(layer.get("enabled", True)),
+            )
+        )
     cfg.max_simultaneous_layers = int(sl.get("max_simultaneous", 2))
 
     # Detection inpaint (ADetailer-style). Default OFF unless the YAML
@@ -516,14 +544,14 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
         cfg.detection_inpaint_enabled = False
     det_layers = det.get("layers", [])
     if isinstance(det_layers, list):
-        cfg.detection_inpaint_layers = [
-            x for x in det_layers if isinstance(x, dict)
-        ]
+        cfg.detection_inpaint_layers = [x for x in det_layers if isinstance(x, dict)]
 
     # New pipeline order (v2). YAML key: ``pipeline.v2_upscale_first``.
     # Env override: ``ANIME_PIPELINE_V2_UPSCALE_FIRST=0`` to fall back to
     # the legacy order.
-    pipeline_section = raw.get("pipeline", {}) if isinstance(raw.get("pipeline"), dict) else {}
+    pipeline_section = (
+        raw.get("pipeline", {}) if isinstance(raw.get("pipeline"), dict) else {}
+    )
     cfg.pipeline_v2_upscale_first = bool(
         pipeline_section.get("v2_upscale_first", cfg.pipeline_v2_upscale_first)
     )
@@ -569,9 +597,7 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
 
     # Eye-refine micro workflow
     eye_refine = raw.get("eye_refine", {})
-    cfg.eye_refine_enabled = bool(
-        eye_refine.get("enabled", cfg.eye_refine_enabled)
-    )
+    cfg.eye_refine_enabled = bool(eye_refine.get("enabled", cfg.eye_refine_enabled))
     cfg.eye_refine_trigger_score = int(
         eye_refine.get("trigger_score", cfg.eye_refine_trigger_score)
     )

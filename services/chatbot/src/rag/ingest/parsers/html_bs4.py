@@ -4,6 +4,7 @@ HTML parser using BeautifulSoup4.
 Strips ``<script>``, ``<style>``, and non-visible elements,
 then extracts clean text.
 """
+
 from __future__ import annotations
 
 from .base import DocumentParser, PageContent, ParsedDocument

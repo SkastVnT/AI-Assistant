@@ -130,16 +130,8 @@ docker run -d --name ai-mongo -p 27017:27017 \
 ```bash
 cd services/chatbot
 
-# Flask default
-python chatbot_main.py
-
-# Flask modular
-set USE_NEW_STRUCTURE=true && python run.py   # Windows
-USE_NEW_STRUCTURE=true python run.py          # Linux
-
-# FastAPI
-set USE_FASTAPI=true && python run.py   # Windows
-USE_FASTAPI=true python run.py          # Linux
+# Flask monolith
+python run.py
 ```
 
 Verify: `curl http://localhost:5000/health`
@@ -262,7 +254,7 @@ docker compose --profile all up -d
 | Container | Service | Required |
 |---|---|---|
 | `ai-assistant-mongodb` | MongoDB 7 | Yes |
-| `ai-assistant-chatbot` | ChatBot (Flask/FastAPI) | Yes |
+| `ai-assistant-chatbot` | ChatBot (Flask) | Yes |
 | `ai-assistant-redis` | Redis 7 | Optional (caching) |
 | `ai-assistant-last30days-setup` | Engine clone (run-once) | Optional |
 | `ai-assistant-hermes` | Hermes Gateway API | Optional |
@@ -413,7 +405,7 @@ docker compose --profile hermes stop
 
 1. Set `HERMES_ENABLED=false`
 2. Remove `vendor/hermes/` directory
-3. Remove `routes/hermes.py`, `fastapi_app/routers/hermes.py` (when created)
+3. Remove `routes/hermes.py` (when created)
 4. Remove blueprint registration from `chatbot_main.py`
 5. Remove env vars from `.env` files
 

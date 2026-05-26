@@ -86,7 +86,6 @@ def _make_result(
 
 
 class TestAuthContext:
-
     def test_frozen(self):
         ctx = _make_auth()
         with pytest.raises(FrozenInstanceError):
@@ -147,7 +146,6 @@ class TestAuthContext:
 
 
 class TestAuthenticateNone:
-
     @pytest.mark.asyncio
     async def test_valid_tenant_only(self):
         settings = AuthSettings(backend="none")
@@ -219,7 +217,6 @@ class TestAuthenticateNone:
 
 
 class TestAuthenticateApiKey:
-
     @pytest.mark.asyncio
     async def test_missing_api_key(self):
         from fastapi import HTTPException
@@ -301,7 +298,6 @@ class TestAuthenticateApiKey:
 
 
 class TestAuthenticateJWT:
-
     @pytest.mark.asyncio
     async def test_jwt_returns_501(self):
         from fastapi import HTTPException
@@ -319,7 +315,6 @@ class TestAuthenticateJWT:
 
 
 class TestGetAuthContext:
-
     @pytest.mark.asyncio
     async def test_missing_tenant_id_none_backend(self):
         from fastapi import HTTPException
@@ -357,7 +352,12 @@ class TestGetAuthContext:
         with patch("libs.auth.middleware.get_settings") as mock_settings:
             mock_settings.return_value.auth = AuthSettings(backend="none")
             ctx = await get_auth_context(
-                request, db, str(TENANT_A), str(USER_1), None, None,
+                request,
+                db,
+                str(TENANT_A),
+                str(USER_1),
+                None,
+                None,
             )
         assert request.state.auth is ctx
         assert ctx.tenant_id == TENANT_A
@@ -369,7 +369,6 @@ class TestGetAuthContext:
 
 
 class TestSensitivityPreFilter:
-
     @pytest.mark.asyncio
     async def test_no_filters_uses_ceiling(self):
         pre = SensitivityPreFilter()
@@ -451,7 +450,6 @@ class TestSensitivityPreFilter:
 
 
 class TestSensitivityPostFilter:
-
     @pytest.mark.asyncio
     async def test_keeps_allowed_results(self):
         post = SensitivityPostFilter()
@@ -514,17 +512,17 @@ class TestSensitivityPostFilter:
 
 
 class TestAuthConstants:
-
     def test_role_sensitivity_ceiling_keys(self):
         assert set(ROLE_SENSITIVITY_CEILING.keys()) == {
-            "admin", "editor", "member", "viewer",
+            "admin",
+            "editor",
+            "member",
+            "viewer",
         }
 
     def test_role_ceilings_valid_values(self):
         for role, ceiling in ROLE_SENSITIVITY_CEILING.items():
-            assert ceiling in _SENSITIVITY_RANK, (
-                f"Role {role} has invalid ceiling {ceiling}"
-            )
+            assert ceiling in _SENSITIVITY_RANK, f"Role {role} has invalid ceiling {ceiling}"
 
     def test_allowed_levels_consistency(self):
         for ceiling, allowed in _ALLOWED_LEVELS.items():
@@ -627,11 +625,12 @@ class TestTenantIsolation:
 
 
 class TestProtocolConformance:
-
     def test_sensitivity_pre_filter_satisfies_protocol(self):
         from libs.auth.authorization import PreFilterAuthorization
+
         assert isinstance(SensitivityPreFilter(), PreFilterAuthorization)
 
     def test_sensitivity_post_filter_satisfies_protocol(self):
         from libs.auth.authorization import PostFilterAuthorization
+
         assert isinstance(SensitivityPostFilter(), PostFilterAuthorization)

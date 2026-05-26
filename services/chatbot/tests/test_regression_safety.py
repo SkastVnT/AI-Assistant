@@ -6,6 +6,7 @@ These are import-level and structure-level checks that don't require
 real API keys or running services. They catch accidental breakage
 from new code touching shared modules.
 """
+
 import importlib
 import sys
 from pathlib import Path
@@ -19,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # ---------------------------------------------------------------------------
 # 1. Core module imports — catch accidental syntax errors or broken imports
 # ---------------------------------------------------------------------------
+
 
 class TestCoreImports:
     """Verify that adding last30days/hermes didn't break core module imports."""
@@ -38,7 +40,11 @@ class TestCoreImports:
         """core/tools.py must still import without error."""
         mod = importlib.import_module("core.tools")
         # Existing tool functions
-        for fn in ("serpapi_web_search", "serpapi_reverse_image", "serpapi_image_search"):
+        for fn in (
+            "serpapi_web_search",
+            "serpapi_reverse_image",
+            "serpapi_image_search",
+        ):
             assert hasattr(mod, fn), f"Missing function: {fn}"
 
     def test_import_last30days_tool(self):
@@ -66,16 +72,20 @@ class TestCoreImports:
 # 2. Route imports — catch blueprint registration issues
 # ---------------------------------------------------------------------------
 
+
 class TestRouteImports:
     """Verify all route blueprints can be imported without side effects."""
 
-    @pytest.mark.parametrize("module_name,bp_name", [
-        ("routes.stream", "stream_bp"),
-        ("routes.main", "main_bp"),
-        ("routes.last30days", "last30days_bp"),
-        ("routes.hermes", "hermes_bp"),
-        ("routes.skills", "skills_bp"),
-    ])
+    @pytest.mark.parametrize(
+        "module_name,bp_name",
+        [
+            ("routes.stream", "stream_bp"),
+            ("routes.main", "main_bp"),
+            ("routes.last30days", "last30days_bp"),
+            ("routes.hermes", "hermes_bp"),
+            ("routes.skills", "skills_bp"),
+        ],
+    )
     def test_import_route_blueprint(self, module_name, bp_name):
         mod = importlib.import_module(module_name)
         assert hasattr(mod, bp_name), f"{module_name} missing {bp_name}"
@@ -93,24 +103,31 @@ class TestRouteImports:
 # 3. Web search tools — not broken
 # ---------------------------------------------------------------------------
 
+
 class TestSearchToolsIntact:
     """Verify search tool functions still have correct signatures."""
 
     def test_serpapi_web_search_signature(self):
-        from core.tools import serpapi_web_search
         import inspect
+
+        from core.tools import serpapi_web_search
+
         sig = inspect.signature(serpapi_web_search)
         assert "query" in sig.parameters
 
     def test_serpapi_reverse_image_signature(self):
-        from core.tools import serpapi_reverse_image
         import inspect
+
+        from core.tools import serpapi_reverse_image
+
         sig = inspect.signature(serpapi_reverse_image)
         assert "image_url" in sig.parameters
 
     def test_serpapi_image_search_signature(self):
-        from core.tools import serpapi_image_search
         import inspect
+
+        from core.tools import serpapi_image_search
+
         sig = inspect.signature(serpapi_image_search)
         assert "query" in sig.parameters
 
@@ -119,6 +136,7 @@ class TestSearchToolsIntact:
 # 4. Image tools — NOT accidentally modified
 # ---------------------------------------------------------------------------
 
+
 class TestImageToolsUntouched:
     """Verify image generation modules still import and have expected shape."""
 
@@ -126,7 +144,9 @@ class TestImageToolsUntouched:
         try:
             mod = importlib.import_module("core.image_gen.orchestrator")
             # Should have the orchestrator class
-            assert hasattr(mod, "ImageOrchestrator") or hasattr(mod, "orchestrate_image_gen")
+            assert hasattr(mod, "ImageOrchestrator") or hasattr(
+                mod, "orchestrate_image_gen"
+            )
         except ImportError:
             # Module may have optional deps; import error is acceptable
             pytest.skip("image_gen.orchestrator has optional dependencies")
@@ -143,16 +163,19 @@ class TestImageToolsUntouched:
 # 5. Skill system — not broken by new skills
 # ---------------------------------------------------------------------------
 
+
 class TestSkillSystemIntact:
     """Verify skill system loads including new social_research skill."""
 
     def test_skill_registry_loads(self):
         from core.skills.registry import get_skill_registry
+
         registry = get_skill_registry()
         assert registry is not None
 
     def test_social_research_skill_exists(self):
         from core.skills.registry import get_skill_registry
+
         registry = get_skill_registry()
         # The social_research skill YAML must be loadable
         skill = registry.get("social-research")
@@ -164,6 +187,7 @@ class TestSkillSystemIntact:
 
     def test_existing_skills_still_present(self):
         from core.skills.registry import get_skill_registry
+
         registry = get_skill_registry()
         # Check a few core skills that should always exist
         for skill_id in ("realtime-search", "coding-assistant", "code-expert"):
@@ -175,6 +199,7 @@ class TestSkillSystemIntact:
 # ---------------------------------------------------------------------------
 # 6. Env loading contract — not violated
 # ---------------------------------------------------------------------------
+
 
 class TestEnvContract:
     """Verify shared_env.py still exports the expected function."""

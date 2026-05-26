@@ -48,12 +48,14 @@ class CONDCrossAttn(CONDRegular):
         s1 = self.cond.shape
         s2 = other.cond.shape
         if s1 != s2:
-            if s1[0] != s2[0] or s1[2] != s2[2]: #these 2 cases should not happen
+            if s1[0] != s2[0] or s1[2] != s2[2]:  # these 2 cases should not happen
                 return False
 
             mult_min = math.lcm(s1[1], s2[1])
             diff = mult_min // min(s1[1], s2[1])
-            if diff > 4: #arbitrary limit on the padding because it's probably going to impact performance negatively if it's too much
+            if (
+                diff > 4
+            ):  # arbitrary limit on the padding because it's probably going to impact performance negatively if it's too much
                 return False
         if self.cond.device != other.cond.device:
             logging.warning("WARNING: conds not on same device: skipping concat.")
@@ -71,7 +73,9 @@ class CONDCrossAttn(CONDRegular):
         out = []
         for c in conds:
             if c.shape[1] < crossattn_max_len:
-                c = c.repeat(1, crossattn_max_len // c.shape[1], 1) #padding with repeat doesn't change result
+                c = c.repeat(
+                    1, crossattn_max_len // c.shape[1], 1
+                )  # padding with repeat doesn't change result
             out.append(c)
         return torch.cat(out)
 

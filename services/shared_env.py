@@ -1,4 +1,4 @@
-﻿"""Shared environment loader for all services.
+"""Shared environment loader for all services.
 
 Loads environment variables from app/config using the same convention as the
 sample settings.py:
@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Optional
+
 from dotenv import load_dotenv
 
 
@@ -23,7 +23,7 @@ def _find_project_root(start: Path) -> Path:
     return Path.cwd()
 
 
-def resolve_shared_env_file(source_file: Optional[str] = None) -> Optional[Path]:
+def resolve_shared_env_file(source_file: str | None = None) -> Path | None:
     """Resolve the shared env file path based on current environment name."""
     start = Path(source_file).resolve() if source_file else Path.cwd().resolve()
     root = _find_project_root(start)
@@ -42,10 +42,9 @@ def resolve_shared_env_file(source_file: Optional[str] = None) -> Optional[Path]
     return None
 
 
-def load_shared_env(source_file: Optional[str] = None) -> Optional[Path]:
+def load_shared_env(source_file: str | None = None) -> Path | None:
     """Load shared env file into process environment and return the loaded path."""
     env_file = resolve_shared_env_file(source_file)
     if env_file is not None:
         load_dotenv(env_file)
     return env_file
-

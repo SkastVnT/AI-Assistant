@@ -43,6 +43,7 @@ Usage::
         --output-dir storage/metadata/curation \
         --avg-vision-sec 5
 """
+
 from __future__ import annotations
 
 import argparse
@@ -63,8 +64,7 @@ try:
     from PIL import Image, ImageStat
 except ImportError as exc:  # pragma: no cover - venv-core ships Pillow
     print(
-        "[fatal] Pillow is required (`pip install Pillow`). Original error: "
-        f"{exc}",
+        f"[fatal] Pillow is required (`pip install Pillow`). Original error: {exc}",
         file=sys.stderr,
     )
     sys.exit(2)
@@ -72,6 +72,7 @@ except ImportError as exc:  # pragma: no cover - venv-core ships Pillow
 try:
     import cv2  # type: ignore
     import numpy as np  # type: ignore
+
     _HAVE_CV2 = True
 except Exception:  # noqa: BLE001 - any import failure → skip blur
     _HAVE_CV2 = False
@@ -84,17 +85,17 @@ except Exception:  # noqa: BLE001 - any import failure → skip blur
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
 
 # Hard validation thresholds.
-_MIN_FILE_BYTES = 1024              # 1 KiB — anything smaller is empty/corrupt
+_MIN_FILE_BYTES = 1024  # 1 KiB — anything smaller is empty/corrupt
 _MAX_FILE_BYTES = 64 * 1024 * 1024  # 64 MiB — refuse runaway files
-_MIN_DIMENSION = 64                 # below this is unusable
+_MIN_DIMENSION = 64  # below this is unusable
 
 # "Good" thresholds (additive scoring, not gates).
 _GOOD_RESOLUTION_PIXELS = 512 * 512  # >= 512x512 equivalent
-_GOOD_FILE_BYTES_MIN = 50 * 1024     # 50 KiB
+_GOOD_FILE_BYTES_MIN = 50 * 1024  # 50 KiB
 _GOOD_FILE_BYTES_MAX = 30 * 1024 * 1024  # 30 MiB
 
 # Blank / monochrome detection.
-_BLANK_STDDEV = 3.0      # luminance stddev below this == blank
+_BLANK_STDDEV = 3.0  # luminance stddev below this == blank
 _BLACK_MEAN = 8.0
 _WHITE_MEAN = 247.0
 
@@ -121,8 +122,8 @@ _SKIP_DIR_NAMES = {
     "venv-core",
     "venv-image",
     "node_modules",
-    "metadata",   # don't scan our own output directory
-    "references", # references are curator-managed, not generation outputs
+    "metadata",  # don't scan our own output directory
+    "references",  # references are curator-managed, not generation outputs
     "prompts",
     "character_db",
 }
@@ -254,10 +255,7 @@ def _find_manifest(image_path: Path) -> tuple[dict, str]:
             seq = data.get(key)
             if isinstance(seq, list):
                 for item in seq:
-                    if (
-                        isinstance(item, dict)
-                        and item.get("file") == image_path.name
-                    ):
+                    if isinstance(item, dict) and item.get("file") == image_path.name:
                         return item, "manifest"
         return data, "manifest"
 
@@ -279,8 +277,8 @@ def _extract_identity(meta: dict) -> dict:
     if isinstance(understanding, dict):
         canonical = canonical or understanding.get("canonical_id")
         provisional = provisional or understanding.get("provisional_id")
-        mode = mode or understanding.get("mode") or understanding.get(
-            "character_mode", ""
+        mode = (
+            mode or understanding.get("mode") or understanding.get("character_mode", "")
         )
         data_status = data_status or understanding.get("data_status", "")
         needs_review = needs_review or bool(understanding.get("needs_review"))
@@ -347,10 +345,7 @@ def _inspect(image_path: Path) -> dict[str, Any]:
             img.load()  # force decode
             rec["decoded"] = True
             rec["width"], rec["height"] = img.size
-            if (
-                rec["width"] < _MIN_DIMENSION
-                or rec["height"] < _MIN_DIMENSION
-            ):
+            if rec["width"] < _MIN_DIMENSION or rec["height"] < _MIN_DIMENSION:
                 rec["rejection_reason"] = "image_too_small"
                 return rec
 
@@ -387,9 +382,7 @@ def _score(rec: dict[str, Any], is_duplicate: bool) -> tuple[int, dict]:
     if rec["decoded"] and rec["blank_kind"] is None:
         bd["not_blank"] = 15
     # +10 for not blurry OR blur skipped (cv2 missing → don't penalize).
-    if rec["decoded"] and (
-        rec["is_blurry"] is False or rec["blur_skipped"]
-    ):
+    if rec["decoded"] and (rec["is_blurry"] is False or rec["blur_skipped"]):
         bd["not_blurry_or_skipped"] = 10
     if rec["manifest_source"] != "none":
         bd["metadata"] = 10
@@ -495,7 +488,7 @@ def main(argv: list[str] | None = None) -> int:
     failures = _JsonlWriter(out_dir / "failures.jsonl")
 
     seen_hashes: list[tuple[int, str]] = []  # (dhash, original_path)
-    seen_sha1: dict[str, str] = {}            # sha1 -> original path
+    seen_sha1: dict[str, str] = {}  # sha1 -> original path
     score_buckets: Counter[str] = Counter()
     governance_reasons: Counter[str] = Counter()
 

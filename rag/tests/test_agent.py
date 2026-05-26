@@ -141,8 +141,11 @@ class TestTurn:
         tc = ToolCall(tool_name="retriever", arguments={"query": "q"}, rationale="r")
         tr = ToolResult(call_id=tc.call_id, tool_name="retriever", output="o" * 600)
         t = Turn(
-            index=1, phase=AgentPhase.ACT,
-            tool_call=tc, tool_result=tr, reflection="notes",
+            index=1,
+            phase=AgentPhase.ACT,
+            tool_call=tc,
+            tool_result=tr,
+            reflection="notes",
         )
         d = t.to_dict()
         assert d["tool_call"]["tool"] == "retriever"
@@ -242,12 +245,14 @@ class TestToolRegistry:
 class TestRetrieverTool:
     @pytest.mark.asyncio
     async def test_success(self):
-        retrieve_fn = AsyncMock(return_value={
-            "chunks": [
-                {"filename": "doc.pdf", "content": "Revenue is $1M", "score": 0.95},
-                {"filename": "doc2.pdf", "content": "Q4 was strong", "score": 0.80},
-            ]
-        })
+        retrieve_fn = AsyncMock(
+            return_value={
+                "chunks": [
+                    {"filename": "doc.pdf", "content": "Revenue is $1M", "score": 0.95},
+                    {"filename": "doc2.pdf", "content": "Q4 was strong", "score": 0.80},
+                ]
+            }
+        )
         tool = RetrieverTool(retrieve_fn)
         auth = _make_auth()
         call = ToolCall(tool_name="retriever", arguments={"query": "revenue", "top_k": 3})
@@ -695,9 +700,7 @@ class TestPlanTask:
 class TestSelectTool:
     @pytest.mark.asyncio
     async def test_selects_tool(self):
-        llm = _make_llm([
-            '{"tool_name":"retriever","arguments":{"query":"q"},"rationale":"r"}'
-        ])
+        llm = _make_llm(['{"tool_name":"retriever","arguments":{"query":"q"},"rationale":"r"}'])
         state = AgentState(query="q")
         mem = ShortTermMemory()
         tc = await select_tool(llm, state, mem, tool_descriptions=[])
@@ -735,9 +738,9 @@ class TestReflect:
 
     @pytest.mark.asyncio
     async def test_insufficient(self):
-        llm = _make_llm([
-            '{"sufficient":false,"confidence":0.3,"gaps":["missing data"],"notes":"need more"}'
-        ])
+        llm = _make_llm(
+            ['{"sufficient":false,"confidence":0.3,"gaps":["missing data"],"notes":"need more"}']
+        )
         state = AgentState(query="q")
         mem = ShortTermMemory()
         sufficient, confidence, notes = await reflect(llm, state, mem)
@@ -776,20 +779,24 @@ class TestAgentControllerRun:
     @pytest.mark.asyncio
     async def test_happy_path(self):
         """Agent plans, retrieves once, reflects sufficient, answers."""
-        llm = _make_llm([
-            # plan_task
-            '{"plan":"search for info","sub_queries":["what is X?"]}',
-            # select_tool (iteration 1)
-            '{"tool_name":"retriever","arguments":{"query":"what is X?"},"rationale":"find X"}',
-            # reflect (iteration 1)
-            '{"sufficient":true,"confidence":0.9,"gaps":[],"notes":"got it"}',
-            # synthesise_answer
-            "X is a concept based on [Evidence 1].",
-        ])
+        llm = _make_llm(
+            [
+                # plan_task
+                '{"plan":"search for info","sub_queries":["what is X?"]}',
+                # select_tool (iteration 1)
+                '{"tool_name":"retriever","arguments":{"query":"what is X?"},"rationale":"find X"}',
+                # reflect (iteration 1)
+                '{"sufficient":true,"confidence":0.9,"gaps":[],"notes":"got it"}',
+                # synthesise_answer
+                "X is a concept based on [Evidence 1].",
+            ]
+        )
 
-        retrieve_fn = AsyncMock(return_value={
-            "chunks": [{"filename": "doc.pdf", "content": "X is cool", "score": 0.9}],
-        })
+        retrieve_fn = AsyncMock(
+            return_value={
+                "chunks": [{"filename": "doc.pdf", "content": "X is cool", "score": 0.9}],
+            }
+        )
         registry = build_tool_registry(retrieve_fn=retrieve_fn)
         controller = AgentController(llm, registry)
         auth = _make_auth()
@@ -805,14 +812,16 @@ class TestAgentControllerRun:
     @pytest.mark.asyncio
     async def test_no_tool_selected_goes_to_answer(self):
         """If planner selects no tool immediately, jump to answer."""
-        llm = _make_llm([
-            # plan_task
-            '{"plan":"simple","sub_queries":["q"]}',
-            # select_tool returns none
-            '{"tool_name":"none","arguments":{},"rationale":"enough info"}',
-            # synthesise_answer
-            "The answer is simple.",
-        ])
+        llm = _make_llm(
+            [
+                # plan_task
+                '{"plan":"simple","sub_queries":["q"]}',
+                # select_tool returns none
+                '{"tool_name":"none","arguments":{},"rationale":"enough info"}',
+                # synthesise_answer
+                "The answer is simple.",
+            ]
+        )
 
         registry = build_tool_registry(retrieve_fn=AsyncMock())
         controller = AgentController(llm, registry)
@@ -856,9 +865,11 @@ class TestAgentControllerRun:
         responses.append("Best effort: partial answer from available evidence.")
 
         llm = _make_llm(responses)
-        retrieve_fn = AsyncMock(return_value={
-            "chunks": [{"filename": "d.pdf", "content": "data", "score": 0.5}],
-        })
+        retrieve_fn = AsyncMock(
+            return_value={
+                "chunks": [{"filename": "d.pdf", "content": "data", "score": 0.5}],
+            }
+        )
         registry = build_tool_registry(retrieve_fn=retrieve_fn)
         config = AgentConfig(max_iterations=2)
         controller = AgentController(llm, registry, config=config)
@@ -872,20 +883,24 @@ class TestAgentControllerRun:
     @pytest.mark.asyncio
     async def test_tool_not_found_continues(self):
         """If LLM picks a tool that doesn't exist, loop continues."""
-        llm = _make_llm([
-            '{"plan":"p","sub_queries":["q"]}',
-            # selects nonexistent tool
-            '{"tool_name":"nonexistent","arguments":{},"rationale":"r"}',
-            # selects valid tool
-            '{"tool_name":"retriever","arguments":{"query":"q"},"rationale":"r"}',
-            # reflect sufficient
-            '{"sufficient":true,"confidence":0.9,"gaps":[],"notes":"ok"}',
-            # answer
-            "Answer text.",
-        ])
-        retrieve_fn = AsyncMock(return_value={
-            "chunks": [{"filename": "f.pdf", "content": "c", "score": 0.5}],
-        })
+        llm = _make_llm(
+            [
+                '{"plan":"p","sub_queries":["q"]}',
+                # selects nonexistent tool
+                '{"tool_name":"nonexistent","arguments":{},"rationale":"r"}',
+                # selects valid tool
+                '{"tool_name":"retriever","arguments":{"query":"q"},"rationale":"r"}',
+                # reflect sufficient
+                '{"sufficient":true,"confidence":0.9,"gaps":[],"notes":"ok"}',
+                # answer
+                "Answer text.",
+            ]
+        )
+        retrieve_fn = AsyncMock(
+            return_value={
+                "chunks": [{"filename": "f.pdf", "content": "c", "score": 0.5}],
+            }
+        )
         registry = build_tool_registry(retrieve_fn=retrieve_fn)
         controller = AgentController(llm, registry)
 
@@ -895,20 +910,24 @@ class TestAgentControllerRun:
     @pytest.mark.asyncio
     async def test_tool_blocked_by_role(self):
         """Viewer can't use web_search — loop continues to next iteration."""
-        llm = _make_llm([
-            '{"plan":"p","sub_queries":["q"]}',
-            # tries web search (blocked for viewer)
-            '{"tool_name":"web_search","arguments":{"query":"q"},"rationale":"r"}',
-            # falls back to retriever (allowed)
-            '{"tool_name":"retriever","arguments":{"query":"q"},"rationale":"r"}',
-            # reflect
-            '{"sufficient":true,"confidence":0.9,"gaps":[],"notes":"ok"}',
-            # answer
-            "Answer from retriever.",
-        ])
-        retrieve_fn = AsyncMock(return_value={
-            "chunks": [{"filename": "f.pdf", "content": "c", "score": 0.5}],
-        })
+        llm = _make_llm(
+            [
+                '{"plan":"p","sub_queries":["q"]}',
+                # tries web search (blocked for viewer)
+                '{"tool_name":"web_search","arguments":{"query":"q"},"rationale":"r"}',
+                # falls back to retriever (allowed)
+                '{"tool_name":"retriever","arguments":{"query":"q"},"rationale":"r"}',
+                # reflect
+                '{"sufficient":true,"confidence":0.9,"gaps":[],"notes":"ok"}',
+                # answer
+                "Answer from retriever.",
+            ]
+        )
+        retrieve_fn = AsyncMock(
+            return_value={
+                "chunks": [{"filename": "f.pdf", "content": "c", "score": 0.5}],
+            }
+        )
         registry = build_tool_registry(retrieve_fn=retrieve_fn, enable_web=True)
         controller = AgentController(llm, registry)
         auth = _make_auth("viewer")
@@ -920,11 +939,13 @@ class TestAgentControllerRun:
     @pytest.mark.asyncio
     async def test_with_span_collector(self):
         """Agent works with span collector attached."""
-        llm = _make_llm([
-            '{"plan":"p","sub_queries":["q"]}',
-            '{"tool_name":"none","arguments":{},"rationale":"done"}',
-            "The answer.",
-        ])
+        llm = _make_llm(
+            [
+                '{"plan":"p","sub_queries":["q"]}',
+                '{"tool_name":"none","arguments":{},"rationale":"done"}',
+                "The answer.",
+            ]
+        )
         registry = build_tool_registry(retrieve_fn=AsyncMock())
         spans = MagicMock()
         span_ctx = MagicMock()
@@ -938,23 +959,27 @@ class TestAgentControllerRun:
     @pytest.mark.asyncio
     async def test_multiple_iterations(self):
         """Agent iterates twice before getting sufficient evidence."""
-        llm = _make_llm([
-            # plan
-            '{"plan":"two searches","sub_queries":["q1","q2"]}',
-            # iteration 1: act
-            '{"tool_name":"retriever","arguments":{"query":"q1"},"rationale":"first"}',
-            # iteration 1: reflect — insufficient
-            '{"sufficient":false,"confidence":0.4,"gaps":["q2"],"notes":"need q2"}',
-            # iteration 2: act
-            '{"tool_name":"retriever","arguments":{"query":"q2"},"rationale":"second"}',
-            # iteration 2: reflect — sufficient
-            '{"sufficient":true,"confidence":0.85,"gaps":[],"notes":"complete"}',
-            # answer
-            "Full answer with [Evidence 1] and [Evidence 2].",
-        ])
-        retrieve_fn = AsyncMock(return_value={
-            "chunks": [{"filename": "d.pdf", "content": "data", "score": 0.7}],
-        })
+        llm = _make_llm(
+            [
+                # plan
+                '{"plan":"two searches","sub_queries":["q1","q2"]}',
+                # iteration 1: act
+                '{"tool_name":"retriever","arguments":{"query":"q1"},"rationale":"first"}',
+                # iteration 1: reflect — insufficient
+                '{"sufficient":false,"confidence":0.4,"gaps":["q2"],"notes":"need q2"}',
+                # iteration 2: act
+                '{"tool_name":"retriever","arguments":{"query":"q2"},"rationale":"second"}',
+                # iteration 2: reflect — sufficient
+                '{"sufficient":true,"confidence":0.85,"gaps":[],"notes":"complete"}',
+                # answer
+                "Full answer with [Evidence 1] and [Evidence 2].",
+            ]
+        )
+        retrieve_fn = AsyncMock(
+            return_value={
+                "chunks": [{"filename": "d.pdf", "content": "data", "score": 0.7}],
+            }
+        )
         registry = build_tool_registry(retrieve_fn=retrieve_fn)
         controller = AgentController(llm, registry)
 
@@ -998,15 +1023,23 @@ class TestShouldUseAgent:
 class TestAgentResponse:
     def test_success_property(self):
         r = AgentResponse(
-            answer="a", query="q", task_id="t", iterations=1,
-            tool_calls=1, stop_reason="answered",
+            answer="a",
+            query="q",
+            task_id="t",
+            iterations=1,
+            tool_calls=1,
+            stop_reason="answered",
         )
         assert r.success is True
 
     def test_failure_property(self):
         r = AgentResponse(
-            answer="a", query="q", task_id="t", iterations=1,
-            tool_calls=0, stop_reason="max_iterations",
+            answer="a",
+            query="q",
+            task_id="t",
+            iterations=1,
+            tool_calls=0,
+            stop_reason="max_iterations",
         )
         assert r.success is False
 
@@ -1035,15 +1068,19 @@ class TestSettingsToConfig:
 class TestAgenticAnswer:
     @pytest.mark.asyncio
     async def test_full_pipeline(self):
-        llm = _make_llm([
-            '{"plan":"p","sub_queries":["q"]}',
-            '{"tool_name":"retriever","arguments":{"query":"q"},"rationale":"r"}',
-            '{"sufficient":true,"confidence":0.9,"gaps":[],"notes":"ok"}',
-            "Final answer.",
-        ])
-        retrieve_fn = AsyncMock(return_value={
-            "chunks": [{"filename": "f.pdf", "content": "c", "score": 0.5}],
-        })
+        llm = _make_llm(
+            [
+                '{"plan":"p","sub_queries":["q"]}',
+                '{"tool_name":"retriever","arguments":{"query":"q"},"rationale":"r"}',
+                '{"sufficient":true,"confidence":0.9,"gaps":[],"notes":"ok"}',
+                "Final answer.",
+            ]
+        )
+        retrieve_fn = AsyncMock(
+            return_value={
+                "chunks": [{"filename": "f.pdf", "content": "c", "score": 0.5}],
+            }
+        )
 
         response = await agentic_answer(
             query="q",

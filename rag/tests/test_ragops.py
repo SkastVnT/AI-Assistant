@@ -482,10 +482,14 @@ class TestEvaluateCase:
             return_value=JudgeResult(score=0.1, reasoning="Bad", raw_output="")
         )
         case = EvalCase(
-            id="c4", query="Q?", context="C.", answer="A.",
+            id="c4",
+            query="Q?",
+            context="C.",
+            answer="A.",
         )
         result = await evaluate_case(
-            case, mock_judge,
+            case,
+            mock_judge,
             min_context_relevance=0.5,
             min_groundedness=0.5,
             min_answer_relevance=0.5,
@@ -545,7 +549,8 @@ class TestRunEvaluation:
             ],
         )
         result = await run_evaluation(
-            ds, mock_judge,
+            ds,
+            mock_judge,
             min_context_relevance=0.5,
             min_groundedness=0.5,
             min_answer_relevance=0.5,

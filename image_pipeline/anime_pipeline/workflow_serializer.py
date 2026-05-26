@@ -27,11 +27,13 @@ def serialize_workflow(
         _meta: version, pass_name, job_id, node_count, timestamp, extras
         workflow: the original workflow dict
     """
-    node_classes = sorted({
-        n.get("class_type", "unknown")
-        for n in workflow.values()
-        if isinstance(n, dict)
-    })
+    node_classes = sorted(
+        {
+            n.get("class_type", "unknown")
+            for n in workflow.values()
+            if isinstance(n, dict)
+        }
+    )
 
     return {
         "_meta": {

@@ -44,11 +44,7 @@ class TransformContext:
     @property
     def effective_query(self) -> str:
         """The best query to use for embedding — last non-None transform."""
-        return (
-            self.rewritten_query
-            or self.expanded_query
-            or self.original_query
-        )
+        return self.rewritten_query or self.expanded_query or self.original_query
 
     @property
     def queries_for_retrieval(self) -> list[str]:
@@ -106,21 +102,25 @@ async def rewrite_query(
 
     if result:
         ctx.rewritten_query = result
-        ctx.transform_log.append({
-            "transform": "rewrite",
-            "input": ctx.original_query,
-            "output": result,
-            "ms": elapsed,
-        })
+        ctx.transform_log.append(
+            {
+                "transform": "rewrite",
+                "input": ctx.original_query,
+                "output": result,
+                "ms": elapsed,
+            }
+        )
         logger.info("rewrite: %r → %r (%dms)", ctx.original_query, result, elapsed)
     else:
-        ctx.transform_log.append({
-            "transform": "rewrite",
-            "input": ctx.original_query,
-            "output": None,
-            "ms": elapsed,
-            "skipped": True,
-        })
+        ctx.transform_log.append(
+            {
+                "transform": "rewrite",
+                "input": ctx.original_query,
+                "output": None,
+                "ms": elapsed,
+                "skipped": True,
+            }
+        )
     ctx.total_transform_ms += elapsed
     return ctx
 
@@ -148,13 +148,15 @@ def expand_acronyms(
     elapsed = int((time.perf_counter() - t0) * 1000)
     if applied:
         ctx.expanded_query = expanded
-        ctx.transform_log.append({
-            "transform": "acronym_expansion",
-            "input": query,
-            "output": expanded,
-            "expansions": applied,
-            "ms": elapsed,
-        })
+        ctx.transform_log.append(
+            {
+                "transform": "acronym_expansion",
+                "input": query,
+                "output": expanded,
+                "expansions": applied,
+                "ms": elapsed,
+            }
+        )
         logger.info("acronym_expansion: %r → %r", query, expanded)
     ctx.total_transform_ms += elapsed
     return ctx
@@ -178,21 +180,25 @@ async def generate_hyde_document(
 
     if result:
         ctx.hyde_document = result
-        ctx.transform_log.append({
-            "transform": "hyde",
-            "input": query,
-            "output": result[:200] + ("..." if len(result) > 200 else ""),
-            "ms": elapsed,
-        })
+        ctx.transform_log.append(
+            {
+                "transform": "hyde",
+                "input": query,
+                "output": result[:200] + ("..." if len(result) > 200 else ""),
+                "ms": elapsed,
+            }
+        )
         logger.info("hyde: generated %d chars from %r (%dms)", len(result), query, elapsed)
     else:
-        ctx.transform_log.append({
-            "transform": "hyde",
-            "input": query,
-            "output": None,
-            "ms": elapsed,
-            "skipped": True,
-        })
+        ctx.transform_log.append(
+            {
+                "transform": "hyde",
+                "input": query,
+                "output": None,
+                "ms": elapsed,
+                "skipped": True,
+            }
+        )
     ctx.total_transform_ms += elapsed
     return ctx
 
@@ -220,27 +226,31 @@ async def decompose_query(
             for line in result.splitlines()
             if line.strip()
         ]
-        sub_queries = [q for q in lines if q][:settings.max_sub_queries]
+        sub_queries = [q for q in lines if q][: settings.max_sub_queries]
 
         if len(sub_queries) > 1:
             ctx.sub_queries = sub_queries
         # If LLM returned just 1 line, keep original (not truly decomposable)
 
-        ctx.transform_log.append({
-            "transform": "decomposition",
-            "input": query,
-            "output": sub_queries,
-            "ms": elapsed,
-        })
+        ctx.transform_log.append(
+            {
+                "transform": "decomposition",
+                "input": query,
+                "output": sub_queries,
+                "ms": elapsed,
+            }
+        )
         logger.info("decomposition: %r → %d sub-queries (%dms)", query, len(sub_queries), elapsed)
     else:
-        ctx.transform_log.append({
-            "transform": "decomposition",
-            "input": query,
-            "output": None,
-            "ms": elapsed,
-            "skipped": True,
-        })
+        ctx.transform_log.append(
+            {
+                "transform": "decomposition",
+                "input": query,
+                "output": None,
+                "ms": elapsed,
+                "skipped": True,
+            }
+        )
     ctx.total_transform_ms += elapsed
     return ctx
 
@@ -285,8 +295,7 @@ class QueryTransformPipeline:
             ctx = await decompose_query(ctx, self._llm, s)
 
         logger.info(
-            "transform_pipeline: original=%r effective=%r "
-            "sub_queries=%d hyde=%s total_ms=%d",
+            "transform_pipeline: original=%r effective=%r sub_queries=%d hyde=%s total_ms=%d",
             ctx.original_query,
             ctx.effective_query,
             len(ctx.sub_queries),

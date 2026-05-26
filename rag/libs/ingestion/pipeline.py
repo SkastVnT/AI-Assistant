@@ -223,7 +223,8 @@ async def process_ingestion_job(
         parse_result = parse_document(content, version.filename)
         if collector:
             collector.add_span(
-                "fetch", duration_ms=int((time.perf_counter() - t_stage) * 1000),
+                "fetch",
+                duration_ms=int((time.perf_counter() - t_stage) * 1000),
                 bytes_read=len(content),
             )
 
@@ -237,12 +238,11 @@ async def process_ingestion_job(
         parse_result = parse_document(content, version.filename)
         if collector:
             collector.add_span(
-                "parse", duration_ms=int((time.perf_counter() - t_stage) * 1000),
+                "parse",
+                duration_ms=int((time.perf_counter() - t_stage) * 1000),
                 elements=len(parse_result.elements),
             )
-        logger.info(
-            "Stage 2 (parse): %d elements extracted", len(parse_result.elements)
-        )
+        logger.info("Stage 2 (parse): %d elements extracted", len(parse_result.elements))
 
         # ── Stage 3: Normalize ───────────────────────────────────
         job.metadata_ = {**job.metadata_, "current_stage": "normalize"}
@@ -324,9 +324,7 @@ async def process_ingestion_job(
 
         # Upload structured parse result to MinIO as artifact
         artifact_key = version.storage_key.rsplit("/", 1)[0] + "/parsed.json"
-        artifact_bytes = json.dumps(
-            parse_result.to_dict(), ensure_ascii=False
-        ).encode("utf-8")
+        artifact_bytes = json.dumps(parse_result.to_dict(), ensure_ascii=False).encode("utf-8")
         storage.put_object(
             bucket_name=settings.minio.bucket,
             object_name=artifact_key,
@@ -342,7 +340,8 @@ async def process_ingestion_job(
 
         if collector:
             collector.add_span(
-                "persist", duration_ms=int((time.perf_counter() - t_stage) * 1000),
+                "persist",
+                duration_ms=int((time.perf_counter() - t_stage) * 1000),
             )
         logger.info("Stage 5 (persist): raw text + parsed JSON stored")
 
@@ -400,7 +399,9 @@ async def process_ingestion_job(
         _complete_job(job)
         logger.info(
             "Stage 6 (chunk_index): %d chunks created, %d embedded for version %s",
-            len(chunks), embed_result.embedded, version.id,
+            len(chunks),
+            embed_result.embedded,
+            version.id,
         )
 
     except Exception as e:

@@ -216,7 +216,7 @@ When a change reaches Level 3 or above, check whether docs need updating:
 | New dependency | `app/requirements/README.md` — is the package in the right profile? |
 | New env var | `README.md` — listed in config section? `app/config/.env.example`? |
 | Port change | `README.md` service table. `app/scripts/README.md` if scripts reference the port. |
-| Startup behavior change | `README.md` startup instructions. `AGENTS.md` service map. |
+| Startup behavior change | `README.md` startup instructions. `.claude/skills/repo-guidelines/AGENTS.md` service map. |
 | New workflow or job | `README.md` CI section if one exists. |
 | New service-local requirements file | `security-scan.yml` pip-audit loop. |
 
@@ -265,7 +265,7 @@ Before merging any chatbot/core change:
 - [ ] **Dependencies in sync** — package appears in both profile file and `services/chatbot/requirements.txt` (if Level 3+)
 - [ ] **No security anti-patterns** — no `eval()`, `shell=True`, hardcoded secrets (if Level 4+)
 - [ ] **Env defaults safe for CI** — new env vars have defaults; existing `TESTING`/`MONGODB_ENABLED` assumptions unchanged (if Level 5+)
-- [ ] **Docs updated** — README, AGENTS.md, env examples updated if runtime behavior changed (if Level 3+)
+- [ ] **Docs updated** — README, `.claude/skills/repo-guidelines/AGENTS.md`, env examples updated if runtime behavior changed (if Level 3+)
 - [ ] **Workflow YAML valid** — syntax checked, tested in branch (if Level 6)
 - [ ] **pip-audit loop updated** — new service `requirements.txt` added to `security-scan.yml` if applicable
 

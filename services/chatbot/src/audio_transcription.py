@@ -4,16 +4,15 @@ Provides speech-to-text via OpenAI Whisper API or local Whisper model.
 Supports: mp3, wav, m4a, flac, ogg, webm
 """
 
-import os
-import io
 import logging
+import os
 import tempfile
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
-AUDIO_EXTENSIONS = {'.mp3', '.wav', '.m4a', '.flac', '.ogg', '.webm', '.wma', '.aac'}
+AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".flac", ".ogg", ".webm", ".wma", ".aac"}
 MAX_AUDIO_SIZE = 25 * 1024 * 1024  # 25MB (OpenAI Whisper limit)
 
 
@@ -22,7 +21,9 @@ def is_audio_file(filename: str) -> bool:
     return Path(filename).suffix.lower() in AUDIO_EXTENSIONS
 
 
-def transcribe_audio(audio_data: bytes, filename: str, language: str = "vi") -> Dict[str, Any]:
+def transcribe_audio(
+    audio_data: bytes, filename: str, language: str = "vi"
+) -> dict[str, Any]:
     """
     Transcribe audio to text using available backends.
 
@@ -48,7 +49,9 @@ def transcribe_audio(audio_data: bytes, filename: str, language: str = "vi") -> 
     }
 
     if len(audio_data) > MAX_AUDIO_SIZE:
-        result["error"] = f"Audio file too large ({len(audio_data) // 1024 // 1024}MB). Max: 25MB"
+        result["error"] = (
+            f"Audio file too large ({len(audio_data) // 1024 // 1024}MB). Max: 25MB"
+        )
         return result
 
     # Try OpenAI Whisper API
@@ -69,13 +72,15 @@ def transcribe_audio(audio_data: bytes, filename: str, language: str = "vi") -> 
 
     # Try Grok/xAI (if they support audio - currently text only, skip)
 
-    result["error"] = "No speech-to-text API key available. Set OPENAI_API_KEY or GROQ_API_KEY."
+    result["error"] = (
+        "No speech-to-text API key available. Set OPENAI_API_KEY or GROQ_API_KEY."
+    )
     return result
 
 
 def _transcribe_openai(
     audio_data: bytes, filename: str, language: str, api_key: str
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Transcribe using OpenAI Whisper API."""
     import openai
 
@@ -109,7 +114,7 @@ def _transcribe_openai(
 
 def _transcribe_groq(
     audio_data: bytes, filename: str, language: str, api_key: str
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Transcribe using Groq Whisper API (free tier)."""
     import requests
 

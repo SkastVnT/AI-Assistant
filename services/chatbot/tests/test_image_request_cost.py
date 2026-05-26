@@ -2,12 +2,11 @@
 and the route-level budget gate added to
 ``/api/reasoning-image-gen/generate``.
 """
+
 from __future__ import annotations
 
 import sys
 from pathlib import Path
-
-import pytest
 
 _ROOT = Path(__file__).resolve().parents[3]
 if str(_ROOT) not in sys.path:
@@ -17,7 +16,6 @@ if str(_CHATBOT_DIR) not in sys.path:
     sys.path.insert(0, str(_CHATBOT_DIR))
 
 from core.image_gen.cost_estimator import estimate_image_request_cost  # noqa: E402
-
 
 # ── Pure-function tests ─────────────────────────────────────────────────────
 
@@ -103,19 +101,23 @@ class TestEstimator:
         assert "low_data_profile" in out["reasons"]
 
     def test_max_cost_medium_blocks_high(self):
-        out = estimate_image_request_cost({
-            "layout": "grid_2x2",
-            "max_cost_level": "medium",
-        })
+        out = estimate_image_request_cost(
+            {
+                "layout": "grid_2x2",
+                "max_cost_level": "medium",
+            }
+        )
         assert out["estimated_cost_level"] == "high"
         assert out["should_require_confirmation"] is True
         assert out["recommended_mode"] == "ask_confirmation"
 
     def test_max_cost_high_does_not_block(self):
-        out = estimate_image_request_cost({
-            "layout": "grid_2x2",
-            "max_cost_level": "high",
-        })
+        out = estimate_image_request_cost(
+            {
+                "layout": "grid_2x2",
+                "max_cost_level": "high",
+            }
+        )
         assert out["estimated_cost_level"] == "high"
         assert out["should_require_confirmation"] is False
 
@@ -135,9 +137,7 @@ class TestEstimator:
 
 class _ExplodingComfyClient:
     def submit_workflow(self, workflow, job_id="", pass_name=""):
-        raise AssertionError(
-            "comfy client must not be called when budget gate fires"
-        )
+        raise AssertionError("comfy client must not be called when budget gate fires")
 
 
 def _make_app():
@@ -152,6 +152,7 @@ def _make_app():
 class TestRouteBudgetGate:
     def test_max_cost_medium_blocks_high_cost_request(self, monkeypatch):
         from routes import reasoning_image_gen as route_mod
+
         monkeypatch.setattr(
             route_mod, "_default_comfy_client", lambda: _ExplodingComfyClient()
         )
@@ -173,6 +174,7 @@ class TestRouteBudgetGate:
     def test_old_payload_still_generates(self, monkeypatch):
         import base64
         import io
+
         from PIL import Image
 
         class _OkResult:
@@ -195,6 +197,7 @@ class TestRouteBudgetGate:
                 return _OkResult(self._b64)
 
         from routes import reasoning_image_gen as route_mod
+
         stub = _OkClient()
         monkeypatch.setattr(route_mod, "_default_comfy_client", lambda: stub)
 
@@ -213,6 +216,7 @@ class TestRouteBudgetGate:
 
     def test_preflight_only_includes_cost(self, monkeypatch):
         from routes import reasoning_image_gen as route_mod
+
         monkeypatch.setattr(
             route_mod, "_default_comfy_client", lambda: _ExplodingComfyClient()
         )

@@ -84,23 +84,32 @@ class UpscaleService:
 
         # Try Ultimate SD Upscale first, fallback to simple
         upscaled_b64 = self._try_ultimate_sd_upscale(
-            source_b64, factor, job.job_id,
+            source_b64,
+            factor,
+            job.job_id,
         )
         if upscaled_b64 is None:
             logger.info("[UpscaleService] Falling back to simple upscale")
             upscaled_b64 = self._try_simple_upscale(
-                source_b64, factor, src_width, src_height, job.job_id,
+                source_b64,
+                factor,
+                src_width,
+                src_height,
+                job.job_id,
             )
 
         if upscaled_b64:
             job.add_intermediate(
-                "upscale", upscaled_b64,
+                "upscale",
+                upscaled_b64,
                 model=self._config.upscale_model,
                 factor=factor,
             )
             job.final_image_b64 = upscaled_b64
         else:
-            logger.warning("[UpscaleService] Both upscale paths failed, using pre-upscale")
+            logger.warning(
+                "[UpscaleService] Both upscale paths failed, using pre-upscale"
+            )
             self._set_final_from_latest(job)
 
         latency = (time.time() - t0) * 1000
@@ -144,7 +153,10 @@ class UpscaleService:
             job.final_image_b64 = source
 
     def _try_ultimate_sd_upscale(
-        self, source_b64: str, factor: float, job_id: str,
+        self,
+        source_b64: str,
+        factor: float,
+        job_id: str,
     ) -> Optional[str]:
         """Attempt upscale via Ultimate SD Upscale custom node."""
         cfg = self._config
@@ -174,7 +186,9 @@ class UpscaleService:
                 tile_height=cfg.upscale_tile_size,
             )
             result = self._client.submit_workflow(
-                workflow, job_id=job_id, pass_name="upscale_ultimate",
+                workflow,
+                job_id=job_id,
+                pass_name="upscale_ultimate",
             )
             if result.success and result.images_b64:
                 return result.images_b64[0]
@@ -210,7 +224,9 @@ class UpscaleService:
                 target_height=target_h,
             )
             result = self._client.submit_workflow(
-                workflow, job_id=job_id, pass_name="upscale_simple",
+                workflow,
+                job_id=job_id,
+                pass_name="upscale_simple",
             )
             if result.success and result.images_b64:
                 return result.images_b64[0]

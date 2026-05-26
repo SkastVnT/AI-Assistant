@@ -1,13 +1,14 @@
 """Routes for the local image-job queue tracker."""
+
 from __future__ import annotations
 
 import json
 import logging
 from pathlib import Path
 
-from flask import Blueprint, jsonify, request, abort
+from flask import Blueprint, abort, jsonify, request
 
-from core.job_queue import get_queue, JOB_STATES
+from core.job_queue import JOB_STATES, get_queue
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +24,13 @@ def list_jobs():
     limit = min(max(request.args.get("limit", 50, type=int), 1), 200)
     q = get_queue()
     items = q.list(state=state, limit=limit)
-    return jsonify({
-        "jobs": [r.to_dict() for r in items],
-        "count": len(items),
-        "stats": q.stats(),
-    })
+    return jsonify(
+        {
+            "jobs": [r.to_dict() for r in items],
+            "count": len(items),
+            "stats": q.stats(),
+        }
+    )
 
 
 @jobs_bp.get("/stats")
@@ -64,7 +67,9 @@ def get_manifest(job_id: str):
     except Exception as exc:
         logger.error("jobs.get_manifest: failed to read %s: %s", candidate, exc)
         return jsonify({"error": "manifest_unreadable"}), 500
-    return jsonify({"manifest": data, "manifest_source": "file", "path": str(candidate)})
+    return jsonify(
+        {"manifest": data, "manifest_source": "file", "path": str(candidate)}
+    )
 
 
 @jobs_bp.post("/<job_id>/cancel")

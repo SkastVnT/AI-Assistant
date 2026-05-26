@@ -1,6 +1,7 @@
 """
 Plain-text and Markdown parser.
 """
+
 from __future__ import annotations
 
 from .base import DocumentParser, PageContent, ParsedDocument

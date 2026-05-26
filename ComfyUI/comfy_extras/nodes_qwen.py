@@ -7,6 +7,7 @@ import comfy.model_management
 import torch
 import nodes
 
+
 class TextEncodeQwenImageEdit(io.ComfyNode):
     @classmethod
     def define_schema(cls):
@@ -46,7 +47,9 @@ class TextEncodeQwenImageEdit(io.ComfyNode):
         tokens = clip.tokenize(prompt, images=images)
         conditioning = clip.encode_from_tokens_scheduled(tokens)
         if ref_latent is not None:
-            conditioning = node_helpers.conditioning_set_values(conditioning, {"reference_latents": [ref_latent]}, append=True)
+            conditioning = node_helpers.conditioning_set_values(
+                conditioning, {"reference_latents": [ref_latent]}, append=True
+            )
         return io.NodeOutput(conditioning)
 
 
@@ -70,7 +73,9 @@ class TextEncodeQwenImageEditPlus(io.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, clip, prompt, vae=None, image1=None, image2=None, image3=None) -> io.NodeOutput:
+    def execute(
+        cls, clip, prompt, vae=None, image1=None, image2=None, image3=None
+    ) -> io.NodeOutput:
         ref_latents = []
         images = [image1, image2, image3]
         images_vl = []
@@ -86,7 +91,9 @@ class TextEncodeQwenImageEditPlus(io.ComfyNode):
                 width = round(samples.shape[3] * scale_by)
                 height = round(samples.shape[2] * scale_by)
 
-                s = comfy.utils.common_upscale(samples, width, height, "area", "disabled")
+                s = comfy.utils.common_upscale(
+                    samples, width, height, "area", "disabled"
+                )
                 images_vl.append(s.movedim(1, -1))
                 if vae is not None:
                     total = int(1024 * 1024)
@@ -94,15 +101,25 @@ class TextEncodeQwenImageEditPlus(io.ComfyNode):
                     width = round(samples.shape[3] * scale_by / 8.0) * 8
                     height = round(samples.shape[2] * scale_by / 8.0) * 8
 
-                    s = comfy.utils.common_upscale(samples, width, height, "area", "disabled")
+                    s = comfy.utils.common_upscale(
+                        samples, width, height, "area", "disabled"
+                    )
                     ref_latents.append(vae.encode(s.movedim(1, -1)[:, :, :, :3]))
 
-                image_prompt += "Picture {}: <|vision_start|><|image_pad|><|vision_end|>".format(i + 1)
+                image_prompt += (
+                    "Picture {}: <|vision_start|><|image_pad|><|vision_end|>".format(
+                        i + 1
+                    )
+                )
 
-        tokens = clip.tokenize(image_prompt + prompt, images=images_vl, llama_template=llama_template)
+        tokens = clip.tokenize(
+            image_prompt + prompt, images=images_vl, llama_template=llama_template
+        )
         conditioning = clip.encode_from_tokens_scheduled(tokens)
         if len(ref_latents) > 0:
-            conditioning = node_helpers.conditioning_set_values(conditioning, {"reference_latents": ref_latents}, append=True)
+            conditioning = node_helpers.conditioning_set_values(
+                conditioning, {"reference_latents": ref_latents}, append=True
+            )
         return io.NodeOutput(conditioning)
 
 
@@ -114,9 +131,15 @@ class EmptyQwenImageLayeredLatentImage(io.ComfyNode):
             display_name="Empty Qwen Image Layered Latent",
             category="latent/qwen",
             inputs=[
-                io.Int.Input("width", default=640, min=16, max=nodes.MAX_RESOLUTION, step=16),
-                io.Int.Input("height", default=640, min=16, max=nodes.MAX_RESOLUTION, step=16),
-                io.Int.Input("layers", default=3, min=0, max=nodes.MAX_RESOLUTION, step=1),
+                io.Int.Input(
+                    "width", default=640, min=16, max=nodes.MAX_RESOLUTION, step=16
+                ),
+                io.Int.Input(
+                    "height", default=640, min=16, max=nodes.MAX_RESOLUTION, step=16
+                ),
+                io.Int.Input(
+                    "layers", default=3, min=0, max=nodes.MAX_RESOLUTION, step=1
+                ),
                 io.Int.Input("batch_size", default=1, min=1, max=4096),
             ],
             outputs=[
@@ -126,7 +149,10 @@ class EmptyQwenImageLayeredLatentImage(io.ComfyNode):
 
     @classmethod
     def execute(cls, width, height, layers, batch_size=1) -> io.NodeOutput:
-        latent = torch.zeros([batch_size, 16, layers + 1, height // 8, width // 8], device=comfy.model_management.intermediate_device())
+        latent = torch.zeros(
+            [batch_size, 16, layers + 1, height // 8, width // 8],
+            device=comfy.model_management.intermediate_device(),
+        )
         return io.NodeOutput({"samples": latent})
 
 

@@ -93,7 +93,13 @@ class CustomNodeManager:
 
     def add_routes(self, routes, webapp, loadedModules):
 
-        example_workflow_folder_names = ["example_workflows", "example", "examples", "workflow", "workflows"]
+        example_workflow_folder_names = [
+            "example_workflows",
+            "example",
+            "examples",
+            "workflow",
+            "workflows",
+        ]
 
         @routes.get("/workflow_templates")
         async def get_workflow_templates(request):
@@ -107,9 +113,7 @@ class CustomNodeManager:
                     matched_files = glob.glob(pattern)
                     files.extend(matched_files)
 
-            workflow_templates_dict = (
-                {}
-            )  # custom_nodes folder name -> example workflow names
+            workflow_templates_dict = {}  # custom_nodes folder name -> example workflow names
             for file in files:
                 custom_nodes_name = os.path.basename(
                     os.path.dirname(os.path.dirname(file))
@@ -129,7 +133,9 @@ class CustomNodeManager:
                     if folder_name != "example_workflows":
                         logging.debug(
                             "Found example workflow folder '%s' for custom node '%s', consider renaming it to 'example_workflows'",
-                            folder_name, module_name)
+                            folder_name,
+                            module_name,
+                        )
 
                     webapp.add_routes(
                         [

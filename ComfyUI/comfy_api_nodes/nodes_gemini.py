@@ -83,10 +83,14 @@ async def create_image_parts(
 ) -> list[GeminiPart]:
     image_parts: list[GeminiPart] = []
     if image_limit < 0:
-        raise ValueError("image_limit must be greater than or equal to 0 when creating Gemini image parts.")
+        raise ValueError(
+            "image_limit must be greater than or equal to 0 when creating Gemini image parts."
+        )
     total_images = get_number_of_images(images)
     if total_images <= 0:
-        raise ValueError("No images provided to create_image_parts; at least one image is required.")
+        raise ValueError(
+            "No images provided to create_image_parts; at least one image is required."
+        )
 
     # If image_limit == 0 --> use all images; otherwise clamp to image_limit.
     effective_max = total_images if image_limit == 0 else min(total_images, image_limit)
@@ -119,7 +123,9 @@ async def create_image_parts(
     return image_parts
 
 
-def get_parts_by_type(response: GeminiGenerateContentResponse, part_type: Literal["text"] | str) -> list[GeminiPart]:
+def get_parts_by_type(
+    response: GeminiGenerateContentResponse, part_type: Literal["text"] | str
+) -> list[GeminiPart]:
     """
     Filter response parts by their type.
 
@@ -166,7 +172,9 @@ def get_text_from_response(response: GeminiGenerateContentResponse) -> str:
     return "\n".join([part.text for part in parts])
 
 
-async def get_image_from_response(response: GeminiGenerateContentResponse) -> Input.Image:
+async def get_image_from_response(
+    response: GeminiGenerateContentResponse,
+) -> Input.Image:
     image_tensors: list[Input.Image] = []
     parts = get_parts_by_type(response, "image/png")
     for part in parts:
@@ -217,11 +225,15 @@ def calculate_tokens_price(response: GeminiGenerateContentResponse) -> float | N
     if response.usageMetadata.candidatesTokensDetails:
         for i in response.usageMetadata.candidatesTokensDetails:
             if i.modality == Modality.IMAGE:
-                final_price += output_image_tokens_price * i.tokenCount  # for Nano Banana models
+                final_price += (
+                    output_image_tokens_price * i.tokenCount
+                )  # for Nano Banana models
             else:
                 final_price += output_text_tokens_price * i.tokenCount
     if response.usageMetadata.thoughtsTokenCount:
-        final_price += output_text_tokens_price * response.usageMetadata.thoughtsTokenCount
+        final_price += (
+            output_text_tokens_price * response.usageMetadata.thoughtsTokenCount
+        )
     return final_price / 1_000_000.0
 
 
@@ -316,7 +328,9 @@ class GeminiNode(IO.ComfyNode):
         """Convert video input to Gemini API compatible parts."""
 
         base_64_string = video_to_base64_string(
-            video_input, container_format=Types.VideoContainer.MP4, codec=Types.VideoCodec.H264
+            video_input,
+            container_format=Types.VideoContainer.MP4,
+            codec=Types.VideoCodec.H264,
         )
         return [
             GeminiPart(
@@ -390,7 +404,9 @@ class GeminiNode(IO.ComfyNode):
 
         gemini_system_prompt = None
         if system_prompt:
-            gemini_system_prompt = GeminiSystemInstructionContent(parts=[GeminiTextPart(text=system_prompt)], role=None)
+            gemini_system_prompt = GeminiSystemInstructionContent(
+                parts=[GeminiTextPart(text=system_prompt)], role=None
+            )
 
         response = await sync_op(
             cls,
@@ -468,7 +484,11 @@ class GeminiInputFiles(IO.ComfyNode):
 
     @classmethod
     def create_file_part(cls, file_path: str) -> GeminiPart:
-        mime_type = GeminiMimeType.application_pdf if file_path.endswith(".pdf") else GeminiMimeType.text_plain
+        mime_type = (
+            GeminiMimeType.application_pdf
+            if file_path.endswith(".pdf")
+            else GeminiMimeType.text_plain
+        )
         # Use base64 string directly, not the data URI
         with open(file_path, "rb") as f:
             file_content = f.read()
@@ -482,7 +502,9 @@ class GeminiInputFiles(IO.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, file: str, GEMINI_INPUT_FILES: list[GeminiPart] | None = None) -> IO.NodeOutput:
+    def execute(
+        cls, file: str, GEMINI_INPUT_FILES: list[GeminiPart] | None = None
+    ) -> IO.NodeOutput:
         """Loads and formats input files for Gemini API."""
         if GEMINI_INPUT_FILES is None:
             GEMINI_INPUT_FILES = []
@@ -492,7 +514,6 @@ class GeminiInputFiles(IO.ComfyNode):
 
 
 class GeminiImage(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -539,7 +560,19 @@ class GeminiImage(IO.ComfyNode):
                 ),
                 IO.Combo.Input(
                     "aspect_ratio",
-                    options=["auto", "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
+                    options=[
+                        "auto",
+                        "1:1",
+                        "2:3",
+                        "3:2",
+                        "3:4",
+                        "4:3",
+                        "4:5",
+                        "5:4",
+                        "9:16",
+                        "16:9",
+                        "21:9",
+                    ],
                     default="auto",
                     tooltip="Defaults to matching the output image size to that of your input image, "
                     "or otherwise generates 1:1 squares.",
@@ -598,7 +631,9 @@ class GeminiImage(IO.ComfyNode):
 
         gemini_system_prompt = None
         if system_prompt:
-            gemini_system_prompt = GeminiSystemInstructionContent(parts=[GeminiTextPart(text=system_prompt)], role=None)
+            gemini_system_prompt = GeminiSystemInstructionContent(
+                parts=[GeminiTextPart(text=system_prompt)], role=None
+            )
 
         response = await sync_op(
             cls,
@@ -608,7 +643,11 @@ class GeminiImage(IO.ComfyNode):
                     GeminiContent(role=GeminiRole.user, parts=parts),
                 ],
                 generationConfig=GeminiImageGenerationConfig(
-                    responseModalities=(["IMAGE"] if response_modalities == "IMAGE" else ["TEXT", "IMAGE"]),
+                    responseModalities=(
+                        ["IMAGE"]
+                        if response_modalities == "IMAGE"
+                        else ["TEXT", "IMAGE"]
+                    ),
                     imageConfig=None if aspect_ratio == "auto" else image_config,
                 ),
                 systemInstruction=gemini_system_prompt,
@@ -616,11 +655,12 @@ class GeminiImage(IO.ComfyNode):
             response_model=GeminiGenerateContentResponse,
             price_extractor=calculate_tokens_price,
         )
-        return IO.NodeOutput(await get_image_from_response(response), get_text_from_response(response))
+        return IO.NodeOutput(
+            await get_image_from_response(response), get_text_from_response(response)
+        )
 
 
 class GeminiImage2(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -654,7 +694,19 @@ class GeminiImage2(IO.ComfyNode):
                 ),
                 IO.Combo.Input(
                     "aspect_ratio",
-                    options=["auto", "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
+                    options=[
+                        "auto",
+                        "1:1",
+                        "2:3",
+                        "3:2",
+                        "3:4",
+                        "4:3",
+                        "4:5",
+                        "5:4",
+                        "9:16",
+                        "16:9",
+                        "21:9",
+                    ],
                     default="auto",
                     tooltip="If set to 'auto', matches your input image's aspect ratio; "
                     "if no image is provided, a 16:9 square is usually generated.",
@@ -720,7 +772,9 @@ class GeminiImage2(IO.ComfyNode):
         parts: list[GeminiPart] = [GeminiPart(text=prompt)]
         if images is not None:
             if get_number_of_images(images) > 14:
-                raise ValueError("The current maximum number of supported images is 14.")
+                raise ValueError(
+                    "The current maximum number of supported images is 14."
+                )
             parts.extend(await create_image_parts(cls, images))
         if files is not None:
             parts.extend(files)
@@ -731,7 +785,9 @@ class GeminiImage2(IO.ComfyNode):
 
         gemini_system_prompt = None
         if system_prompt:
-            gemini_system_prompt = GeminiSystemInstructionContent(parts=[GeminiTextPart(text=system_prompt)], role=None)
+            gemini_system_prompt = GeminiSystemInstructionContent(
+                parts=[GeminiTextPart(text=system_prompt)], role=None
+            )
 
         response = await sync_op(
             cls,
@@ -741,7 +797,11 @@ class GeminiImage2(IO.ComfyNode):
                     GeminiContent(role=GeminiRole.user, parts=parts),
                 ],
                 generationConfig=GeminiImageGenerationConfig(
-                    responseModalities=(["IMAGE"] if response_modalities == "IMAGE" else ["TEXT", "IMAGE"]),
+                    responseModalities=(
+                        ["IMAGE"]
+                        if response_modalities == "IMAGE"
+                        else ["TEXT", "IMAGE"]
+                    ),
                     imageConfig=image_config,
                 ),
                 systemInstruction=gemini_system_prompt,
@@ -749,7 +809,9 @@ class GeminiImage2(IO.ComfyNode):
             response_model=GeminiGenerateContentResponse,
             price_extractor=calculate_tokens_price,
         )
-        return IO.NodeOutput(await get_image_from_response(response), get_text_from_response(response))
+        return IO.NodeOutput(
+            await get_image_from_response(response), get_text_from_response(response)
+        )
 
 
 class GeminiExtension(ComfyExtension):

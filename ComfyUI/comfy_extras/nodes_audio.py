@@ -12,6 +12,7 @@ import logging
 from typing_extensions import override
 from comfy_api.latest import ComfyExtension, IO, UI
 
+
 class EmptyLatentAudio(IO.ComfyNode):
     @classmethod
     def define_schema(cls):
@@ -22,7 +23,11 @@ class EmptyLatentAudio(IO.ComfyNode):
             inputs=[
                 IO.Float.Input("seconds", default=47.6, min=1.0, max=1000.0, step=0.1),
                 IO.Int.Input(
-                    "batch_size", default=1, min=1, max=4096, tooltip="The number of latent images in the batch."
+                    "batch_size",
+                    default=1,
+                    min=1,
+                    max=4096,
+                    tooltip="The number of latent images in the batch.",
                 ),
             ],
             outputs=[IO.Latent.Output()],
@@ -31,8 +36,11 @@ class EmptyLatentAudio(IO.ComfyNode):
     @classmethod
     def execute(cls, seconds, batch_size) -> IO.NodeOutput:
         length = round((seconds * 44100 / 2048) / 2) * 2
-        latent = torch.zeros([batch_size, 64, length], device=comfy.model_management.intermediate_device())
-        return IO.NodeOutput({"samples":latent, "type": "audio"})
+        latent = torch.zeros(
+            [batch_size, 64, length],
+            device=comfy.model_management.intermediate_device(),
+        )
+        return IO.NodeOutput({"samples": latent, "type": "audio"})
 
     generate = execute  # TODO: remove
 
@@ -46,8 +54,12 @@ class ConditioningStableAudio(IO.ComfyNode):
             inputs=[
                 IO.Conditioning.Input("positive"),
                 IO.Conditioning.Input("negative"),
-                IO.Float.Input("seconds_start", default=0.0, min=0.0, max=1000.0, step=0.1),
-                IO.Float.Input("seconds_total", default=47.0, min=0.0, max=1000.0, step=0.1),
+                IO.Float.Input(
+                    "seconds_start", default=0.0, min=0.0, max=1000.0, step=0.1
+                ),
+                IO.Float.Input(
+                    "seconds_total", default=47.0, min=0.0, max=1000.0, step=0.1
+                ),
             ],
             outputs=[
                 IO.Conditioning.Output(display_name="positive"),
@@ -57,8 +69,12 @@ class ConditioningStableAudio(IO.ComfyNode):
 
     @classmethod
     def execute(cls, positive, negative, seconds_start, seconds_total) -> IO.NodeOutput:
-        positive = node_helpers.conditioning_set_values(positive, {"seconds_start": seconds_start, "seconds_total": seconds_total})
-        negative = node_helpers.conditioning_set_values(negative, {"seconds_start": seconds_start, "seconds_total": seconds_total})
+        positive = node_helpers.conditioning_set_values(
+            positive, {"seconds_start": seconds_start, "seconds_total": seconds_total}
+        )
+        negative = node_helpers.conditioning_set_values(
+            negative, {"seconds_start": seconds_start, "seconds_total": seconds_total}
+        )
         return IO.NodeOutput(positive, negative)
 
     append = execute  # TODO: remove
@@ -82,12 +98,14 @@ class VAEEncodeAudio(IO.ComfyNode):
     def execute(cls, vae, audio) -> IO.NodeOutput:
         sample_rate = audio["sample_rate"]
         if 44100 != sample_rate:
-            waveform = torchaudio.functional.resample(audio["waveform"], sample_rate, 44100)
+            waveform = torchaudio.functional.resample(
+                audio["waveform"], sample_rate, 44100
+            )
         else:
             waveform = audio["waveform"]
 
         t = vae.encode(waveform.movedim(1, -1))
-        return IO.NodeOutput({"samples":t})
+        return IO.NodeOutput({"samples": t})
 
     encode = execute  # TODO: remove
 
@@ -109,7 +127,7 @@ class VAEDecodeAudio(IO.ComfyNode):
     @classmethod
     def execute(cls, vae, samples) -> IO.NodeOutput:
         audio = vae.decode(samples["samples"]).movedim(-1, 1)
-        std = torch.std(audio, dim=[1,2], keepdim=True) * 5.0
+        std = torch.std(audio, dim=[1, 2], keepdim=True) * 5.0
         std[std < 1.0] = 1.0
         audio /= std
         return IO.NodeOutput({"waveform": audio, "sample_rate": 44100})
@@ -135,7 +153,9 @@ class SaveAudio(IO.ComfyNode):
     @classmethod
     def execute(cls, audio, filename_prefix="ComfyUI", format="flac") -> IO.NodeOutput:
         return IO.NodeOutput(
-            ui=UI.AudioSaveHelper.get_save_audio_ui(audio, filename_prefix=filename_prefix, cls=cls, format=format)
+            ui=UI.AudioSaveHelper.get_save_audio_ui(
+                audio, filename_prefix=filename_prefix, cls=cls, format=format
+            )
         )
 
     save_flac = execute  # TODO: remove
@@ -158,10 +178,16 @@ class SaveAudioMP3(IO.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, audio, filename_prefix="ComfyUI", format="mp3", quality="128k") -> IO.NodeOutput:
+    def execute(
+        cls, audio, filename_prefix="ComfyUI", format="mp3", quality="128k"
+    ) -> IO.NodeOutput:
         return IO.NodeOutput(
             ui=UI.AudioSaveHelper.get_save_audio_ui(
-                audio, filename_prefix=filename_prefix, cls=cls, format=format, quality=quality
+                audio,
+                filename_prefix=filename_prefix,
+                cls=cls,
+                format=format,
+                quality=quality,
             )
         )
 
@@ -178,17 +204,27 @@ class SaveAudioOpus(IO.ComfyNode):
             inputs=[
                 IO.Audio.Input("audio"),
                 IO.String.Input("filename_prefix", default="audio/ComfyUI"),
-                IO.Combo.Input("quality", options=["64k", "96k", "128k", "192k", "320k"], default="128k"),
+                IO.Combo.Input(
+                    "quality",
+                    options=["64k", "96k", "128k", "192k", "320k"],
+                    default="128k",
+                ),
             ],
             hidden=[IO.Hidden.prompt, IO.Hidden.extra_pnginfo],
             is_output_node=True,
         )
 
     @classmethod
-    def execute(cls, audio, filename_prefix="ComfyUI", format="opus", quality="V3") -> IO.NodeOutput:
+    def execute(
+        cls, audio, filename_prefix="ComfyUI", format="opus", quality="V3"
+    ) -> IO.NodeOutput:
         return IO.NodeOutput(
             ui=UI.AudioSaveHelper.get_save_audio_ui(
-                audio, filename_prefix=filename_prefix, cls=cls, format=format, quality=quality
+                audio,
+                filename_prefix=filename_prefix,
+                cls=cls,
+                format=format,
+                quality=quality,
             )
         )
 
@@ -221,10 +257,11 @@ def f32_pcm(wav: torch.Tensor) -> torch.Tensor:
     if wav.dtype.is_floating_point:
         return wav
     elif wav.dtype == torch.int16:
-        return wav.float() / (2 ** 15)
+        return wav.float() / (2**15)
     elif wav.dtype == torch.int32:
-        return wav.float() / (2 ** 31)
+        return wav.float() / (2**31)
     raise ValueError(f"Unsupported wav dtype: {wav.dtype}")
+
 
 def load(filepath: str) -> tuple[torch.Tensor, int]:
     with av.open(filepath) as af:
@@ -252,17 +289,22 @@ def load(filepath: str) -> tuple[torch.Tensor, int]:
         wav = f32_pcm(wav)
         return wav, sr
 
+
 class LoadAudio(IO.ComfyNode):
     @classmethod
     def define_schema(cls):
         input_dir = folder_paths.get_input_directory()
-        files = folder_paths.filter_files_content_types(os.listdir(input_dir), ["audio", "video"])
+        files = folder_paths.filter_files_content_types(
+            os.listdir(input_dir), ["audio", "video"]
+        )
         return IO.Schema(
             node_id="LoadAudio",
             display_name="Load Audio",
             category="audio",
             inputs=[
-                IO.Combo.Input("audio", upload=IO.UploadType.audio, options=sorted(files)),
+                IO.Combo.Input(
+                    "audio", upload=IO.UploadType.audio, options=sorted(files)
+                ),
             ],
             outputs=[IO.Audio.Output()],
         )
@@ -278,7 +320,7 @@ class LoadAudio(IO.ComfyNode):
     def fingerprint_inputs(cls, audio):
         image_path = folder_paths.get_annotated_filepath(audio)
         m = hashlib.sha256()
-        with open(image_path, 'rb') as f:
+        with open(image_path, "rb") as f:
             m.update(f.read())
         return m.digest().hex()
 
@@ -328,8 +370,8 @@ class TrimAudioDuration(IO.ComfyNode):
                 IO.Float.Input(
                     "start_index",
                     default=0.0,
-                    min=-0xffffffffffffffff,
-                    max=0xffffffffffffffff,
+                    min=-0xFFFFFFFFFFFFFFFF,
+                    max=0xFFFFFFFFFFFFFFFF,
                     step=0.01,
                     tooltip="Start time in seconds, can be negative to count from the end (supports sub-seconds).",
                 ),
@@ -360,9 +402,16 @@ class TrimAudioDuration(IO.ComfyNode):
         end_frame = max(0, min(end_frame, audio_length))
 
         if start_frame >= end_frame:
-            raise ValueError("AudioTrim: Start time must be less than end time and be within the audio length.")
+            raise ValueError(
+                "AudioTrim: Start time must be less than end time and be within the audio length."
+            )
 
-        return IO.NodeOutput({"waveform": waveform[..., start_frame:end_frame], "sample_rate": sample_rate})
+        return IO.NodeOutput(
+            {
+                "waveform": waveform[..., start_frame:end_frame],
+                "sample_rate": sample_rate,
+            }
+        )
 
     trim = execute  # TODO: remove
 
@@ -395,7 +444,10 @@ class SplitAudioChannels(IO.ComfyNode):
         left_channel = waveform[..., 0:1, :]
         right_channel = waveform[..., 1:2, :]
 
-        return IO.NodeOutput({"waveform": left_channel, "sample_rate": sample_rate}, {"waveform": right_channel, "sample_rate": sample_rate})
+        return IO.NodeOutput(
+            {"waveform": left_channel, "sample_rate": sample_rate},
+            {"waveform": right_channel, "sample_rate": sample_rate},
+        )
 
     separate = execute  # TODO: remove
 
@@ -403,13 +455,21 @@ class SplitAudioChannels(IO.ComfyNode):
 def match_audio_sample_rates(waveform_1, sample_rate_1, waveform_2, sample_rate_2):
     if sample_rate_1 != sample_rate_2:
         if sample_rate_1 > sample_rate_2:
-            waveform_2 = torchaudio.functional.resample(waveform_2, sample_rate_2, sample_rate_1)
+            waveform_2 = torchaudio.functional.resample(
+                waveform_2, sample_rate_2, sample_rate_1
+            )
             output_sample_rate = sample_rate_1
-            logging.info(f"Resampling audio2 from {sample_rate_2}Hz to {sample_rate_1}Hz for merging.")
+            logging.info(
+                f"Resampling audio2 from {sample_rate_2}Hz to {sample_rate_1}Hz for merging."
+            )
         else:
-            waveform_1 = torchaudio.functional.resample(waveform_1, sample_rate_1, sample_rate_2)
+            waveform_1 = torchaudio.functional.resample(
+                waveform_1, sample_rate_1, sample_rate_2
+            )
             output_sample_rate = sample_rate_2
-            logging.info(f"Resampling audio1 from {sample_rate_1}Hz to {sample_rate_2}Hz for merging.")
+            logging.info(
+                f"Resampling audio1 from {sample_rate_1}Hz to {sample_rate_2}Hz for merging."
+            )
     else:
         output_sample_rate = sample_rate_1
     return waveform_1, waveform_2, output_sample_rate
@@ -428,10 +488,10 @@ class AudioConcat(IO.ComfyNode):
                 IO.Audio.Input("audio2"),
                 IO.Combo.Input(
                     "direction",
-                    options=['after', 'before'],
+                    options=["after", "before"],
                     default="after",
                     tooltip="Whether to append audio2 after or before audio1.",
-                )
+                ),
             ],
             outputs=[IO.Audio.Output()],
         )
@@ -445,19 +505,27 @@ class AudioConcat(IO.ComfyNode):
 
         if waveform_1.shape[1] == 1:
             waveform_1 = waveform_1.repeat(1, 2, 1)
-            logging.info("AudioConcat: Converted mono audio1 to stereo by duplicating the channel.")
+            logging.info(
+                "AudioConcat: Converted mono audio1 to stereo by duplicating the channel."
+            )
         if waveform_2.shape[1] == 1:
             waveform_2 = waveform_2.repeat(1, 2, 1)
-            logging.info("AudioConcat: Converted mono audio2 to stereo by duplicating the channel.")
+            logging.info(
+                "AudioConcat: Converted mono audio2 to stereo by duplicating the channel."
+            )
 
-        waveform_1, waveform_2, output_sample_rate = match_audio_sample_rates(waveform_1, sample_rate_1, waveform_2, sample_rate_2)
+        waveform_1, waveform_2, output_sample_rate = match_audio_sample_rates(
+            waveform_1, sample_rate_1, waveform_2, sample_rate_2
+        )
 
-        if direction == 'after':
+        if direction == "after":
             concatenated_audio = torch.cat((waveform_1, waveform_2), dim=2)
-        elif direction == 'before':
+        elif direction == "before":
             concatenated_audio = torch.cat((waveform_2, waveform_1), dim=2)
 
-        return IO.NodeOutput({"waveform": concatenated_audio, "sample_rate": output_sample_rate})
+        return IO.NodeOutput(
+            {"waveform": concatenated_audio, "sample_rate": output_sample_rate}
+        )
 
     concat = execute  # TODO: remove
 
@@ -477,7 +545,7 @@ class AudioMerge(IO.ComfyNode):
                     "merge_method",
                     options=["add", "mean", "subtract", "multiply"],
                     tooltip="The method used to combine the audio waveforms.",
-                )
+                ),
             ],
             outputs=[IO.Audio.Output()],
         )
@@ -489,19 +557,27 @@ class AudioMerge(IO.ComfyNode):
         sample_rate_1 = audio1["sample_rate"]
         sample_rate_2 = audio2["sample_rate"]
 
-        waveform_1, waveform_2, output_sample_rate = match_audio_sample_rates(waveform_1, sample_rate_1, waveform_2, sample_rate_2)
+        waveform_1, waveform_2, output_sample_rate = match_audio_sample_rates(
+            waveform_1, sample_rate_1, waveform_2, sample_rate_2
+        )
 
         length_1 = waveform_1.shape[-1]
         length_2 = waveform_2.shape[-1]
 
         if length_2 > length_1:
-            logging.info(f"AudioMerge: Trimming audio2 from {length_2} to {length_1} samples to match audio1 length.")
+            logging.info(
+                f"AudioMerge: Trimming audio2 from {length_2} to {length_1} samples to match audio1 length."
+            )
             waveform_2 = waveform_2[..., :length_1]
         elif length_2 < length_1:
-            logging.info(f"AudioMerge: Padding audio2 from {length_2} to {length_1} samples to match audio1 length.")
+            logging.info(
+                f"AudioMerge: Padding audio2 from {length_2} to {length_1} samples to match audio1 length."
+            )
             pad_shape = list(waveform_2.shape)
             pad_shape[-1] = length_1 - length_2
-            pad_tensor = torch.zeros(pad_shape, dtype=waveform_2.dtype, device=waveform_2.device)
+            pad_tensor = torch.zeros(
+                pad_shape, dtype=waveform_2.dtype, device=waveform_2.device
+            )
             waveform_2 = torch.cat((waveform_2, pad_tensor), dim=-1)
 
         if merge_method == "add":
@@ -537,7 +613,7 @@ class AudioAdjustVolume(IO.ComfyNode):
                     min=-100,
                     max=100,
                     tooltip="Volume adjustment in decibels (dB). 0 = no change, +6 = double, -6 = half, etc",
-                )
+                ),
             ],
             outputs=[IO.Audio.Output()],
         )
@@ -569,7 +645,7 @@ class EmptyAudio(IO.ComfyNode):
                     "duration",
                     default=60.0,
                     min=0.0,
-                    max=0xffffffffffffffff,
+                    max=0xFFFFFFFFFFFFFFFF,
                     step=0.01,
                     tooltip="Duration of the empty audio clip in seconds",
                 ),
@@ -621,6 +697,7 @@ class AudioExtension(ComfyExtension):
             AudioAdjustVolume,
             EmptyAudio,
         ]
+
 
 async def comfy_entrypoint() -> AudioExtension:
     return AudioExtension()

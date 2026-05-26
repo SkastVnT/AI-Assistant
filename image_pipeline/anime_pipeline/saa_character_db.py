@@ -45,37 +45,40 @@ _TAG_CSV = _SAA_DATA / "danbooru_e621_merged.csv"
 
 # ── Data classes ─────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class WaiCharacterMatch:
     """A character hit from the SAA 5149-char verified database."""
-    display_name: str           # Chinese/localized display
-    tag: str                    # SDXL prompt tag (spaces, e.g. "yae miko")
-    danbooru_tag: str           # underscore form for danbooru/web lookup
+
+    display_name: str  # Chinese/localized display
+    tag: str  # SDXL prompt tag (spaces, e.g. "yae miko")
+    danbooru_tag: str  # underscore form for danbooru/web lookup
     series_hint: Optional[str]  # parenthesized series if present
-    match_score: float          # 0-1 (1 = exact)
+    match_score: float  # 0-1 (1 = exact)
 
 
 @dataclass(frozen=True)
 class TagAutocomplete:
-    tag: str                    # canonical tag
-    category: int               # 0=general 1=artist 3=copyright 4=character 5=meta
+    tag: str  # canonical tag
+    category: int  # 0=general 1=artist 3=copyright 4=character 5=meta
     post_count: int
     aliases: tuple[str, ...]
 
 
 # ── Lazy state ───────────────────────────────────────────────────────
 _lock = threading.Lock()
-_wai_index: Optional[dict[str, tuple[str, str]]] = None   # lookup_key -> (display, tag)
-_wai_tags: list[tuple[str, str]] = []                      # (lookup_key, tag)
+_wai_index: Optional[dict[str, tuple[str, str]]] = None  # lookup_key -> (display, tag)
+_wai_tags: list[tuple[str, str]] = []  # (lookup_key, tag)
 _thumbs: Optional[dict[str, str]] = None
 _tag_list: Optional[list[TagAutocomplete]] = None
-_tag_prefix_index: Optional[dict[str, list[int]]] = None   # first3char -> indices
+_tag_prefix_index: Optional[dict[str, list[int]]] = None  # first3char -> indices
 
 # Regex for series-in-parentheses extraction
 _PAREN_RE = re.compile(r"\s*\(([^)]+)\)\s*$")
 
 
 # ── WAI character loader ─────────────────────────────────────────────
+
 
 def _normalise_key(s: str) -> str:
     """Lowercase, strip punctuation/underscores, collapse whitespace."""
@@ -96,7 +99,10 @@ def _load_wai() -> None:
         index: dict[str, tuple[str, str]] = {}
         all_tags: list[tuple[str, str]] = []
         if not _WAI_CSV.exists():
-            logger.info("[SAA-DB] wai_characters.csv not found at %s — offline lookup disabled.", _WAI_CSV)
+            logger.info(
+                "[SAA-DB] wai_characters.csv not found at %s — offline lookup disabled.",
+                _WAI_CSV,
+            )
             _wai_index = index
             _wai_tags = all_tags
             _thumbs = {}
@@ -123,8 +129,11 @@ def _load_wai() -> None:
                     all_tags.append((key_tag, tag))
         except Exception as e:
             logger.warning("[SAA-DB] failed to parse wai_characters.csv: %s", e)
-        logger.info("[SAA-DB] loaded %d WAI character entries (%d index keys).",
-                    len(all_tags), len(index))
+        logger.info(
+            "[SAA-DB] loaded %d WAI character entries (%d index keys).",
+            len(all_tags),
+            len(index),
+        )
         _wai_index = index
         _wai_tags = all_tags
 
@@ -149,6 +158,7 @@ def _min_match_score() -> float:
     impact)". Set to 0 to disable filtering, 1.0 to require exact match only.
     """
     import os
+
     raw = os.getenv("SAA_MIN_MATCH_SCORE", "").strip()
     if not raw:
         return 0.5
@@ -193,8 +203,12 @@ def lookup_character(query: str) -> Optional[WaiCharacterMatch]:
         score = min(1.0, best_len / max(len(key), best_len)) * 0.9
         threshold = _min_match_score()
         if score < threshold:
-            logger.debug("[SAA-DB] reject low-confidence match for '%s' (score=%.2f < %.2f)",
-                         query, score, threshold)
+            logger.debug(
+                "[SAA-DB] reject low-confidence match for '%s' (score=%.2f < %.2f)",
+                query,
+                score,
+                threshold,
+            )
             return None
         return _to_match(best, score=score)
 
@@ -225,6 +239,7 @@ def get_character_thumbnail(tag: str) -> Optional[str]:
 
 # ── Tag autocomplete ─────────────────────────────────────────────────
 
+
 def _load_tags() -> None:
     global _tag_list, _tag_prefix_index
     if _tag_list is not None:
@@ -234,7 +249,9 @@ def _load_tags() -> None:
             return
         tags: list[TagAutocomplete] = []
         if not _TAG_CSV.exists():
-            logger.info("[SAA-DB] danbooru_e621_merged.csv not found — autocomplete disabled.")
+            logger.info(
+                "[SAA-DB] danbooru_e621_merged.csv not found — autocomplete disabled."
+            )
             _tag_list = tags
             _tag_prefix_index = {}
             return
@@ -256,11 +273,17 @@ def _load_tags() -> None:
                     except ValueError:
                         post_count = 0
                     aliases_raw = row[3] if len(row) > 3 else ""
-                    aliases = tuple(a.strip() for a in aliases_raw.split(",") if a.strip())
-                    tags.append(TagAutocomplete(
-                        tag=tag, category=category,
-                        post_count=post_count, aliases=aliases,
-                    ))
+                    aliases = tuple(
+                        a.strip() for a in aliases_raw.split(",") if a.strip()
+                    )
+                    tags.append(
+                        TagAutocomplete(
+                            tag=tag,
+                            category=category,
+                            post_count=post_count,
+                            aliases=aliases,
+                        )
+                    )
         except Exception as e:
             logger.warning("[SAA-DB] failed to parse tag csv: %s", e)
 
@@ -278,8 +301,9 @@ def _load_tags() -> None:
                     seen_keys.add(k)
         _tag_list = tags
         _tag_prefix_index = prefix_index
-        logger.info("[SAA-DB] loaded %d tags (%d prefix buckets).",
-                    len(tags), len(prefix_index))
+        logger.info(
+            "[SAA-DB] loaded %d tags (%d prefix buckets).", len(tags), len(prefix_index)
+        )
 
 
 def _prefix_key(s: str) -> str:

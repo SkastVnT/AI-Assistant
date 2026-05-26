@@ -5,19 +5,20 @@ files newer than a given epoch timestamp.
 Used by the Local Image Gen modal to surface SAA-generated images back into
 the chatbot conversation. Pure stdlib; no ComfyUI HTTP coupling.
 """
+
 from __future__ import annotations
 
 import logging
 import mimetypes
 import os
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from core.config import COMFYUI_OUTPUT_DIR
 
 logger = logging.getLogger(__name__)
 
-_ALLOWED_EXTS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
+_ALLOWED_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 
 
 def _safe_root() -> Path | None:
@@ -27,7 +28,9 @@ def _safe_root() -> Path | None:
             return None
         return root
     except Exception as exc:  # pragma: no cover — defensive
-        logger.warning("[LOCAL-IMG-GEN] Bad output dir: %s (%s)", COMFYUI_OUTPUT_DIR, exc)
+        logger.warning(
+            "[LOCAL-IMG-GEN] Bad output dir: %s (%s)", COMFYUI_OUTPUT_DIR, exc
+        )
         return None
 
 
@@ -74,12 +77,14 @@ def list_recent(since: float = 0.0, limit: int = 12) -> dict:
                 continue
             if stat.st_mtime <= since:
                 continue
-            files.append({
-                "name": entry.name,
-                "size": stat.st_size,
-                "mtime": stat.st_mtime,
-                "url": f"/api/local-image-gen/file/{entry.name}",
-            })
+            files.append(
+                {
+                    "name": entry.name,
+                    "size": stat.st_size,
+                    "mtime": stat.st_mtime,
+                    "url": f"/api/local-image-gen/file/{entry.name}",
+                }
+            )
     except OSError as exc:
         return {
             "ok": False,
@@ -106,18 +111,18 @@ def resolve_file(name: str) -> tuple[Path | None, str]:
     """
     root = _safe_root()
     if root is None:
-        return None, ''
+        return None, ""
     # Reject any path-like input
-    if not name or '/' in name or '\\' in name or name.startswith('.'):
-        return None, ''
+    if not name or "/" in name or "\\" in name or name.startswith("."):
+        return None, ""
     candidate = (root / name).resolve()
     try:
         candidate.relative_to(root)
     except ValueError:
-        return None, ''
+        return None, ""
     if not candidate.is_file():
-        return None, ''
+        return None, ""
     if candidate.suffix.lower() not in _ALLOWED_EXTS:
-        return None, ''
+        return None, ""
     mime, _ = mimetypes.guess_type(str(candidate))
-    return candidate, mime or 'application/octet-stream'
+    return candidate, mime or "application/octet-stream"

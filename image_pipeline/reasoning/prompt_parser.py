@@ -125,14 +125,50 @@ _MOOD_KEYWORDS: tuple[tuple[str, str], ...] = (
 
 # Color + noun → prop candidate (Midjourney short-prompt style).
 _COLOR_WORDS = (
-    "red", "blue", "green", "yellow", "orange", "purple", "pink", "white",
-    "black", "gray", "grey", "brown", "gold", "silver",
+    "red",
+    "blue",
+    "green",
+    "yellow",
+    "orange",
+    "purple",
+    "pink",
+    "white",
+    "black",
+    "gray",
+    "grey",
+    "brown",
+    "gold",
+    "silver",
 )
 _PROP_NOUNS = (
-    "phone", "mug", "cup", "book", "pillow", "blanket", "bed", "lamp",
-    "laptop", "card", "letter", "knife", "gun", "sword", "guitar",
-    "umbrella", "bag", "backpack", "hat", "mask", "ring", "necklace",
-    "id", "license", "ticket", "key", "watch", "camera",
+    "phone",
+    "mug",
+    "cup",
+    "book",
+    "pillow",
+    "blanket",
+    "bed",
+    "lamp",
+    "laptop",
+    "card",
+    "letter",
+    "knife",
+    "gun",
+    "sword",
+    "guitar",
+    "umbrella",
+    "bag",
+    "backpack",
+    "hat",
+    "mask",
+    "ring",
+    "necklace",
+    "id",
+    "license",
+    "ticket",
+    "key",
+    "watch",
+    "camera",
 )
 _PROP_RE = re.compile(
     r"\b(" + "|".join(_COLOR_WORDS) + r")\s+(" + "|".join(_PROP_NOUNS) + r")\b",
@@ -162,7 +198,10 @@ _SHOT_HINTS: tuple[tuple[re.Pattern[str], ShotType], ...] = (
 
 # Eye-state cues.
 _EYE_HINTS: tuple[tuple[re.Pattern[str], EyeState], ...] = (
-    (re.compile(r"\beyes?\s+(?:are\s+)?closed\b|\bclosed\s+eyes?\b", re.I), EyeState.CLOSED),
+    (
+        re.compile(r"\beyes?\s+(?:are\s+)?closed\b|\bclosed\s+eyes?\b", re.I),
+        EyeState.CLOSED,
+    ),
     (re.compile(r"\bwide\s+eyed?\b|\beyes\s+wide\b", re.I), EyeState.WIDE),
     (re.compile(r"\bsquint(?:ing)?\b", re.I), EyeState.SQUINT),
     (re.compile(r"\bwink(?:ing)?\b", re.I), EyeState.WINK_RIGHT),
@@ -244,10 +283,30 @@ def parse(
     if revision.requires_regional_patch:
         # face/eyes → face_patch; other regions → prop_patch.
         regions = set(revision.detected_regions)
-        if regions & {"face", "eyes", "eye", "iris", "pupil", "mouth", "lips", "nose", "hair"}:
+        if regions & {
+            "face",
+            "eyes",
+            "eye",
+            "iris",
+            "pupil",
+            "mouth",
+            "lips",
+            "nose",
+            "hair",
+        }:
             if "face_patch" not in required_stages:
                 required_stages.append("face_patch")
-        if regions - {"face", "eyes", "eye", "iris", "pupil", "mouth", "lips", "nose", "hair"}:
+        if regions - {
+            "face",
+            "eyes",
+            "eye",
+            "iris",
+            "pupil",
+            "mouth",
+            "lips",
+            "nose",
+            "hair",
+        }:
             if "prop_patch" not in required_stages:
                 required_stages.append("prop_patch")
 
@@ -319,7 +378,9 @@ def _build_scene(rev: RevisedPrompt) -> SceneState:
     )
 
 
-def _extract_props(rev: RevisedPrompt, warnings: list[str]) -> tuple[tuple[str, PropState], ...]:
+def _extract_props(
+    rev: RevisedPrompt, warnings: list[str]
+) -> tuple[tuple[str, PropState], ...]:
     """Return ``((prop_key, PropState), ...)`` extracted from the revised text."""
     seen: dict[str, PropState] = {}
     for m in _PROP_RE.finditer(rev.source_text):
@@ -338,7 +399,9 @@ def _extract_props(rev: RevisedPrompt, warnings: list[str]) -> tuple[tuple[str, 
             notes="parser placeholder",
         )
     # Bare props (no color) — only when nothing else matched the noun.
-    matched_nouns = {p.canonical_tags[1] for p in seen.values() if len(p.canonical_tags) >= 2}
+    matched_nouns = {
+        p.canonical_tags[1] for p in seen.values() if len(p.canonical_tags) >= 2
+    }
     for m in _BARE_PROP_RE.finditer(rev.source_text):
         noun = m.group(1).lower()
         if noun in matched_nouns:
@@ -368,7 +431,9 @@ def _build_character_placeholder(
     key_raw = hint.get("character_key") or hint.get("key") or ""
     name_raw = hint.get("character_name") or hint.get("name") or ""
     if not key_raw or not name_raw:
-        warnings.append("character_hint missing character_key or character_name; ignored")
+        warnings.append(
+            "character_hint missing character_key or character_name; ignored"
+        )
         return None
     key = _safe_id(key_raw)
     state = CharacterState(
@@ -419,7 +484,9 @@ def _build_panel(
 
     extra_pos: tuple[str, ...] = ()
     if revision.normalized_prompt:
-        extra_pos = tuple(t for t in (s.strip() for s in revision.normalized_prompt.split(",")) if t)
+        extra_pos = tuple(
+            t for t in (s.strip() for s in revision.normalized_prompt.split(",")) if t
+        )
 
     return SinglePanelSpec(
         panel_id=panel_id,

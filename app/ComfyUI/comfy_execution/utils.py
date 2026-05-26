@@ -1,6 +1,7 @@
 import contextvars
 from typing import Optional, NamedTuple
 
+
 class ExecutionContext(NamedTuple):
     """
     Context information about the currently executing node.
@@ -9,14 +10,20 @@ class ExecutionContext(NamedTuple):
         node_id: The ID of the currently executing node
         list_index: The index in a list being processed (for operations on batches/lists)
     """
+
     prompt_id: str
     node_id: str
     list_index: Optional[int]
 
-current_executing_context: contextvars.ContextVar[Optional[ExecutionContext]] = contextvars.ContextVar("current_executing_context", default=None)
+
+current_executing_context: contextvars.ContextVar[Optional[ExecutionContext]] = (
+    contextvars.ContextVar("current_executing_context", default=None)
+)
+
 
 def get_executing_context() -> Optional[ExecutionContext]:
     return current_executing_context.get(None)
+
 
 class CurrentNodeContext:
     """
@@ -29,11 +36,10 @@ class CurrentNodeContext:
             # Code that should run with the current node context set
             process_image()
     """
+
     def __init__(self, prompt_id: str, node_id: str, list_index: Optional[int] = None):
         self.context = ExecutionContext(
-            prompt_id= prompt_id,
-            node_id= node_id,
-            list_index= list_index
+            prompt_id=prompt_id, node_id=node_id, list_index=list_index
         )
         self.token = None
 

@@ -1,5 +1,6 @@
 from typing import TypeVar
 
+
 class SingletonMetaclass(type):
     T = TypeVar("T", bound="SingletonMetaclass")
     _instances = {}

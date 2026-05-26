@@ -21,9 +21,9 @@ Token/context control
 - Oversized RAG chunks and MCP blocks are summarised to a title + head.
 - Callers can pass a ``budget_chars`` to ``gather_all()`` for global cap.
 """
+
 from __future__ import annotations
 
-import hashlib
 import logging
 import re
 from typing import Any
@@ -93,24 +93,16 @@ def gather_all(
     evidence: list[EvidenceItem] = []
 
     # 1. Uploaded files (extracted from augmented_message markers)
-    evidence.extend(
-        _extract_uploaded_file_evidence(augmented_message)
-    )
+    evidence.extend(_extract_uploaded_file_evidence(augmented_message))
 
     # 2. RAG chunks
-    evidence.extend(
-        _extract_rag_evidence(rag_chunks or [], rag_citations or [])
-    )
+    evidence.extend(_extract_rag_evidence(rag_chunks or [], rag_citations or []))
 
     # 3. MCP file context
-    evidence.extend(
-        _extract_mcp_evidence(mcp_context)
-    )
+    evidence.extend(_extract_mcp_evidence(mcp_context))
 
     # 4. Direct user context (inline information the user provided)
-    evidence.extend(
-        _extract_direct_context(original_message, augmented_message)
-    )
+    evidence.extend(_extract_direct_context(original_message, augmented_message))
 
     # Global budget enforcement
     evidence = _enforce_budget(evidence, budget_chars)
@@ -315,9 +307,7 @@ def _truncate(text: str, max_chars: int) -> str:
     return text[: max_chars - 4] + " ..."
 
 
-def _enforce_budget(
-    items: list[EvidenceItem], budget: int
-) -> list[EvidenceItem]:
+def _enforce_budget(items: list[EvidenceItem], budget: int) -> list[EvidenceItem]:
     """Drop lowest-relevance items until the total fits *budget*."""
     # Sort by relevance desc so we keep the best items
     ranked = sorted(items, key=lambda e: e.relevance, reverse=True)

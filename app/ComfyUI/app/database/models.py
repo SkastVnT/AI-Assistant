@@ -11,4 +11,5 @@ def to_dict(obj):
         if (val := getattr(obj, field))
     }
 
+
 # TODO: Define models here

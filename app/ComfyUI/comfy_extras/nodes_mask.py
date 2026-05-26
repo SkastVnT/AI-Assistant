@@ -8,10 +8,13 @@ from comfy_api.latest import ComfyExtension, IO, UI
 
 import nodes
 
-def composite(destination, source, x, y, mask = None, multiplier = 8, resize_source = False):
+
+def composite(destination, source, x, y, mask=None, multiplier=8, resize_source=False):
     source = source.to(destination.device)
     if resize_source:
-        source = torch.nn.functional.interpolate(source, size=(destination.shape[-2], destination.shape[-1]), mode="bilinear")
+        source = torch.nn.functional.interpolate(
+            source, size=(destination.shape[-2], destination.shape[-1]), mode="bilinear"
+        )
 
     source = comfy.utils.repeat_to_batch_size(source, destination.shape[0])
 
@@ -19,19 +22,29 @@ def composite(destination, source, x, y, mask = None, multiplier = 8, resize_sou
     y = max(-source.shape[-2] * multiplier, min(y, destination.shape[-2] * multiplier))
 
     left, top = (x // multiplier, y // multiplier)
-    right, bottom = (left + source.shape[-1], top + source.shape[-2],)
+    right, bottom = (
+        left + source.shape[-1],
+        top + source.shape[-2],
+    )
 
     if mask is None:
         mask = torch.ones_like(source)
     else:
         mask = mask.to(destination.device, copy=True)
-        mask = torch.nn.functional.interpolate(mask.reshape((-1, 1, mask.shape[-2], mask.shape[-1])), size=(source.shape[-2], source.shape[-1]), mode="bilinear")
+        mask = torch.nn.functional.interpolate(
+            mask.reshape((-1, 1, mask.shape[-2], mask.shape[-1])),
+            size=(source.shape[-2], source.shape[-1]),
+            mode="bilinear",
+        )
         mask = comfy.utils.repeat_to_batch_size(mask, source.shape[0])
 
     # calculate the bounds of the source that will be overlapping the destination
     # this prevents the source trying to overwrite latent pixels that are out of bounds
     # of the destination
-    visible_width, visible_height = (destination.shape[-1] - left + min(0, x), destination.shape[-2] - top + min(0, y),)
+    visible_width, visible_height = (
+        destination.shape[-1] - left + min(0, x),
+        destination.shape[-2] - top + min(0, y),
+    )
 
     mask = mask[:, :, :visible_height, :visible_width]
     if mask.ndim < source.ndim:
@@ -40,10 +53,11 @@ def composite(destination, source, x, y, mask = None, multiplier = 8, resize_sou
     inverse_mask = torch.ones_like(mask) - mask
 
     source_portion = mask * source[..., :visible_height, :visible_width]
-    destination_portion = inverse_mask  * destination[..., top:bottom, left:right]
+    destination_portion = inverse_mask * destination[..., top:bottom, left:right]
 
     destination[..., top:bottom, left:right] = source_portion + destination_portion
     return destination
+
 
 class LatentCompositeMasked(IO.ComfyNode):
     @classmethod
@@ -63,7 +77,9 @@ class LatentCompositeMasked(IO.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, destination, source, x, y, resize_source, mask = None) -> IO.NodeOutput:
+    def execute(
+        cls, destination, source, x, y, resize_source, mask=None
+    ) -> IO.NodeOutput:
         output = destination.copy()
         destination = destination["samples"].clone()
         source = source["samples"]
@@ -91,10 +107,14 @@ class ImageCompositeMasked(IO.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, destination, source, x, y, resize_source, mask = None) -> IO.NodeOutput:
+    def execute(
+        cls, destination, source, x, y, resize_source, mask=None
+    ) -> IO.NodeOutput:
         destination, source = node_helpers.image_alpha_fix(destination, source)
         destination = destination.clone().movedim(-1, 1)
-        output = composite(destination, source.movedim(-1, 1), x, y, mask, 1, resize_source).movedim(1, -1)
+        output = composite(
+            destination, source.movedim(-1, 1), x, y, mask, 1, resize_source
+        ).movedim(1, -1)
         return IO.NodeOutput(output)
 
     composite = execute  # TODO: remove
@@ -115,7 +135,11 @@ class MaskToImage(IO.ComfyNode):
 
     @classmethod
     def execute(cls, mask) -> IO.NodeOutput:
-        result = mask.reshape((-1, 1, mask.shape[-2], mask.shape[-1])).movedim(1, -1).expand(-1, -1, -1, 3)
+        result = (
+            mask.reshape((-1, 1, mask.shape[-2], mask.shape[-1]))
+            .movedim(1, -1)
+            .expand(-1, -1, -1, 3)
+        )
         return IO.NodeOutput(result)
 
     mask_to_image = execute  # TODO: remove
@@ -152,7 +176,14 @@ class ImageColorToMask(IO.ComfyNode):
             category="mask",
             inputs=[
                 IO.Image.Input("image"),
-                IO.Int.Input("color", default=0, min=0, max=0xFFFFFF, step=1, display_mode=IO.NumberDisplay.number),
+                IO.Int.Input(
+                    "color",
+                    default=0,
+                    min=0,
+                    max=0xFFFFFF,
+                    step=1,
+                    display_mode=IO.NumberDisplay.number,
+                ),
             ],
             outputs=[IO.Mask.Output()],
         )
@@ -160,7 +191,11 @@ class ImageColorToMask(IO.ComfyNode):
     @classmethod
     def execute(cls, image, color) -> IO.NodeOutput:
         temp = (torch.clamp(image, 0, 1.0) * 255.0).round().to(torch.int)
-        temp = torch.bitwise_left_shift(temp[:,:,:,0], 16) + torch.bitwise_left_shift(temp[:,:,:,1], 8) + temp[:,:,:,2]
+        temp = (
+            torch.bitwise_left_shift(temp[:, :, :, 0], 16)
+            + torch.bitwise_left_shift(temp[:, :, :, 1], 8)
+            + temp[:, :, :, 2]
+        )
         mask = torch.where(temp == color, 1.0, 0).float()
         return IO.NodeOutput(mask)
 
@@ -175,8 +210,12 @@ class SolidMask(IO.ComfyNode):
             category="mask",
             inputs=[
                 IO.Float.Input("value", default=1.0, min=0.0, max=1.0, step=0.01),
-                IO.Int.Input("width", default=512, min=1, max=nodes.MAX_RESOLUTION, step=1),
-                IO.Int.Input("height", default=512, min=1, max=nodes.MAX_RESOLUTION, step=1),
+                IO.Int.Input(
+                    "width", default=512, min=1, max=nodes.MAX_RESOLUTION, step=1
+                ),
+                IO.Int.Input(
+                    "height", default=512, min=1, max=nodes.MAX_RESOLUTION, step=1
+                ),
             ],
             outputs=[IO.Mask.Output()],
         )
@@ -219,8 +258,12 @@ class CropMask(IO.ComfyNode):
                 IO.Mask.Input("mask"),
                 IO.Int.Input("x", default=0, min=0, max=nodes.MAX_RESOLUTION, step=1),
                 IO.Int.Input("y", default=0, min=0, max=nodes.MAX_RESOLUTION, step=1),
-                IO.Int.Input("width", default=512, min=1, max=nodes.MAX_RESOLUTION, step=1),
-                IO.Int.Input("height", default=512, min=1, max=nodes.MAX_RESOLUTION, step=1),
+                IO.Int.Input(
+                    "width", default=512, min=1, max=nodes.MAX_RESOLUTION, step=1
+                ),
+                IO.Int.Input(
+                    "height", default=512, min=1, max=nodes.MAX_RESOLUTION, step=1
+                ),
             ],
             outputs=[IO.Mask.Output()],
         )
@@ -228,7 +271,7 @@ class CropMask(IO.ComfyNode):
     @classmethod
     def execute(cls, mask, x, y, width, height) -> IO.NodeOutput:
         mask = mask.reshape((-1, mask.shape[-2], mask.shape[-1]))
-        out = mask[:, y:y + height, x:x + width]
+        out = mask[:, y : y + height, x : x + width]
         return IO.NodeOutput(out)
 
     crop = execute  # TODO: remove
@@ -245,19 +288,33 @@ class MaskComposite(IO.ComfyNode):
                 IO.Mask.Input("source"),
                 IO.Int.Input("x", default=0, min=0, max=nodes.MAX_RESOLUTION, step=1),
                 IO.Int.Input("y", default=0, min=0, max=nodes.MAX_RESOLUTION, step=1),
-                IO.Combo.Input("operation", options=["multiply", "add", "subtract", "and", "or", "xor"]),
+                IO.Combo.Input(
+                    "operation",
+                    options=["multiply", "add", "subtract", "and", "or", "xor"],
+                ),
             ],
             outputs=[IO.Mask.Output()],
         )
 
     @classmethod
     def execute(cls, destination, source, x, y, operation) -> IO.NodeOutput:
-        output = destination.reshape((-1, destination.shape[-2], destination.shape[-1])).clone()
+        output = destination.reshape(
+            (-1, destination.shape[-2], destination.shape[-1])
+        ).clone()
         source = source.reshape((-1, source.shape[-2], source.shape[-1]))
 
-        left, top = (x, y,)
-        right, bottom = (min(left + source.shape[-1], destination.shape[-1]), min(top + source.shape[-2], destination.shape[-2]))
-        visible_width, visible_height = (right - left, bottom - top,)
+        left, top = (
+            x,
+            y,
+        )
+        right, bottom = (
+            min(left + source.shape[-1], destination.shape[-1]),
+            min(top + source.shape[-2], destination.shape[-2]),
+        )
+        visible_width, visible_height = (
+            right - left,
+            bottom - top,
+        )
 
         source_portion = source[:, :visible_height, :visible_width]
         destination_portion = output[:, top:bottom, left:right]
@@ -269,11 +326,17 @@ class MaskComposite(IO.ComfyNode):
         elif operation == "subtract":
             output[:, top:bottom, left:right] = destination_portion - source_portion
         elif operation == "and":
-            output[:, top:bottom, left:right] = torch.bitwise_and(destination_portion.round().bool(), source_portion.round().bool()).float()
+            output[:, top:bottom, left:right] = torch.bitwise_and(
+                destination_portion.round().bool(), source_portion.round().bool()
+            ).float()
         elif operation == "or":
-            output[:, top:bottom, left:right] = torch.bitwise_or(destination_portion.round().bool(), source_portion.round().bool()).float()
+            output[:, top:bottom, left:right] = torch.bitwise_or(
+                destination_portion.round().bool(), source_portion.round().bool()
+            ).float()
         elif operation == "xor":
-            output[:, top:bottom, left:right] = torch.bitwise_xor(destination_portion.round().bool(), source_portion.round().bool()).float()
+            output[:, top:bottom, left:right] = torch.bitwise_xor(
+                destination_portion.round().bool(), source_portion.round().bool()
+            ).float()
 
         output = torch.clamp(output, 0.0, 1.0)
 
@@ -290,10 +353,16 @@ class FeatherMask(IO.ComfyNode):
             category="mask",
             inputs=[
                 IO.Mask.Input("mask"),
-                IO.Int.Input("left", default=0, min=0, max=nodes.MAX_RESOLUTION, step=1),
+                IO.Int.Input(
+                    "left", default=0, min=0, max=nodes.MAX_RESOLUTION, step=1
+                ),
                 IO.Int.Input("top", default=0, min=0, max=nodes.MAX_RESOLUTION, step=1),
-                IO.Int.Input("right", default=0, min=0, max=nodes.MAX_RESOLUTION, step=1),
-                IO.Int.Input("bottom", default=0, min=0, max=nodes.MAX_RESOLUTION, step=1),
+                IO.Int.Input(
+                    "right", default=0, min=0, max=nodes.MAX_RESOLUTION, step=1
+                ),
+                IO.Int.Input(
+                    "bottom", default=0, min=0, max=nodes.MAX_RESOLUTION, step=1
+                ),
             ],
             outputs=[IO.Mask.Output()],
         )
@@ -337,7 +406,13 @@ class GrowMask(IO.ComfyNode):
             category="mask",
             inputs=[
                 IO.Mask.Input("mask"),
-                IO.Int.Input("expand", default=0, min=-nodes.MAX_RESOLUTION, max=nodes.MAX_RESOLUTION, step=1),
+                IO.Int.Input(
+                    "expand",
+                    default=0,
+                    min=-nodes.MAX_RESOLUTION,
+                    max=nodes.MAX_RESOLUTION,
+                    step=1,
+                ),
                 IO.Boolean.Input("tapered_corners", default=True),
             ],
             outputs=[IO.Mask.Output()],
@@ -346,9 +421,7 @@ class GrowMask(IO.ComfyNode):
     @classmethod
     def execute(cls, mask, expand, tapered_corners) -> IO.NodeOutput:
         c = 0 if tapered_corners else 1
-        kernel = np.array([[c, 1, c],
-                           [1, 1, 1],
-                           [c, 1, c]])
+        kernel = np.array([[c, 1, c], [1, 1, 1], [c, 1, c]])
         mask = mask.reshape((-1, mask.shape[-2], mask.shape[-1]))
         out = []
         for m in mask:

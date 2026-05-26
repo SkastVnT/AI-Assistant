@@ -29,6 +29,7 @@ The function is a no-op when:
   * Pillow is unavailable (we degrade silently — pipeline must never
     fail because of crop persistence).
 """
+
 from __future__ import annotations
 
 import base64
@@ -72,7 +73,9 @@ def _resolve_storage_root() -> Path:
     if override:
         return Path(override).expanduser().resolve()
     # repo root = three parents up from this file
-    return (Path(__file__).resolve().parents[2] / "storage" / "feature_layers").resolve()
+    return (
+        Path(__file__).resolve().parents[2] / "storage" / "feature_layers"
+    ).resolve()
 
 
 def _resolve_job_subdir(job: "AnimePipelineJob") -> str:
@@ -96,6 +99,7 @@ def _resolve_job_subdir(job: "AnimePipelineJob") -> str:
 
 
 # ── Image decoding / colour stats ───────────────────────────────────
+
 
 def _decode_b64_png(b64: str):
     """Return a PIL.Image or None.  Pillow import is local so the
@@ -134,6 +138,7 @@ def _color_stats(crop) -> dict[str, Any]:
 
 
 # ── Public entry point ──────────────────────────────────────────────
+
 
 def persist_feature_crops(
     job: "AnimePipelineJob",
@@ -230,8 +235,8 @@ def persist_feature_crops(
                     "ref_index": ref_index,
                     "path": str(fpath),
                     "rel_path": str(fpath.relative_to(_resolve_storage_root().parent))
-                        if fpath.is_relative_to(_resolve_storage_root().parent)
-                        else str(fpath),
+                    if fpath.is_relative_to(_resolve_storage_root().parent)
+                    else str(fpath),
                     "bbox": [x1, y1, x2, y2],
                     "width": x2 - x1,
                     "height": y2 - y1,
@@ -261,6 +266,7 @@ def persist_feature_crops(
 
 # ── Reference vs generated evaluator ────────────────────────────────
 
+
 def evaluate_reference_vs_generated(
     job: "AnimePipelineJob",
     *,
@@ -277,7 +283,13 @@ def evaluate_reference_vs_generated(
     appearance.  Always returns a dict; never raises.
     """
     feature_priority = feature_priority or [
-        "face", "full_face", "eyes", "full_eyes", "hair", "mouth", "nose",
+        "face",
+        "full_face",
+        "eyes",
+        "full_eyes",
+        "hair",
+        "mouth",
+        "nose",
     ]
 
     session = _slug(getattr(job, "session_id", "") or job.job_id, fallback="default")
@@ -309,7 +321,9 @@ def evaluate_reference_vs_generated(
             try:
                 with Image.open(p) as im:
                     s = ImageStat.Stat(im.convert("RGB")).mean
-                rs.append(s[0]); gs.append(s[1]); bs.append(s[2])
+                rs.append(s[0])
+                gs.append(s[1])
+                bs.append(s[2])
             except Exception:
                 continue
         if not rs:
@@ -326,17 +340,17 @@ def evaluate_reference_vs_generated(
         if ref is None or gen is None:
             continue
         delta = (
-            (ref[0] - gen[0]) ** 2
-            + (ref[1] - gen[1]) ** 2
-            + (ref[2] - gen[2]) ** 2
+            (ref[0] - gen[0]) ** 2 + (ref[1] - gen[1]) ** 2 + (ref[2] - gen[2]) ** 2
         ) ** 0.5
-        per_feature.append({
-            "feature": feat,
-            "weight": round(weight, 3),
-            "ref_mean_rgb": [round(c, 1) for c in ref],
-            "gen_mean_rgb": [round(c, 1) for c in gen],
-            "delta_rgb": round(delta, 2),
-        })
+        per_feature.append(
+            {
+                "feature": feat,
+                "weight": round(weight, 3),
+                "ref_mean_rgb": [round(c, 1) for c in ref],
+                "gen_mean_rgb": [round(c, 1) for c in gen],
+                "delta_rgb": round(delta, 2),
+            }
+        )
         weighted_sum += weight * delta
         weight_total += weight
 
@@ -355,6 +369,7 @@ def evaluate_reference_vs_generated(
     }
     logger.info(
         "feature_crop: ref-vs-gen evaluation score=%.2f (%d features compared, face-priority)",
-        score, len(per_feature),
+        score,
+        len(per_feature),
     )
     return result

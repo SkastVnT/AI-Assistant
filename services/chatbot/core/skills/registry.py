@@ -5,13 +5,12 @@ Skills are defined as YAML files under core/skills/builtins/ or loaded from
 the database at runtime.  Each skill carries metadata that the chat pipeline
 uses to customise prompts, tools, and model selection.
 """
+
 from __future__ import annotations
 
 import logging
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +18,7 @@ _BUILTINS_DIR = Path(__file__).parent / "builtins"
 
 
 # ── Skill dataclass ──────────────────────────────────────────────────────
+
 
 @dataclass
 class SkillDefinition:
@@ -31,19 +31,19 @@ class SkillDefinition:
 
     # Prompt injection — appended to the system prompt when the skill is active
     # ``system_prompt_append`` is the canonical alias used by YAML definitions.
-    prompt_fragments: List[str] = field(default_factory=list)
+    prompt_fragments: list[str] = field(default_factory=list)
 
     # Tool gating
-    preferred_tools: List[str] = field(default_factory=list)
-    blocked_tools: List[str] = field(default_factory=list)
+    preferred_tools: list[str] = field(default_factory=list)
+    blocked_tools: list[str] = field(default_factory=list)
 
     # Model / thinking defaults (None = don't override)
-    default_model: Optional[str] = None
-    default_thinking_mode: Optional[str] = None
-    default_context: Optional[str] = None
+    default_model: str | None = None
+    default_thinking_mode: str | None = None
+    default_context: str | None = None
 
     # Auto-routing — keyword / regex patterns that trigger this skill
-    trigger_keywords: List[str] = field(default_factory=list)
+    trigger_keywords: list[str] = field(default_factory=list)
 
     # Priority for auto-routing ties (higher wins)
     priority: int = 0
@@ -55,7 +55,7 @@ class SkillDefinition:
     builtin: bool = False
 
     # Discovery tags (e.g. ["search", "realtime", "web"])
-    tags: List[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
 
     # Disabled skills are invisible to the router and resolver
     enabled: bool = True
@@ -85,18 +85,19 @@ class SkillDefinition:
 
 # ── Registry ─────────────────────────────────────────────────────────────
 
+
 class SkillRegistry:
     """Central store for all loaded skills."""
 
     def __init__(self):
-        self._skills: Dict[str, SkillDefinition] = {}
+        self._skills: dict[str, SkillDefinition] = {}
 
     # ── Queries ──
 
-    def get(self, skill_id: str) -> Optional[SkillDefinition]:
+    def get(self, skill_id: str) -> SkillDefinition | None:
         return self._skills.get(skill_id)
 
-    def get_by_name(self, name: str) -> Optional[SkillDefinition]:
+    def get_by_name(self, name: str) -> SkillDefinition | None:
         """Lookup a skill by its display name (case-insensitive)."""
         name_lower = name.lower()
         for skill in self._skills.values():
@@ -104,17 +105,17 @@ class SkillRegistry:
                 return skill
         return None
 
-    def list_all(self) -> List[SkillDefinition]:
+    def list_all(self) -> list[SkillDefinition]:
         return list(self._skills.values())
 
-    def list_enabled(self) -> List[SkillDefinition]:
+    def list_enabled(self) -> list[SkillDefinition]:
         """Return only skills whose ``enabled`` flag is True."""
         return [s for s in self._skills.values() if s.enabled]
 
-    def list_ids(self) -> List[str]:
+    def list_ids(self) -> list[str]:
         return list(self._skills.keys())
 
-    def list_ui_visible(self) -> List[SkillDefinition]:
+    def list_ui_visible(self) -> list[SkillDefinition]:
         return [s for s in self._skills.values() if s.ui_visible and s.enabled]
 
     # ── Mutations ──
@@ -162,6 +163,7 @@ class SkillRegistry:
 
 # ── YAML parser ──────────────────────────────────────────────────────────
 
+
 def _parse_yaml(raw: dict, builtin: bool = False) -> SkillDefinition:
     """Parse a raw dict (from YAML) into a SkillDefinition.
 
@@ -198,7 +200,7 @@ def _as_list(val) -> list:
 
 # ── Singleton accessor ───────────────────────────────────────────────────
 
-_registry: Optional[SkillRegistry] = None
+_registry: SkillRegistry | None = None
 
 
 def get_skill_registry() -> SkillRegistry:

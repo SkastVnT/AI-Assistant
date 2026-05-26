@@ -12,6 +12,7 @@ Every method is synchronous so request-scoped code can call it without
 ``await``, but the public surface is kept deliberately thin so a future
 async variant can be layered on top.
 """
+
 from __future__ import annotations
 
 import logging
@@ -20,7 +21,6 @@ from typing import Protocol, runtime_checkable
 
 from core.agentic.config import CouncilConfig
 from core.agentic.contracts import (
-    CouncilTrace,
     CriticOutput,
     PlannerOutput,
     ResearcherOutput,
@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 # ── Protocol (structural typing) ──────────────────────────────────────
+
 
 @runtime_checkable
 class BlackboardStore(Protocol):
@@ -50,7 +51,9 @@ class BlackboardStore(Protocol):
 
     def append_planner_tasks(self, run_id: str, output: PlannerOutput) -> None: ...
 
-    def append_research_evidence(self, run_id: str, output: ResearcherOutput) -> None: ...
+    def append_research_evidence(
+        self, run_id: str, output: ResearcherOutput
+    ) -> None: ...
 
     def append_critic_issues(self, run_id: str, output: CriticOutput) -> None: ...
 
@@ -60,6 +63,7 @@ class BlackboardStore(Protocol):
 
 
 # ── Factory ────────────────────────────────────────────────────────────
+
 
 def create_blackboard(backend: str | None = None) -> BlackboardStore:
     """Instantiate the requested blackboard adapter.
@@ -87,7 +91,9 @@ def create_blackboard(backend: str | None = None) -> BlackboardStore:
         return RedisBlackboard(redis_url=url, ttl=ttl)
 
     if backend != "memory":
-        logger.warning("Unknown blackboard backend %r — falling back to memory", backend)
+        logger.warning(
+            "Unknown blackboard backend %r — falling back to memory", backend
+        )
 
     from core.agentic.blackboard_memory import InMemoryBlackboard  # lazy
 

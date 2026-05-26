@@ -4,7 +4,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from services.chatbot.core.central_router import route_request
-from services.chatbot.core.central_trace import RequestTrace, InMemoryTraceStore, AgentStep
+from services.chatbot.core.central_trace import (
+    AgentStep,
+    InMemoryTraceStore,
+    RequestTrace,
+)
 from services.chatbot.core.job_queue import JobQueue
 
 

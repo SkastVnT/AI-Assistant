@@ -1,6 +1,7 @@
 """
 Google Gemini embedding provider.
 """
+
 from __future__ import annotations
 
 import logging

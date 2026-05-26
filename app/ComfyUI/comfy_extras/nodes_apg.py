@@ -10,6 +10,7 @@ def project(v0, v1):
     v0_orthogonal = v0 - v0_parallel
     return v0_parallel, v0_orthogonal
 
+
 class APG(io.ComfyNode):
     @classmethod
     def define_schema(cls) -> io.Schema:
@@ -55,7 +56,8 @@ class APG(io.ComfyNode):
         def pre_cfg_function(args):
             nonlocal running_avg, prev_sigma
 
-            if len(args["conds_out"]) == 1: return args["conds_out"]
+            if len(args["conds_out"]) == 1:
+                return args["conds_out"]
 
             cond = args["conds_out"][0]
             uncond = args["conds_out"][1]
@@ -78,8 +80,7 @@ class APG(io.ComfyNode):
             if norm_threshold > 0:
                 guidance_norm = guidance.norm(p=2, dim=[-1, -2, -3], keepdim=True)
                 scale = torch.minimum(
-                    torch.ones_like(guidance_norm),
-                    norm_threshold / guidance_norm
+                    torch.ones_like(guidance_norm), norm_threshold / guidance_norm
                 )
                 guidance = guidance * scale
 
@@ -101,6 +102,7 @@ class ApgExtension(ComfyExtension):
         return [
             APG,
         ]
+
 
 async def comfy_entrypoint() -> ApgExtension:
     return ApgExtension()

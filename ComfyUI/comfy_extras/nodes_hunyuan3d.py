@@ -3,13 +3,18 @@ import os
 import json
 import struct
 import numpy as np
-from comfy.ldm.modules.diffusionmodules.mmdit import get_1d_sincos_pos_embed_from_grid_torch
+from comfy.ldm.modules.diffusionmodules.mmdit import (
+    get_1d_sincos_pos_embed_from_grid_torch,
+)
 import folder_paths
 import comfy.model_management
 from comfy.cli_args import args
 from typing_extensions import override
 from comfy_api.latest import ComfyExtension, IO, Types
-from comfy_api.latest._util import MESH, VOXEL  # only for backward compatibility if someone import it from this file (will be removed later) # noqa
+from comfy_api.latest._util import (
+    MESH,
+    VOXEL,
+)  # only for backward compatibility if someone import it from this file (will be removed later) # noqa
 
 
 class EmptyLatentHunyuan3Dv2(IO.ComfyNode):
@@ -20,16 +25,25 @@ class EmptyLatentHunyuan3Dv2(IO.ComfyNode):
             category="latent/3d",
             inputs=[
                 IO.Int.Input("resolution", default=3072, min=1, max=8192),
-                IO.Int.Input("batch_size", default=1, min=1, max=4096, tooltip="The number of latent images in the batch."),
+                IO.Int.Input(
+                    "batch_size",
+                    default=1,
+                    min=1,
+                    max=4096,
+                    tooltip="The number of latent images in the batch.",
+                ),
             ],
             outputs=[
                 IO.Latent.Output(),
-            ]
+            ],
         )
 
     @classmethod
     def execute(cls, resolution, batch_size) -> IO.NodeOutput:
-        latent = torch.zeros([batch_size, 64, resolution], device=comfy.model_management.intermediate_device())
+        latent = torch.zeros(
+            [batch_size, 64, resolution],
+            device=comfy.model_management.intermediate_device(),
+        )
         return IO.NodeOutput({"samples": latent, "type": "hunyuan3dv2"})
 
     generate = execute  # TODO: remove
@@ -47,7 +61,7 @@ class Hunyuan3Dv2Conditioning(IO.ComfyNode):
             outputs=[
                 IO.Conditioning.Output(display_name="positive"),
                 IO.Conditioning.Output(display_name="negative"),
-            ]
+            ],
         )
 
     @classmethod
@@ -75,7 +89,7 @@ class Hunyuan3Dv2ConditioningMultiView(IO.ComfyNode):
             outputs=[
                 IO.Conditioning.Output(display_name="positive"),
                 IO.Conditioning.Output(display_name="negative"),
-            ]
+            ],
         )
 
     @classmethod
@@ -86,7 +100,9 @@ class Hunyuan3Dv2ConditioningMultiView(IO.ComfyNode):
         for i, e in enumerate(all_embeds):
             if e is not None:
                 if pos_embeds is None:
-                    pos_embeds = get_1d_sincos_pos_embed_from_grid_torch(e.last_hidden_state.shape[-1], torch.arange(4))
+                    pos_embeds = get_1d_sincos_pos_embed_from_grid_torch(
+                        e.last_hidden_state.shape[-1], torch.arange(4)
+                    )
                 out.append(e.last_hidden_state + pos_embeds[i].reshape(1, 1, -1))
 
         embeds = torch.cat(out, dim=1)
@@ -111,12 +127,20 @@ class VAEDecodeHunyuan3D(IO.ComfyNode):
             ],
             outputs=[
                 IO.Voxel.Output(),
-            ]
+            ],
         )
 
     @classmethod
     def execute(cls, vae, samples, num_chunks, octree_resolution) -> IO.NodeOutput:
-        voxels = Types.VOXEL(vae.decode(samples["samples"], vae_options={"num_chunks": num_chunks, "octree_resolution": octree_resolution}))
+        voxels = Types.VOXEL(
+            vae.decode(
+                samples["samples"],
+                vae_options={
+                    "num_chunks": num_chunks,
+                    "octree_resolution": octree_resolution,
+                },
+            )
+        )
         return IO.NodeOutput(voxels)
 
     decode = execute  # TODO: remove
@@ -128,24 +152,20 @@ def voxel_to_mesh(voxels, threshold=0.5, device=None):
     voxels = voxels.to(device)
 
     binary = (voxels > threshold).float()
-    padded = torch.nn.functional.pad(binary, (1, 1, 1, 1, 1, 1), 'constant', 0)
+    padded = torch.nn.functional.pad(binary, (1, 1, 1, 1, 1, 1), "constant", 0)
 
     D, H, W = binary.shape
 
-    neighbors = torch.tensor([
-        [0, 0, 1],
-        [0, 0, -1],
-        [0, 1, 0],
-        [0, -1, 0],
-        [1, 0, 0],
-        [-1, 0, 0]
-    ], device=device)
+    neighbors = torch.tensor(
+        [[0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0], [1, 0, 0], [-1, 0, 0]],
+        device=device,
+    )
 
     z, y, x = torch.meshgrid(
         torch.arange(D, device=device),
         torch.arange(H, device=device),
         torch.arange(W, device=device),
-        indexing='ij'
+        indexing="ij",
     )
     voxel_indices = torch.stack([z.flatten(), y.flatten(), x.flatten()], dim=1)
 
@@ -153,24 +173,12 @@ def voxel_to_mesh(voxels, threshold=0.5, device=None):
     solid_indices = voxel_indices[solid_mask]
 
     corner_offsets = [
-        torch.tensor([
-            [0, 0, 1], [0, 1, 1], [1, 1, 1], [1, 0, 1]
-        ], device=device),
-        torch.tensor([
-            [0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]
-        ], device=device),
-        torch.tensor([
-            [0, 1, 0], [1, 1, 0], [1, 1, 1], [0, 1, 1]
-        ], device=device),
-        torch.tensor([
-            [0, 0, 0], [0, 0, 1], [1, 0, 1], [1, 0, 0]
-        ], device=device),
-        torch.tensor([
-            [1, 0, 1], [1, 1, 1], [1, 1, 0], [1, 0, 0]
-        ], device=device),
-        torch.tensor([
-            [0, 1, 0], [0, 1, 1], [0, 0, 1], [0, 0, 0]
-        ], device=device)
+        torch.tensor([[0, 0, 1], [0, 1, 1], [1, 1, 1], [1, 0, 1]], device=device),
+        torch.tensor([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]], device=device),
+        torch.tensor([[0, 1, 0], [1, 1, 0], [1, 1, 1], [0, 1, 1]], device=device),
+        torch.tensor([[0, 0, 0], [0, 0, 1], [1, 0, 1], [1, 0, 0]], device=device),
+        torch.tensor([[1, 0, 1], [1, 1, 1], [1, 1, 0], [1, 0, 0]], device=device),
+        torch.tensor([[0, 1, 0], [0, 1, 1], [0, 0, 1], [0, 0, 0]], device=device),
     ]
 
     all_vertices = []
@@ -183,11 +191,10 @@ def voxel_to_mesh(voxels, threshold=0.5, device=None):
 
         padded_indices = neighbor_indices + 1
 
-        is_exposed = padded[
-            padded_indices[:, 0],
-            padded_indices[:, 1],
-            padded_indices[:, 2]
-        ] == 0
+        is_exposed = (
+            padded[padded_indices[:, 0], padded_indices[:, 1], padded_indices[:, 2]]
+            == 0
+        )
 
         if not is_exposed.any():
             continue
@@ -202,13 +209,19 @@ def voxel_to_mesh(voxels, threshold=0.5, device=None):
 
         num_faces = exposed_indices.shape[0]
         face_indices = torch.arange(
-            vertex_count,
-            vertex_count + 4 * num_faces,
-            device=device
+            vertex_count, vertex_count + 4 * num_faces, device=device
         ).reshape(-1, 4)
 
-        all_indices.append(torch.stack([face_indices[:, 0], face_indices[:, 1], face_indices[:, 2]], dim=1))
-        all_indices.append(torch.stack([face_indices[:, 0], face_indices[:, 2], face_indices[:, 3]], dim=1))
+        all_indices.append(
+            torch.stack(
+                [face_indices[:, 0], face_indices[:, 1], face_indices[:, 2]], dim=1
+            )
+        )
+        all_indices.append(
+            torch.stack(
+                [face_indices[:, 0], face_indices[:, 2], face_indices[:, 3]], dim=1
+            )
+        )
 
         vertex_count += 4 * num_faces
 
@@ -231,6 +244,7 @@ def voxel_to_mesh(voxels, threshold=0.5, device=None):
     vertices = torch.fliplr(vertices)
     return vertices, faces
 
+
 def voxel_to_mesh_surfnet(voxels, threshold=0.5, device=None):
     if device is None:
         device = torch.device("cpu")
@@ -238,19 +252,28 @@ def voxel_to_mesh_surfnet(voxels, threshold=0.5, device=None):
 
     D, H, W = voxels.shape
 
-    padded = torch.nn.functional.pad(voxels, (1, 1, 1, 1, 1, 1), 'constant', 0)
+    padded = torch.nn.functional.pad(voxels, (1, 1, 1, 1, 1, 1), "constant", 0)
     z, y, x = torch.meshgrid(
         torch.arange(D, device=device),
         torch.arange(H, device=device),
         torch.arange(W, device=device),
-        indexing='ij'
+        indexing="ij",
     )
     cell_positions = torch.stack([z.flatten(), y.flatten(), x.flatten()], dim=1)
 
-    corner_offsets = torch.tensor([
-        [0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0],
-        [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1]
-    ], device=device)
+    corner_offsets = torch.tensor(
+        [
+            [0, 0, 0],
+            [1, 0, 0],
+            [0, 1, 0],
+            [1, 1, 0],
+            [0, 0, 1],
+            [1, 0, 1],
+            [0, 1, 1],
+            [1, 1, 1],
+        ],
+        device=device,
+    )
 
     pos = cell_positions.unsqueeze(1) + corner_offsets.unsqueeze(0)
     z_idx, y_idx, x_idx = pos.unbind(-1)
@@ -266,13 +289,27 @@ def voxel_to_mesh_surfnet(voxels, threshold=0.5, device=None):
     active_values = corner_values[contains_surface]
 
     if active_cells.shape[0] == 0:
-        return torch.zeros((0, 3), device=device), torch.zeros((0, 3), dtype=torch.long, device=device)
+        return torch.zeros((0, 3), device=device), torch.zeros(
+            (0, 3), dtype=torch.long, device=device
+        )
 
-    edges = torch.tensor([
-        [0, 1], [0, 2], [0, 4], [1, 3],
-        [1, 5], [2, 3], [2, 6], [3, 7],
-        [4, 5], [4, 6], [5, 7], [6, 7]
-    ], device=device)
+    edges = torch.tensor(
+        [
+            [0, 1],
+            [0, 2],
+            [0, 4],
+            [1, 3],
+            [1, 5],
+            [2, 3],
+            [2, 6],
+            [3, 7],
+            [4, 5],
+            [4, 6],
+            [5, 7],
+            [6, 7],
+        ],
+        device=device,
+    )
 
     cell_vertices = {}
     progress = comfy.utils.ProgressBar(100)
@@ -297,7 +334,9 @@ def voxel_to_mesh_surfnet(voxels, threshold=0.5, device=None):
         p1 = corner_offsets[e1].float()
         p2 = corner_offsets[e2].float()
 
-        intersection = p1.unsqueeze(0) + t.unsqueeze(1) * (p2.unsqueeze(0) - p1.unsqueeze(0))
+        intersection = p1.unsqueeze(0) + t.unsqueeze(1) * (
+            p2.unsqueeze(0) - p1.unsqueeze(0)
+        )
 
         for i, point in zip(cell_indices.tolist(), intersection):
             if i not in cell_vertices:
@@ -308,7 +347,7 @@ def voxel_to_mesh_surfnet(voxels, threshold=0.5, device=None):
     vertices = []
     vertex_lookup = {}
 
-    vert_progress_mod = round(len(cell_vertices)/50)
+    vert_progress_mod = round(len(cell_vertices) / 50)
 
     for i, points in cell_vertices.items():
         if not i % vert_progress_mod:
@@ -321,7 +360,9 @@ def voxel_to_mesh_surfnet(voxels, threshold=0.5, device=None):
             vertices.append(vertex)
 
     if not vertices:
-        return torch.zeros((0, 3), device=device), torch.zeros((0, 3), dtype=torch.long, device=device)
+        return torch.zeros((0, 3), device=device), torch.zeros(
+            (0, 3), dtype=torch.long, device=device
+        )
 
     final_vertices = torch.stack(vertices)
 
@@ -344,23 +385,20 @@ def voxel_to_mesh_surfnet(voxels, threshold=0.5, device=None):
     outside_pos /= outside_counts
     gradients = inside_pos - outside_pos
 
-    pos_dirs = torch.tensor([
-        [1, 0, 0],
-        [0, 1, 0],
-        [0, 0, 1]
-    ], device=device)
+    pos_dirs = torch.tensor([[1, 0, 0], [0, 1, 0], [0, 0, 1]], device=device)
 
     cross_products = [
         torch.linalg.cross(pos_dirs[i].float(), pos_dirs[j].float())
-        for i in range(3) for j in range(i+1, 3)
+        for i in range(3)
+        for j in range(i + 1, 3)
     ]
 
     faces = []
     all_keys = set(vertex_lookup.keys())
 
-    face_progress_mod = round(len(active_cells)/38*3)
+    face_progress_mod = round(len(active_cells) / 38 * 3)
 
-    for pair_idx, (i, j) in enumerate([(0,1), (0,2), (1,2)]):
+    for pair_idx, (i, j) in enumerate([(0, 1), (0, 2), (1, 2)]):
         dir_i = pos_dirs[i]
         dir_j = pos_dirs[j]
         cross_product = cross_products[pair_idx]
@@ -382,7 +420,12 @@ def voxel_to_mesh_surfnet(voxels, threshold=0.5, device=None):
             nj_key = tuple(nj_positions[idx].tolist())
             diag_key = tuple(diag_positions[idx].tolist())
 
-            if cell_key in all_keys and ni_key in all_keys and nj_key in all_keys and diag_key in all_keys:
+            if (
+                cell_key in all_keys
+                and ni_key in all_keys
+                and nj_key in all_keys
+                and diag_key in all_keys
+            ):
                 v0 = vertex_lookup[cell_key]
                 v1 = vertex_lookup[ni_key]
                 v2 = vertex_lookup[nj_key]
@@ -394,11 +437,19 @@ def voxel_to_mesh_surfnet(voxels, threshold=0.5, device=None):
         for q_idx, (v0, v1, v2, v3) in enumerate(valid_quads):
             cell_idx = quad_indices[q_idx]
             if alignments[cell_idx] > 0:
-                faces.append(torch.tensor([v0, v1, v3], device=device, dtype=torch.long))
-                faces.append(torch.tensor([v0, v3, v2], device=device, dtype=torch.long))
+                faces.append(
+                    torch.tensor([v0, v1, v3], device=device, dtype=torch.long)
+                )
+                faces.append(
+                    torch.tensor([v0, v3, v2], device=device, dtype=torch.long)
+                )
             else:
-                faces.append(torch.tensor([v0, v3, v1], device=device, dtype=torch.long))
-                faces.append(torch.tensor([v0, v2, v3], device=device, dtype=torch.long))
+                faces.append(
+                    torch.tensor([v0, v3, v1], device=device, dtype=torch.long)
+                )
+                faces.append(
+                    torch.tensor([v0, v2, v3], device=device, dtype=torch.long)
+                )
 
     if faces:
         faces = torch.stack(faces)
@@ -431,7 +482,7 @@ class VoxelToMeshBasic(IO.ComfyNode):
             ],
             outputs=[
                 IO.Mesh.Output(),
-            ]
+            ],
         )
 
     @classmethod
@@ -461,7 +512,7 @@ class VoxelToMesh(IO.ComfyNode):
             ],
             outputs=[
                 IO.Mesh.Output(),
-            ]
+            ],
         )
 
     @classmethod
@@ -503,7 +554,7 @@ def save_glb(vertices, faces, filepath, metadata=None):
 
     def pad_to_4_bytes(buffer):
         padding_length = (4 - (len(buffer) % 4)) % 4
-        return buffer + b'\x00' * padding_length
+        return buffer + b"\x00" * padding_length
 
     vertices_buffer_padded = pad_to_4_bytes(vertices_buffer)
     indices_buffer_padded = pad_to_4_bytes(indices_buffer)
@@ -517,24 +568,20 @@ def save_glb(vertices, faces, filepath, metadata=None):
 
     gltf = {
         "asset": {"version": "2.0", "generator": "ComfyUI"},
-        "buffers": [
-            {
-                "byteLength": len(buffer_data)
-            }
-        ],
+        "buffers": [{"byteLength": len(buffer_data)}],
         "bufferViews": [
             {
                 "buffer": 0,
                 "byteOffset": vertices_byte_offset,
                 "byteLength": vertices_byte_length,
-                "target": 34962  # ARRAY_BUFFER
+                "target": 34962,  # ARRAY_BUFFER
             },
             {
                 "buffer": 0,
                 "byteOffset": indices_byte_offset,
                 "byteLength": indices_byte_length,
-                "target": 34963  # ELEMENT_ARRAY_BUFFER
-            }
+                "target": 34963,  # ELEMENT_ARRAY_BUFFER
+            },
         ],
         "accessors": [
             {
@@ -544,66 +591,62 @@ def save_glb(vertices, faces, filepath, metadata=None):
                 "count": len(vertices_np),
                 "type": "VEC3",
                 "max": vertices_np.max(axis=0).tolist(),
-                "min": vertices_np.min(axis=0).tolist()
+                "min": vertices_np.min(axis=0).tolist(),
             },
             {
                 "bufferView": 1,
                 "byteOffset": 0,
                 "componentType": 5125,  # UNSIGNED_INT
                 "count": faces_np.size,
-                "type": "SCALAR"
-            }
+                "type": "SCALAR",
+            },
         ],
         "meshes": [
             {
                 "primitives": [
                     {
-                        "attributes": {
-                            "POSITION": 0
-                        },
+                        "attributes": {"POSITION": 0},
                         "indices": 1,
-                        "mode": 4  # TRIANGLES
+                        "mode": 4,  # TRIANGLES
                     }
                 ]
             }
         ],
-        "nodes": [
-            {
-                "mesh": 0
-            }
-        ],
-        "scenes": [
-            {
-                "nodes": [0]
-            }
-        ],
-        "scene": 0
+        "nodes": [{"mesh": 0}],
+        "scenes": [{"nodes": [0]}],
+        "scene": 0,
     }
 
     if metadata is not None:
         gltf["asset"]["extras"] = metadata
 
     # Convert the JSON to bytes
-    gltf_json = json.dumps(gltf).encode('utf8')
+    gltf_json = json.dumps(gltf).encode("utf8")
 
     def pad_json_to_4_bytes(buffer):
         padding_length = (4 - (len(buffer) % 4)) % 4
-        return buffer + b' ' * padding_length
+        return buffer + b" " * padding_length
 
     gltf_json_padded = pad_json_to_4_bytes(gltf_json)
 
     # Create the GLB header
     # Magic glTF
-    glb_header = struct.pack('<4sII', b'glTF', 2, 12 + 8 + len(gltf_json_padded) + 8 + len(buffer_data))
+    glb_header = struct.pack(
+        "<4sII", b"glTF", 2, 12 + 8 + len(gltf_json_padded) + 8 + len(buffer_data)
+    )
 
     # Create JSON chunk header (chunk type 0)
-    json_chunk_header = struct.pack('<II', len(gltf_json_padded), 0x4E4F534A)  # "JSON" in little endian
+    json_chunk_header = struct.pack(
+        "<II", len(gltf_json_padded), 0x4E4F534A
+    )  # "JSON" in little endian
 
     # Create BIN chunk header (chunk type 1)
-    bin_chunk_header = struct.pack('<II', len(buffer_data), 0x004E4942)  # "BIN\0" in little endian
+    bin_chunk_header = struct.pack(
+        "<II", len(buffer_data), 0x004E4942
+    )  # "BIN\0" in little endian
 
     # Write the GLB file
-    with open(filepath, 'wb') as f:
+    with open(filepath, "wb") as f:
         f.write(glb_header)
         f.write(json_chunk_header)
         f.write(gltf_json_padded)
@@ -624,12 +667,16 @@ class SaveGLB(IO.ComfyNode):
                 IO.Mesh.Input("mesh"),
                 IO.String.Input("filename_prefix", default="mesh/ComfyUI"),
             ],
-            hidden=[IO.Hidden.prompt, IO.Hidden.extra_pnginfo]
+            hidden=[IO.Hidden.prompt, IO.Hidden.extra_pnginfo],
         )
 
     @classmethod
     def execute(cls, mesh, filename_prefix) -> IO.NodeOutput:
-        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, folder_paths.get_output_directory())
+        full_output_folder, filename, counter, subfolder, filename_prefix = (
+            folder_paths.get_save_image_path(
+                filename_prefix, folder_paths.get_output_directory()
+            )
+        )
         results = []
 
         metadata = {}
@@ -642,12 +689,13 @@ class SaveGLB(IO.ComfyNode):
 
         for i in range(mesh.vertices.shape[0]):
             f = f"{filename}_{counter:05}_.glb"
-            save_glb(mesh.vertices[i], mesh.faces[i], os.path.join(full_output_folder, f), metadata)
-            results.append({
-                "filename": f,
-                "subfolder": subfolder,
-                "type": "output"
-            })
+            save_glb(
+                mesh.vertices[i],
+                mesh.faces[i],
+                os.path.join(full_output_folder, f),
+                metadata,
+            )
+            results.append({"filename": f, "subfolder": subfolder, "type": "output"})
             counter += 1
         return IO.NodeOutput(ui={"3d": results})
 

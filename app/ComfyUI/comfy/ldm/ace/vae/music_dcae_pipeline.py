@@ -2,6 +2,7 @@
 import torch
 from .autoencoder_dc import AutoencoderDC
 import logging
+
 try:
     import torchaudio
 except:
@@ -23,9 +24,11 @@ class MusicDCAE(torch.nn.Module):
         else:
             self.source_sample_rate = source_sample_rate
 
-        self.transform = transforms.Compose([
-            transforms.Normalize(0.5, 0.5),
-        ])
+        self.transform = transforms.Compose(
+            [
+                transforms.Normalize(0.5, 0.5),
+            ]
+        )
         self.min_mel_value = -11.0
         self.max_mel_value = 3.0
         self.audio_chunk_size = int(round((1024 * 512 / 44100 * 48000)))
@@ -57,7 +60,9 @@ class MusicDCAE(torch.nn.Module):
 
         max_audio_len = audios.shape[-1]
         if max_audio_len % (8 * 512) != 0:
-            audios = torch.nn.functional.pad(audios, (0, 8 * 512 - max_audio_len % (8 * 512)))
+            audios = torch.nn.functional.pad(
+                audios, (0, 8 * 512 - max_audio_len % (8 * 512))
+            )
 
         mels = self.forward_mel(audios)
         mels = (mels - self.min_mel_value) / (self.max_mel_value - self.min_mel_value)
@@ -89,10 +94,14 @@ class MusicDCAE(torch.nn.Module):
             pred_wavs.append(wav)
 
         if audio_lengths is not None:
-            pred_wavs = [wav[:, :length].cpu() for wav, length in zip(pred_wavs, audio_lengths)]
+            pred_wavs = [
+                wav[:, :length].cpu() for wav, length in zip(pred_wavs, audio_lengths)
+            ]
         return torch.stack(pred_wavs)
 
     def forward(self, audios, audio_lengths=None, sr=None):
-        latents, latent_lengths = self.encode(audios=audios, audio_lengths=audio_lengths, sr=sr)
+        latents, latent_lengths = self.encode(
+            audios=audios, audio_lengths=audio_lengths, sr=sr
+        )
         sr, pred_wavs = self.decode(latents=latents, audio_lengths=audio_lengths, sr=sr)
         return sr, pred_wavs, latents, latent_lengths

@@ -11,6 +11,7 @@ MaskInput = torch.Tensor
 A mask in format [B, H, W] where B is the batch size
 """
 
+
 class AudioInput(TypedDict):
     """
     TypedDict representing audio input.
@@ -22,6 +23,7 @@ class AudioInput(TypedDict):
     """
 
     sample_rate: int
+
 
 class LatentInput(TypedDict):
     """

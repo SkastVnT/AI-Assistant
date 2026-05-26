@@ -109,14 +109,16 @@ async def seed(session: AsyncSession) -> None:
     session.add(ver1)
 
     # Sample chunks (no real embeddings — just placeholders)
-    for i, text_content in enumerate([
-        "Retrieval-Augmented Generation (RAG) combines information retrieval with "
-        "language model generation. The retrieval component searches a knowledge base "
-        "for relevant documents, while the generation component synthesizes answers.",
-        "Key components of a RAG system include: vector database for similarity search, "
-        "embedding model for document and query encoding, chunking strategy for splitting "
-        "documents, and a language model for answer generation.",
-    ]):
+    for i, text_content in enumerate(
+        [
+            "Retrieval-Augmented Generation (RAG) combines information retrieval with "
+            "language model generation. The retrieval component searches a knowledge base "
+            "for relevant documents, while the generation component synthesizes answers.",
+            "Key components of a RAG system include: vector database for similarity search, "
+            "embedding model for document and query encoding, chunking strategy for splitting "
+            "documents, and a language model for answer generation.",
+        ]
+    ):
         chunk = DocumentChunk(
             tenant_id=TENANT_ID,
             document_id=DOC1_ID,
@@ -155,8 +157,7 @@ async def seed(session: AsyncSession) -> None:
     session.add(doc2)
 
     await session.commit()
-    print(f"Seed data created: tenant={TENANT_ID}, user={USER_ID}, "
-          f"docs=[{DOC1_ID}, {DOC2_ID}]")
+    print(f"Seed data created: tenant={TENANT_ID}, user={USER_ID}, docs=[{DOC1_ID}, {DOC2_ID}]")
 
 
 async def main() -> None:

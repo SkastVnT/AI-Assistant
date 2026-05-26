@@ -35,9 +35,15 @@ _ARTIFACT_PENALTY_CAP = 3.0
 _TOTAL_POSITIVE_WEIGHT = _WEIGHT_FACE + _WEIGHT_CLARITY + _WEIGHT_STYLE
 
 # Stages eligible for ranking
-_RANKABLE_STAGES = frozenset({
-    "beauty_pass", "refine_beauty", "upscale", "composition_pass", "cleanup_pass",
-})
+_RANKABLE_STAGES = frozenset(
+    {
+        "beauty_pass",
+        "refine_beauty",
+        "upscale",
+        "composition_pass",
+        "cleanup_pass",
+    }
+)
 
 # Default scores when no critique is available
 _DEFAULT_SCORE = 5.0
@@ -66,7 +72,9 @@ def score_candidate(
         style_consistency = _DEFAULT_SCORE
         artifact_count = 0
 
-    composite = _compute_composite(face_quality, clarity, style_consistency, artifact_count)
+    composite = _compute_composite(
+        face_quality, clarity, style_consistency, artifact_count
+    )
 
     return RankCandidate(
         image_b64=image_b64,
@@ -133,7 +141,9 @@ class FinalRanker:
         return result
 
     def _find_critique_for(
-        self, img: IntermediateImage, job: AnimePipelineJob,
+        self,
+        img: IntermediateImage,
+        job: AnimePipelineJob,
     ) -> Optional[CritiqueReport]:
         """Find the most relevant critique for an intermediate image.
 
@@ -156,6 +166,7 @@ class FinalRanker:
 
 
 # ── Scoring helpers ───────────────────────────────────────────────
+
 
 def _face_quality_from_critique(c: CritiqueReport) -> float:
     """Weighted face quality from face_score and eye_consistency_score."""

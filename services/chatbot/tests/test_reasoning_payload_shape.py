@@ -12,6 +12,7 @@ All three rich payloads are sent with ``preflight_only=true`` so no real
 generation happens. A sentinel comfy client fails the test if any code
 path tries to submit a workflow.
 """
+
 from __future__ import annotations
 
 import sys

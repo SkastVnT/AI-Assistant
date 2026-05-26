@@ -4,10 +4,12 @@ Revision ID: 0001
 Revises: None
 Create Date: 2026-04-01
 """
-from typing import Sequence, Union
 
-from alembic import op
+from collections.abc import Sequence
+from typing import Union
+
 import sqlalchemy as sa
+from alembic import op
 from pgvector.sqlalchemy import Vector
 
 # revision identifiers, used by Alembic.

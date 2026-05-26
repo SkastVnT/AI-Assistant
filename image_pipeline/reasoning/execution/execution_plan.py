@@ -361,31 +361,45 @@ def _default_params_for(
         "negative_prompt": _negative_prompt(spec),
     }
     if stage is StageKind.RENDER:
-        base.update({"steps": 28, "cfg": 6.5, "sampler": "euler", "scheduler": "normal"})
+        base.update(
+            {"steps": 28, "cfg": 6.5, "sampler": "euler", "scheduler": "normal"}
+        )
     elif stage is StageKind.INPAINT:
         base.update({"steps": 24, "cfg": 6.5, "denoise": 0.8})
     elif stage is StageKind.FACE_PATCH:
-        base.update({"steps": 20, "cfg": 6.0, "denoise": 0.45,
-                     "target_regions": ["face", "eyes"]})
+        base.update(
+            {
+                "steps": 20,
+                "cfg": 6.0,
+                "denoise": 0.45,
+                "target_regions": ["face", "eyes"],
+            }
+        )
     elif stage is StageKind.PROP_PATCH:
-        base.update({"steps": 22, "cfg": 6.0, "denoise": 0.5,
-                     "target_regions": [
-                         req.prop_key for req in spec.prop_requirements
-                     ]})
+        base.update(
+            {
+                "steps": 22,
+                "cfg": 6.0,
+                "denoise": 0.5,
+                "target_regions": [req.prop_key for req in spec.prop_requirements],
+            }
+        )
     elif stage is StageKind.UPSCALE:
         base.update({"scale": 2.0})
     elif stage is StageKind.OVERLAY:
-        base.update({
-            "elements": [
-                {
-                    "id": el.element_id,
-                    "kind": el.kind.value,
-                    "text": el.text,
-                    "z_order": el.z_order,
-                }
-                for el in spec.overlay_plan.elements
-            ],
-        })
+        base.update(
+            {
+                "elements": [
+                    {
+                        "id": el.element_id,
+                        "kind": el.kind.value,
+                        "text": el.text,
+                        "z_order": el.z_order,
+                    }
+                    for el in spec.overlay_plan.elements
+                ],
+            }
+        )
     return base
 
 

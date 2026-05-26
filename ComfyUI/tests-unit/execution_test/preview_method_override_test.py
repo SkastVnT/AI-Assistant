@@ -7,6 +7,7 @@ Tests the preview method override functionality:
 - default_preview_method variable
 - Integration with args.preview_method
 """
+
 import pytest
 from comfy.cli_args import args, LatentPreviewMethod
 from latent_preview import set_preview_method, default_preview_method
@@ -15,25 +16,31 @@ from latent_preview import set_preview_method, default_preview_method
 class TestLatentPreviewMethodFromString:
     """Test LatentPreviewMethod.from_string() classmethod."""
 
-    @pytest.mark.parametrize("value,expected", [
-        ("auto", LatentPreviewMethod.Auto),
-        ("latent2rgb", LatentPreviewMethod.Latent2RGB),
-        ("taesd", LatentPreviewMethod.TAESD),
-        ("none", LatentPreviewMethod.NoPreviews),
-    ])
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            ("auto", LatentPreviewMethod.Auto),
+            ("latent2rgb", LatentPreviewMethod.Latent2RGB),
+            ("taesd", LatentPreviewMethod.TAESD),
+            ("none", LatentPreviewMethod.NoPreviews),
+        ],
+    )
     def test_valid_values_return_enum(self, value, expected):
         """Valid string values should return corresponding enum."""
         assert LatentPreviewMethod.from_string(value) == expected
 
-    @pytest.mark.parametrize("invalid", [
+    @pytest.mark.parametrize(
         "invalid",
-        "TAESD",      # Case sensitive
-        "AUTO",       # Case sensitive
-        "Latent2RGB", # Case sensitive
-        "latent",
-        "",
-        "default",    # default is special, not a method
-    ])
+        [
+            "invalid",
+            "TAESD",  # Case sensitive
+            "AUTO",  # Case sensitive
+            "Latent2RGB",  # Case sensitive
+            "latent",
+            "",
+            "default",  # default is special, not a method
+        ],
+    )
     def test_invalid_values_return_none(self, invalid):
         """Invalid string values should return None."""
         assert LatentPreviewMethod.from_string(invalid) is None
@@ -255,7 +262,7 @@ class TestRealWorldScenarios:
         extra_data = {
             "extra_pnginfo": {"workflow": {}},
             "client_id": "271314f0dabd48e5aaa488ed7a4ceb0d",
-            "create_time": 1765416558179
+            "create_time": 1765416558179,
         }
 
         set_preview_method(extra_data.get("preview_method"))
@@ -266,7 +273,7 @@ class TestRealWorldScenarios:
         extra_data = {
             "extra_pnginfo": {"workflow": {}},
             "client_id": "271314f0dabd48e5aaa488ed7a4ceb0d",
-            "preview_method": "taesd"
+            "preview_method": "taesd",
         }
 
         set_preview_method(extra_data.get("preview_method"))
@@ -277,7 +284,7 @@ class TestRealWorldScenarios:
         extra_data = {
             "extra_pnginfo": {"workflow": {}},
             "client_id": "test-client",
-            "preview_method": "none"
+            "preview_method": "none",
         }
 
         set_preview_method(extra_data.get("preview_method"))
@@ -288,7 +295,7 @@ class TestRealWorldScenarios:
         extra_data = {
             "extra_pnginfo": {"workflow": {}},
             "client_id": "test-client",
-            "preview_method": "latent2rgb"
+            "preview_method": "latent2rgb",
         }
 
         set_preview_method(extra_data.get("preview_method"))
@@ -299,7 +306,7 @@ class TestRealWorldScenarios:
         extra_data = {
             "extra_pnginfo": {"workflow": {}},
             "client_id": "test-client",
-            "preview_method": "auto"
+            "preview_method": "auto",
         }
 
         set_preview_method(extra_data.get("preview_method"))
@@ -315,7 +322,7 @@ class TestRealWorldScenarios:
         extra_data = {
             "extra_pnginfo": {"workflow": {}},
             "client_id": "test-client",
-            "preview_method": "default"
+            "preview_method": "default",
         }
 
         set_preview_method(extra_data.get("preview_method"))

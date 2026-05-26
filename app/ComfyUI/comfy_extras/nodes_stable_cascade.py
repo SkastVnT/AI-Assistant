@@ -1,19 +1,19 @@
 """
-    This file is part of ComfyUI.
-    Copyright (C) 2024 Stability AI
+This file is part of ComfyUI.
+Copyright (C) 2024 Stability AI
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import torch
@@ -31,8 +31,12 @@ class StableCascade_EmptyLatentImage(io.ComfyNode):
             node_id="StableCascade_EmptyLatentImage",
             category="latent/stable_cascade",
             inputs=[
-                io.Int.Input("width", default=1024, min=256, max=nodes.MAX_RESOLUTION, step=8),
-                io.Int.Input("height", default=1024, min=256, max=nodes.MAX_RESOLUTION, step=8),
+                io.Int.Input(
+                    "width", default=1024, min=256, max=nodes.MAX_RESOLUTION, step=8
+                ),
+                io.Int.Input(
+                    "height", default=1024, min=256, max=nodes.MAX_RESOLUTION, step=8
+                ),
                 io.Int.Input("compression", default=42, min=4, max=128, step=1),
                 io.Int.Input("batch_size", default=1, min=1, max=4096),
             ],
@@ -44,13 +48,18 @@ class StableCascade_EmptyLatentImage(io.ComfyNode):
 
     @classmethod
     def execute(cls, width, height, compression, batch_size=1):
-        c_latent = torch.zeros([batch_size, 16, height // compression, width // compression])
+        c_latent = torch.zeros(
+            [batch_size, 16, height // compression, width // compression]
+        )
         b_latent = torch.zeros([batch_size, 4, height // 4, width // 4])
-        return io.NodeOutput({
-            "samples": c_latent,
-        }, {
-            "samples": b_latent,
-        })
+        return io.NodeOutput(
+            {
+                "samples": c_latent,
+            },
+            {
+                "samples": b_latent,
+            },
+        )
 
 
 class StableCascade_StageC_VAEEncode(io.ComfyNode):
@@ -77,15 +86,22 @@ class StableCascade_StageC_VAEEncode(io.ComfyNode):
         out_width = (width // compression) * vae.downscale_ratio
         out_height = (height // compression) * vae.downscale_ratio
 
-        s = comfy.utils.common_upscale(image.movedim(-1,1), out_width, out_height, "bicubic", "center").movedim(1,-1)
+        s = comfy.utils.common_upscale(
+            image.movedim(-1, 1), out_width, out_height, "bicubic", "center"
+        ).movedim(1, -1)
 
-        c_latent = vae.encode(s[:,:,:,:3])
-        b_latent = torch.zeros([c_latent.shape[0], 4, (height // 8) * 2, (width // 8) * 2])
-        return io.NodeOutput({
-            "samples": c_latent,
-        }, {
-            "samples": b_latent,
-        })
+        c_latent = vae.encode(s[:, :, :, :3])
+        b_latent = torch.zeros(
+            [c_latent.shape[0], 4, (height // 8) * 2, (width // 8) * 2]
+        )
+        return io.NodeOutput(
+            {
+                "samples": c_latent,
+            },
+            {
+                "samples": b_latent,
+            },
+        )
 
 
 class StableCascade_StageB_Conditioning(io.ComfyNode):
@@ -137,15 +153,19 @@ class StableCascade_SuperResolutionControlnet(io.ComfyNode):
         width = image.shape[-2]
         height = image.shape[-3]
         batch_size = image.shape[0]
-        controlnet_input = vae.encode(image[:,:,:,:3]).movedim(1, -1)
+        controlnet_input = vae.encode(image[:, :, :, :3]).movedim(1, -1)
 
         c_latent = torch.zeros([batch_size, 16, height // 16, width // 16])
         b_latent = torch.zeros([batch_size, 4, height // 2, width // 2])
-        return io.NodeOutput(controlnet_input, {
-            "samples": c_latent,
-        }, {
-            "samples": b_latent,
-        })
+        return io.NodeOutput(
+            controlnet_input,
+            {
+                "samples": c_latent,
+            },
+            {
+                "samples": b_latent,
+            },
+        )
 
 
 class StableCascadeExtension(ComfyExtension):
@@ -157,6 +177,7 @@ class StableCascadeExtension(ComfyExtension):
             StableCascade_StageC_VAEEncode,
             StableCascade_SuperResolutionControlnet,
         ]
+
 
 async def comfy_entrypoint() -> StableCascadeExtension:
     return StableCascadeExtension()

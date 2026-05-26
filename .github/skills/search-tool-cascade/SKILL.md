@@ -241,7 +241,7 @@ The `summary` field is what gets injected into the message context.
 |---|---|
 | `README.md` | Search tools table, search cascade description |
 | `.github/copilot-instructions.md` | Search tool cascade summary |
-| `AGENTS.md` | Search tool cascade in operational rules |
+| `.claude/skills/repo-guidelines/AGENTS.md` | Search tool cascade in operational rules |
 
 ---
 

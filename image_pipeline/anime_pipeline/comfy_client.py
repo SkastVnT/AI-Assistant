@@ -52,9 +52,11 @@ def _is_job_cancel_requested(job_id: str) -> bool:
         return False
     try:
         from core.job_queue import get_queue  # type: ignore[import-not-found]
+
         return bool(get_queue().is_cancel_requested(job_id))
     except Exception:
         return False
+
 
 # Debug-mode filenames per pass name
 _DEBUG_FILENAMES: dict[str, str] = {
@@ -75,6 +77,7 @@ _DEBUG_FILENAMES: dict[str, str] = {
 @dataclass
 class ComfyJobResult:
     """Result of a submitted ComfyUI workflow."""
+
     prompt_id: str = ""
     success: bool = False
     images_b64: list[str] = field(default_factory=list)
@@ -85,7 +88,7 @@ class ComfyJobResult:
     validation_error: str = ""
     raw_outputs: dict[str, Any] = field(default_factory=dict)
     workflow_version: str = _WORKFLOW_VERSION
-    workflow_file: str = ""              # path to saved workflow JSON (debug mode)
+    workflow_file: str = ""  # path to saved workflow JSON (debug mode)
     cancelled: bool = False
 
 
@@ -176,7 +179,8 @@ class ComfyClient:
         the error rather than silently skipping the pass.
         """
         needs_upload = [
-            nid for nid, node in workflow.items()
+            nid
+            for nid, node in workflow.items()
             if node.get("class_type") == "LoadImageFromBase64"
         ]
         if not needs_upload:
@@ -194,13 +198,16 @@ class ComfyClient:
                     "inputs": {"image": filename},
                 }
                 logger.debug(
-                    "[ComfyClient] Uploaded image for node %s → %s", nid, filename,
+                    "[ComfyClient] Uploaded image for node %s → %s",
+                    nid,
+                    filename,
                 )
             except Exception as e:
                 logger.warning(
                     "[ComfyClient] Failed to upload image for node %s: %s — "
                     "leaving node unchanged",
-                    nid, e,
+                    nid,
+                    e,
                 )
 
         if len(needs_upload) > 0:
@@ -236,7 +243,8 @@ class ComfyClient:
         if _is_job_cancel_requested(job_id):
             logger.info(
                 "[ComfyClient] job=%s pass=%s cancel requested — skipping submit",
-                job_id, pass_name,
+                job_id,
+                pass_name,
             )
             return ComfyJobResult(
                 error="Cancelled",
@@ -261,30 +269,40 @@ class ComfyClient:
                 # Debug: save output images with named filenames
                 if self._debug_mode and result.success:
                     result.output_paths = self._save_debug_images(
-                        result, job_id, pass_name,
+                        result,
+                        job_id,
+                        pass_name,
                     )
 
                 return result
             except (httpx.ConnectError, httpx.TimeoutException) as e:
                 last_error = str(e)
                 if attempt < self._max_retries:
-                    wait = min(2 ** attempt + random.uniform(0, 1), 30)
+                    wait = min(2**attempt + random.uniform(0, 1), 30)
                     logger.warning(
                         "[ComfyClient] job=%s pass=%s attempt=%d/%d failed (%s), "
                         "retrying in %.1fs",
-                        job_id, pass_name, attempt + 1, self._max_retries + 1,
-                        type(e).__name__, wait,
+                        job_id,
+                        pass_name,
+                        attempt + 1,
+                        self._max_retries + 1,
+                        type(e).__name__,
+                        wait,
                     )
                     time.sleep(wait)
                 else:
                     logger.error(
                         "[ComfyClient] job=%s pass=%s all %d attempts exhausted",
-                        job_id, pass_name, self._max_retries + 1,
+                        job_id,
+                        pass_name,
+                        self._max_retries + 1,
                     )
             except Exception as e:
                 logger.error(
                     "[ComfyClient] job=%s pass=%s unexpected error: %s",
-                    job_id, pass_name, e,
+                    job_id,
+                    pass_name,
+                    e,
                 )
                 return ComfyJobResult(error=str(e), workflow_file=workflow_file)
 
@@ -309,7 +327,8 @@ class ComfyClient:
                 resp = client.post(f"{self._base_url}/interrupt")
                 logger.info(
                     "[ComfyClient] Cancel requested for prompt_id=%s (status=%d)",
-                    prompt_id, resp.status_code,
+                    prompt_id,
+                    resp.status_code,
                 )
                 return resp.status_code == 200
         except Exception as e:
@@ -359,7 +378,10 @@ class ComfyClient:
 
         logger.info(
             "[ComfyClient] job=%s pass=%s submitting workflow (%d nodes) to %s",
-            job_id, pass_name, len(workflow), self._base_url,
+            job_id,
+            pass_name,
+            len(workflow),
+            self._base_url,
         )
 
         with httpx.Client(timeout=self._timeout_s) as client:
@@ -379,15 +401,21 @@ class ComfyClient:
                     node_errors = error_body.get("node_errors", {})
                     error_detail = error_body.get("error", {})
                     if node_errors:
-                        error_msg += f": node_errors={json.dumps(node_errors, indent=2)}"
+                        error_msg += (
+                            f": node_errors={json.dumps(node_errors, indent=2)}"
+                        )
                     elif error_detail:
-                        error_msg += f": {error_detail.get('message', str(error_detail))}"
+                        error_msg += (
+                            f": {error_detail.get('message', str(error_detail))}"
+                        )
                 else:
                     error_msg += f": {str(error_body)[:500]}"
 
                 logger.error(
                     "[ComfyClient] job=%s pass=%s validation error: %s",
-                    job_id, pass_name, error_msg,
+                    job_id,
+                    pass_name,
+                    error_msg,
                 )
                 return ComfyJobResult(
                     error=error_msg,
@@ -402,13 +430,19 @@ class ComfyClient:
 
             logger.info(
                 "[ComfyClient] job=%s pass=%s prompt_id=%s queued",
-                job_id, pass_name, prompt_id,
+                job_id,
+                pass_name,
+                prompt_id,
             )
 
             # ── Poll ──────────────────────────────────────────────
             try:
                 return self._poll_until_done(
-                    client, prompt_id, job_id, pass_name, t0,
+                    client,
+                    prompt_id,
+                    job_id,
+                    pass_name,
+                    t0,
                 )
             finally:
                 self._cleanup_cancelled(prompt_id)
@@ -437,7 +471,9 @@ class ComfyClient:
                     pass
                 logger.info(
                     "[ComfyClient] job=%s pass=%s cancelled (%.0fms)",
-                    job_id, pass_name, duration,
+                    job_id,
+                    pass_name,
+                    duration,
                 )
                 return ComfyJobResult(
                     prompt_id=prompt_id,
@@ -449,9 +485,7 @@ class ComfyClient:
             time.sleep(_POLL_INTERVAL)
 
             try:
-                hist_resp = client.get(
-                    f"{self._base_url}/history/{prompt_id}"
-                )
+                hist_resp = client.get(f"{self._base_url}/history/{prompt_id}")
             except httpx.TimeoutException:
                 continue
 
@@ -479,13 +513,18 @@ class ComfyClient:
                     exc_type: str | None = None
                     traceback_lines: list[str] = []
                     for msg in status_info.get("messages", []) or []:
-                        if (isinstance(msg, (list, tuple))
-                                and len(msg) >= 2
-                                and msg[0] == "execution_error"
-                                and isinstance(msg[1], dict)):
+                        if (
+                            isinstance(msg, (list, tuple))
+                            and len(msg) >= 2
+                            and msg[0] == "execution_error"
+                            and isinstance(msg[1], dict)
+                        ):
                             data = msg[1]
-                            node_err = (data.get("exception_message")
-                                        or data.get("error") or node_err)
+                            node_err = (
+                                data.get("exception_message")
+                                or data.get("error")
+                                or node_err
+                            )
                             node_type = data.get("node_type") or node_type
                             node_id = str(data.get("node_id") or "") or node_id
                             exc_type = data.get("exception_type") or exc_type
@@ -508,12 +547,16 @@ class ComfyClient:
 
                     logger.error(
                         "[ComfyClient] job=%s pass=%s ComfyUI error: %s (%.0fms)",
-                        job_id, pass_name, detail, duration,
+                        job_id,
+                        pass_name,
+                        detail,
+                        duration,
                     )
                     if traceback_lines:
                         logger.error(
                             "[ComfyClient] job=%s pass=%s traceback:\n%s",
-                            job_id, pass_name,
+                            job_id,
+                            pass_name,
                             "".join(traceback_lines)[-2000:],
                         )
                     return ComfyJobResult(
@@ -538,7 +581,11 @@ class ComfyClient:
 
             logger.info(
                 "[ComfyClient] job=%s pass=%s completed: %d images, %.0fms, files=%s",
-                job_id, pass_name, len(images_b64), duration, filenames,
+                job_id,
+                pass_name,
+                len(images_b64),
+                duration,
+                filenames,
             )
 
             return ComfyJobResult(
@@ -554,7 +601,10 @@ class ComfyClient:
         duration = (time.time() - t0) * 1000
         logger.error(
             "[ComfyClient] job=%s pass=%s timed out after %ds (%.0fms)",
-            job_id, pass_name, self._timeout_s, duration,
+            job_id,
+            pass_name,
+            self._timeout_s,
+            duration,
         )
         return ComfyJobResult(
             prompt_id=prompt_id,
@@ -564,9 +614,7 @@ class ComfyClient:
 
     # ── Internal: image download ──────────────────────────────────────
 
-    def _download_image(
-        self, client: httpx.Client, img_info: dict
-    ) -> Optional[str]:
+    def _download_image(self, client: httpx.Client, img_info: dict) -> Optional[str]:
         """Download a single image from ComfyUI /view endpoint."""
         try:
             resp = client.get(
@@ -585,9 +633,7 @@ class ComfyClient:
 
     # ── Internal: debug persistence ───────────────────────────────────
 
-    def _save_workflow_json(
-        self, workflow: dict, job_id: str, pass_name: str
-    ) -> str:
+    def _save_workflow_json(self, workflow: dict, job_id: str, pass_name: str) -> str:
         """Save workflow JSON to debug directory. Returns file path."""
         from .workflow_serializer import serialize_workflow
 
@@ -597,7 +643,9 @@ class ComfyClient:
         filepath = job_dir / filename
 
         serialized = serialize_workflow(
-            workflow, pass_name=pass_name, job_id=job_id,
+            workflow,
+            pass_name=pass_name,
+            job_id=job_id,
         )
         try:
             filepath.write_text(
@@ -635,7 +683,8 @@ class ComfyClient:
             except Exception as e:
                 logger.warning(
                     "[ComfyClient] Failed to save debug image %s: %s",
-                    filepath, e,
+                    filepath,
+                    e,
                 )
 
         return paths

@@ -31,11 +31,19 @@ class DifferentialDiffusion(io.ComfyNode):
     @classmethod
     def execute(cls, model, strength=1.0) -> io.NodeOutput:
         model = model.clone()
-        model.set_model_denoise_mask_function(lambda *args, **kwargs: cls.forward(*args, **kwargs, strength=strength))
+        model.set_model_denoise_mask_function(
+            lambda *args, **kwargs: cls.forward(*args, **kwargs, strength=strength)
+        )
         return io.NodeOutput(model)
 
     @classmethod
-    def forward(cls, sigma: torch.Tensor, denoise_mask: torch.Tensor, extra_options: dict, strength: float):
+    def forward(
+        cls,
+        sigma: torch.Tensor,
+        denoise_mask: torch.Tensor,
+        extra_options: dict,
+        strength: float,
+    ):
         model = extra_options["model"]
         step_sigmas = extra_options["sigmas"]
         sigma_to = model.inner_model.model_sampling.sigma_min

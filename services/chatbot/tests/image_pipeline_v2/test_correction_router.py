@@ -32,13 +32,10 @@ if str(_ROOT) not in sys.path:
 import pytest
 
 from image_pipeline.reasoning.execution import (
-    CorrectionResult,
-    CorrectionRound,
     CorrectionScore,
     maybe_correct,
 )
 from image_pipeline.reasoning.schemas import ShotType, SinglePanelSpec
-
 
 # ---------------------------------------------------------------------------
 # Fixtures + stubs
@@ -100,9 +97,11 @@ class _ScriptedInpainter:
 
 class TestEligibility:
     def test_no_inpaint_stage_short_circuits_when_failing(self, panel):
-        scorer = _ScriptedScorer([
-            CorrectionScore(passed=False, score=0.4, failed_targets=("face",)),
-        ])
+        scorer = _ScriptedScorer(
+            [
+                CorrectionScore(passed=False, score=0.4, failed_targets=("face",)),
+            ]
+        )
         inpainter = _ScriptedInpainter()
         result = maybe_correct(
             panel,
@@ -130,13 +129,16 @@ class TestEligibility:
         assert result.passed is True
         assert result.gave_up_reason == ""
 
-    @pytest.mark.parametrize("stage", ["inpaint", "face_patch", "face",
-                                       "background_patch", "prop_patch"])
+    @pytest.mark.parametrize(
+        "stage", ["inpaint", "face_patch", "face", "background_patch", "prop_patch"]
+    )
     def test_inpaint_family_is_eligible(self, panel, stage):
-        scorer = _ScriptedScorer([
-            CorrectionScore(passed=False, score=0.3, failed_targets=("face",)),
-            CorrectionScore(passed=True, score=0.9),
-        ])
+        scorer = _ScriptedScorer(
+            [
+                CorrectionScore(passed=False, score=0.3, failed_targets=("face",)),
+                CorrectionScore(passed=True, score=0.9),
+            ]
+        )
         inpainter = _ScriptedInpainter()
         result = maybe_correct(
             panel,
@@ -173,9 +175,11 @@ class TestScoreOnly:
         assert inpainter.calls == []
 
     def test_max_passes_zero_is_score_only(self, panel):
-        scorer = _ScriptedScorer([
-            CorrectionScore(passed=False, score=0.3, failed_targets=("face",)),
-        ])
+        scorer = _ScriptedScorer(
+            [
+                CorrectionScore(passed=False, score=0.3, failed_targets=("face",)),
+            ]
+        )
         inpainter = _ScriptedInpainter()
         result = maybe_correct(
             panel,
@@ -199,10 +203,12 @@ class TestScoreOnly:
 
 class TestCorrectionLoop:
     def test_single_pass_recovery(self, panel):
-        scorer = _ScriptedScorer([
-            CorrectionScore(passed=False, score=0.4, failed_targets=("face",)),
-            CorrectionScore(passed=True, score=0.88),
-        ])
+        scorer = _ScriptedScorer(
+            [
+                CorrectionScore(passed=False, score=0.4, failed_targets=("face",)),
+                CorrectionScore(passed=True, score=0.88),
+            ]
+        )
         inpainter = _ScriptedInpainter(outputs=[b"img_v2"])
         result = maybe_correct(
             panel,
@@ -230,11 +236,13 @@ class TestCorrectionLoop:
         assert round0.error == ""
 
     def test_max_passes_exhausted(self, panel):
-        scorer = _ScriptedScorer([
-            CorrectionScore(passed=False, score=0.3, failed_targets=("face",)),
-            CorrectionScore(passed=False, score=0.4, failed_targets=("face",)),
-            CorrectionScore(passed=False, score=0.5, failed_targets=("face",)),
-        ])
+        scorer = _ScriptedScorer(
+            [
+                CorrectionScore(passed=False, score=0.3, failed_targets=("face",)),
+                CorrectionScore(passed=False, score=0.4, failed_targets=("face",)),
+                CorrectionScore(passed=False, score=0.5, failed_targets=("face",)),
+            ]
+        )
         inpainter = _ScriptedInpainter(outputs=[b"v2", b"v3"])
         result = maybe_correct(
             panel,
@@ -254,9 +262,11 @@ class TestCorrectionLoop:
         assert result.final_score == 0.5
 
     def test_no_targets_halts(self, panel):
-        scorer = _ScriptedScorer([
-            CorrectionScore(passed=False, score=0.4, failed_targets=()),
-        ])
+        scorer = _ScriptedScorer(
+            [
+                CorrectionScore(passed=False, score=0.4, failed_targets=()),
+            ]
+        )
         inpainter = _ScriptedInpainter()
         result = maybe_correct(
             panel,
@@ -271,9 +281,11 @@ class TestCorrectionLoop:
         assert inpainter.calls == []
 
     def test_inpaint_exception_halts_loop(self, panel):
-        scorer = _ScriptedScorer([
-            CorrectionScore(passed=False, score=0.3, failed_targets=("face",)),
-        ])
+        scorer = _ScriptedScorer(
+            [
+                CorrectionScore(passed=False, score=0.3, failed_targets=("face",)),
+            ]
+        )
         inpainter = _ScriptedInpainter(raise_on=0)
         result = maybe_correct(
             panel,
@@ -292,9 +304,11 @@ class TestCorrectionLoop:
         assert result.image_bytes == b"v1"
 
     def test_inpaint_empty_bytes_halts_loop(self, panel):
-        scorer = _ScriptedScorer([
-            CorrectionScore(passed=False, score=0.3, failed_targets=("face",)),
-        ])
+        scorer = _ScriptedScorer(
+            [
+                CorrectionScore(passed=False, score=0.3, failed_targets=("face",)),
+            ]
+        )
         inpainter = _ScriptedInpainter(return_empty_on=0)
         result = maybe_correct(
             panel,
@@ -327,12 +341,15 @@ class TestCorrectionLoop:
         assert inpainter.calls == []
 
     def test_targets_evolve_per_round(self, panel):
-        scorer = _ScriptedScorer([
-            CorrectionScore(passed=False, score=0.3, failed_targets=("face",)),
-            CorrectionScore(passed=False, score=0.5,
-                            failed_targets=("hands", "background")),
-            CorrectionScore(passed=True, score=0.9),
-        ])
+        scorer = _ScriptedScorer(
+            [
+                CorrectionScore(passed=False, score=0.3, failed_targets=("face",)),
+                CorrectionScore(
+                    passed=False, score=0.5, failed_targets=("hands", "background")
+                ),
+                CorrectionScore(passed=True, score=0.9),
+            ]
+        )
         inpainter = _ScriptedInpainter(outputs=[b"v2", b"v3"])
         result = maybe_correct(
             panel,
@@ -391,10 +408,12 @@ class TestArgValidation:
 
 class TestResultSerialization:
     def test_to_dict_omits_image_bytes_and_is_json_safe(self, panel):
-        scorer = _ScriptedScorer([
-            CorrectionScore(passed=False, score=0.3, failed_targets=("face",)),
-            CorrectionScore(passed=True, score=0.88),
-        ])
+        scorer = _ScriptedScorer(
+            [
+                CorrectionScore(passed=False, score=0.3, failed_targets=("face",)),
+                CorrectionScore(passed=True, score=0.88),
+            ]
+        )
         inpainter = _ScriptedInpainter(outputs=[b"v2"])
         result = maybe_correct(
             panel,
@@ -411,8 +430,9 @@ class TestResultSerialization:
         json.dumps(as_dict)  # must be JSON-serializable.
 
     def test_correction_score_round_trip(self):
-        s = CorrectionScore(passed=False, score=0.4,
-                            failed_targets=("face", "hands"), reason="VLM said")
+        s = CorrectionScore(
+            passed=False, score=0.4, failed_targets=("face", "hands"), reason="VLM said"
+        )
         d = s.to_dict()
         json.dumps(d)
         assert d["failed_targets"] == ["face", "hands"]
@@ -428,7 +448,8 @@ class TestCorrectionRouterHygiene:
 
     def test_no_load_dotenv(self):
         offenders = [
-            p.name for p in self.EXECUTION_DIR.glob("*.py")
+            p.name
+            for p in self.EXECUTION_DIR.glob("*.py")
             if "load_dotenv" in p.read_text(encoding="utf-8")
         ]
         assert offenders == []
@@ -448,14 +469,12 @@ class TestCorrectionRouterHygiene:
         Inspects ``import``/``from ... import`` statements only — docstring
         mentions of those module paths are allowed.
         """
-        forbidden = ("services.chatbot", "core.",
-                     "image_pipeline.evaluator")
+        forbidden = ("services.chatbot", "core.", "image_pipeline.evaluator")
         offenders: list[tuple[str, str]] = []
         for p in self.EXECUTION_DIR.glob("*.py"):
             for line in p.read_text(encoding="utf-8").splitlines():
                 stripped = line.strip()
-                if not (stripped.startswith("import ")
-                        or stripped.startswith("from ")):
+                if not (stripped.startswith("import ") or stripped.startswith("from ")):
                     continue
                 for needle in forbidden:
                     if needle in stripped:

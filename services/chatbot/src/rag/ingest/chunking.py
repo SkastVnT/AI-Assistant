@@ -1,6 +1,7 @@
 """
 Text chunking utilities for RAG ingest.
 """
+
 import uuid
 
 from ..models import Chunk

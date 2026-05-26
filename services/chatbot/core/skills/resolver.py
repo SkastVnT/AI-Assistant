@@ -11,11 +11,11 @@ Resolution priority:
 3. Auto-routing via ``SkillRouter.match()`` (if enabled).
 4. No skill — return empty ``SkillOverrides`` (all ``None``).
 """
+
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
 
 from core.skills.registry import SkillDefinition, get_skill_registry
 from core.skills.router import get_skill_router
@@ -37,27 +37,27 @@ class SkillOverrides:
     ``None`` in any field means "keep the request's original value".
     """
 
-    skill_id: Optional[str] = None
-    skill_name: Optional[str] = None
+    skill_id: str | None = None
+    skill_name: str | None = None
 
     # How the skill was resolved: "explicit", "session", "auto", or None
-    source: Optional[str] = None
+    source: str | None = None
 
     # Auto-route metadata (populated when source == "auto")
-    auto_route_score: Optional[float] = None
-    auto_route_keywords: List[str] = field(default_factory=list)
+    auto_route_score: float | None = None
+    auto_route_keywords: list[str] = field(default_factory=list)
 
     # Extra text appended to the system prompt
-    prompt_injection: Optional[str] = None
+    prompt_injection: str | None = None
 
     # Tool gating
-    preferred_tools: List[str] = field(default_factory=list)
-    blocked_tools: List[str] = field(default_factory=list)
+    preferred_tools: list[str] = field(default_factory=list)
+    blocked_tools: list[str] = field(default_factory=list)
 
     # Model / thinking overrides
-    model: Optional[str] = None
-    thinking_mode: Optional[str] = None
-    context: Optional[str] = None
+    model: str | None = None
+    thinking_mode: str | None = None
+    context: str | None = None
 
     @property
     def active(self) -> bool:
@@ -68,8 +68,8 @@ class SkillOverrides:
 def resolve_skill(
     *,
     message: str,
-    explicit_skill_id: Optional[str] = None,
-    session_id: Optional[str] = None,
+    explicit_skill_id: str | None = None,
+    session_id: str | None = None,
     auto_route: bool = True,
 ) -> SkillOverrides:
     """Resolve a skill from an explicit ID, session state, or auto-routing.
@@ -84,10 +84,10 @@ def resolve_skill(
     """
     registry = get_skill_registry()
 
-    skill: Optional[SkillDefinition] = None
-    source: Optional[str] = None
-    auto_score: Optional[float] = None
-    auto_keywords: List[str] = []
+    skill: SkillDefinition | None = None
+    source: str | None = None
+    auto_score: float | None = None
+    auto_keywords: list[str] = []
 
     # 1. Explicit selection (by id or name)
     if explicit_skill_id:
@@ -95,7 +95,9 @@ def resolve_skill(
         if skill is None:
             skill = registry.get_by_name(explicit_skill_id)
         if skill is None:
-            logger.warning(f"[SkillResolve] Requested skill '{explicit_skill_id}' not found")
+            logger.warning(
+                f"[SkillResolve] Requested skill '{explicit_skill_id}' not found"
+            )
         elif not skill.enabled:
             logger.info(f"[SkillResolve] Skill '{skill.id}' is disabled, skipping")
             skill = None
@@ -111,11 +113,12 @@ def resolve_skill(
                 skill = candidate
                 source = SOURCE_SESSION
             else:
-                logger.info(f"[SkillResolve] Session skill '{session_skill_id}' not found or disabled")
+                logger.info(
+                    f"[SkillResolve] Session skill '{session_skill_id}' not found or disabled"
+                )
 
     # 3. Auto-routing
     if skill is None and auto_route:
-        from core.skills.router import RouteMatch
         route_match = get_skill_router().match_detailed(message)
         if route_match is not None:
             skill = route_match.skill
@@ -129,7 +132,11 @@ def resolve_skill(
 
     logger.info(
         f"[SkillResolve] Resolved skill '{skill.id}' via {source}"
-        + (f" (score={auto_score:.2f}, kw={auto_keywords})" if source == SOURCE_AUTO else "")
+        + (
+            f" (score={auto_score:.2f}, kw={auto_keywords})"
+            if source == SOURCE_AUTO
+            else ""
+        )
     )
 
     # Build the prompt injection string

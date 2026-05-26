@@ -28,10 +28,10 @@ logger = logging.getLogger("rag.graph_rag.router")
 class SearchStrategy(Enum):
     """Which retrieval strategy to use."""
 
-    VECTOR = "vector"          # Standard vector-only retrieval
-    LOCAL_GRAPH = "local"      # Entity neighbourhood search
-    GLOBAL_GRAPH = "global"    # Community summary search
-    HYBRID_GRAPH = "hybrid"    # Local + global graph search
+    VECTOR = "vector"  # Standard vector-only retrieval
+    LOCAL_GRAPH = "local"  # Entity neighbourhood search
+    GLOBAL_GRAPH = "global"  # Community summary search
+    HYBRID_GRAPH = "hybrid"  # Local + global graph search
 
 
 @dataclass
@@ -48,18 +48,37 @@ class RoutingDecision:
 # ═══════════════════════════════════════════════════════════════════════
 
 # Patterns that suggest entity-centric (local) queries
-LOCAL_INDICATORS = frozenset({
-    "who", "what is", "tell me about", "describe", "explain",
-    "relationship between", "connected to", "related to",
-    "how does", "what does",
-})
+LOCAL_INDICATORS = frozenset(
+    {
+        "who",
+        "what is",
+        "tell me about",
+        "describe",
+        "explain",
+        "relationship between",
+        "connected to",
+        "related to",
+        "how does",
+        "what does",
+    }
+)
 
 # Patterns that suggest broad/analytical (global) queries
-GLOBAL_INDICATORS = frozenset({
-    "summarize", "overview", "main themes", "key topics",
-    "what are the", "list all", "how many", "compare",
-    "overall", "in general", "broadly",
-})
+GLOBAL_INDICATORS = frozenset(
+    {
+        "summarize",
+        "overview",
+        "main themes",
+        "key topics",
+        "what are the",
+        "list all",
+        "how many",
+        "compare",
+        "overall",
+        "in general",
+        "broadly",
+    }
+)
 
 
 def route_query(query: str, *, auto_route: bool = True) -> RoutingDecision:
@@ -93,10 +112,15 @@ def route_query(query: str, *, auto_route: bool = True) -> RoutingDecision:
 
     # Named entity detection heuristic: capitalized words (simple)
     words = query.split()
-    capitalized = sum(
-        1 for w in words[1:]  # skip first word
-        if w[0].isupper() and len(w) > 1 and not w.isupper()
-    ) if len(words) > 1 else 0
+    capitalized = (
+        sum(
+            1
+            for w in words[1:]  # skip first word
+            if w[0].isupper() and len(w) > 1 and not w.isupper()
+        )
+        if len(words) > 1
+        else 0
+    )
     local_score += capitalized
 
     if local_score > 0 and global_score > 0:
@@ -170,8 +194,12 @@ async def graph_search(
     if strategy is None:
         decision = route_query(query, auto_route=settings.auto_route)
         strategy = decision.strategy
-        logger.info("route_decision: %s (confidence=%.2f, %s)",
-                     decision.strategy.value, decision.confidence, decision.reason)
+        logger.info(
+            "route_decision: %s (confidence=%.2f, %s)",
+            decision.strategy.value,
+            decision.confidence,
+            decision.reason,
+        )
 
     if strategy == SearchStrategy.VECTOR:
         return None

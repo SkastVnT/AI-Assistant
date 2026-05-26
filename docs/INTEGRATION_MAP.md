@@ -8,7 +8,7 @@ This document is **descriptive**, not aspirational. If runtime behaviour
 diverges from what is written here, the runtime is right and this file is
 wrong — open a docs-drift fix.
 
-> Scope rule (from `CLAUDE.md`): chatbot tasks may edit
+> Scope rule (from `.claude/skills/repo-guidelines/CLAUDE.md`): chatbot tasks may edit
 > `services/chatbot/`, `services/shared_env.py`, `services/mcp-server/`,
 > `app/config/`, `app/src/`. They MUST NOT edit `ComfyUI/`,
 > `image_pipeline/`, `services/stable-diffusion/`,
@@ -95,7 +95,6 @@ reasoning image pipeline when image-style messages are detected.
 **Entry files.**
 - Route: [services/chatbot/routes/hermes.py](../services/chatbot/routes/hermes.py) — `POST /api/hermes/chat`.
 - Adapter: [services/chatbot/core/hermes_adapter.py](../services/chatbot/core/hermes_adapter.py) — HTTP client.
-- FastAPI mirror: `services/chatbot/fastapi_app/routers/hermes.py`.
 - Env: `HERMES_ENABLED`, `HERMES_API_URL` (default `http://localhost:8080`), `HERMES_TIMEOUT`, `HERMES_API_KEY`.
 
 **Input.** JSON `{message, conversation_history?, model?}`.
@@ -120,14 +119,10 @@ images, or storage.
   request falls through to Hermes unchanged (fails-safe).
 - Sidecar unreachable → adapter returns `success=false` with HTTP error.
 
-**Known parity gap.** The bridge logic lives **only** in the Flask route
-([routes/hermes.py](../services/chatbot/routes/hermes.py)). The FastAPI
-mirror at `services/chatbot/fastapi_app/routers/hermes.py` is a pure
-proxy — it does not run the keyword guard, the capability classifier, or
-the redirect to `run_pipeline_for_prompt`. If `USE_FASTAPI=true`,
-`/api/hermes/chat` will always go to Hermes regardless of message
-content. This is intentional today (Flask is the primary path); port
-when FastAPI becomes the default.
+**Current runtime.** The bridge logic lives in the Flask route
+([routes/hermes.py](../services/chatbot/routes/hermes.py)). The previous
+FastAPI mirror was removed in May 2026; do not reintroduce a parallel
+framework without an explicit task.
 
 **MUST NOT.**
 - Be wired into `routes/stream.py` (primary `/chat/stream`).
@@ -144,7 +139,6 @@ ComfyUI. Cycles 1–6 of `image_pipeline/reasoning/`.
 
 **Entry files.**
 - Route: [services/chatbot/routes/reasoning_image_gen.py](../services/chatbot/routes/reasoning_image_gen.py) — `POST /api/reasoning-image-gen/generate`, `GET /status`.
-- FastAPI mirror: `services/chatbot/fastapi_app/routers/reasoning_image_gen.py`.
 - Pipeline: `image_pipeline/reasoning/{capability_router,prompt_parser,prompt_revision,schemas,state/,execution/}`.
 - Env: `REASONING_PIPELINE` (alias `REASONING_PIPELINE_ENABLED`),
   `REASONING_PIPELINE_COMFY_URL` (default `COMFYUI_URL` or
@@ -484,10 +478,9 @@ before adding more entry points.
    to be "the" image flow is wrong. New work that touches identity must
    either pick one path explicitly or solve gap #4 first.
 
-6. **FastAPI parity is partial.** `image_gen` and `jobs` blueprints are
-   Flask-only; `characters`, `anime_pipeline`, `character_select`,
-   `hermes`, `reasoning_image_gen` have FastAPI mirrors. A change in one
-   does not automatically reach the other.
+6. **Flask is the active chatbot runtime.** The previous FastAPI mirror
+   package was removed in May 2026. Do not document or implement a
+   second router path without an explicit migration task.
 
 7. **Reserved storage dirs (`storage/outputs|intermediate|references|prompts`)
    are empty and undocumented as reserved.** Until the curator claims

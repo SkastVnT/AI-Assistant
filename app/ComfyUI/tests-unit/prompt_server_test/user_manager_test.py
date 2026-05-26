@@ -12,9 +12,9 @@ pytestmark = (
 @pytest.fixture
 def user_manager(tmp_path):
     um = UserManager()
-    um.get_request_user_filepath = lambda req, file, **kwargs: os.path.join(
-        tmp_path, file
-    ) if file else tmp_path
+    um.get_request_user_filepath = lambda req, file, **kwargs: (
+        os.path.join(tmp_path, file) if file else tmp_path
+    )
     return um
 
 
@@ -257,10 +257,12 @@ async def test_listuserdata_v2_default(aiohttp_client, app, tmp_path):
     assert file_paths == {"test_dir/file1.txt", "test_dir/subdir/file2.txt"}
 
 
-async def test_listuserdata_v2_normalized_separators(aiohttp_client, app, tmp_path, monkeypatch):
+async def test_listuserdata_v2_normalized_separators(
+    aiohttp_client, app, tmp_path, monkeypatch
+):
     # Force backslash as os separator
-    monkeypatch.setattr(os, 'sep', '\\')
-    monkeypatch.setattr(os.path, 'sep', '\\')
+    monkeypatch.setattr(os, "sep", "\\")
+    monkeypatch.setattr(os.path, "sep", "\\")
     os.makedirs(tmp_path / "test_dir" / "subdir")
     (tmp_path / "test_dir" / "subdir" / "file1.txt").write_text("x")
 
@@ -270,7 +272,8 @@ async def test_listuserdata_v2_normalized_separators(aiohttp_client, app, tmp_pa
     data = await resp.json()
     for item in data:
         assert "/" in item["path"]
-        assert "\\" not in item["path"]\
+        assert "\\" not in item["path"]
+
 
 async def test_listuserdata_v2_url_encoded_path(aiohttp_client, app, tmp_path):
     # Create a directory with a space in its name and a file inside

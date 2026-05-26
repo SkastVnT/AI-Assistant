@@ -67,7 +67,10 @@ async def _generate_mm_video(
 
     task_result = await poll_op(
         cls,
-        ApiEndpoint(path="/proxy/minimax/query/video_generation", query_params={"task_id": task_id}),
+        ApiEndpoint(
+            path="/proxy/minimax/query/video_generation",
+            query_params={"task_id": task_id},
+        ),
         response_model=MinimaxTaskResultResponse,
         status_extractor=lambda x: x.status.value,
         estimated_duration=average_duration,
@@ -78,19 +81,29 @@ async def _generate_mm_video(
         raise Exception("Request was not successful. Missing file ID.")
     file_result = await sync_op(
         cls,
-        ApiEndpoint(path="/proxy/minimax/files/retrieve", query_params={"file_id": int(file_id)}),
+        ApiEndpoint(
+            path="/proxy/minimax/files/retrieve", query_params={"file_id": int(file_id)}
+        ),
         response_model=MinimaxFileRetrieveResponse,
     )
 
     file_url = file_result.file.download_url
     if file_url is None:
-        raise Exception(f"No video was found in the response. Full response: {file_result.model_dump()}")
+        raise Exception(
+            f"No video was found in the response. Full response: {file_result.model_dump()}"
+        )
     if file_result.file.backup_download_url:
         try:
-            return IO.NodeOutput(await download_url_to_video_output(file_url, timeout=10, max_retries=2))
-        except Exception:  # if we have a second URL to retrieve the result, try again using that one
             return IO.NodeOutput(
-                await download_url_to_video_output(file_result.file.backup_download_url, max_retries=3)
+                await download_url_to_video_output(file_url, timeout=10, max_retries=2)
+            )
+        except (
+            Exception
+        ):  # if we have a second URL to retrieve the result, try again using that one
+            return IO.NodeOutput(
+                await download_url_to_video_output(
+                    file_result.file.backup_download_url, max_retries=3
+                )
             )
     return IO.NodeOutput(await download_url_to_video_output(file_url))
 
@@ -356,7 +369,11 @@ class MinimaxHailuoVideoNode(IO.ComfyNode):
         if first_frame_image is None:
             validate_string(prompt_text, field_name="prompt_text")
 
-        if model == "MiniMax-Hailuo-02" and resolution.upper() == "1080P" and duration != 6:
+        if (
+            model == "MiniMax-Hailuo-02"
+            and resolution.upper() == "1080P"
+            and duration != 6
+        ):
             raise Exception(
                 "When model is MiniMax-Hailuo-02 and resolution is 1080P, duration is limited to 6 seconds."
             )
@@ -364,7 +381,9 @@ class MinimaxHailuoVideoNode(IO.ComfyNode):
         # upload image, if passed in
         image_url = None
         if first_frame_image is not None:
-            image_url = (await upload_images_to_comfyapi(cls, first_frame_image, max_images=1))[0]
+            image_url = (
+                await upload_images_to_comfyapi(cls, first_frame_image, max_images=1)
+            )[0]
 
         response = await sync_op(
             cls,
@@ -388,7 +407,10 @@ class MinimaxHailuoVideoNode(IO.ComfyNode):
         average_duration = 120 if resolution == "768P" else 240
         task_result = await poll_op(
             cls,
-            ApiEndpoint(path="/proxy/minimax/query/video_generation", query_params={"task_id": task_id}),
+            ApiEndpoint(
+                path="/proxy/minimax/query/video_generation",
+                query_params={"task_id": task_id},
+            ),
             response_model=MinimaxTaskResultResponse,
             status_extractor=lambda x: x.status.value,
             estimated_duration=average_duration,
@@ -399,20 +421,31 @@ class MinimaxHailuoVideoNode(IO.ComfyNode):
             raise Exception("Request was not successful. Missing file ID.")
         file_result = await sync_op(
             cls,
-            ApiEndpoint(path="/proxy/minimax/files/retrieve", query_params={"file_id": int(file_id)}),
+            ApiEndpoint(
+                path="/proxy/minimax/files/retrieve",
+                query_params={"file_id": int(file_id)},
+            ),
             response_model=MinimaxFileRetrieveResponse,
         )
 
         file_url = file_result.file.download_url
         if file_url is None:
-            raise Exception(f"No video was found in the response. Full response: {file_result.model_dump()}")
+            raise Exception(
+                f"No video was found in the response. Full response: {file_result.model_dump()}"
+            )
 
         if file_result.file.backup_download_url:
             try:
-                return IO.NodeOutput(await download_url_to_video_output(file_url, timeout=10, max_retries=2))
+                return IO.NodeOutput(
+                    await download_url_to_video_output(
+                        file_url, timeout=10, max_retries=2
+                    )
+                )
             except Exception:  # if we have a second URL to retrieve the result, try again using that one
                 return IO.NodeOutput(
-                    await download_url_to_video_output(file_result.file.backup_download_url, max_retries=3)
+                    await download_url_to_video_output(
+                        file_result.file.backup_download_url, max_retries=3
+                    )
                 )
         return IO.NodeOutput(await download_url_to_video_output(file_url))
 

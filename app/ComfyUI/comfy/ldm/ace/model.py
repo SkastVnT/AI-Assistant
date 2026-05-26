@@ -28,31 +28,51 @@ from .lyric_encoder import ConformerEncoder as LyricEncoder
 
 def cross_norm(hidden_states, controlnet_input):
     # input N x T x c
-    mean_hidden_states, std_hidden_states = hidden_states.mean(dim=(1,2), keepdim=True), hidden_states.std(dim=(1,2), keepdim=True)
-    mean_controlnet_input, std_controlnet_input = controlnet_input.mean(dim=(1,2), keepdim=True), controlnet_input.std(dim=(1,2), keepdim=True)
-    controlnet_input = (controlnet_input - mean_controlnet_input) * (std_hidden_states / (std_controlnet_input + 1e-12)) + mean_hidden_states
+    mean_hidden_states, std_hidden_states = (
+        hidden_states.mean(dim=(1, 2), keepdim=True),
+        hidden_states.std(dim=(1, 2), keepdim=True),
+    )
+    mean_controlnet_input, std_controlnet_input = (
+        controlnet_input.mean(dim=(1, 2), keepdim=True),
+        controlnet_input.std(dim=(1, 2), keepdim=True),
+    )
+    controlnet_input = (controlnet_input - mean_controlnet_input) * (
+        std_hidden_states / (std_controlnet_input + 1e-12)
+    ) + mean_hidden_states
     return controlnet_input
 
 
 # Copied from transformers.models.mixtral.modeling_mixtral.MixtralRotaryEmbedding with Mixtral->Qwen2
 class Qwen2RotaryEmbedding(nn.Module):
-    def __init__(self, dim, max_position_embeddings=2048, base=10000, dtype=None, device=None):
+    def __init__(
+        self, dim, max_position_embeddings=2048, base=10000, dtype=None, device=None
+    ):
         super().__init__()
 
         self.dim = dim
         self.max_position_embeddings = max_position_embeddings
         self.base = base
-        inv_freq = 1.0 / (self.base ** (torch.arange(0, self.dim, 2, dtype=torch.int64, device=device).float() / self.dim))
+        inv_freq = 1.0 / (
+            self.base
+            ** (
+                torch.arange(0, self.dim, 2, dtype=torch.int64, device=device).float()
+                / self.dim
+            )
+        )
         self.register_buffer("inv_freq", inv_freq, persistent=False)
 
         # Build here to make `torch.jit.trace` work.
         self._set_cos_sin_cache(
-            seq_len=max_position_embeddings, device=self.inv_freq.device, dtype=torch.float32
+            seq_len=max_position_embeddings,
+            device=self.inv_freq.device,
+            dtype=torch.float32,
         )
 
     def _set_cos_sin_cache(self, seq_len, device, dtype):
         self.max_seq_len_cached = seq_len
-        t = torch.arange(self.max_seq_len_cached, device=device, dtype=torch.int64).type_as(self.inv_freq)
+        t = torch.arange(
+            self.max_seq_len_cached, device=device, dtype=torch.int64
+        ).type_as(self.inv_freq)
 
         freqs = torch.outer(t, self.inv_freq)
         # Different from paper, but it uses a different permutation in order to obtain the same calculation
@@ -76,11 +96,29 @@ class T2IFinalLayer(nn.Module):
     The final layer of Sana.
     """
 
-    def __init__(self, hidden_size, patch_size=[16, 1], out_channels=256, dtype=None, device=None, operations=None):
+    def __init__(
+        self,
+        hidden_size,
+        patch_size=[16, 1],
+        out_channels=256,
+        dtype=None,
+        device=None,
+        operations=None,
+    ):
         super().__init__()
-        self.norm_final = operations.RMSNorm(hidden_size, elementwise_affine=False, eps=1e-6, dtype=dtype, device=device)
-        self.linear = operations.Linear(hidden_size, patch_size[0] * patch_size[1] * out_channels, bias=True, dtype=dtype, device=device)
-        self.scale_shift_table = nn.Parameter(torch.empty(2, hidden_size, dtype=dtype, device=device))
+        self.norm_final = operations.RMSNorm(
+            hidden_size, elementwise_affine=False, eps=1e-6, dtype=dtype, device=device
+        )
+        self.linear = operations.Linear(
+            hidden_size,
+            patch_size[0] * patch_size[1] * out_channels,
+            bias=True,
+            dtype=dtype,
+            device=device,
+        )
+        self.scale_shift_table = nn.Parameter(
+            torch.empty(2, hidden_size, dtype=dtype, device=device)
+        )
         self.out_channels = out_channels
         self.patch_size = patch_size
 
@@ -92,20 +130,39 @@ class T2IFinalLayer(nn.Module):
         # 4 unpatchify
         new_height, new_width = 1, hidden_states.size(1)
         hidden_states = hidden_states.reshape(
-            shape=(hidden_states.shape[0], new_height, new_width, self.patch_size[0], self.patch_size[1], self.out_channels)
+            shape=(
+                hidden_states.shape[0],
+                new_height,
+                new_width,
+                self.patch_size[0],
+                self.patch_size[1],
+                self.out_channels,
+            )
         ).contiguous()
         hidden_states = torch.einsum("nhwpqc->nchpwq", hidden_states)
         output = hidden_states.reshape(
-            shape=(hidden_states.shape[0], self.out_channels, new_height * self.patch_size[0], new_width * self.patch_size[1])
+            shape=(
+                hidden_states.shape[0],
+                self.out_channels,
+                new_height * self.patch_size[0],
+                new_width * self.patch_size[1],
+            )
         ).contiguous()
         if width > new_width:
-            output = torch.nn.functional.pad(output, (0, width - new_width, 0, 0), 'constant', 0)
+            output = torch.nn.functional.pad(
+                output, (0, width - new_width, 0, 0), "constant", 0
+            )
         elif width < new_width:
             output = output[:, :, :, :width]
         return output
 
     def forward(self, x, t, output_length):
-        shift, scale = (comfy.model_management.cast_to(self.scale_shift_table[None], device=t.device, dtype=t.dtype) + t[:, None]).chunk(2, dim=1)
+        shift, scale = (
+            comfy.model_management.cast_to(
+                self.scale_shift_table[None], device=t.device, dtype=t.dtype
+            )
+            + t[:, None]
+        ).chunk(2, dim=1)
         x = t2i_modulate(self.norm_final(x), shift, scale)
         x = self.linear(x)
         # unpatchify
@@ -124,14 +181,41 @@ class PatchEmbed(nn.Module):
         in_channels=8,
         embed_dim=1152,
         bias=True,
-        dtype=None, device=None, operations=None
+        dtype=None,
+        device=None,
+        operations=None,
     ):
         super().__init__()
         patch_size_h, patch_size_w = patch_size
         self.early_conv_layers = nn.Sequential(
-            operations.Conv2d(in_channels, in_channels*256, kernel_size=patch_size, stride=patch_size, padding=0, bias=bias, dtype=dtype, device=device),
-            operations.GroupNorm(num_groups=32, num_channels=in_channels*256, eps=1e-6, affine=True, dtype=dtype, device=device),
-            operations.Conv2d(in_channels*256, embed_dim, kernel_size=1, stride=1, padding=0, bias=bias, dtype=dtype, device=device)
+            operations.Conv2d(
+                in_channels,
+                in_channels * 256,
+                kernel_size=patch_size,
+                stride=patch_size,
+                padding=0,
+                bias=bias,
+                dtype=dtype,
+                device=device,
+            ),
+            operations.GroupNorm(
+                num_groups=32,
+                num_channels=in_channels * 256,
+                eps=1e-6,
+                affine=True,
+                dtype=dtype,
+                device=device,
+            ),
+            operations.Conv2d(
+                in_channels * 256,
+                embed_dim,
+                kernel_size=1,
+                stride=1,
+                padding=0,
+                bias=bias,
+                dtype=dtype,
+                device=device,
+            ),
         )
         self.patch_size = patch_size
         self.height, self.width = height // patch_size_h, width // patch_size_w
@@ -169,8 +253,9 @@ class ACEStepTransformer2DModel(nn.Module):
         max_height: int = 16,
         max_width: int = 4096,
         audio_model=None,
-        dtype=None, device=None, operations=None
-
+        dtype=None,
+        device=None,
+        operations=None,
     ):
         super().__init__()
 
@@ -215,32 +300,72 @@ class ACEStepTransformer2DModel(nn.Module):
             ]
         )
 
-        self.time_proj = Timesteps(num_channels=256, flip_sin_to_cos=True, downscale_freq_shift=0)
-        self.timestep_embedder = TimestepEmbedding(in_channels=256, time_embed_dim=self.inner_dim, dtype=dtype, device=device, operations=operations)
-        self.t_block = nn.Sequential(nn.SiLU(), operations.Linear(self.inner_dim, 6 * self.inner_dim, bias=True, dtype=dtype, device=device))
+        self.time_proj = Timesteps(
+            num_channels=256, flip_sin_to_cos=True, downscale_freq_shift=0
+        )
+        self.timestep_embedder = TimestepEmbedding(
+            in_channels=256,
+            time_embed_dim=self.inner_dim,
+            dtype=dtype,
+            device=device,
+            operations=operations,
+        )
+        self.t_block = nn.Sequential(
+            nn.SiLU(),
+            operations.Linear(
+                self.inner_dim,
+                6 * self.inner_dim,
+                bias=True,
+                dtype=dtype,
+                device=device,
+            ),
+        )
 
         # speaker
-        self.speaker_embedder = operations.Linear(speaker_embedding_dim, self.inner_dim, dtype=dtype, device=device)
+        self.speaker_embedder = operations.Linear(
+            speaker_embedding_dim, self.inner_dim, dtype=dtype, device=device
+        )
 
         # genre
-        self.genre_embedder = operations.Linear(text_embedding_dim, self.inner_dim, dtype=dtype, device=device)
+        self.genre_embedder = operations.Linear(
+            text_embedding_dim, self.inner_dim, dtype=dtype, device=device
+        )
 
         # lyric
-        self.lyric_embs = operations.Embedding(lyric_encoder_vocab_size, lyric_hidden_size, dtype=dtype, device=device)
-        self.lyric_encoder = LyricEncoder(input_size=lyric_hidden_size, static_chunk_size=0, dtype=dtype, device=device, operations=operations)
-        self.lyric_proj = operations.Linear(lyric_hidden_size, self.inner_dim, dtype=dtype, device=device)
+        self.lyric_embs = operations.Embedding(
+            lyric_encoder_vocab_size, lyric_hidden_size, dtype=dtype, device=device
+        )
+        self.lyric_encoder = LyricEncoder(
+            input_size=lyric_hidden_size,
+            static_chunk_size=0,
+            dtype=dtype,
+            device=device,
+            operations=operations,
+        )
+        self.lyric_proj = operations.Linear(
+            lyric_hidden_size, self.inner_dim, dtype=dtype, device=device
+        )
 
         projector_dim = 2 * self.inner_dim
 
-        self.projectors = nn.ModuleList([
-            nn.Sequential(
-                operations.Linear(self.inner_dim, projector_dim, dtype=dtype, device=device),
-                nn.SiLU(),
-                operations.Linear(projector_dim, projector_dim, dtype=dtype, device=device),
-                nn.SiLU(),
-                operations.Linear(projector_dim, ssl_dim, dtype=dtype, device=device),
-            ) for ssl_dim in ssl_latent_dims
-        ])
+        self.projectors = nn.ModuleList(
+            [
+                nn.Sequential(
+                    operations.Linear(
+                        self.inner_dim, projector_dim, dtype=dtype, device=device
+                    ),
+                    nn.SiLU(),
+                    operations.Linear(
+                        projector_dim, projector_dim, dtype=dtype, device=device
+                    ),
+                    nn.SiLU(),
+                    operations.Linear(
+                        projector_dim, ssl_dim, dtype=dtype, device=device
+                    ),
+                )
+                for ssl_dim in ssl_latent_dims
+            ]
+        )
 
         self.proj_in = PatchEmbed(
             height=max_height,
@@ -253,7 +378,14 @@ class ACEStepTransformer2DModel(nn.Module):
             operations=operations,
         )
 
-        self.final_layer = T2IFinalLayer(self.inner_dim, patch_size=patch_size, out_channels=out_channels, dtype=dtype, device=device, operations=operations)
+        self.final_layer = T2IFinalLayer(
+            self.inner_dim,
+            patch_size=patch_size,
+            out_channels=out_channels,
+            dtype=dtype,
+            device=device,
+            operations=operations,
+        )
 
     def forward_lyric_encoder(
         self,
@@ -263,7 +395,9 @@ class ACEStepTransformer2DModel(nn.Module):
     ):
         # N x T x D
         lyric_embs = self.lyric_embs(lyric_token_idx, out_dtype=out_dtype)
-        prompt_prenet_out, _mask = self.lyric_encoder(lyric_embs, lyric_mask, decoding_chunk_size=1, num_decoding_left_chunks=-1)
+        prompt_prenet_out, _mask = self.lyric_encoder(
+            lyric_embs, lyric_mask, decoding_chunk_size=1, num_decoding_left_chunks=-1
+        )
         prompt_prenet_out = self.lyric_proj(prompt_prenet_out)
         return prompt_prenet_out
 
@@ -295,12 +429,21 @@ class ACEStepTransformer2DModel(nn.Module):
 
         encoder_lyric_hidden_states *= lyrics_strength
 
-        encoder_hidden_states = torch.cat([encoder_spk_hidden_states, encoder_text_hidden_states, encoder_lyric_hidden_states], dim=1)
+        encoder_hidden_states = torch.cat(
+            [
+                encoder_spk_hidden_states,
+                encoder_text_hidden_states,
+                encoder_lyric_hidden_states,
+            ],
+            dim=1,
+        )
 
         encoder_hidden_mask = None
         if text_attention_mask is not None:
             speaker_mask = torch.ones(bs, 1, device=device)
-            encoder_hidden_mask = torch.cat([speaker_mask, text_attention_mask, lyric_mask], dim=1)
+            encoder_hidden_mask = torch.cat(
+                [speaker_mask, text_attention_mask, lyric_mask], dim=1
+            )
 
         return encoder_hidden_states, encoder_hidden_mask
 
@@ -312,11 +455,15 @@ class ACEStepTransformer2DModel(nn.Module):
         encoder_hidden_mask: torch.Tensor,
         timestep: Optional[torch.Tensor],
         output_length: int = 0,
-        block_controlnet_hidden_states: Optional[Union[List[torch.Tensor], torch.Tensor]] = None,
+        block_controlnet_hidden_states: Optional[
+            Union[List[torch.Tensor], torch.Tensor]
+        ] = None,
         controlnet_scale: Union[float, torch.Tensor] = 1.0,
         transformer_options={},
     ):
-        embedded_timestep = self.timestep_embedder(self.time_proj(timestep).to(dtype=hidden_states.dtype))
+        embedded_timestep = self.timestep_embedder(
+            self.time_proj(timestep).to(dtype=hidden_states.dtype)
+        )
         temb = self.t_block(embedded_timestep)
 
         hidden_states = self.proj_in(hidden_states)
@@ -328,8 +475,12 @@ class ACEStepTransformer2DModel(nn.Module):
 
         # inner_hidden_states = []
 
-        rotary_freqs_cis = self.rotary_emb(hidden_states, seq_len=hidden_states.shape[1])
-        encoder_rotary_freqs_cis = self.rotary_emb(encoder_hidden_states, seq_len=encoder_hidden_states.shape[1])
+        rotary_freqs_cis = self.rotary_emb(
+            hidden_states, seq_len=hidden_states.shape[1]
+        )
+        encoder_rotary_freqs_cis = self.rotary_emb(
+            encoder_hidden_states, seq_len=encoder_hidden_states.shape[1]
+        )
 
         for index_block, block in enumerate(self.transformer_blocks):
             hidden_states = block(
@@ -346,7 +497,8 @@ class ACEStepTransformer2DModel(nn.Module):
         output = self.final_layer(hidden_states, embedded_timestep, output_length)
         return output
 
-    def forward(self,
+    def forward(
+        self,
         x,
         timestep,
         attention_mask=None,
@@ -355,17 +507,34 @@ class ACEStepTransformer2DModel(nn.Module):
         speaker_embeds: Optional[torch.FloatTensor] = None,
         lyric_token_idx: Optional[torch.LongTensor] = None,
         lyric_mask: Optional[torch.LongTensor] = None,
-        block_controlnet_hidden_states: Optional[Union[List[torch.Tensor], torch.Tensor]] = None,
+        block_controlnet_hidden_states: Optional[
+            Union[List[torch.Tensor], torch.Tensor]
+        ] = None,
         controlnet_scale: Union[float, torch.Tensor] = 1.0,
         lyrics_strength=1.0,
-        **kwargs
+        **kwargs,
     ):
         return comfy.patcher_extension.WrapperExecutor.new_class_executor(
             self._forward,
             self,
-            comfy.patcher_extension.get_all_wrappers(comfy.patcher_extension.WrappersMP.DIFFUSION_MODEL, kwargs.get("transformer_options", {}))
-        ).execute(x, timestep, attention_mask, context, text_attention_mask, speaker_embeds, lyric_token_idx, lyric_mask, block_controlnet_hidden_states,
-                  controlnet_scale, lyrics_strength, **kwargs)
+            comfy.patcher_extension.get_all_wrappers(
+                comfy.patcher_extension.WrappersMP.DIFFUSION_MODEL,
+                kwargs.get("transformer_options", {}),
+            ),
+        ).execute(
+            x,
+            timestep,
+            attention_mask,
+            context,
+            text_attention_mask,
+            speaker_embeds,
+            lyric_token_idx,
+            lyric_mask,
+            block_controlnet_hidden_states,
+            controlnet_scale,
+            lyrics_strength,
+            **kwargs,
+        )
 
     def _forward(
         self,
@@ -377,10 +546,12 @@ class ACEStepTransformer2DModel(nn.Module):
         speaker_embeds: Optional[torch.FloatTensor] = None,
         lyric_token_idx: Optional[torch.LongTensor] = None,
         lyric_mask: Optional[torch.LongTensor] = None,
-        block_controlnet_hidden_states: Optional[Union[List[torch.Tensor], torch.Tensor]] = None,
+        block_controlnet_hidden_states: Optional[
+            Union[List[torch.Tensor], torch.Tensor]
+        ] = None,
         controlnet_scale: Union[float, torch.Tensor] = 1.0,
         lyrics_strength=1.0,
-        **kwargs
+        **kwargs,
     ):
         hidden_states = x
         encoder_text_hidden_states = context

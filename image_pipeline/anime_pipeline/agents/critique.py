@@ -118,7 +118,10 @@ class CritiqueAgent:
         elif self._detected_character:
             try:
                 from ..character_references import build_identity_critique_context
-                identity_context = build_identity_critique_context(self._detected_character)
+
+                identity_context = build_identity_critique_context(
+                    self._detected_character
+                )
             except Exception as e:
                 logger.warning("[Critique] Could not load character identity: %s", e)
 
@@ -126,12 +129,18 @@ class CritiqueAgent:
         output_b64 = self._get_latest_output(job)
         if not output_b64:
             logger.warning("[Critique] No output image to critique")
-            job.critique_results.append(CritiqueResult(
-                anatomy_score=5, face_score=5, hands_score=5,
-                composition_score=5, color_score=5, style_score=5,
-                background_score=5,
-                model_used="skipped",
-            ))
+            job.critique_results.append(
+                CritiqueResult(
+                    anatomy_score=5,
+                    face_score=5,
+                    hands_score=5,
+                    composition_score=5,
+                    color_score=5,
+                    style_score=5,
+                    background_score=5,
+                    model_used="skipped",
+                )
+            )
             job.mark_stage("critique", 0.0)
             return job
 
@@ -143,14 +152,19 @@ class CritiqueAgent:
         # Try each vision model. Skip Gemini variants once their key pool is
         # fully exhausted to avoid hammering a dead API on every refine round.
         from .._gemini_pool import all_exhausted as _gp_all_exhausted
+
         result = None
         for model_name in self._config.vision_model_priority:
             if model_name.lower().startswith("gemini") and _gp_all_exhausted():
-                logger.debug("[Critique] Skipping %s (Gemini key pool exhausted)", model_name)
+                logger.debug(
+                    "[Critique] Skipping %s (Gemini key pool exhausted)", model_name
+                )
                 continue
             try:
                 result = self._critique_with_model(
-                    model_name, job.user_prompt, output_b64,
+                    model_name,
+                    job.user_prompt,
+                    output_b64,
                     identity_context=identity_context,
                     reference_images=reference_images,
                 )
@@ -161,6 +175,7 @@ class CritiqueAgent:
                 # Redact ?key=... from URLs so leaked Gemini/OpenAI keys do
                 # not end up in plain-text logs (and uploaded log dumps).
                 import re as _re
+
                 safe_msg = _re.sub(
                     r"([?&](?:key|api[_-]?key)=)[^&\s'\"]+",
                     r"\1***REDACTED***",
@@ -171,8 +186,12 @@ class CritiqueAgent:
         if not result:
             logger.warning("[Critique] All models failed, auto-passing")
             result = CritiqueResult(
-                anatomy_score=5, face_score=5, hands_score=5,
-                composition_score=5, color_score=5, style_score=5,
+                anatomy_score=5,
+                face_score=5,
+                hands_score=5,
+                composition_score=5,
+                color_score=5,
+                style_score=5,
                 background_score=5,
                 model_used="auto_pass",
             )
@@ -184,15 +203,21 @@ class CritiqueAgent:
 
         logger.info(
             "[Critique] Score=%.2f eye_ref=%.0f%% passed=%s via %s in %.0fms",
-            result.overall_score, result.eye_reference_match_pct,
-            result.passed, result.model_used, latency,
+            result.overall_score,
+            result.eye_reference_match_pct,
+            result.passed,
+            result.model_used,
+            latency,
         )
         return job
 
     def _get_latest_output(self, job: AnimePipelineJob) -> Optional[str]:
         """Get the most recent pipeline image (YOLO-enhanced > beauty > composition)."""
         for img in reversed(job.intermediates):
-            if img.stage.startswith("detail_") or img.stage in ("beauty_pass", "composition_pass"):
+            if img.stage.startswith("detail_") or img.stage in (
+                "beauty_pass",
+                "composition_pass",
+            ):
                 return img.image_b64
         return None
 
@@ -206,18 +231,31 @@ class CritiqueAgent:
     ) -> Optional[CritiqueResult]:
         """Run critique using a vision model."""
         if model_name.startswith("gemini"):
-            return self._critique_gemini(model_name, user_prompt, image_b64, identity_context, reference_images)
+            return self._critique_gemini(
+                model_name, user_prompt, image_b64, identity_context, reference_images
+            )
         elif model_name.startswith("gpt"):
-            return self._critique_openai(model_name, user_prompt, image_b64, identity_context, reference_images)
+            return self._critique_openai(
+                model_name, user_prompt, image_b64, identity_context, reference_images
+            )
         return None
 
     def _critique_gemini(
-        self, model_name: str, user_prompt: str, image_b64: str,
+        self,
+        model_name: str,
+        user_prompt: str,
+        image_b64: str,
         identity_context: str = "",
         reference_images: Optional[list[str]] = None,
     ) -> Optional[CritiqueResult]:
         """Critique using Gemini vision (with key-pool rotation on 429)."""
-        from .._gemini_pool import get_active_key, mark_exhausted, is_quota_error, is_auth_error
+        from .._gemini_pool import (
+            get_active_key,
+            mark_exhausted,
+            is_quota_error,
+            is_auth_error,
+        )
+
         api_key = get_active_key()
         if not api_key:
             raise RuntimeError("No GEMINI_API_KEY available (pool exhausted)")
@@ -232,11 +270,13 @@ class CritiqueAgent:
         reference_context = (
             f"Reference images ({len(ref_list)}) are provided above — compare eye region "
             f"against reference and score eye_reference_match_pct 0-100."
-            if ref_list else ""
+            if ref_list
+            else ""
         )
 
         user_msg = _CRITIQUE_USER_TEMPLATE.format(
-            user_prompt=user_prompt, threshold=threshold_10,
+            user_prompt=user_prompt,
+            threshold=threshold_10,
             identity_context=identity_context,
             reference_context=reference_context,
         )
@@ -247,11 +287,21 @@ class CritiqueAgent:
         parts: list[dict] = [{"text": system + "\n\n" + user_msg}]
 
         if ref_list:
-            parts.append({"text": "REFERENCE IMAGE(S) — use these to compare eye colors, shape, and features:"})
+            parts.append(
+                {
+                    "text": "REFERENCE IMAGE(S) — use these to compare eye colors, shape, and features:"
+                }
+            )
             for ref_b64 in ref_list:
                 raw_ref = ref_b64.split(",", 1)[-1] if "," in ref_b64 else ref_b64
-                parts.append({"inline_data": {"mime_type": "image/png", "data": raw_ref}})
-            parts.append({"text": "GENERATED IMAGE to critique (compare eyes against reference above):"})
+                parts.append(
+                    {"inline_data": {"mime_type": "image/png", "data": raw_ref}}
+                )
+            parts.append(
+                {
+                    "text": "GENERATED IMAGE to critique (compare eyes against reference above):"
+                }
+            )
 
         parts.append({"inline_data": {"mime_type": "image/png", "data": raw_b64}})
 
@@ -307,7 +357,10 @@ class CritiqueAgent:
         return self._parse_critique(text)
 
     def _critique_openai(
-        self, model_name: str, user_prompt: str, image_b64: str,
+        self,
+        model_name: str,
+        user_prompt: str,
+        image_b64: str,
         identity_context: str = "",
         reference_images: Optional[list[str]] = None,
     ) -> Optional[CritiqueResult]:
@@ -325,11 +378,13 @@ class CritiqueAgent:
         reference_context = (
             f"Reference images ({len(ref_list)}) are provided — compare eye region "
             f"against reference and score eye_reference_match_pct 0-100."
-            if ref_list else ""
+            if ref_list
+            else ""
         )
 
         user_msg = _CRITIQUE_USER_TEMPLATE.format(
-            user_prompt=user_prompt, threshold=threshold_10,
+            user_prompt=user_prompt,
+            threshold=threshold_10,
             identity_context=identity_context,
             reference_context=reference_context,
         )
@@ -338,16 +393,38 @@ class CritiqueAgent:
         # Build content: text + reference images + generated image
         content: list[dict] = [{"type": "text", "text": user_msg}]
         if ref_list:
-            content.append({"type": "text", "text": "REFERENCE IMAGE(S) — compare eye colors, shape, and features:"})
+            content.append(
+                {
+                    "type": "text",
+                    "text": "REFERENCE IMAGE(S) — compare eye colors, shape, and features:",
+                }
+            )
             for ref_b64 in ref_list:
                 raw_ref = ref_b64.split(",", 1)[-1] if "," in ref_b64 else ref_b64
-                content.append({"type": "image_url", "image_url": {
-                    "url": f"data:image/png;base64,{raw_ref}", "detail": "low",
-                }})
-            content.append({"type": "text", "text": "GENERATED IMAGE to critique (compare eyes against reference):"})
-        content.append({"type": "image_url", "image_url": {
-            "url": f"data:image/png;base64,{raw_b64}", "detail": "low",
-        }})
+                content.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/png;base64,{raw_ref}",
+                            "detail": "low",
+                        },
+                    }
+                )
+            content.append(
+                {
+                    "type": "text",
+                    "text": "GENERATED IMAGE to critique (compare eyes against reference):",
+                }
+            )
+        content.append(
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{raw_b64}",
+                    "detail": "low",
+                },
+            }
+        )
 
         with httpx.Client(timeout=30) as client:
             resp = client.post(
@@ -391,7 +468,9 @@ class CritiqueAgent:
                     face_score=int(obj.get("face_score", 5)),
                     face_issues=obj.get("face_issues", []),
                     eye_consistency_score=int(obj.get("eye_consistency_score", 0)),
-                    eye_reference_match_pct=float(obj.get("eye_reference_match_pct", 0.0)),
+                    eye_reference_match_pct=float(
+                        obj.get("eye_reference_match_pct", 0.0)
+                    ),
                     eye_issues=obj.get("eye_issues", []),
                     hands_score=int(obj.get("hands_score", 5)),
                     hand_issues=obj.get("hand_issues", []),
@@ -426,7 +505,9 @@ class CritiqueAgent:
                     color_score=score_10,
                     style_score=score_10,
                     background_score=score_10,
-                    retry_recommendation=not obj.get("passed", overall >= self._config.quality_threshold),
+                    retry_recommendation=not obj.get(
+                        "passed", overall >= self._config.quality_threshold
+                    ),
                     prompt_patch=suggestions,
                 )
         except (json.JSONDecodeError, KeyError, ValueError) as e:

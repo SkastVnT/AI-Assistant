@@ -49,8 +49,8 @@ logger = logging.getLogger(__name__)
 # ── Location mapping ─────────────────────────────────────────────────
 
 _PROVIDER_TO_LOCATION = {
-    "vps":     ExecutionLocation.VPS,
-    "fal":     ExecutionLocation.API,
+    "vps": ExecutionLocation.VPS,
+    "fal": ExecutionLocation.API,
     "stepfun": ExecutionLocation.API,
 }
 
@@ -83,7 +83,8 @@ class SemanticEditor:
     ):
         # Primary: Qwen on VPS
         self._qwen = QwenClient(
-            base_url=vps_base_url or os.environ.get("VPS_BASE_URL", "http://localhost:8000"),
+            base_url=vps_base_url
+            or os.environ.get("VPS_BASE_URL", "http://localhost:8000"),
             api_key=vps_api_key or os.environ.get("VPS_API_KEY", "EMPTY"),
         )
 
@@ -94,7 +95,7 @@ class SemanticEditor:
         )
 
         self._prefer_vps = prefer_vps
-        self._vps_available: Optional[bool] = None   # Cached health state
+        self._vps_available: Optional[bool] = None  # Cached health state
 
     # ── Main entry point ──────────────────────────────────────────
 
@@ -153,7 +154,8 @@ class SemanticEditor:
                 stage.image_url = resp.raw_text
 
             stage.location = _PROVIDER_TO_LOCATION.get(
-                resp.provider, ExecutionLocation.API,
+                resp.provider,
+                ExecutionLocation.API,
             )
             stage.model_usage = ModelUsage(
                 provider=resp.provider,
@@ -167,7 +169,9 @@ class SemanticEditor:
             stage.mark_completed(latency_ms=latency)
             logger.info(
                 "[SemanticEditor] Success via %s/%s (%.0f ms)",
-                resp.provider, resp.model, latency,
+                resp.provider,
+                resp.model,
+                latency,
             )
         else:
             error_msg = resp.error if resp else "All backends failed"
@@ -287,7 +291,9 @@ class SemanticEditor:
             turns.append(ConversationTurn(role="user", text=prev_prompt))
             # We don't have the previous assistant images in lineage,
             # but sending the text maintains semantic context.
-            turns.append(ConversationTurn(role="assistant", text="[previous edit applied]"))
+            turns.append(
+                ConversationTurn(role="assistant", text="[previous edit applied]")
+            )
         return turns
 
     # ── Cost estimation ───────────────────────────────────────────
@@ -296,10 +302,10 @@ class SemanticEditor:
     def _estimate_cost(model: str) -> float:
         """Rough per-image cost based on model name."""
         return {
-            "qwen-image-edit":  0.00,    # Self-hosted VPS
-            "flux1-kontext":    0.025,
-            "step1x-edit":      0.020,
-            "nano-banana":      0.011,
+            "qwen-image-edit": 0.00,  # Self-hosted VPS
+            "flux1-kontext": 0.025,
+            "step1x-edit": 0.020,
+            "nano-banana": 0.011,
         }.get(model, 0.025)
 
     # ── Resource cleanup ──────────────────────────────────────────

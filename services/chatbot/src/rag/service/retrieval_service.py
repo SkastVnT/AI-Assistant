@@ -5,20 +5,18 @@ Performs a pgvector cosine-similarity search over ``rag_chunks``, enforces
 tenant isolation and an optional document filter, applies a score threshold,
 and optionally caches results in Redis.
 """
+
 from __future__ import annotations
 
 import logging
 import uuid
 from dataclasses import asdict, dataclass, field
-from typing import Sequence
 
-from sqlalchemy import select, text
-from sqlalchemy.orm import selectinload
+from sqlalchemy import text
 
 from core.rag_settings import get_rag_settings
 from src.rag.cache.redis_cache import RedisCache
 from src.rag.db.base import get_session_factory
-from src.rag.db.models import RagChunk, RagDocument
 from src.rag.embeddings.base import EmbeddingProvider
 from src.rag.embeddings.factory import create_embedding_provider
 from src.rag.security.policies import get_rag_policies
@@ -149,7 +147,10 @@ class RetrievalService:
         # ── 1. Cache lookup ───────────────────────────────────────────
         if self._cache is not None:
             cached = await self._cache.get_retrieval(
-                tenant_id, query, effective_k, doc_ids,
+                tenant_id,
+                query,
+                effective_k,
+                doc_ids,
             )
             if cached is not None:
                 return [RetrievalHit(**row) for row in cached]
@@ -205,7 +206,8 @@ class RetrievalService:
 
         async with session_factory() as session:
             # Build raw SQL for pgvector cosine distance + JOIN
-            sql = text("""
+            sql = text(
+                """
                 SELECT
                     c.id            AS chunk_id,
                     c.document_id   AS document_id,
@@ -222,9 +224,10 @@ class RetrievalService:
                 ORDER BY c.embedding <=> :vec
                 LIMIT :topk
             """.replace(
-                "{doc_filter}",
-                "AND c.document_id = ANY(:doc_ids)" if doc_ids else "",
-            ))
+                    "{doc_filter}",
+                    "AND c.document_id = ANY(:doc_ids)" if doc_ids else "",
+                )
+            )
 
             params: dict = {
                 "vec": vec_literal,
@@ -233,7 +236,9 @@ class RetrievalService:
                 "topk": top_k,
             }
             if doc_ids:
-                params["doc_ids"] = [uuid.UUID(d) if isinstance(d, str) else d for d in doc_ids]
+                params["doc_ids"] = [
+                    uuid.UUID(d) if isinstance(d, str) else d for d in doc_ids
+                ]
 
             result = await session.execute(sql, params)
             rows = result.mappings().all()

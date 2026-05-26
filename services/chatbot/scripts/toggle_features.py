@@ -12,8 +12,9 @@ Usage:
     python scripts/toggle_features.py all off       # disable ALL restrictions
     python scripts/toggle_features.py all on        # enable ALL restrictions
 """
-import sys
+
 import json
+import sys
 from pathlib import Path
 
 CONFIG_PATH = Path(__file__).parent.parent / "config" / "features.json"
@@ -35,13 +36,13 @@ def show(data):
     print("│          Chatbot Feature Flags                  │")
     print("├─────────────────────────────────────────────────┤")
     flags = {
-        "require_login":       data.get("auth", {}).get("require_login", True),
-        "allow_registration":  data.get("auth", {}).get("allow_registration", True),
+        "require_login": data.get("auth", {}).get("require_login", True),
+        "allow_registration": data.get("auth", {}).get("allow_registration", True),
         "quota (image limit)": data.get("quota", {}).get("enabled", True),
-        "  image limit":       data.get("quota", {}).get("image_gen_limit", 5),
-        "video unlock":        data.get("video", {}).get("enabled", True),
-        "  require_payment":   data.get("video", {}).get("require_payment_unlock", True),
-        "payment / QR":        data.get("payment", {}).get("enabled", True),
+        "  image limit": data.get("quota", {}).get("image_gen_limit", 5),
+        "video unlock": data.get("video", {}).get("enabled", True),
+        "  require_payment": data.get("video", {}).get("require_payment_unlock", True),
+        "payment / QR": data.get("payment", {}).get("enabled", True),
     }
     for k, v in flags.items():
         if isinstance(v, bool):
@@ -93,12 +94,12 @@ def interactive(data):
     show(data)
     print("Chọn tính năng:")
     menu = [
-        ("1", "quota",        "Image generation limit (5 ảnh/user)"),
-        ("2", "video",        "Video generation + payment lock"),
-        ("3", "payment",      "Payment / QR generation"),
-        ("4", "login",        "Require login"),
+        ("1", "quota", "Image generation limit (5 ảnh/user)"),
+        ("2", "video", "Video generation + payment lock"),
+        ("3", "payment", "Payment / QR generation"),
+        ("4", "login", "Require login"),
         ("5", "registration", "Allow registration"),
-        ("6", "all",          "ALL restrictions"),
+        ("6", "all", "ALL restrictions"),
     ]
     for num, _, desc in menu:
         print(f"  [{num}] {desc}")

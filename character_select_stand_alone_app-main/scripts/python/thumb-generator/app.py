@@ -37,6 +37,7 @@ except ImportError:
 # UTILITY FUNCTIONS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 def get_md5_hash(text: str) -> str:
     h = hashlib.md5()
     h.update(text.encode("utf-8"))
@@ -84,6 +85,7 @@ def load_tag_assist(path: str) -> dict:
 # COMFYUI CORE  (adapted from comfyui.py)
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class ComfyGenerator:
     def __init__(self, server: str, client_id: str, workflow_path: str):
         self.server = server
@@ -95,7 +97,9 @@ class ComfyGenerator:
         self.nodes[node_id]["inputs"][key] = value
 
     def _fetch_image(self, filename, subfolder, ftype) -> bytes:
-        params = parse.urlencode({"filename": filename, "subfolder": subfolder, "type": ftype})
+        params = parse.urlencode(
+            {"filename": filename, "subfolder": subfolder, "type": ftype}
+        )
         with request.urlopen(f"http://{self.server}/view?{params}") as r:
             return r.read()
 
@@ -114,7 +118,9 @@ class ComfyGenerator:
                         return True
 
     def run(self, ws_conn) -> Optional[bytes]:
-        payload = json.dumps({"prompt": self.nodes, "client_id": self.client_id}).encode()
+        payload = json.dumps(
+            {"prompt": self.nodes, "client_id": self.client_id}
+        ).encode()
         req = request.Request(
             f"http://{self.server}/prompt",
             data=payload,
@@ -128,7 +134,9 @@ class ComfyGenerator:
         history = self._get_history(prompt_id).get(prompt_id, {})
         for _, node_out in history.get("outputs", {}).items():
             for img_info in node_out.get("images", []):
-                return self._fetch_image(img_info["filename"], img_info["subfolder"], img_info["type"])
+                return self._fetch_image(
+                    img_info["filename"], img_info["subfolder"], img_info["type"]
+                )
         return None
 
 
@@ -174,7 +182,7 @@ def comfyui_generate(
             gen.set("50", "type", diffusion_model_type)
             gen.set("51", "unet_name", model)
             gen.set("52", "vae_name", vae)
-            
+
             for nid in ("36", "29"):
                 gen.set(nid, "sampler_name", sampler)
                 gen.set(nid, "scheduler", scheduler)
@@ -191,13 +199,13 @@ def comfyui_generate(
         gen.set("29", "seed_value", seed)
         gen.set("32", "text", positive_prompt)
         gen.set("33", "text", negative_prompt)
-            
+
         # Bypass Refiner
         gen.set("6", "samples", ["36", 0])
 
         # No hires fix: wire Image Saver directly to first VAE Decode output
         gen.set("29", "images", ["6", 0])
-            
+
         return gen.run(ws_conn)
     finally:
         ws_conn.close()
@@ -215,7 +223,10 @@ def interrupt_comfyui(server: str):
 # PIPELINE STEPS
 # ══════════════════════════════════════════════════════════════════════════════
 
-def step1_create_name_dict(char_list_path: str, output_folder: str) -> tuple[dict, str, str]:
+
+def step1_create_name_dict(
+    char_list_path: str, output_folder: str
+) -> tuple[dict, str, str]:
     """
     Step 1 – Read character TXT → compute MD5 for each escaped name →
     write character_md5.json and character_md5.csv.
@@ -252,7 +263,7 @@ def _generation_loop(
     Run generation in main process with real-time log updates via placeholder.
     entries = list of (raw_name, md5_hash).
     start_index = the original index in the full list (for display purposes).
-    
+
     Returns stats dict: {success, skip, error, elapsed, total}
     """
     os.makedirs(thumb_folder, exist_ok=True)
@@ -261,15 +272,15 @@ def _generation_loop(
     skip_count = 0
     error_count = 0
     start_time = time.time()
-    
+
     log_lines = []
 
-    log_lines.append(f"\n{'='*80}")
+    log_lines.append(f"\n{'=' * 80}")
     log_lines.append(f"🚀 Generation started - Processing {total} characters")
     log_lines.append(f"📁 Output folder: {thumb_folder}")
     log_lines.append(f"📊 Range: Index {start_index} to {start_index + total - 1}")
-    log_lines.append(f"{'='*80}\n")
-    
+    log_lines.append(f"{'=' * 80}\n")
+
     # Initial log display
     with log_placeholder.container():
         render_scrollable_log(log_lines, height=480)
@@ -277,12 +288,14 @@ def _generation_loop(
     for i, (raw_name, md5) in enumerate(entries):
         # Check if user stopped
         if st.session_state.get("gen_stop_requested", False):
-            log_lines.append(f"\n⏹️  User stopped - Completed [{start_index + i}/{start_index + total}]")
+            log_lines.append(
+                f"\n⏹️  User stopped - Completed [{start_index + i}/{start_index + total}]"
+            )
             break
 
         webp_path = os.path.join(thumb_folder, f"{md5}.webp")
         progress_str = f"[{start_index + i + 1:4d}/{start_index + total}]"
-        
+
         # Pre-calculate tag display for logging
         tag_key = raw_name.lower()
         tag_display = tag_assist[tag_key] if tag_key in tag_assist else "no tag"
@@ -296,10 +309,12 @@ def _generation_loop(
             full_prompt = f"{tag}{escaped},{positive_suffix}"
 
             if tag_display != "no tag":
-                log_lines.append(f"{progress_str}  ⚙️  Generating... '{raw_name}' [tag_assist: {tag_display}]")
+                log_lines.append(
+                    f"{progress_str}  ⚙️  Generating... '{raw_name}' [tag_assist: {tag_display}]"
+                )
             else:
                 log_lines.append(f"{progress_str}  ⚙️  Generating... '{raw_name}'")
-            
+
             # Update log display every item
             with log_placeholder.container():
                 render_scrollable_log(log_lines, height=480)
@@ -309,7 +324,9 @@ def _generation_loop(
                     server=comfyui_cfg["server"],
                     workflow_path=comfyui_cfg["workflow_path"],
                     model_type=comfyui_cfg.get("model_type", "checkpoint"),
-                    diffusion_model_type=comfyui_cfg.get("diffusion_model_type", "stable_diffusion"),
+                    diffusion_model_type=comfyui_cfg.get(
+                        "diffusion_model_type", "stable_diffusion"
+                    ),
                     model=comfyui_cfg["model"],
                     sampler=comfyui_cfg["sampler"],
                     scheduler=comfyui_cfg["scheduler"],
@@ -331,14 +348,20 @@ def _generation_loop(
                     )
                     new_size = f"{img.width}x{img.height}"
                     img.save(webp_path, "WEBP", quality=70, method=6)
-                    file_size = os.path.getsize(webp_path) / 1024  # KB                    
-                    log_lines.append(f"{progress_str}  ✅  Success: '{raw_name}' ({orig_size}→{new_size}, {file_size:.1f}KB)")
+                    file_size = os.path.getsize(webp_path) / 1024  # KB
+                    log_lines.append(
+                        f"{progress_str}  ✅  Success: '{raw_name}' ({orig_size}→{new_size}, {file_size:.1f}KB)"
+                    )
                     success_count += 1
                 else:
-                    log_lines.append(f"{progress_str}  ⚠️  Failed: '{raw_name}' - no image returned [tag: {tag_display}]")
+                    log_lines.append(
+                        f"{progress_str}  ⚠️  Failed: '{raw_name}' - no image returned [tag: {tag_display}]"
+                    )
                     error_count += 1
             except Exception as exc:
-                log_lines.append(f"{progress_str}  ❌  Error: '{raw_name}' - {type(exc).__name__}: {str(exc)[:50]} [tag: {tag_display}]")
+                log_lines.append(
+                    f"{progress_str}  ❌  Error: '{raw_name}' - {type(exc).__name__}: {str(exc)[:50]} [tag: {tag_display}]"
+                )
                 error_count += 1
 
         if st.session_state.sleep_time > 0:
@@ -347,18 +370,20 @@ def _generation_loop(
 
     if not st.session_state.get("gen_stop_requested", False):
         elapsed = time.time() - start_time
-        log_lines.append(f"\n{'='*80}")
+        log_lines.append(f"\n{'=' * 80}")
         log_lines.append("🎉  Generation completed!")
-        log_lines.append(f"📈 Statistics: Success={success_count}, Skipped={skip_count}, Failed={error_count}")
+        log_lines.append(
+            f"📈 Statistics: Success={success_count}, Skipped={skip_count}, Failed={error_count}"
+        )
         log_lines.append(f"⏱️  Elapsed time: {elapsed:.1f}s")
         if success_count > 0:
-            log_lines.append(f"⚡ Average speed: {elapsed/success_count:.1f}s/item")
-        log_lines.append(f"{'='*80}\n")
-    
+            log_lines.append(f"⚡ Average speed: {elapsed / success_count:.1f}s/item")
+        log_lines.append(f"{'=' * 80}\n")
+
     # Final log update
     with log_placeholder.container():
         render_scrollable_log(log_lines, height=480)
-    
+
     return {
         "success": success_count,
         "skip": skip_count,
@@ -369,11 +394,13 @@ def _generation_loop(
     }
 
 
-def step3_package_thumbs(thumb_folder: str, csv_path: str, output_path: str, progress_callback=None) -> tuple[int, list[str]]:
+def step3_package_thumbs(
+    thumb_folder: str, csv_path: str, output_path: str, progress_callback=None
+) -> tuple[int, list[str]]:
     """
     Step 3 – Load webp files keyed by MD5 from CSV, gzip+base64 encode,
     bundle into a single JSON. Returns (packed_count, missing_name_list).
-    
+
     Args:
         thumb_folder: Path to folder containing webp files
         csv_path: Path to CSV file with name,md5 entries
@@ -387,13 +414,13 @@ def step3_package_thumbs(thumb_folder: str, csv_path: str, output_path: str, pro
 
     for i, (name, md5) in enumerate(entries):
         webp_path = os.path.join(thumb_folder, f"{md5}.webp")
-        
+
         if not os.path.exists(webp_path):
             missing.append(name)
             if progress_callback:
                 progress_callback(i + 1, total, name, "missing")
             continue
-        
+
         try:
             with open(webp_path, "rb") as f:
                 data = f.read()
@@ -401,7 +428,12 @@ def step3_package_thumbs(thumb_folder: str, csv_path: str, output_path: str, pro
             result[md5] = base64.b64encode(gzip.compress(data)).decode("ascii")
             compressed_size = len(result[md5]) / 1024  # Approximate KB
             if progress_callback:
-                progress_callback(i + 1, total, name, f"packed ({file_size:.1f}KB → {compressed_size:.1f}KB)")
+                progress_callback(
+                    i + 1,
+                    total,
+                    name,
+                    f"packed ({file_size:.1f}KB → {compressed_size:.1f}KB)",
+                )
         except Exception as e:
             if progress_callback:
                 progress_callback(i + 1, total, name, f"error: {str(e)[:40]}")
@@ -411,7 +443,7 @@ def step3_package_thumbs(thumb_folder: str, csv_path: str, output_path: str, pro
     output_dir = os.path.dirname(output_path)
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
-    
+
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=4)
 
@@ -441,6 +473,7 @@ st.markdown(
 
 
 # ── Session-state defaults ────────────────────────────────────────────────────
+
 
 def _default(key, val):
     if key not in st.session_state:
@@ -491,18 +524,21 @@ _default("last_gen_stats", None)  # Save completion stats
 with st.sidebar:
     st.title("🎴 SAA Thumb Generator")
     st.divider()
-    
+
     # Show generation status
     if st.session_state.gen_running:
         st.warning("**Generation in Progress**", icon="⏳")
-        st.caption("UI controls are locked during generation. Check tabs for live logs.")
-    
+        st.caption(
+            "UI controls are locked during generation. Check tabs for live logs."
+        )
+
     st.divider()
 
     with st.expander("🔌 ComfyUI Connection", expanded=True):
         st.session_state.server = st.text_input(
-            "Server Address", st.session_state.server,
-            disabled=st.session_state.gen_running
+            "Server Address",
+            st.session_state.server,
+            disabled=st.session_state.gen_running,
         )
 
         MODEL_TYPES = ["diffusion", "checkpoint"]
@@ -511,42 +547,84 @@ with st.sidebar:
             "Model Type",
             MODEL_TYPES,
             index=MODEL_TYPES.index(st.session_state.model_type)
-            if st.session_state.model_type in MODEL_TYPES else 0,
+            if st.session_state.model_type in MODEL_TYPES
+            else 0,
             disabled=st.session_state.gen_running,
-            help="diffusion = Flux/SD3-style separate text encoder & VAE; checkpoint = classic all-in-one .safetensors"
+            help="diffusion = Flux/SD3-style separate text encoder & VAE; checkpoint = classic all-in-one .safetensors",
         )
 
         # Auto-update workflow path default when model type changes
         _WORKFLOW_DEFAULTS = {
             "checkpoint": "./workflow_api.json",
-            "diffusion":  "./workflow_diffusion_api.json",
+            "diffusion": "./workflow_diffusion_api.json",
         }
         if st.session_state.model_type != prev_model_type:
-            st.session_state.workflow_path = _WORKFLOW_DEFAULTS[st.session_state.model_type]
+            st.session_state.workflow_path = _WORKFLOW_DEFAULTS[
+                st.session_state.model_type
+            ]
 
         st.session_state.workflow_path = st.text_input(
             "Workflow JSON Path",
             st.session_state.workflow_path,
             placeholder=_WORKFLOW_DEFAULTS[st.session_state.model_type],
-            disabled=st.session_state.gen_running
+            disabled=st.session_state.gen_running,
         )
         st.session_state.sleep_time = st.number_input(
-            "Seconds to sleep after each generation", 0.0, 30.0, float(st.session_state.sleep_time), step=0.5,
-            disabled=st.session_state.gen_running
+            "Seconds to sleep after each generation",
+            0.0,
+            30.0,
+            float(st.session_state.sleep_time),
+            step=0.5,
+            disabled=st.session_state.gen_running,
         )
 
     with st.expander("🎨 Generation Parameters", expanded=True):
         SAMPLERS = [
-            "euler_ancestral", "euler", "euler_cfg_pp", "euler_ancestral_cfg_pp", "heun", "heunpp2",
-            "dpm_2", "dpm_2_ancestral", "lms", "dpm_fast", "dpm_adaptive", "dpmpp_2s_ancestral", 
-            "dpmpp_2s_ancestral_cfg_pp", "dpmpp_sde", "dpmpp_sde_gpu", "dpmpp_2m", "dpmpp_2m_cfg_pp", 
-            "dpmpp_2m_sde", "dpmpp_2m_sde_gpu", "dpmpp_3m_sde", "dpmpp_3m_sde_gpu", "ddpm", "lcm",
-            "ipndm", "ipndm_v", "deis", "res_multistep", "res_multistep_cfg_pp", "res_multistep_ancestral", 
-            "res_multistep_ancestral_cfg_pp", "gradient_estimation", "er_sde", "seeds_2", "seeds_3"
+            "euler_ancestral",
+            "euler",
+            "euler_cfg_pp",
+            "euler_ancestral_cfg_pp",
+            "heun",
+            "heunpp2",
+            "dpm_2",
+            "dpm_2_ancestral",
+            "lms",
+            "dpm_fast",
+            "dpm_adaptive",
+            "dpmpp_2s_ancestral",
+            "dpmpp_2s_ancestral_cfg_pp",
+            "dpmpp_sde",
+            "dpmpp_sde_gpu",
+            "dpmpp_2m",
+            "dpmpp_2m_cfg_pp",
+            "dpmpp_2m_sde",
+            "dpmpp_2m_sde_gpu",
+            "dpmpp_3m_sde",
+            "dpmpp_3m_sde_gpu",
+            "ddpm",
+            "lcm",
+            "ipndm",
+            "ipndm_v",
+            "deis",
+            "res_multistep",
+            "res_multistep_cfg_pp",
+            "res_multistep_ancestral",
+            "res_multistep_ancestral_cfg_pp",
+            "gradient_estimation",
+            "er_sde",
+            "seeds_2",
+            "seeds_3",
         ]
         SCHEDULERS = [
-            "normal", "karras", "exponential", "sgm_uniform", "simple", "ddim_uniform", 
-            "beta", "linear_quadratic", "kl_optimal"
+            "normal",
+            "karras",
+            "exponential",
+            "sgm_uniform",
+            "simple",
+            "ddim_uniform",
+            "beta",
+            "linear_quadratic",
+            "kl_optimal",
         ]
 
         col_l, col_r = st.columns(2)
@@ -555,62 +633,95 @@ with st.sidebar:
                 "Sampler",
                 SAMPLERS,
                 index=SAMPLERS.index(st.session_state.sampler)
-                if st.session_state.sampler in SAMPLERS else 0,
-                disabled=st.session_state.gen_running
+                if st.session_state.sampler in SAMPLERS
+                else 0,
+                disabled=st.session_state.gen_running,
             )
             st.session_state.steps = st.number_input(
-                "Steps", 1, 150, int(st.session_state.steps),
-                disabled=st.session_state.gen_running
+                "Steps",
+                1,
+                150,
+                int(st.session_state.steps),
+                disabled=st.session_state.gen_running,
             )
             st.session_state.width = st.number_input(
-                "Width", 256, 2048, int(st.session_state.width), step=64,
-                disabled=st.session_state.gen_running
+                "Width",
+                256,
+                2048,
+                int(st.session_state.width),
+                step=64,
+                disabled=st.session_state.gen_running,
             )
         with col_r:
             st.session_state.scheduler = st.selectbox(
                 "Scheduler",
                 SCHEDULERS,
                 index=SCHEDULERS.index(st.session_state.scheduler)
-                if st.session_state.scheduler in SCHEDULERS else 0,
-                disabled=st.session_state.gen_running
+                if st.session_state.scheduler in SCHEDULERS
+                else 0,
+                disabled=st.session_state.gen_running,
             )
             st.session_state.cfg = st.number_input(
-                "CFG Scale", 1.0, 30.0, float(st.session_state.cfg), step=0.5,
-                disabled=st.session_state.gen_running
+                "CFG Scale",
+                1.0,
+                30.0,
+                float(st.session_state.cfg),
+                step=0.5,
+                disabled=st.session_state.gen_running,
             )
             st.session_state.height = st.number_input(
-                "Height", 256, 2048, int(st.session_state.height), step=64,
-                disabled=st.session_state.gen_running
+                "Height",
+                256,
+                2048,
+                int(st.session_state.height),
+                step=64,
+                disabled=st.session_state.gen_running,
             )
 
         st.session_state.seed = st.number_input(
-            "Seed", 0, 2**32 - 1, int(st.session_state.seed),
-            disabled=st.session_state.gen_running
+            "Seed",
+            0,
+            2**32 - 1,
+            int(st.session_state.seed),
+            disabled=st.session_state.gen_running,
         )
         st.session_state.model = st.text_input(
-            "Model Filename", st.session_state.model,
-            disabled=st.session_state.gen_running
+            "Model Filename",
+            st.session_state.model,
+            disabled=st.session_state.gen_running,
         )
 
         if st.session_state.model_type == "diffusion":
-            DIFFUSION_MODEL_TYPES = ["stable_diffusion", "sd3", "cosmos", "lumia2", "chroma", "qwen_image", "hunyuan_image", "flux2"]
+            DIFFUSION_MODEL_TYPES = [
+                "stable_diffusion",
+                "sd3",
+                "cosmos",
+                "lumia2",
+                "chroma",
+                "qwen_image",
+                "hunyuan_image",
+                "flux2",
+            ]
             st.session_state.diffusion_model_type = st.selectbox(
                 "Diffusion Model Type",
                 DIFFUSION_MODEL_TYPES,
                 index=DIFFUSION_MODEL_TYPES.index(st.session_state.diffusion_model_type)
-                if st.session_state.diffusion_model_type in DIFFUSION_MODEL_TYPES else 0,
+                if st.session_state.diffusion_model_type in DIFFUSION_MODEL_TYPES
+                else 0,
                 disabled=st.session_state.gen_running,
-                help="Model type for diffusion-based generation (Flux, SD3, Cosmos, etc.)"
+                help="Model type for diffusion-based generation (Flux, SD3, Cosmos, etc.)",
             )
             st.session_state.text_encoder = st.text_input(
-                "Text Encoder", st.session_state.text_encoder,
+                "Text Encoder",
+                st.session_state.text_encoder,
                 placeholder="textencoder",
-                disabled=st.session_state.gen_running
+                disabled=st.session_state.gen_running,
             )
             st.session_state.vae = st.text_input(
-                "VAE", st.session_state.vae,
+                "VAE",
+                st.session_state.vae,
                 placeholder="vae",
-                disabled=st.session_state.gen_running
+                disabled=st.session_state.gen_running,
             )
 
     with st.expander("📝 Prompts", expanded=False):
@@ -619,11 +730,13 @@ with st.sidebar:
             st.session_state.positive_suffix,
             height=110,
             help="Appended after the character tag. Character tag is prepended automatically.",
-            disabled=st.session_state.gen_running
+            disabled=st.session_state.gen_running,
         )
         st.session_state.negative = st.text_area(
-            "Negative Prompt", st.session_state.negative, height=80,
-            disabled=st.session_state.gen_running
+            "Negative Prompt",
+            st.session_state.negative,
+            height=80,
+            disabled=st.session_state.gen_running,
         )
 
     st.divider()
@@ -641,6 +754,7 @@ with st.sidebar:
 
 
 # ── Helper: build cfg dict ────────────────────────────────────────────────────
+
 
 def get_comfyui_cfg() -> dict:
     cfg = {
@@ -672,9 +786,11 @@ def validate_comfyui_cfg() -> list[str]:
         errs.append(f"Workflow file not found: {st.session_state.workflow_path}")
     return errs
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # UI CALLBACKS
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def cb_start_run(trigger_key: str):
     """Clicking Start triggers: locks UI and sets the execution flag for the corresponding Tab"""
@@ -682,6 +798,7 @@ def cb_start_run(trigger_key: str):
     st.session_state.gen_stop_requested = False
     st.session_state.last_gen_stats = None
     st.session_state[trigger_key] = True
+
 
 def cb_stop_run():
     """Clicking Stop triggers: interrupts the background process and resets the UI state"""
@@ -697,12 +814,12 @@ def render_scrollable_log(log_lines: list[str], height: int = 300):
     Accepts either a list of strings or a single string.
     """
     if isinstance(log_lines, list):
-            log_text = "\n".join(log_lines)
+        log_text = "\n".join(log_lines)
     else:
         log_text = log_lines
 
     escaped = html.escape(log_text).replace("\n", "<br>")
-    
+
     # create a unique container ID based on the log content to ensure Streamlit updates it correctly
     container_id = f"log-container-{abs(hash(log_text)) % 999999}"
 
@@ -726,13 +843,15 @@ def render_scrollable_log(log_lines: list[str], height: int = 300):
         unsafe_allow_html=True,
     )
 
+
 def render_stop_button(key: str = "stop_btn"):
     st.button(
-        "⏹ Stop", 
-        key=key, 
+        "⏹ Stop",
+        key=key,
         disabled=not st.session_state.gen_running,
-        on_click=cb_stop_run  # Bind callback
-    )        
+        on_click=cb_stop_run,  # Bind callback
+    )
+
 
 def start_generation(
     entries: list[tuple[str, str]],
@@ -746,7 +865,7 @@ def start_generation(
     Run generation directly in main process (synchronously).
     This allows real-time log updates and UI state management.
     Displays logs in a dedicated area that updates in real-time.
-    
+
     Args:
         entries: List of (name, md5) tuples
         thumb_folder: Output folder for thumbnails
@@ -757,60 +876,72 @@ def start_generation(
     """
     # Validate and convert start_index from 1-based to 0-based
     actual_start_idx = max(0, start_index - 1) if start_index > 0 else 0
-    
+
     # Check if start index is beyond the list
     if actual_start_idx >= len(entries):
-        st.error(f"❌ Start index {start_index} exceeds total count ({len(entries)}). No generation started.")
+        st.error(
+            f"❌ Start index {start_index} exceeds total count ({len(entries)}). No generation started."
+        )
         return
-    
+
     # Calculate end index
     remaining = len(entries) - actual_start_idx
     if count == -1 or count > remaining:
         actual_end_idx = len(entries)
     else:
         actual_end_idx = actual_start_idx + count
-    
+
     # Extract the slice of entries to process
     entries_to_process = entries[actual_start_idx:actual_end_idx]
-    
+
     tag_assist = load_tag_assist(tag_assist_path)
     cfg = get_comfyui_cfg()
     suffix = st.session_state.positive_suffix
-    
+
     # Show initialization info
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total", len(entries))
     col2.metric("To Process", len(entries_to_process))
     col3.metric("Start", start_index)
-    col4.metric("Server", cfg['server'].split(':')[0])
-    
+    col4.metric("Server", cfg["server"].split(":")[0])
+
     st.info(f"⏳ Generating {len(entries_to_process):,} thumbnails...")
-    
+
     # Create a placeholder for log updates
     log_placeholder = st.empty()
-    
+
     # Run generation synchronously (blocks until complete)
     stats = _generation_loop(
-        entries_to_process, thumb_folder, tag_assist, suffix, cfg, log_placeholder, skip_existing, actual_start_idx
+        entries_to_process,
+        thumb_folder,
+        tag_assist,
+        suffix,
+        cfg,
+        log_placeholder,
+        skip_existing,
+        actual_start_idx,
     )
-    
+
     # Mark as completed and save stats
     st.session_state.gen_running = False
     st.session_state.last_gen_stats = stats
-    
+
     # Trigger a rerun to update the UI with the latest stats and reset state
-    st.rerun()  
+    st.rerun()
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TABS
 # ─────────────────────────────────────────────────────────────────────────────
 
-tab1, tab2, tab3, tab4 = st.tabs([
-    "📋 Step 1 · Name Dict",
-    "🖼️ Step 2 · Generate Thumbs",
-    "📦 Step 3 · Package Thumbs",
-    "🔄 Re-create Thumbs",
-])
+tab1, tab2, tab3, tab4 = st.tabs(
+    [
+        "📋 Step 1 · Name Dict",
+        "🖼️ Step 2 · Generate Thumbs",
+        "📦 Step 3 · Package Thumbs",
+        "🔄 Re-create Thumbs",
+    ]
+)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # STEP 1 · create_name_dict
@@ -920,7 +1051,9 @@ with tab2:
         s2_skip = st.checkbox("⏭ Skip already-generated files", value=True)
 
     # Index range controls
-    st.markdown("**📍 Generation Range** *(optional — leave as default to generate all)*")
+    st.markdown(
+        "**📍 Generation Range** *(optional — leave as default to generate all)*"
+    )
     col_idx1, col_idx2 = st.columns(2)
     with col_idx1:
         s2_start_idx = st.number_input(
@@ -945,11 +1078,13 @@ with tab2:
     if s2_char and os.path.exists(s2_char):
         try:
             preview_list = load_txt_list(s2_char)
-            
+
             # Calculate actual range
             actual_start = max(0, s2_start_idx - 1)
             if actual_start >= len(preview_list):
-                st.error(f"❌ Start index {s2_start_idx} exceeds total ({len(preview_list)})")
+                st.error(
+                    f"❌ Start index {s2_start_idx} exceeds total ({len(preview_list)})"
+                )
             else:
                 remaining = len(preview_list) - actual_start
                 if s2_count == -1 or s2_count > remaining:
@@ -957,7 +1092,7 @@ with tab2:
                 else:
                     actual_count = s2_count
                 actual_end = actual_start + actual_count
-                
+
                 already_done = 0
                 if s2_thumb and os.path.exists(s2_thumb):
                     for n in preview_list[actual_start:actual_end]:
@@ -980,7 +1115,7 @@ with tab2:
             disabled=st.session_state.gen_running,
             key="s2_start",
             on_click=cb_start_run,
-            args=("trigger_tab2",)  # Trigger
+            args=("trigger_tab2",),  # Trigger
         )
     with col_b2:
         render_stop_button("s2_stop")
@@ -994,19 +1129,19 @@ with tab2:
         stat_col2.metric("⏭️ Skipped", f"{stats['skip']:,}")
         stat_col3.metric("❌ Failed", f"{stats['error']:,}")
         stat_col4.metric("⏱️ Time", f"{stats['elapsed']:.1f}s")
-        
+
         if "logs" in stats:
             render_scrollable_log(stats["logs"], height=480)
 
     if st.session_state.get("trigger_tab2", False):
-        st.session_state["trigger_tab2"] = False # De-reset trigger
-        
+        st.session_state["trigger_tab2"] = False  # De-reset trigger
+
         errs = validate_comfyui_cfg()
         if not s2_char or not os.path.exists(s2_char):
             errs.append("Character list TXT not found.")
         if not s2_thumb:
             errs.append("Thumb output folder required.")
-            
+
         if errs:
             for e in errs:
                 st.error(f"❌ {e}")
@@ -1019,11 +1154,11 @@ with tab2:
             st.session_state.tag_assist_path = s2_tag
             chars = load_txt_list(s2_char)
             entries = [(n, get_md5_hash(escape_name(n))) for n in chars]
-            
+
             start_generation(
-                entries, 
-                s2_thumb, 
-                s2_tag, 
+                entries,
+                s2_thumb,
+                s2_tag,
                 s2_skip,
                 start_index=s2_start_idx,
                 count=s2_count,
@@ -1042,25 +1177,29 @@ with tab3:
     )
 
     # Display last execution stats if available
-    if st.session_state.last_gen_stats and st.session_state.last_gen_stats.get("step3_mode"):
+    if st.session_state.last_gen_stats and st.session_state.last_gen_stats.get(
+        "step3_mode"
+    ):
         stats = st.session_state.last_gen_stats
         st.success("Packaging Completed!", icon="✅")
         stat_col1, stat_col2, stat_col3 = st.columns(3)
         stat_col1.metric("✅ Packed", f"{stats['success']:,}")
         stat_col2.metric("⚠️ Missing", f"{stats['skip']:,}")
         stat_col3.metric("⏱️ Time", f"{stats['elapsed']:.1f}s")
-        
+
         if "logs" in stats:
             render_scrollable_log(stats["logs"], height=480)
 
     # Auto-fill from step 1 results
     default_csv = (
         os.path.join(st.session_state.output_folder, "character_md5.csv")
-        if st.session_state.output_folder else ""
+        if st.session_state.output_folder
+        else ""
     )
     default_out = (
         os.path.join(st.session_state.output_folder, "character_thumbs.json")
-        if st.session_state.output_folder else ""
+        if st.session_state.output_folder
+        else ""
     )
 
     c1, c2 = st.columns(2)
@@ -1090,14 +1229,20 @@ with tab3:
         try:
             entries_preview = load_csv_entries(s3_csv)
             found_count = sum(
-                1 for _, md5 in entries_preview
+                1
+                for _, md5 in entries_preview
                 if os.path.exists(os.path.join(s3_thumb, f"{md5}.webp"))
             )
             pp1, pp2 = st.columns(2)
             pp1.metric("Listed in CSV", len(entries_preview))
-            pp2.metric("WebP files found", found_count,
-                       delta=f"missing: {len(entries_preview)-found_count}" if found_count < len(entries_preview) else None,
-                       delta_color="inverse")
+            pp2.metric(
+                "WebP files found",
+                found_count,
+                delta=f"missing: {len(entries_preview) - found_count}"
+                if found_count < len(entries_preview)
+                else None,
+                delta_color="inverse",
+            )
         except Exception:
             pass
 
@@ -1107,12 +1252,12 @@ with tab3:
         disabled=st.session_state.gen_running,
         key="s3_run",
         on_click=cb_start_run,
-        args=("trigger_tab3",)
+        args=("trigger_tab3",),
     )
 
     if st.session_state.get("trigger_tab3", False):
         st.session_state["trigger_tab3"] = False  # De-reset trigger
-        
+
         errs = []
         if not s3_thumb or not os.path.exists(s3_thumb):
             errs.append("Thumb folder not found.")
@@ -1120,7 +1265,7 @@ with tab3:
             errs.append("CSV file not found.")
         if not s3_out:
             errs.append("Output JSON path required.")
-        
+
         if errs:
             for e in errs:
                 st.error(f"❌ {e}")
@@ -1130,19 +1275,19 @@ with tab3:
         else:
             # Create a placeholder for live log updates
             log_placeholder = st.empty()
-            
+
             log_lines = []
-            log_lines.append(f"\n{'='*80}")
+            log_lines.append(f"\n{'=' * 80}")
             log_lines.append("🚀 Packaging started - Processing files...")
-            log_lines.append(f"{'='*80}\n")
-            
+            log_lines.append(f"{'=' * 80}\n")
+
             # Initial log display
             with log_placeholder.container():
                 render_scrollable_log(log_lines, height=300)
-            
+
             # Track execution time
             start_time = time.time()
-            
+
             # Define progress callback
             def s3_progress_callback(current, total, name, status):
                 log_lines.append(f"[{current:4d}/{total}] {name:50s} {status}")
@@ -1150,33 +1295,40 @@ with tab3:
                 if current % 10 == 0 or current == total:
                     with log_placeholder.container():
                         render_scrollable_log(log_lines, height=300)
-            
+
             try:
-                packed, missing = step3_package_thumbs(s3_thumb, s3_csv, s3_out, progress_callback=s3_progress_callback)
+                packed, missing = step3_package_thumbs(
+                    s3_thumb, s3_csv, s3_out, progress_callback=s3_progress_callback
+                )
                 elapsed = time.time() - start_time
                 st.session_state.gen_running = False
-                
+
                 # Final log update
-                log_lines.append(f"\n{'='*80}")
+                log_lines.append(f"\n{'=' * 80}")
                 log_lines.append("✅ Packaging completed!")
-                log_lines.append(f"{'='*80}\n")
+                log_lines.append(f"{'=' * 80}\n")
                 with log_placeholder.container():
                     render_scrollable_log(log_lines, height=300)
-                
+
                 st.success(f"✅ Packaged {packed:,} thumbnails → `{s3_out}`")
 
                 rm1, rm2, rm3 = st.columns(3)
                 rm1.metric("Packed", f"{packed:,}")
-                rm2.metric("Missing", f"{len(missing):,}",
-                           delta=f"-{len(missing)}" if missing else None,
-                           delta_color="inverse")
+                rm2.metric(
+                    "Missing",
+                    f"{len(missing):,}",
+                    delta=f"-{len(missing)}" if missing else None,
+                    delta_color="inverse",
+                )
                 rm3.metric("Time", f"{elapsed:.1f}s")
 
                 if missing:
-                    with st.expander(f"⚠️ {len(missing)} missing characters (no webp found)"):
+                    with st.expander(
+                        f"⚠️ {len(missing)} missing characters (no webp found)"
+                    ):
                         st.text("\n".join(missing[:200]))
                         if len(missing) > 200:
-                            st.caption(f"… {len(missing)-200} more")
+                            st.caption(f"… {len(missing) - 200} more")
                     # Offer to auto-fill missing TXT for re-create
                     missing_txt_path = os.path.join(
                         os.path.dirname(s3_out), "recreate_chatacters.txt"
@@ -1185,7 +1337,7 @@ with tab3:
                     missing_dir = os.path.dirname(missing_txt_path)
                     if missing_dir:
                         os.makedirs(missing_dir, exist_ok=True)
-                    
+
                     missing_entries = load_csv_entries(s3_csv)
                     missing_set = set(missing)
                     with open(missing_txt_path, "w", encoding="utf-8") as mf:
@@ -1197,7 +1349,7 @@ with tab3:
                         "load it in the **Re-create Thumbs** tab."
                     )
                     st.session_state.recreate_csv = missing_txt_path
-                
+
                 # Save stats for display on next rerun
                 st.session_state.last_gen_stats = {
                     "step3_mode": True,
@@ -1208,7 +1360,7 @@ with tab3:
                     "elapsed": elapsed,
                     "logs": "\n".join(log_lines),
                 }
-                
+
                 # Rerun to update UI state after completion
                 st.rerun()
             except Exception as exc:
@@ -1218,7 +1370,7 @@ with tab3:
                 with log_placeholder.container():
                     render_scrollable_log(log_lines, height=300)
                 st.error(f"Error: {exc}")
-                
+
                 # Save error logs
                 st.session_state.last_gen_stats = {
                     "step3_mode": True,
@@ -1270,7 +1422,9 @@ with tab4:
             help="When unchecked, characters whose webp already exists are skipped.",
         )
 
-    st.markdown("**Manual Entry** *(optional — paste extra character names here, one per line)*")
+    st.markdown(
+        "**Manual Entry** *(optional — paste extra character names here, one per line)*"
+    )
     s4_manual = st.text_area(
         "Character names — one per line",
         height=90,
@@ -1286,35 +1440,40 @@ with tab4:
             disabled=st.session_state.gen_running,
             key="s4_start",
             on_click=cb_start_run,
-            args=("trigger_tab4",)
+            args=("trigger_tab4",),
         )
     with col_b2:
         render_stop_button("s4_stop")
 
-    if st.session_state.last_gen_stats and not st.session_state.last_gen_stats.get("step3_mode"):
+    if st.session_state.last_gen_stats and not st.session_state.last_gen_stats.get(
+        "step3_mode"
+    ):
         stats = st.session_state.last_gen_stats
-        if stats.get("error", 0) == 0 and stats.get("success", 0) + stats.get("skip", 0) > 0:
+        if (
+            stats.get("error", 0) == 0
+            and stats.get("success", 0) + stats.get("skip", 0) > 0
+        ):
             st.success("Re-create Completed!", icon="✅")
         else:
             st.error("Re-create Finished with issues", icon="⚠️")
-        
+
         stat_col1, stat_col2, stat_col3, stat_col4 = st.columns(4)
         stat_col1.metric("✅ Success", f"{stats.get('success', 0):,}")
         stat_col2.metric("⏭️ Skipped", f"{stats.get('skip', 0):,}")
         stat_col3.metric("❌ Failed", f"{stats.get('error', 0):,}")
         stat_col4.metric("⏱️ Time", f"{stats.get('elapsed', 0):.1f}s")
-        
+
         if "logs" in stats and stats["logs"]:
             render_scrollable_log(stats["logs"], height=480)
 
     if st.session_state.get("trigger_tab4", False):
         st.session_state["trigger_tab4"] = False
-        
+
         log_lines = []
-        log_lines.append(f"\n{'='*80}")
+        log_lines.append(f"\n{'=' * 80}")
         log_lines.append("🚀 Re-create Thumbnails started")
-        log_lines.append(f"{'='*80}\n")
-        
+        log_lines.append(f"{'=' * 80}\n")
+
         errs = validate_comfyui_cfg()
         entries: list[tuple[str, str]] = []
 
@@ -1344,10 +1503,10 @@ with tab4:
         if errs:
             for e in errs:
                 log_lines.append(f"❌ {e}")
-            log_lines.append("\n" + "="*80)
+            log_lines.append("\n" + "=" * 80)
             log_lines.append("⛔ Re-create failed due to validation errors")
-            log_lines.append("="*80)
-            
+            log_lines.append("=" * 80)
+
             st.session_state.last_gen_stats = {
                 "success": 0,
                 "skip": 0,
@@ -1359,12 +1518,12 @@ with tab4:
             st.session_state.gen_running = False
             st.error("Validation failed. See logs below.")
             st.rerun()
-            
+
         else:
             st.session_state.recreate_csv = s4_txt
             st.session_state.recreate_thumb_folder = s4_thumb
             st.session_state.tag_assist_path = s4_tag
-            
+
             # Deduplicate while preserving order
             seen: set[str] = set()
             deduped = []
@@ -1372,5 +1531,5 @@ with tab4:
                 if md5 not in seen:
                     seen.add(md5)
                     deduped.append((name, md5))
-            
+
             start_generation(deduped, s4_thumb, s4_tag, not s4_overwrite)

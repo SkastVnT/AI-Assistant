@@ -119,7 +119,8 @@ class AgentController:
             ctx.__enter__()
 
         plan_text, sub_queries = await plan_task(
-            self._llm, state,
+            self._llm,
+            state,
             temperature=self._config.planning_temperature,
         )
         state.sub_queries = sub_queries
@@ -151,7 +152,9 @@ class AgentController:
                 act_ctx.__enter__()
 
             tool_call = await select_tool(
-                self._llm, state, memory,
+                self._llm,
+                state,
+                memory,
                 tool_descriptions=self._tools.available_tools(),
                 temperature=self._config.planning_temperature,
             )
@@ -166,11 +169,10 @@ class AgentController:
             if not is_tool_allowed(delegated, tool_call.tool_name):
                 logger.warning(
                     "tool_blocked: %s not in allowlist for role=%s",
-                    tool_call.tool_name, delegated.role,
+                    tool_call.tool_name,
+                    delegated.role,
                 )
-                memory.add_note(
-                    f"Tool '{tool_call.tool_name}' is not permitted for your role."
-                )
+                memory.add_note(f"Tool '{tool_call.tool_name}' is not permitted for your role.")
                 if self._spans:
                     act_ctx.__exit__(None, None, None)
                 continue
@@ -216,7 +218,9 @@ class AgentController:
                 ref_ctx.__enter__()
 
             sufficient, confidence, notes = await reflect(
-                self._llm, state, memory,
+                self._llm,
+                state,
+                memory,
             )
             turn.reflection = notes
             state.turns.append(turn)
@@ -236,7 +240,9 @@ class AgentController:
                 ans_ctx.__enter__()
 
             state.answer = await synthesise_answer(
-                self._llm, state, memory,
+                self._llm,
+                state,
+                memory,
                 temperature=self._config.answer_temperature,
             )
             state.stop_reason = StopReason.ANSWERED
@@ -254,13 +260,17 @@ class AgentController:
 
         logger.info(
             "agent_done: task=%s iterations=%d tools=%d reason=%s",
-            state.task_id, state.iteration,
-            state.total_tool_calls, state.stop_reason,
+            state.task_id,
+            state.iteration,
+            state.total_tool_calls,
+            state.stop_reason,
         )
         return state
 
     async def _best_effort_answer(
-        self, state: AgentState, memory: ShortTermMemory,
+        self,
+        state: AgentState,
+        memory: ShortTermMemory,
     ) -> str:
         """Generate a best-effort answer when budget is exceeded."""
         if memory.evidence_count == 0:
@@ -269,6 +279,8 @@ class AgentController:
                 "allowed budget. Please try a simpler query."
             )
         return await synthesise_answer(
-            self._llm, state, memory,
+            self._llm,
+            state,
+            memory,
             temperature=self._config.answer_temperature,
         )

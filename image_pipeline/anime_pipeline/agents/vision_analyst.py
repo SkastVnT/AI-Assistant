@@ -95,194 +95,551 @@ Example (no character): {{
 # appearance_tags are prepended to the prompt so the model knows the look.
 _KNOWN_CHARACTERS: dict[str, tuple[str, str, list[str]]] = {
     # Date a Live
-    "kurumi": ("tokisaki_kurumi", "date_a_live", [
-        "1girl", "black_hair", "very_long_hair", "twintails",
-        "heterochromia", "(yellow_left_eye:1.2)", "(red_right_eye:1.2)",
-        "gothic_lolita",
-    ]),
-    "tokisaki kurumi": ("tokisaki_kurumi", "date_a_live", [
-        "1girl", "black_hair", "very_long_hair", "twintails",
-        "heterochromia", "(yellow_left_eye:1.2)", "(red_right_eye:1.2)",
-        "gothic_lolita",
-    ]),
-    "tohka": ("yatogami_tohka", "date_a_live", [
-        "1girl", "long_hair", "purple_hair", "dark_blue_hair", "blue_eyes",
-        "princess_dress", "white_dress",
-    ]),
-    "kotori": ("itsuka_kotori", "date_a_live", [
-        "1girl", "long_hair", "pink_hair", "red_eyes",
-        "uniform", "commander",
-    ]),
+    "kurumi": (
+        "tokisaki_kurumi",
+        "date_a_live",
+        [
+            "1girl",
+            "black_hair",
+            "very_long_hair",
+            "twintails",
+            "heterochromia",
+            "(yellow_left_eye:1.2)",
+            "(red_right_eye:1.2)",
+            "gothic_lolita",
+        ],
+    ),
+    "tokisaki kurumi": (
+        "tokisaki_kurumi",
+        "date_a_live",
+        [
+            "1girl",
+            "black_hair",
+            "very_long_hair",
+            "twintails",
+            "heterochromia",
+            "(yellow_left_eye:1.2)",
+            "(red_right_eye:1.2)",
+            "gothic_lolita",
+        ],
+    ),
+    "tohka": (
+        "yatogami_tohka",
+        "date_a_live",
+        [
+            "1girl",
+            "long_hair",
+            "purple_hair",
+            "dark_blue_hair",
+            "blue_eyes",
+            "princess_dress",
+            "white_dress",
+        ],
+    ),
+    "kotori": (
+        "itsuka_kotori",
+        "date_a_live",
+        [
+            "1girl",
+            "long_hair",
+            "pink_hair",
+            "red_eyes",
+            "uniform",
+            "commander",
+        ],
+    ),
     # Sword Art Online
-    "asuna": ("yuuki_asuna", "sword_art_online", [
-        "1girl", "long_hair", "orange_hair", "brown_eyes",
-        "armor", "white_uniform", "knight",
-    ]),
-    "kirito": ("kirigaya_kazuto", "sword_art_online", [
-        "1boy", "short_black_hair", "black_eyes",
-        "black_coat", "dual_blades",
-    ]),
+    "asuna": (
+        "yuuki_asuna",
+        "sword_art_online",
+        [
+            "1girl",
+            "long_hair",
+            "orange_hair",
+            "brown_eyes",
+            "armor",
+            "white_uniform",
+            "knight",
+        ],
+    ),
+    "kirito": (
+        "kirigaya_kazuto",
+        "sword_art_online",
+        [
+            "1boy",
+            "short_black_hair",
+            "black_eyes",
+            "black_coat",
+            "dual_blades",
+        ],
+    ),
     # Re:Zero
-    "rem": ("rem_(re:zero)", "re:zero", [
-        "1girl", "short_hair", "blue_hair", "blue_eyes",
-        "maid", "maid_headdress", "maid_uniform",
-    ]),
-    "emilia": ("emilia_(re:zero)", "re:zero", [
-        "1girl", "long_hair", "silver_hair", "purple_eyes",
-        "elf_ears", "white_dress",
-    ]),
+    "rem": (
+        "rem_(re:zero)",
+        "re:zero",
+        [
+            "1girl",
+            "short_hair",
+            "blue_hair",
+            "blue_eyes",
+            "maid",
+            "maid_headdress",
+            "maid_uniform",
+        ],
+    ),
+    "emilia": (
+        "emilia_(re:zero)",
+        "re:zero",
+        [
+            "1girl",
+            "long_hair",
+            "silver_hair",
+            "purple_eyes",
+            "elf_ears",
+            "white_dress",
+        ],
+    ),
     # Demon Slayer
-    "nezuko": ("kamado_nezuko", "kimetsu_no_yaiba", [
-        "1girl", "long_hair", "black_hair", "pink_gradient_hair",
-        "pink_eyes", "bamboo_muzzle", "kimono", "pink_kimono",
-    ]),
-    "tanjiro": ("kamado_tanjiro", "kimetsu_no_yaiba", [
-        "1boy", "short_hair", "black_hair", "red_eyes", "scar",
-        "checkered_haori", "nichirin_sword",
-    ]),
+    "nezuko": (
+        "kamado_nezuko",
+        "kimetsu_no_yaiba",
+        [
+            "1girl",
+            "long_hair",
+            "black_hair",
+            "pink_gradient_hair",
+            "pink_eyes",
+            "bamboo_muzzle",
+            "kimono",
+            "pink_kimono",
+        ],
+    ),
+    "tanjiro": (
+        "kamado_tanjiro",
+        "kimetsu_no_yaiba",
+        [
+            "1boy",
+            "short_hair",
+            "black_hair",
+            "red_eyes",
+            "scar",
+            "checkered_haori",
+            "nichirin_sword",
+        ],
+    ),
     # Honkai: Star Rail / Genshin
-    "hu tao": ("hu_tao_(genshin_impact)", "genshin_impact", [
-        "1girl", "long_hair", "brown_hair", "twintails",
-        "(red_eyes:1.2)", "flower_hair_ornament", "hair_ribbon",
-        "chinese_clothes", "dark_red_jacket", "black_gloves",
-        "white_floral_pattern",
-    ]),
-    "hutao": ("hu_tao_(genshin_impact)", "genshin_impact", [
-        "1girl", "long_hair", "brown_hair", "twintails",
-        "(red_eyes:1.2)", "flower_hair_ornament", "hair_ribbon",
-        "chinese_clothes", "dark_red_jacket", "black_gloves",
-        "white_floral_pattern",
-    ]),
-    "raiden shogun": ("raiden_shogun", "genshin_impact", [
-        "1girl", "long_hair", "purple_hair", "(purple_eyes:1.2)",
-        "kimono", "elegant",
-    ]),
-    "fischl": ("fischl_(genshin_impact)", "genshin_impact", [
-        "1girl", "long_hair", "blonde_hair", "heterochromia",
-        "eyepatch", "thighhighs", "gothic",
-    ]),
+    "hu tao": (
+        "hu_tao_(genshin_impact)",
+        "genshin_impact",
+        [
+            "1girl",
+            "long_hair",
+            "brown_hair",
+            "twintails",
+            "(red_eyes:1.2)",
+            "flower_hair_ornament",
+            "hair_ribbon",
+            "chinese_clothes",
+            "dark_red_jacket",
+            "black_gloves",
+            "white_floral_pattern",
+        ],
+    ),
+    "hutao": (
+        "hu_tao_(genshin_impact)",
+        "genshin_impact",
+        [
+            "1girl",
+            "long_hair",
+            "brown_hair",
+            "twintails",
+            "(red_eyes:1.2)",
+            "flower_hair_ornament",
+            "hair_ribbon",
+            "chinese_clothes",
+            "dark_red_jacket",
+            "black_gloves",
+            "white_floral_pattern",
+        ],
+    ),
+    "raiden shogun": (
+        "raiden_shogun",
+        "genshin_impact",
+        [
+            "1girl",
+            "long_hair",
+            "purple_hair",
+            "(purple_eyes:1.2)",
+            "kimono",
+            "elegant",
+        ],
+    ),
+    "fischl": (
+        "fischl_(genshin_impact)",
+        "genshin_impact",
+        [
+            "1girl",
+            "long_hair",
+            "blonde_hair",
+            "heterochromia",
+            "eyepatch",
+            "thighhighs",
+            "gothic",
+        ],
+    ),
     # Fate series
-    "saber": ("artoria_pendragon", "fate/stay_night", [
-        "1girl", "short_hair", "blonde_hair", "green_eyes",
-        "armor", "blue_dress", "ahoge",
-    ]),
-    "rin": ("tohsaka_rin", "fate/stay_night", [
-        "1girl", "long_hair", "black_hair", "twintails",
-        "red_eyes", "red_turtleneck", "skirt",
-    ]),
+    "saber": (
+        "artoria_pendragon",
+        "fate/stay_night",
+        [
+            "1girl",
+            "short_hair",
+            "blonde_hair",
+            "green_eyes",
+            "armor",
+            "blue_dress",
+            "ahoge",
+        ],
+    ),
+    "rin": (
+        "tohsaka_rin",
+        "fate/stay_night",
+        [
+            "1girl",
+            "long_hair",
+            "black_hair",
+            "twintails",
+            "red_eyes",
+            "red_turtleneck",
+            "skirt",
+        ],
+    ),
     # Naruto
-    "hinata": ("hyuuga_hinata", "naruto", [
-        "1girl", "short_hair", "dark_blue_hair", "white_eyes",
-        "byakugan", "ninja", "lavender_hoodie",
-    ]),
+    "hinata": (
+        "hyuuga_hinata",
+        "naruto",
+        [
+            "1girl",
+            "short_hair",
+            "dark_blue_hair",
+            "white_eyes",
+            "byakugan",
+            "ninja",
+            "lavender_hoodie",
+        ],
+    ),
     # Attack on Titan
-    "mikasa": ("mikasa_ackerman", "shingeki_no_kyojin", [
-        "1girl", "short_hair", "black_hair", "gray_eyes",
-        "scarf", "red_scarf", "military_uniform",
-    ]),
+    "mikasa": (
+        "mikasa_ackerman",
+        "shingeki_no_kyojin",
+        [
+            "1girl",
+            "short_hair",
+            "black_hair",
+            "gray_eyes",
+            "scarf",
+            "red_scarf",
+            "military_uniform",
+        ],
+    ),
     # Hololive
-    "fubuki": ("shirakami_fubuki", "hololive", [
-        "1girl", "long_hair", "white_hair", "blue_eyes",
-        "fox_ears", "fox_tail", "virtual_youtuber",
-    ]),
+    "fubuki": (
+        "shirakami_fubuki",
+        "hololive",
+        [
+            "1girl",
+            "long_hair",
+            "white_hair",
+            "blue_eyes",
+            "fox_ears",
+            "fox_tail",
+            "virtual_youtuber",
+        ],
+    ),
     # Zenless Zone Zero
-    "ellen": ("ellen_joe", "zenless_zone_zero", [
-        "1girl", "long_hair", "silver_hair", "blue_eyes",
-        "shark_tail", "school_uniform",
-    ]),
-    "ellen joe": ("ellen_joe", "zenless_zone_zero", [
-        "1girl", "long_hair", "silver_hair", "blue_eyes",
-        "shark_tail", "school_uniform",
-    ]),
-    "miyabi": ("miyabi_(zenless_zone_zero)", "zenless_zone_zero", [
-        "1girl", "long_hair", "pink_hair", "red_eyes",
-        "japanese_clothes", "kimono",
-    ]),
-    "anby": ("anby_demara", "zenless_zone_zero", [
-        "1girl", "short_hair", "purple_hair", "yellow_eyes",
-        "jacket", "combat_outfit",
-    ]),
-    "nicole demara": ("nicole_demara", "zenless_zone_zero", [
-        "1girl", "long_hair", "blonde_hair", "green_eyes",
-        "business_suit", "hat",
-    ]),
-    "jane doe": ("jane_doe_(zenless_zone_zero)", "zenless_zone_zero", [
-        "1girl", "medium_hair", "red_hair", "red_eyes",
-        "combat_outfit", "mask",
-    ]),
-    "zhu yuan": ("zhu_yuan", "zenless_zone_zero", [
-        "1girl", "long_hair", "white_hair", "yellow_eyes",
-        "police_uniform", "gloves",
-    ]),
+    "ellen": (
+        "ellen_joe",
+        "zenless_zone_zero",
+        [
+            "1girl",
+            "long_hair",
+            "silver_hair",
+            "blue_eyes",
+            "shark_tail",
+            "school_uniform",
+        ],
+    ),
+    "ellen joe": (
+        "ellen_joe",
+        "zenless_zone_zero",
+        [
+            "1girl",
+            "long_hair",
+            "silver_hair",
+            "blue_eyes",
+            "shark_tail",
+            "school_uniform",
+        ],
+    ),
+    "miyabi": (
+        "miyabi_(zenless_zone_zero)",
+        "zenless_zone_zero",
+        [
+            "1girl",
+            "long_hair",
+            "pink_hair",
+            "red_eyes",
+            "japanese_clothes",
+            "kimono",
+        ],
+    ),
+    "anby": (
+        "anby_demara",
+        "zenless_zone_zero",
+        [
+            "1girl",
+            "short_hair",
+            "purple_hair",
+            "yellow_eyes",
+            "jacket",
+            "combat_outfit",
+        ],
+    ),
+    "nicole demara": (
+        "nicole_demara",
+        "zenless_zone_zero",
+        [
+            "1girl",
+            "long_hair",
+            "blonde_hair",
+            "green_eyes",
+            "business_suit",
+            "hat",
+        ],
+    ),
+    "jane doe": (
+        "jane_doe_(zenless_zone_zero)",
+        "zenless_zone_zero",
+        [
+            "1girl",
+            "medium_hair",
+            "red_hair",
+            "red_eyes",
+            "combat_outfit",
+            "mask",
+        ],
+    ),
+    "zhu yuan": (
+        "zhu_yuan",
+        "zenless_zone_zero",
+        [
+            "1girl",
+            "long_hair",
+            "white_hair",
+            "yellow_eyes",
+            "police_uniform",
+            "gloves",
+        ],
+    ),
     # NIKKE
-    "rapi": ("rapi_(nikke)", "goddess_of_victory:_nikke", [
-        "1girl", "long_hair", "blonde_hair", "red_eyes",
-        "military_uniform", "beret",
-    ]),
+    "rapi": (
+        "rapi_(nikke)",
+        "goddess_of_victory:_nikke",
+        [
+            "1girl",
+            "long_hair",
+            "blonde_hair",
+            "red_eyes",
+            "military_uniform",
+            "beret",
+        ],
+    ),
     # To Love-Ru
-    "lala": ("lala_satalin_deviluke", "to_love-ru", [
-        "1girl", "long_hair", "pink_hair", "green_eyes",
-        "tail", "hair_ornament",
-    ]),
-    "yami": ("konjiki_no_yami", "to_love-ru", [
-        "1girl", "long_hair", "blonde_hair", "red_eyes",
-        "black_dress", "emotionless",
-    ]),
+    "lala": (
+        "lala_satalin_deviluke",
+        "to_love-ru",
+        [
+            "1girl",
+            "long_hair",
+            "pink_hair",
+            "green_eyes",
+            "tail",
+            "hair_ornament",
+        ],
+    ),
+    "yami": (
+        "konjiki_no_yami",
+        "to_love-ru",
+        [
+            "1girl",
+            "long_hair",
+            "blonde_hair",
+            "red_eyes",
+            "black_dress",
+            "emotionless",
+        ],
+    ),
     # Oshi no Ko
-    "ai hoshino": ("hoshino_ai", "oshi_no_ko", [
-        "1girl", "long_hair", "purple_hair", "star_eyes",
-        "idol", "star_hair_ornament",
-    ]),
-    "ruby hoshino": ("hoshino_ruby", "oshi_no_ko", [
-        "1girl", "long_hair", "blonde_hair", "star_eyes",
-        "idol",
-    ]),
+    "ai hoshino": (
+        "hoshino_ai",
+        "oshi_no_ko",
+        [
+            "1girl",
+            "long_hair",
+            "purple_hair",
+            "star_eyes",
+            "idol",
+            "star_hair_ornament",
+        ],
+    ),
+    "ruby hoshino": (
+        "hoshino_ruby",
+        "oshi_no_ko",
+        [
+            "1girl",
+            "long_hair",
+            "blonde_hair",
+            "star_eyes",
+            "idol",
+        ],
+    ),
     # Fire Emblem
-    "edelgard": ("edelgard_von_hresvelg", "fire_emblem", [
-        "1girl", "long_hair", "white_hair", "purple_eyes",
-        "armor", "cape", "crown",
-    ]),
-    "camilla": ("camilla_(fire_emblem)", "fire_emblem", [
-        "1girl", "very_long_hair", "purple_hair", "purple_eyes",
-        "armor", "tiara",
-    ]),
+    "edelgard": (
+        "edelgard_von_hresvelg",
+        "fire_emblem",
+        [
+            "1girl",
+            "long_hair",
+            "white_hair",
+            "purple_eyes",
+            "armor",
+            "cape",
+            "crown",
+        ],
+    ),
+    "camilla": (
+        "camilla_(fire_emblem)",
+        "fire_emblem",
+        [
+            "1girl",
+            "very_long_hair",
+            "purple_hair",
+            "purple_eyes",
+            "armor",
+            "tiara",
+        ],
+    ),
     # KanColle
-    "shimakaze": ("shimakaze_(kancolle)", "kantai_collection", [
-        "1girl", "long_hair", "blonde_hair", "blue_eyes",
-        "thighhighs", "sailor_collar", "miniskirt",
-    ]),
+    "shimakaze": (
+        "shimakaze_(kancolle)",
+        "kantai_collection",
+        [
+            "1girl",
+            "long_hair",
+            "blonde_hair",
+            "blue_eyes",
+            "thighhighs",
+            "sailor_collar",
+            "miniskirt",
+        ],
+    ),
     # Touhou
-    "reimu": ("hakurei_reimu", "touhou", [
-        "1girl", "long_hair", "black_hair", "brown_eyes",
-        "red_hakama", "detached_sleeves", "hair_ribbon", "bow",
-    ]),
-    "marisa": ("kirisame_marisa", "touhou", [
-        "1girl", "long_hair", "blonde_hair", "yellow_eyes",
-        "witch_hat", "apron", "braid",
-    ]),
-    "remilia": ("remilia_scarlet", "touhou", [
-        "1girl", "short_hair", "blue_hair", "red_eyes",
-        "wings", "bat_wings", "mob_cap", "pink_dress",
-    ]),
-    "flandre": ("flandre_scarlet", "touhou", [
-        "1girl", "blonde_hair", "red_eyes", "side_ponytail",
-        "wings", "crystal_wings", "mob_cap", "red_dress",
-    ]),
-    "sakuya": ("izayoi_sakuya", "touhou", [
-        "1girl", "short_hair", "silver_hair", "blue_eyes",
-        "maid", "maid_headdress", "knives",
-    ]),
+    "reimu": (
+        "hakurei_reimu",
+        "touhou",
+        [
+            "1girl",
+            "long_hair",
+            "black_hair",
+            "brown_eyes",
+            "red_hakama",
+            "detached_sleeves",
+            "hair_ribbon",
+            "bow",
+        ],
+    ),
+    "marisa": (
+        "kirisame_marisa",
+        "touhou",
+        [
+            "1girl",
+            "long_hair",
+            "blonde_hair",
+            "yellow_eyes",
+            "witch_hat",
+            "apron",
+            "braid",
+        ],
+    ),
+    "remilia": (
+        "remilia_scarlet",
+        "touhou",
+        [
+            "1girl",
+            "short_hair",
+            "blue_hair",
+            "red_eyes",
+            "wings",
+            "bat_wings",
+            "mob_cap",
+            "pink_dress",
+        ],
+    ),
+    "flandre": (
+        "flandre_scarlet",
+        "touhou",
+        [
+            "1girl",
+            "blonde_hair",
+            "red_eyes",
+            "side_ponytail",
+            "wings",
+            "crystal_wings",
+            "mob_cap",
+            "red_dress",
+        ],
+    ),
+    "sakuya": (
+        "izayoi_sakuya",
+        "touhou",
+        [
+            "1girl",
+            "short_hair",
+            "silver_hair",
+            "blue_eyes",
+            "maid",
+            "maid_headdress",
+            "knives",
+        ],
+    ),
     # Fate/Grand Order
-    "ishtar": ("ishtar_(fate)", "fate/grand_order", [
-        "1girl", "long_hair", "black_hair", "red_eyes",
-        "two-side_up", "tiara", "red_outfit",
-    ]),
-    "ereshkigal": ("ereshkigal_(fate)", "fate/grand_order", [
-        "1girl", "long_hair", "blonde_hair", "red_eyes",
-        "tiara", "cage", "red_outfit",
-    ]),
+    "ishtar": (
+        "ishtar_(fate)",
+        "fate/grand_order",
+        [
+            "1girl",
+            "long_hair",
+            "black_hair",
+            "red_eyes",
+            "two-side_up",
+            "tiara",
+            "red_outfit",
+        ],
+    ),
+    "ereshkigal": (
+        "ereshkigal_(fate)",
+        "fate/grand_order",
+        [
+            "1girl",
+            "long_hair",
+            "blonde_hair",
+            "red_eyes",
+            "tiara",
+            "cage",
+            "red_outfit",
+        ],
+    ),
 }
-
 
 
 class VisionAnalystAgent:
@@ -312,7 +669,9 @@ class VisionAnalystAgent:
         # vision LLM with only text causes hallucinated tags (wrong outfits,
         # backgrounds etc.) that overwrite the user's actual prompt.
         if not images_b64:
-            logger.info("[VisionAnalyst] No reference images — skipping vision API, using prompt-only analysis")
+            logger.info(
+                "[VisionAnalyst] No reference images — skipping vision API, using prompt-only analysis"
+            )
             analysis = self._prompt_only_analysis(job.user_prompt)
         else:
             # Try each vision model in priority order
@@ -331,7 +690,9 @@ class VisionAnalystAgent:
                     )
 
             if not analysis:
-                logger.warning("[VisionAnalyst] All models failed, using prompt-only analysis")
+                logger.warning(
+                    "[VisionAnalyst] All models failed, using prompt-only analysis"
+                )
                 analysis = self._prompt_only_analysis(job.user_prompt)
 
         latency = (time.time() - t0) * 1000
@@ -341,7 +702,9 @@ class VisionAnalystAgent:
 
         logger.info(
             "[VisionAnalyst] Done in %.0fms via %s (confidence=%.2f)",
-            latency, analysis.model_used, analysis.confidence,
+            latency,
+            analysis.model_used,
+            analysis.confidence,
         )
         return job
 
@@ -374,14 +737,20 @@ class VisionAnalystAgent:
             return self._analyze_openai(model_name, user_prompt, images_b64, language)
         if name.startswith("grok"):
             return self._analyze_openai_compat(
-                model_name, user_prompt, images_b64, language,
+                model_name,
+                user_prompt,
+                images_b64,
+                language,
                 base_url="https://api.x.ai/v1/chat/completions",
                 api_key=os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY"),
                 key_label="GROK_API_KEY",
             )
         if name.startswith("step-") or name.startswith("stepfun"):
             return self._analyze_openai_compat(
-                model_name, user_prompt, images_b64, language,
+                model_name,
+                user_prompt,
+                images_b64,
+                language,
                 base_url="https://api.stepfun.com/v1/chat/completions",
                 api_key=os.getenv("STEPFUN_API_KEY"),
                 key_label="STEPFUN_API_KEY",
@@ -404,7 +773,8 @@ class VisionAnalystAgent:
         import httpx
 
         image_context = (
-            f"{len(images_b64)} reference image(s)" if images_b64
+            f"{len(images_b64)} reference image(s)"
+            if images_b64
             else "user prompt (no images)"
         )
         user_msg = _USER_PROMPT_TEMPLATE.format(
@@ -416,14 +786,18 @@ class VisionAnalystAgent:
         for img_b64 in images_b64:
             # Strip data URI prefix if present
             raw = img_b64.split(",", 1)[-1] if "," in img_b64 else img_b64
-            parts.append({
-                "inline_data": {
-                    "mime_type": "image/png",
-                    "data": raw,
+            parts.append(
+                {
+                    "inline_data": {
+                        "mime_type": "image/png",
+                        "data": raw,
+                    }
                 }
-            })
+            )
 
-        api_model = model_name.replace(".", "-") if "." not in model_name else model_name
+        api_model = (
+            model_name.replace(".", "-") if "." not in model_name else model_name
+        )
         # Map friendly names to API model names
         model_map = {
             "gemini-2.0-flash": "gemini-2.0-flash",
@@ -473,7 +847,8 @@ class VisionAnalystAgent:
         import httpx
 
         image_context = (
-            f"{len(images_b64)} reference image(s)" if images_b64
+            f"{len(images_b64)} reference image(s)"
+            if images_b64
             else "user prompt (no images)"
         )
         user_msg = _USER_PROMPT_TEMPLATE.format(
@@ -483,10 +858,15 @@ class VisionAnalystAgent:
         messages_content: list[dict] = [{"type": "text", "text": user_msg}]
         for img_b64 in images_b64:
             raw = img_b64.split(",", 1)[-1] if "," in img_b64 else img_b64
-            messages_content.append({
-                "type": "image_url",
-                "image_url": {"url": f"data:image/png;base64,{raw}", "detail": "low"},
-            })
+            messages_content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{raw}",
+                        "detail": "low",
+                    },
+                }
+            )
 
         payload = {
             "model": model_name,
@@ -536,7 +916,8 @@ class VisionAnalystAgent:
         import httpx
 
         image_context = (
-            f"{len(images_b64)} reference image(s)" if images_b64
+            f"{len(images_b64)} reference image(s)"
+            if images_b64
             else "user prompt (no images)"
         )
         user_msg = _USER_PROMPT_TEMPLATE.format(
@@ -546,10 +927,15 @@ class VisionAnalystAgent:
         messages_content: list[dict] = [{"type": "text", "text": user_msg}]
         for img_b64 in images_b64:
             raw = img_b64.split(",", 1)[-1] if "," in img_b64 else img_b64
-            messages_content.append({
-                "type": "image_url",
-                "image_url": {"url": f"data:image/png;base64,{raw}", "detail": "low"},
-            })
+            messages_content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{raw}",
+                        "detail": "low",
+                    },
+                }
+            )
 
         payload = {
             "model": model_name,
@@ -603,7 +989,9 @@ class VisionAnalystAgent:
                 camera_angle=obj.get("camera_angle", ""),
                 framing=obj.get("framing", ""),
                 background_elements=bg_elements,
-                dominant_colors=obj.get("dominant_colors", obj.get("color_palette", [])),
+                dominant_colors=obj.get(
+                    "dominant_colors", obj.get("color_palette", [])
+                ),
                 anime_tags=obj.get("anime_tags", []),
                 quality_risks=obj.get("quality_risks", []),
                 identity_anchors=obj.get("identity_anchors", []),
@@ -641,7 +1029,9 @@ class VisionAnalystAgent:
             if re.search(pattern, lower):
                 char_tag, series_tag, appearance = _KNOWN_CHARACTERS[alias]
                 tags = [char_tag, series_tag] + appearance
-                logger.info("[VisionAnalyst] Character detected: %s → %s", alias, char_tag)
+                logger.info(
+                    "[VisionAnalyst] Character detected: %s → %s", alias, char_tag
+                )
                 return tags
         return []
 
@@ -673,15 +1063,24 @@ class VisionAnalystAgent:
 
         if not is_ascii or character_tags:
             if not is_ascii:
-                logger.info("[VisionAnalyst] Non-ASCII prompt detected, translating to English tags")
-            translated_char_tags, translated_scene_tags = self._translate_prompt_to_tags(user_prompt)
+                logger.info(
+                    "[VisionAnalyst] Non-ASCII prompt detected, translating to English tags"
+                )
+            translated_char_tags, translated_scene_tags = (
+                self._translate_prompt_to_tags(user_prompt)
+            )
             if translated_char_tags or translated_scene_tags:
                 confidence = 0.65
                 model_used = "prompt_translation"
-                logger.info("[VisionAnalyst] Translated char=%s scene=%s",
-                            translated_char_tags, translated_scene_tags)
+                logger.info(
+                    "[VisionAnalyst] Translated char=%s scene=%s",
+                    translated_char_tags,
+                    translated_scene_tags,
+                )
             else:
-                logger.warning("[VisionAnalyst] Translation failed, prompt will be used raw")
+                logger.warning(
+                    "[VisionAnalyst] Translation failed, prompt will be used raw"
+                )
 
         # ── Step 2: merge character identity tags (hardcoded + LLM) ──
         # Deduplicate preserving order (hardcoded character tags first)
@@ -717,7 +1116,9 @@ class VisionAnalystAgent:
             model_used=model_used,
         )
 
-    def _translate_prompt_to_tags(self, user_prompt: str) -> tuple[list[str], list[str]]:
+    def _translate_prompt_to_tags(
+        self, user_prompt: str
+    ) -> tuple[list[str], list[str]]:
         """Use an LLM to convert a non-English prompt to English ComfyUI tags.
 
         Returns (character_tags, scene_tags) - two separate lists.
@@ -753,6 +1154,7 @@ class VisionAnalystAgent:
 
         # Try Gemini first (rotate through key pool, skip exhausted keys).
         from .._gemini_pool import get_active_key, mark_exhausted, is_quota_error
+
         while True:
             gemini_key = get_active_key()
             if not gemini_key:
@@ -763,14 +1165,18 @@ class VisionAnalystAgent:
                     "gemini-2.0-flash:generateContent"
                 )
                 with httpx.Client(timeout=15) as client:
-                    resp = client.post(url, headers={"X-goog-api-key": gemini_key}, json={
-                        "contents": [{"parts": [{"text": msg}]}],
-                        "generationConfig": {
-                            "temperature": 0.1,
-                            "maxOutputTokens": 200,
-                            "responseMimeType": "application/json",
+                    resp = client.post(
+                        url,
+                        headers={"X-goog-api-key": gemini_key},
+                        json={
+                            "contents": [{"parts": [{"text": msg}]}],
+                            "generationConfig": {
+                                "temperature": 0.1,
+                                "maxOutputTokens": 200,
+                                "responseMimeType": "application/json",
+                            },
                         },
-                    })
+                    )
                     resp.raise_for_status()
                 data = resp.json()
                 text = (

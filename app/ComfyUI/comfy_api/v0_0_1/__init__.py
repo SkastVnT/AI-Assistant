@@ -14,14 +14,18 @@ class ComfyAPIAdapter_v0_0_1(ComfyAPIAdapter_v0_0_2):
     VERSION = "0.0.1"
     STABLE = True
 
+
 class Input(Input_v0_0_2):
     pass
+
 
 class InputImpl(InputImpl_v0_0_2):
     pass
 
+
 class Types(Types_v0_0_2):
     pass
+
 
 ComfyAPI = ComfyAPIAdapter_v0_0_1
 

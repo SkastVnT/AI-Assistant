@@ -98,9 +98,16 @@ class DocumentAwareChunker:
             if elem.type in (ElementType.HEADING, ElementType.TITLE):
                 if current_parts:
                     idx = self._flush_section(
-                        results, current_parts, current_tokens, heading_stack,
-                        section_start_offset, current_page, idx,
-                        document_id, version_id, text,
+                        results,
+                        current_parts,
+                        current_tokens,
+                        heading_stack,
+                        section_start_offset,
+                        current_page,
+                        idx,
+                        document_id,
+                        version_id,
+                        text,
                     )
                     current_parts = []
                     current_tokens = 0
@@ -119,9 +126,16 @@ class DocumentAwareChunker:
             # Would exceed max → flush
             if current_tokens + elem_tokens > self._max_tokens and current_parts:
                 idx = self._flush_section(
-                    results, current_parts, current_tokens, heading_stack,
-                    section_start_offset, current_page, idx,
-                    document_id, version_id, text,
+                    results,
+                    current_parts,
+                    current_tokens,
+                    heading_stack,
+                    section_start_offset,
+                    current_page,
+                    idx,
+                    document_id,
+                    version_id,
+                    text,
                 )
                 current_parts = []
                 current_tokens = 0
@@ -165,9 +179,16 @@ class DocumentAwareChunker:
         # Flush remainder
         if current_parts:
             self._flush_section(
-                results, current_parts, current_tokens, heading_stack,
-                section_start_offset, current_page, idx,
-                document_id, version_id, text,
+                results,
+                current_parts,
+                current_tokens,
+                heading_stack,
+                section_start_offset,
+                current_page,
+                idx,
+                document_id,
+                version_id,
+                text,
             )
 
         return results

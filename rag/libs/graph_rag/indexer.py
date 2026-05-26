@@ -140,9 +140,7 @@ async def _embed_entities(
     count = 0
     for i in range(0, len(to_embed), batch_size):
         batch = to_embed[i : i + batch_size]
-        texts = [
-            f"{e.entity_type}: {e.name} — {e.description}" for e in batch
-        ]
+        texts = [f"{e.entity_type}: {e.name} — {e.description}" for e in batch]
         embeddings = await embedding_provider.embed(texts)
         for entity, emb in zip(batch, embeddings, strict=True):
             entity.embedding = emb

@@ -32,34 +32,28 @@ logger = logging.getLogger("rag.guardrails.pii")
 _PII_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
     (
         "email",
-        re.compile(
-            r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Z|a-z]{2,}\b"
-        ),
+        re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Z|a-z]{2,}\b"),
         "[EMAIL_REDACTED]",
     ),
     (
         "phone",
         re.compile(
-            r"(?<!\d)"                             # not preceded by digit
-            r"(?:\+?1[-.\s]?)?"                    # optional country code
-            r"(?:\(?\d{3}\)?[-.\s]?)"              # area code
-            r"\d{3}[-.\s]?\d{4}"                   # subscriber number
-            r"(?!\d)"                              # not followed by digit
+            r"(?<!\d)"  # not preceded by digit
+            r"(?:\+?1[-.\s]?)?"  # optional country code
+            r"(?:\(?\d{3}\)?[-.\s]?)"  # area code
+            r"\d{3}[-.\s]?\d{4}"  # subscriber number
+            r"(?!\d)"  # not followed by digit
         ),
         "[PHONE_REDACTED]",
     ),
     (
         "ssn",
-        re.compile(
-            r"\b\d{3}-\d{2}-\d{4}\b"
-        ),
+        re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
         "[SSN_REDACTED]",
     ),
     (
         "credit_card",
-        re.compile(
-            r"\b(?:\d[ -]*?){13,19}\b"
-        ),
+        re.compile(r"\b(?:\d[ -]*?){13,19}\b"),
         "[CREDIT_CARD_REDACTED]",
     ),
     (
@@ -111,6 +105,7 @@ def scan_and_redact_pii(
     """
     if settings is None:
         from libs.core.settings import get_settings
+
         settings = get_settings().guardrails
 
     if not settings.redact_pii:
@@ -142,12 +137,14 @@ def scan_and_redact_pii(
 
     # Build findings
     for name, match, replacement in all_matches:
-        findings.append(PIIFinding(
-            category=name,
-            position=match.start(),
-            original_length=len(match.group()),
-            replacement=replacement,
-        ))
+        findings.append(
+            PIIFinding(
+                category=name,
+                position=match.start(),
+                original_length=len(match.group()),
+                replacement=replacement,
+            )
+        )
 
     action = settings.pii_action
     categories_list = sorted(categories_found)
@@ -185,7 +182,7 @@ def scan_and_redact_pii(
     sorted_matches = sorted(all_matches, key=lambda x: x[1].start(), reverse=True)
     redacted = text
     for _name, match, replacement in sorted_matches:
-        redacted = redacted[:match.start()] + replacement + redacted[match.end():]
+        redacted = redacted[: match.start()] + replacement + redacted[match.end() :]
 
     logger.info(
         "pii_redacted: %d items redacted, categories=%s",

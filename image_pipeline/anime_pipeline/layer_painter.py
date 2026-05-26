@@ -39,6 +39,7 @@ logger = logging.getLogger(__name__)
 
 # ── Public data contracts ────────────────────────────────────────────
 
+
 @dataclass
 class EyeFXSpec:
     """Spec §9 / §10 eye-effect toggles."""
@@ -89,7 +90,7 @@ class EyeBBox:
 class EyeStateReport:
     """Spec §11 eye-state classifier output."""
 
-    detected_state: str = "unknown"      # e.g. "open", "rolled_back", "bloodshot"
+    detected_state: str = "unknown"  # e.g. "open", "rolled_back", "bloodshot"
     requested_state: str = "unknown"
     matches_request: bool = True
     confidence: float = 0.0
@@ -110,8 +111,10 @@ class EyeStateReport:
 
 # ── Utilities ────────────────────────────────────────────────────────
 
+
 def _b64_to_pil(image_b64: str):
     from PIL import Image
+
     raw = image_b64.split(",", 1)[-1] if "," in image_b64 else image_b64
     return Image.open(io.BytesIO(base64.b64decode(raw))).convert("RGBA")
 
@@ -125,15 +128,21 @@ def _pil_to_b64(img) -> str:
 def _safe_import_pil():
     try:
         import PIL  # noqa: F401
+
         return True
     except Exception:
-        logger.warning("[LayerPainter] Pillow not installed — all layers become no-ops.")
+        logger.warning(
+            "[LayerPainter] Pillow not installed — all layers become no-ops."
+        )
         return False
 
 
 # ── Layer 2: shadow pass ─────────────────────────────────────────────
 
-def layer2_shadow(image_b64: str, face_bbox: Optional[EyeBBox], strength: float = 0.18) -> str:
+
+def layer2_shadow(
+    image_b64: str, face_bbox: Optional[EyeBBox], strength: float = 0.18
+) -> str:
     """Apply a subtle vertical shadow gradient under the hair/brow line.
 
     If ``face_bbox`` is ``None`` the pass is a no-op. Strength is clamped
@@ -167,7 +176,10 @@ def layer2_shadow(image_b64: str, face_bbox: Optional[EyeBBox], strength: float 
 
 # ── Layer 3: highlight pass ──────────────────────────────────────────
 
-def layer3_highlight(image_b64: str, face_bbox: Optional[EyeBBox], strength: float = 0.12) -> str:
+
+def layer3_highlight(
+    image_b64: str, face_bbox: Optional[EyeBBox], strength: float = 0.12
+) -> str:
     """Add a subtle screen-blend highlight along the top-left of the face
     bbox to mimic rim lighting / catchlight reinforcement."""
     if not _safe_import_pil() or face_bbox is None:
@@ -186,8 +198,7 @@ def layer3_highlight(image_b64: str, face_bbox: Optional[EyeBBox], strength: flo
         for i in range(band_w):
             alpha = int(max(0, s * 255 * (1 - i / band_w)))
             draw.line(
-                [(face_bbox.x0 + i, face_bbox.y0),
-                 (face_bbox.x0, face_bbox.y0 + i)],
+                [(face_bbox.x0 + i, face_bbox.y0), (face_bbox.x0, face_bbox.y0 + i)],
                 fill=(255, 248, 230, alpha),
                 width=2,
             )
@@ -201,7 +212,10 @@ def layer3_highlight(image_b64: str, face_bbox: Optional[EyeBBox], strength: flo
 
 # ── Layer 4a: eye-rolling ────────────────────────────────────────────
 
-def _direction_to_offset(direction: str, amount_x: int, amount_y: int) -> Tuple[int, int]:
+
+def _direction_to_offset(
+    direction: str, amount_x: int, amount_y: int
+) -> Tuple[int, int]:
     d = direction.lower().strip()
     if d == "up":
         return 0, -amount_y
@@ -247,8 +261,10 @@ def layer4a_eye_rolling(
             ex_pad = int(bb.w * 0.18)
             ey_pad = int(bb.h * 0.15)
             iris_box = (
-                bb.x0 + ex_pad, bb.y0 + ey_pad,
-                bb.x1 - ex_pad, bb.y1 - ey_pad,
+                bb.x0 + ex_pad,
+                bb.y0 + ey_pad,
+                bb.x1 - ex_pad,
+                bb.y1 - ey_pad,
             )
 
             # Crop iris region.
@@ -257,7 +273,8 @@ def layer4a_eye_rolling(
             # Build elliptical mask so we don't composite square corners.
             iris_mask = Image.new("L", iris.size, 0)
             ImageDraw.Draw(iris_mask).ellipse(
-                (0, 0, iris.size[0] - 1, iris.size[1] - 1), fill=255,
+                (0, 0, iris.size[0] - 1, iris.size[1] - 1),
+                fill=255,
             )
             iris.putalpha(iris_mask)
 
@@ -272,8 +289,10 @@ def layer4a_eye_rolling(
             ox, oy = _direction_to_offset(direction, max_offset_x, max_offset_y)
             dst = (iris_box[0] + ox, iris_box[1] + oy)
             # Clamp to image bounds.
-            dst = (max(0, min(base.size[0] - iris.size[0], dst[0])),
-                   max(0, min(base.size[1] - iris.size[1], dst[1])))
+            dst = (
+                max(0, min(base.size[0] - iris.size[0], dst[0])),
+                max(0, min(base.size[1] - iris.size[1], dst[1])),
+            )
 
             # Feather iris edge slightly to blend.
             iris = iris.filter(ImageFilter.GaussianBlur(radius=0.8))
@@ -286,6 +305,7 @@ def layer4a_eye_rolling(
 
 
 # ── Layer 4b: bloodshot FX ───────────────────────────────────────────
+
 
 def layer4b_bloodshot(
     image_b64: str,
@@ -380,7 +400,12 @@ def classify_eye_state(
     """
     report = EyeStateReport(requested_state=requested_state or "open")
 
-    from ._gemini_pool import get_active_key as _gp_get, mark_exhausted as _gp_mark, is_quota_error as _gp_is_quota
+    from ._gemini_pool import (
+        get_active_key as _gp_get,
+        mark_exhausted as _gp_mark,
+        is_quota_error as _gp_is_quota,
+    )
+
     openai_key = os.getenv("OPENAI_API_KEY", "")
     if not _gp_get() and not openai_key:
         report.skipped = True
@@ -394,7 +419,9 @@ def classify_eye_state(
         gemini_key = _gp_get()
         if not gemini_key:
             break
-        parsed, quota_err = _classify_via_gemini(image_b64, prompt, gemini_key, vision_model)
+        parsed, quota_err = _classify_via_gemini(
+            image_b64, prompt, gemini_key, vision_model
+        )
         if parsed is not None:
             _fill_report(report, parsed, requested_state)
             return report
@@ -434,34 +461,45 @@ def _states_match(detected: str, requested: str) -> bool:
     # Loose equivalence groups.
     synonyms = {
         "rolled_back": {"rolled_back", "rolled_up"},
-        "rolled_up":   {"rolled_back", "rolled_up"},
-        "open":        {"open", "half_open"},
+        "rolled_up": {"rolled_back", "rolled_up"},
+        "open": {"open", "half_open"},
     }
     group = synonyms.get(r, {r})
     return d in group
 
 
 def _classify_via_gemini(
-    image_b64: str, prompt: str, api_key: str, model: str,
+    image_b64: str,
+    prompt: str,
+    api_key: str,
+    model: str,
 ) -> tuple[Optional[dict], bool]:
     """Returns (parsed_json or None, quota_error_flag)."""
     import httpx
     from ._gemini_pool import is_quota_error
+
     try:
         resp = httpx.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/"
             f"{model}:generateContent",
             headers={"X-goog-api-key": api_key},
             json={
-                "contents": [{
-                    "parts": [
-                        {"text": prompt},
-                        {"inline_data": {"mime_type": "image/png",
-                                         "data": image_b64}},
-                    ],
-                }],
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": prompt},
+                            {
+                                "inline_data": {
+                                    "mime_type": "image/png",
+                                    "data": image_b64,
+                                }
+                            },
+                        ],
+                    }
+                ],
                 "generationConfig": {
-                    "temperature": 0.0, "maxOutputTokens": 400,
+                    "temperature": 0.0,
+                    "maxOutputTokens": 400,
                     "responseMimeType": "application/json",
                 },
             },
@@ -469,8 +507,11 @@ def _classify_via_gemini(
         )
         resp.raise_for_status()
         text = (
-            resp.json().get("candidates", [{}])[0]
-            .get("content", {}).get("parts", [{}])[0].get("text", "{}")
+            resp.json()
+            .get("candidates", [{}])[0]
+            .get("content", {})
+            .get("parts", [{}])[0]
+            .get("text", "{}")
         )
         m = re.search(r"\{.*\}", text, re.DOTALL)
         return (json.loads(m.group(0)) if m else None), False
@@ -482,23 +523,32 @@ def _classify_via_gemini(
 
 
 def _classify_via_openai(
-    image_b64: str, prompt: str, api_key: str,
+    image_b64: str,
+    prompt: str,
+    api_key: str,
 ) -> Optional[dict]:
     import httpx
+
     try:
         resp = httpx.post(
             "https://api.openai.com/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}"},
             json={
                 "model": "gpt-4o-mini",
-                "messages": [{
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {"type": "image_url",
-                         "image_url": {"url": f"data:image/png;base64,{image_b64}"}},
-                    ],
-                }],
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/png;base64,{image_b64}"
+                                },
+                            },
+                        ],
+                    }
+                ],
                 "response_format": {"type": "json_object"},
             },
             timeout=25,
@@ -514,9 +564,11 @@ def _classify_via_openai(
 
 # ── Orchestration helper ─────────────────────────────────────────────
 
+
 @dataclass
 class LayerPainterResult:
     """Returned by ``apply_artistic_layers``."""
+
     final_b64: str
     shadow_applied: bool = False
     highlight_applied: bool = False
@@ -575,7 +627,8 @@ def apply_artistic_layers(
     if fx.active() and eye_boxes:
         if fx.eye_rolling:
             new_img = layer4a_eye_rolling(
-                current, eye_boxes,
+                current,
+                eye_boxes,
                 direction=fx.rolling_direction,
                 strength=fx.rolling_strength,
             )

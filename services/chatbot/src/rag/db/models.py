@@ -9,6 +9,7 @@ Tables
 Every row carries a ``tenant_id`` so all future queries can be
 scoped per tenant without schema changes.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -28,6 +29,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.rag_settings import get_rag_settings
+
 from .base import Base
 
 _dim = get_rag_settings().embed_dim
@@ -40,12 +42,8 @@ def _utcnow() -> datetime:
 class RagDocument(Base):
     __tablename__ = "rag_documents"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, primary_key=True, default=uuid.uuid4
-    )
-    tenant_id: Mapped[str] = mapped_column(
-        String(64), nullable=False, index=True
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     source_type: Mapped[str] = mapped_column(
         String(32), nullable=False, comment="upload | url | drive | api"
     )
@@ -61,7 +59,7 @@ class RagDocument(Base):
         DateTime(timezone=True), default=_utcnow, nullable=False
     )
 
-    chunks: Mapped[list["RagChunk"]] = relationship(
+    chunks: Mapped[list[RagChunk]] = relationship(
         back_populates="document", cascade="all, delete-orphan"
     )
 
@@ -72,12 +70,8 @@ class RagDocument(Base):
 class RagChunk(Base):
     __tablename__ = "rag_chunks"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, primary_key=True, default=uuid.uuid4
-    )
-    tenant_id: Mapped[str] = mapped_column(
-        String(64), nullable=False, index=True
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     document_id: Mapped[uuid.UUID] = mapped_column(
         Uuid,
         ForeignKey("rag_documents.id", ondelete="CASCADE"),
@@ -86,9 +80,7 @@ class RagChunk(Base):
     )
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    embedding: Mapped[list[float] | None] = mapped_column(
-        Vector(_dim), nullable=True
-    )
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(_dim), nullable=True)
     metadata_json: Mapped[dict | None] = mapped_column(
         JSONB, nullable=True, default=dict
     )
@@ -96,7 +88,7 @@ class RagChunk(Base):
         DateTime(timezone=True), default=_utcnow, nullable=False
     )
 
-    document: Mapped["RagDocument"] = relationship(back_populates="chunks")
+    document: Mapped[RagDocument] = relationship(back_populates="chunks")
 
     __table_args__ = (
         Index(

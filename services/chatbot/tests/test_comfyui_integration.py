@@ -16,32 +16,24 @@ Validates:
 from __future__ import annotations
 
 import base64
-import json
 import sys
-import time
 from pathlib import Path
 
 _root = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(_root))
 sys.path.insert(0, str(_root / "services" / "chatbot"))
 
-import pytest
-from unittest.mock import patch, MagicMock, PropertyMock
+from unittest.mock import patch
 
 import httpx
+import pytest
 
-from image_pipeline.anime_pipeline.comfy_client import ComfyClient, ComfyJobResult
+from image_pipeline.anime_pipeline.comfy_client import ComfyClient
 from image_pipeline.anime_pipeline.config import AnimePipelineConfig, ModelConfig
 from image_pipeline.anime_pipeline.schemas import (
-    AnimePipelineJob,
-    AnimePipelineStatus,
     PassConfig,
-    ControlInput,
-    IntermediateImage,
-    LayerPlan,
 )
 from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
-
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
@@ -113,6 +105,7 @@ def _comfy_health_ok() -> httpx.Response:
 # ComfyClient — submit_workflow
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestSubmitWorkflow:
     def test_happy_path(self):
         """Full submit → poll → download cycle with mocked httpx."""
@@ -132,7 +125,9 @@ class TestSubmitWorkflow:
 
         transport = httpx.MockTransport(_handler)
         mock_client = httpx.Client(transport=transport)
-        with patch("image_pipeline.anime_pipeline.comfy_client.httpx.Client") as mock_cls:
+        with patch(
+            "image_pipeline.anime_pipeline.comfy_client.httpx.Client"
+        ) as mock_cls:
             mock_cls.return_value.__enter__ = lambda s: mock_client
             mock_cls.return_value.__exit__ = lambda s, *a: None
 
@@ -146,17 +141,25 @@ class TestSubmitWorkflow:
 
     def test_validation_error(self):
         """ComfyUI rejects the workflow with node_errors."""
+
         def _handler(request: httpx.Request) -> httpx.Response:
             if request.url.path == "/prompt":
-                return httpx.Response(400, json={
-                    "error": {"type": "prompt_outputs_failed_validation"},
-                    "node_errors": {"5": {"errors": [{"message": "Invalid sampler"}]}},
-                })
+                return httpx.Response(
+                    400,
+                    json={
+                        "error": {"type": "prompt_outputs_failed_validation"},
+                        "node_errors": {
+                            "5": {"errors": [{"message": "Invalid sampler"}]}
+                        },
+                    },
+                )
             return httpx.Response(404)
 
         transport = httpx.MockTransport(_handler)
         mock_client = httpx.Client(transport=transport)
-        with patch("image_pipeline.anime_pipeline.comfy_client.httpx.Client") as mock_cls:
+        with patch(
+            "image_pipeline.anime_pipeline.comfy_client.httpx.Client"
+        ) as mock_cls:
             mock_cls.return_value.__enter__ = lambda s: mock_client
             mock_cls.return_value.__exit__ = lambda s, *a: None
 
@@ -186,7 +189,9 @@ class TestRetryLogic:
 
         transport = httpx.MockTransport(_handler)
         mock_client = httpx.Client(transport=transport)
-        with patch("image_pipeline.anime_pipeline.comfy_client.httpx.Client") as mock_cls:
+        with patch(
+            "image_pipeline.anime_pipeline.comfy_client.httpx.Client"
+        ) as mock_cls:
             mock_cls.return_value.__enter__ = lambda s: mock_client
             mock_cls.return_value.__exit__ = lambda s, *a: None
 
@@ -202,12 +207,15 @@ class TestRetryLogic:
 
     def test_all_retries_exhausted(self):
         """Returns error when all retries fail."""
+
         def _handler(request: httpx.Request) -> httpx.Response:
             raise httpx.ConnectError("Connection refused")
 
         transport = httpx.MockTransport(_handler)
         mock_client = httpx.Client(transport=transport)
-        with patch("image_pipeline.anime_pipeline.comfy_client.httpx.Client") as mock_cls:
+        with patch(
+            "image_pipeline.anime_pipeline.comfy_client.httpx.Client"
+        ) as mock_cls:
             mock_cls.return_value.__enter__ = lambda s: mock_client
             mock_cls.return_value.__exit__ = lambda s, *a: None
 
@@ -219,14 +227,18 @@ class TestRetryLogic:
                 result = client.submit_workflow({"1": {"class_type": "test"}})
 
             assert not result.success
-            assert "retries" in result.error.lower() or "refused" in result.error.lower()
+            assert (
+                "retries" in result.error.lower() or "refused" in result.error.lower()
+            )
 
 
 class TestHealthCheck:
     def test_health_ok(self):
         transport = httpx.MockTransport(lambda req: _comfy_health_ok())
         mock_client = httpx.Client(transport=transport)
-        with patch("image_pipeline.anime_pipeline.comfy_client.httpx.Client") as mock_cls:
+        with patch(
+            "image_pipeline.anime_pipeline.comfy_client.httpx.Client"
+        ) as mock_cls:
             mock_cls.return_value.__enter__ = lambda s: mock_client
             mock_cls.return_value.__exit__ = lambda s, *a: None
 
@@ -239,7 +251,9 @@ class TestHealthCheck:
 
         transport = httpx.MockTransport(_handler)
         mock_client = httpx.Client(transport=transport)
-        with patch("image_pipeline.anime_pipeline.comfy_client.httpx.Client") as mock_cls:
+        with patch(
+            "image_pipeline.anime_pipeline.comfy_client.httpx.Client"
+        ) as mock_cls:
             mock_cls.return_value.__enter__ = lambda s: mock_client
             mock_cls.return_value.__exit__ = lambda s, *a: None
 
@@ -255,11 +269,11 @@ class TestCancellation:
         assert client._is_cancelled("test-prompt") is True
 
     def test_cancel_sends_interrupt(self):
-        transport = httpx.MockTransport(
-            lambda req: httpx.Response(200, request=req)
-        )
+        transport = httpx.MockTransport(lambda req: httpx.Response(200, request=req))
         mock_client = httpx.Client(transport=transport)
-        with patch("image_pipeline.anime_pipeline.comfy_client.httpx.Client") as mock_cls:
+        with patch(
+            "image_pipeline.anime_pipeline.comfy_client.httpx.Client"
+        ) as mock_cls:
             mock_cls.return_value.__enter__ = lambda s: mock_client
             mock_cls.return_value.__exit__ = lambda s, *a: None
 
@@ -272,6 +286,7 @@ class TestCancellation:
 # Agent → ComfyClient integration (mocked)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestAgentComfyIntegration:
     """Test that agents build valid workflows and interact with ComfyClient."""
 
@@ -280,11 +295,17 @@ class TestAgentComfyIntegration:
         return AnimePipelineConfig(
             composition_model=ModelConfig(
                 checkpoint="animagine-xl-4.0-opt.safetensors",
-                sampler="euler_a", scheduler="normal", steps=20, cfg=5.0,
+                sampler="euler_a",
+                scheduler="normal",
+                steps=20,
+                cfg=5.0,
             ),
             beauty_model=ModelConfig(
                 checkpoint="noobai-xl-1.1.safetensors",
-                sampler="dpmpp_2m_sde", scheduler="karras", steps=20, cfg=5.5,
+                sampler="dpmpp_2m_sde",
+                scheduler="karras",
+                steps=20,
+                cfg=5.5,
                 denoise_strength=0.30,
             ),
             upscale_model="RealESRGAN_x4plus_anime_6B",
@@ -299,9 +320,13 @@ class TestAgentComfyIntegration:
             pass_name="composition",
             model_slot="composition",
             checkpoint=config.composition_model.checkpoint,
-            width=832, height=1216,
-            sampler="euler_a", scheduler="normal",
-            steps=20, cfg=5.0, denoise=1.0,
+            width=832,
+            height=1216,
+            sampler="euler_a",
+            scheduler="normal",
+            steps=20,
+            cfg=5.0,
+            denoise=1.0,
             positive_prompt="masterpiece, 1girl",
             negative_prompt="lowres",
         )

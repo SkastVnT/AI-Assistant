@@ -1,6 +1,7 @@
 """
 RAG subsystem configuration — all settings from environment variables.
 """
+
 import os
 from pathlib import Path
 
@@ -14,7 +15,9 @@ RAG_DATA_DIR = Path(os.getenv("RAG_DATA_DIR", str(CHATBOT_DIR / "data" / "rag"))
 RAG_CHROMA_DIR = RAG_DATA_DIR / "chroma"
 
 # ── Embedding ──────────────────────────────────────────────────────────
-RAG_EMBEDDING_PROVIDER = os.getenv("RAG_EMBEDDING_PROVIDER", "openai")  # openai | gemini
+RAG_EMBEDDING_PROVIDER = os.getenv(
+    "RAG_EMBEDDING_PROVIDER", "openai"
+)  # openai | gemini
 RAG_EMBEDDING_MODEL = os.getenv("RAG_EMBEDDING_MODEL", "text-embedding-3-small")
 RAG_EMBEDDING_DIMENSIONS = int(os.getenv("RAG_EMBEDDING_DIMENSIONS", "1536"))
 

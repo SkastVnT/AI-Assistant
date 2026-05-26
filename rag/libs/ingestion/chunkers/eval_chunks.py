@@ -56,7 +56,9 @@ def _print_chunk_table(chunks: list, preset_name: str = "") -> None:
     print(f"\nTotal chunks: {len(chunks)}")
     if chunks:
         tokens = [c.meta.token_count for c in chunks]
-        print(f"Token stats: avg={sum(tokens)/len(tokens):.0f}, min={min(tokens)}, max={max(tokens)}")
+        print(
+            f"Token stats: avg={sum(tokens) / len(tokens):.0f}, min={min(tokens)}, max={max(tokens)}"
+        )
 
 
 def _print_chunk_json(chunks: list) -> None:
@@ -83,9 +85,11 @@ def _print_full_chunks(chunks: list) -> None:
     for c in chunks:
         m = c.meta
         print(f"\n{'─' * 70}")
-        print(f"Chunk #{m.chunk_index}  |  tokens={m.token_count}  |  "
-              f"offset={m.start_offset}-{m.end_offset}  |  "
-              f"page={m.page_number or '-'}")
+        print(
+            f"Chunk #{m.chunk_index}  |  tokens={m.token_count}  |  "
+            f"offset={m.start_offset}-{m.end_offset}  |  "
+            f"page={m.page_number or '-'}"
+        )
         if m.heading_path:
             print(f"Heading: {m.heading_path}")
         if m.is_parent:
@@ -97,25 +101,20 @@ def _print_full_chunks(chunks: list) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Evaluate and inspect chunking strategies"
-    )
+    parser = argparse.ArgumentParser(description="Evaluate and inspect chunking strategies")
     parser.add_argument("file", help="Path to file to chunk")
     parser.add_argument(
-        "--preset", default="general",
-        help="Chunking preset name (default: general)"
+        "--preset", default="general", help="Chunking preset name (default: general)"
+    )
+    parser.add_argument("--compare", action="store_true", help="Compare all presets side by side")
+    parser.add_argument(
+        "--format",
+        choices=["table", "json", "full"],
+        default="table",
+        help="Output format (default: table)",
     )
     parser.add_argument(
-        "--compare", action="store_true",
-        help="Compare all presets side by side"
-    )
-    parser.add_argument(
-        "--format", choices=["table", "json", "full"], default="table",
-        help="Output format (default: table)"
-    )
-    parser.add_argument(
-        "--with-parse", action="store_true",
-        help="Parse file with document parser before chunking"
+        "--with-parse", action="store_true", help="Parse file with document parser before chunking"
     )
     args = parser.parse_args()
 
@@ -128,6 +127,7 @@ def main() -> None:
     parse_result = None
     if args.with_parse:
         from libs.ingestion.parsers.registry import get_parser
+
         try:
             p = get_parser(filename)
             parse_result = p.parse(raw_bytes, filename)

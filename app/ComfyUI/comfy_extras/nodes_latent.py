@@ -7,9 +7,12 @@ from comfy_api.latest import ComfyExtension, io
 import logging
 import math
 
+
 def reshape_latent_to(target_shape, latent, repeat_batch=True):
     if latent.shape[1:] != target_shape[1:]:
-        latent = comfy.utils.common_upscale(latent, target_shape[-1], target_shape[-2], "bilinear", "center")
+        latent = comfy.utils.common_upscale(
+            latent, target_shape[-1], target_shape[-2], "bilinear", "center"
+        )
     if repeat_batch:
         return comfy.utils.repeat_to_batch_size(latent, target_shape[0])
     else:
@@ -42,6 +45,7 @@ class LatentAdd(io.ComfyNode):
         samples_out["samples"] = s1 + s2
         return io.NodeOutput(samples_out)
 
+
 class LatentSubtract(io.ComfyNode):
     @classmethod
     def define_schema(cls):
@@ -68,6 +72,7 @@ class LatentSubtract(io.ComfyNode):
         samples_out["samples"] = s1 - s2
         return io.NodeOutput(samples_out)
 
+
 class LatentMultiply(io.ComfyNode):
     @classmethod
     def define_schema(cls):
@@ -76,7 +81,9 @@ class LatentMultiply(io.ComfyNode):
             category="latent/advanced",
             inputs=[
                 io.Latent.Input("samples"),
-                io.Float.Input("multiplier", default=1.0, min=-10.0, max=10.0, step=0.01),
+                io.Float.Input(
+                    "multiplier", default=1.0, min=-10.0, max=10.0, step=0.01
+                ),
             ],
             outputs=[
                 io.Latent.Output(),
@@ -90,6 +97,7 @@ class LatentMultiply(io.ComfyNode):
         s1 = samples["samples"]
         samples_out["samples"] = s1 * multiplier
         return io.NodeOutput(samples_out)
+
 
 class LatentInterpolate(io.ComfyNode):
     @classmethod
@@ -122,12 +130,13 @@ class LatentInterpolate(io.ComfyNode):
         s1 = torch.nan_to_num(s1 / m1)
         s2 = torch.nan_to_num(s2 / m2)
 
-        t = (s1 * ratio + s2 * (1.0 - ratio))
+        t = s1 * ratio + s2 * (1.0 - ratio)
         mt = torch.linalg.vector_norm(t, dim=(1))
         st = torch.nan_to_num(t / mt)
 
         samples_out["samples"] = st * (m1 * ratio + m2 * (1.0 - ratio))
         return io.NodeOutput(samples_out)
+
 
 class LatentConcat(io.ComfyNode):
     @classmethod
@@ -168,6 +177,7 @@ class LatentConcat(io.ComfyNode):
         samples_out["samples"] = torch.cat(c, dim=dim)
         return io.NodeOutput(samples_out)
 
+
 class LatentCut(io.ComfyNode):
     @classmethod
     def define_schema(cls):
@@ -177,8 +187,16 @@ class LatentCut(io.ComfyNode):
             inputs=[
                 io.Latent.Input("samples"),
                 io.Combo.Input("dim", options=["x", "y", "t"]),
-                io.Int.Input("index", default=0, min=-nodes.MAX_RESOLUTION, max=nodes.MAX_RESOLUTION, step=1),
-                io.Int.Input("amount", default=1, min=1, max=nodes.MAX_RESOLUTION, step=1),
+                io.Int.Input(
+                    "index",
+                    default=0,
+                    min=-nodes.MAX_RESOLUTION,
+                    max=nodes.MAX_RESOLUTION,
+                    step=1,
+                ),
+                io.Int.Input(
+                    "amount", default=1, min=1, max=nodes.MAX_RESOLUTION, step=1
+                ),
             ],
             outputs=[
                 io.Latent.Output(),
@@ -208,6 +226,7 @@ class LatentCut(io.ComfyNode):
         samples_out["samples"] = torch.narrow(s1, dim, index, amount)
         return io.NodeOutput(samples_out)
 
+
 class LatentCutToBatch(io.ComfyNode):
     @classmethod
     def define_schema(cls):
@@ -217,7 +236,9 @@ class LatentCutToBatch(io.ComfyNode):
             inputs=[
                 io.Latent.Input("samples"),
                 io.Combo.Input("dim", options=["t", "x", "y"]),
-                io.Int.Input("slice_size", default=1, min=1, max=nodes.MAX_RESOLUTION, step=1),
+                io.Int.Input(
+                    "slice_size", default=1, min=1, max=nodes.MAX_RESOLUTION, step=1
+                ),
             ],
             outputs=[
                 io.Latent.Output(),
@@ -244,10 +265,11 @@ class LatentCutToBatch(io.ComfyNode):
         if s.shape[1] < slice_size:
             slice_size = s.shape[1]
         elif s.shape[1] % slice_size != 0:
-            s = s[:, :math.floor(s.shape[1] / slice_size) * slice_size]
+            s = s[:, : math.floor(s.shape[1] / slice_size) * slice_size]
         new_shape = [-1, slice_size] + list(s.shape[2:])
         samples_out["samples"] = s.reshape(new_shape).movedim(1, dim)
         return io.NodeOutput(samples_out)
+
 
 class LatentBatch(io.ComfyNode):
     @classmethod
@@ -273,8 +295,11 @@ class LatentBatch(io.ComfyNode):
         s2 = reshape_latent_to(s1.shape, s2, repeat_batch=False)
         s = torch.cat((s1, s2), dim=0)
         samples_out["samples"] = s
-        samples_out["batch_index"] = samples1.get("batch_index", [x for x in range(0, s1.shape[0])]) + samples2.get("batch_index", [x for x in range(0, s2.shape[0])])
+        samples_out["batch_index"] = samples1.get(
+            "batch_index", [x for x in range(0, s1.shape[0])]
+        ) + samples2.get("batch_index", [x for x in range(0, s2.shape[0])])
         return io.NodeOutput(samples_out)
+
 
 class LatentBatchSeedBehavior(io.ComfyNode):
     @classmethod
@@ -284,7 +309,9 @@ class LatentBatchSeedBehavior(io.ComfyNode):
             category="latent/advanced",
             inputs=[
                 io.Latent.Input("samples"),
-                io.Combo.Input("seed_behavior", options=["random", "fixed"], default="fixed"),
+                io.Combo.Input(
+                    "seed_behavior", options=["random", "fixed"], default="fixed"
+                ),
             ],
             outputs=[
                 io.Latent.Output(),
@@ -296,13 +323,14 @@ class LatentBatchSeedBehavior(io.ComfyNode):
         samples_out = samples.copy()
         latent = samples["samples"]
         if seed_behavior == "random":
-            if 'batch_index' in samples_out:
-                samples_out.pop('batch_index')
+            if "batch_index" in samples_out:
+                samples_out.pop("batch_index")
         elif seed_behavior == "fixed":
             batch_number = samples_out.get("batch_index", [0])[0]
             samples_out["batch_index"] = [batch_number] * latent.shape[0]
 
         return io.NodeOutput(samples_out)
+
 
 class LatentApplyOperation(io.ComfyNode):
     @classmethod
@@ -328,6 +356,7 @@ class LatentApplyOperation(io.ComfyNode):
         samples_out["samples"] = operation(latent=s1)
         return io.NodeOutput(samples_out)
 
+
 class LatentApplyOperationCFG(io.ComfyNode):
     @classmethod
     def define_schema(cls):
@@ -351,13 +380,16 @@ class LatentApplyOperationCFG(io.ComfyNode):
         def pre_cfg_function(args):
             conds_out = args["conds_out"]
             if len(conds_out) == 2:
-                conds_out[0] = operation(latent=(conds_out[0] - conds_out[1])) + conds_out[1]
+                conds_out[0] = (
+                    operation(latent=(conds_out[0] - conds_out[1])) + conds_out[1]
+                )
             else:
                 conds_out[0] = operation(latent=conds_out[0])
             return conds_out
 
         m.set_model_sampler_pre_cfg_function(pre_cfg_function)
         return io.NodeOutput(m)
+
 
 class LatentOperationTonemapReinhard(io.ComfyNode):
     @classmethod
@@ -367,7 +399,9 @@ class LatentOperationTonemapReinhard(io.ComfyNode):
             category="latent/advanced/operations",
             is_experimental=True,
             inputs=[
-                io.Float.Input("multiplier", default=1.0, min=0.0, max=100.0, step=0.01),
+                io.Float.Input(
+                    "multiplier", default=1.0, min=0.0, max=100.0, step=0.01
+                ),
             ],
             outputs=[
                 io.LatentOperation.Output(),
@@ -377,21 +411,25 @@ class LatentOperationTonemapReinhard(io.ComfyNode):
     @classmethod
     def execute(cls, multiplier) -> io.NodeOutput:
         def tonemap_reinhard(latent, **kwargs):
-            latent_vector_magnitude = (torch.linalg.vector_norm(latent, dim=(1)) + 0.0000000001)[:,None]
+            latent_vector_magnitude = (
+                torch.linalg.vector_norm(latent, dim=(1)) + 0.0000000001
+            )[:, None]
             normalized_latent = latent / latent_vector_magnitude
 
-            mean = torch.mean(latent_vector_magnitude, dim=(1,2,3), keepdim=True)
-            std = torch.std(latent_vector_magnitude, dim=(1,2,3), keepdim=True)
+            mean = torch.mean(latent_vector_magnitude, dim=(1, 2, 3), keepdim=True)
+            std = torch.std(latent_vector_magnitude, dim=(1, 2, 3), keepdim=True)
 
             top = (std * 5 + mean) * multiplier
 
-            #reinhard
-            latent_vector_magnitude *= (1.0 / top)
+            # reinhard
+            latent_vector_magnitude *= 1.0 / top
             new_magnitude = latent_vector_magnitude / (latent_vector_magnitude + 1.0)
             new_magnitude *= top
 
             return normalized_latent * new_magnitude
+
         return io.NodeOutput(tonemap_reinhard)
+
 
 class LatentOperationSharpen(io.ComfyNode):
     @classmethod
@@ -413,22 +451,35 @@ class LatentOperationSharpen(io.ComfyNode):
     @classmethod
     def execute(cls, sharpen_radius, sigma, alpha) -> io.NodeOutput:
         def sharpen(latent, **kwargs):
-            luminance = (torch.linalg.vector_norm(latent, dim=(1)) + 1e-6)[:,None]
+            luminance = (torch.linalg.vector_norm(latent, dim=(1)) + 1e-6)[:, None]
             normalized_latent = latent / luminance
             channels = latent.shape[1]
 
             kernel_size = sharpen_radius * 2 + 1
-            kernel = comfy_extras.nodes_post_processing.gaussian_kernel(kernel_size, sigma, device=luminance.device)
+            kernel = comfy_extras.nodes_post_processing.gaussian_kernel(
+                kernel_size, sigma, device=luminance.device
+            )
             center = kernel_size // 2
 
             kernel *= alpha * -10
             kernel[center, center] = kernel[center, center] - kernel.sum() + 1.0
 
-            padded_image = torch.nn.functional.pad(normalized_latent, (sharpen_radius,sharpen_radius,sharpen_radius,sharpen_radius), 'reflect')
-            sharpened = torch.nn.functional.conv2d(padded_image, kernel.repeat(channels, 1, 1).unsqueeze(1), padding=kernel_size // 2, groups=channels)[:,:,sharpen_radius:-sharpen_radius, sharpen_radius:-sharpen_radius]
+            padded_image = torch.nn.functional.pad(
+                normalized_latent,
+                (sharpen_radius, sharpen_radius, sharpen_radius, sharpen_radius),
+                "reflect",
+            )
+            sharpened = torch.nn.functional.conv2d(
+                padded_image,
+                kernel.repeat(channels, 1, 1).unsqueeze(1),
+                padding=kernel_size // 2,
+                groups=channels,
+            )[:, :, sharpen_radius:-sharpen_radius, sharpen_radius:-sharpen_radius]
 
             return luminance * sharpened
+
         return io.NodeOutput(sharpen)
+
 
 class ReplaceVideoLatentFrames(io.ComfyNode):
     @classmethod
@@ -437,9 +488,23 @@ class ReplaceVideoLatentFrames(io.ComfyNode):
             node_id="ReplaceVideoLatentFrames",
             category="latent/batch",
             inputs=[
-                io.Latent.Input("destination", tooltip="The destination latent where frames will be replaced."),
-                io.Latent.Input("source", optional=True, tooltip="The source latent providing frames to insert into the destination latent. If not provided, the destination latent is returned unchanged."),
-                io.Int.Input("index", default=0, min=-nodes.MAX_RESOLUTION, max=nodes.MAX_RESOLUTION, step=1, tooltip="The starting latent frame index in the destination latent where the source latent frames will be placed. Negative values count from the end."),
+                io.Latent.Input(
+                    "destination",
+                    tooltip="The destination latent where frames will be replaced.",
+                ),
+                io.Latent.Input(
+                    "source",
+                    optional=True,
+                    tooltip="The source latent providing frames to insert into the destination latent. If not provided, the destination latent is returned unchanged.",
+                ),
+                io.Int.Input(
+                    "index",
+                    default=0,
+                    min=-nodes.MAX_RESOLUTION,
+                    max=nodes.MAX_RESOLUTION,
+                    step=1,
+                    tooltip="The starting latent frame index in the destination latent where the source latent frames will be placed. Negative values count from the end.",
+                ),
             ],
             outputs=[
                 io.Latent.Output(),
@@ -455,17 +520,22 @@ class ReplaceVideoLatentFrames(io.ComfyNode):
         if index < 0:
             index = dest_frames + index
         if index > dest_frames:
-            logging.warning(f"ReplaceVideoLatentFrames: Index {index} is out of bounds for destination latent frames {dest_frames}.")
+            logging.warning(
+                f"ReplaceVideoLatentFrames: Index {index} is out of bounds for destination latent frames {dest_frames}."
+            )
             return io.NodeOutput(destination)
         if index + source_frames > dest_frames:
-            logging.warning(f"ReplaceVideoLatentFrames: Source latent frames {source_frames} do not fit within destination latent frames {dest_frames} at the specified index {index}.")
+            logging.warning(
+                f"ReplaceVideoLatentFrames: Source latent frames {source_frames} do not fit within destination latent frames {dest_frames} at the specified index {index}."
+            )
             return io.NodeOutput(destination)
         s = source.copy()
         s_source = source["samples"]
         s_destination = destination["samples"].clone()
-        s_destination[:, :, index:index + s_source.shape[2]] = s_source
+        s_destination[:, :, index : index + s_source.shape[2]] = s_source
         s["samples"] = s_destination
         return io.NodeOutput(s)
+
 
 class LatentExtension(ComfyExtension):
     @override
@@ -484,7 +554,7 @@ class LatentExtension(ComfyExtension):
             LatentApplyOperationCFG,
             LatentOperationTonemapReinhard,
             LatentOperationSharpen,
-            ReplaceVideoLatentFrames
+            ReplaceVideoLatentFrames,
         ]
 
 

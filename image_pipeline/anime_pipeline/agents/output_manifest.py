@@ -82,12 +82,16 @@ def manifest_to_json(
 ) -> str:
     """Build manifest and serialise to a JSON string."""
     data = build_output_manifest(
-        job, rank_result, debug_mode=debug_mode, vram_profile=vram_profile,
+        job,
+        rank_result,
+        debug_mode=debug_mode,
+        vram_profile=vram_profile,
     )
     return json.dumps(data, ensure_ascii=False, indent=indent)
 
 
 # ── Internal helpers ──────────────────────────────────────────────
+
 
 def _build_pass_list(job: AnimePipelineJob) -> list[dict[str, Any]]:
     """Build the ordered pass list from job execution data."""
@@ -136,7 +140,8 @@ def _output_filename(stage: str) -> str:
 
 
 def _selected_final_stage(
-    job: AnimePipelineJob, rank_result: Optional[RankResult],
+    job: AnimePipelineJob,
+    rank_result: Optional[RankResult],
 ) -> str:
     """Determine which stage produced the selected final image."""
     if rank_result and rank_result.winner:

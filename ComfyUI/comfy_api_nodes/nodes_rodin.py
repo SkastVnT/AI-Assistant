@@ -41,7 +41,9 @@ COMMON_PARAMETERS = [
         display_mode=IO.NumberDisplay.number,
         optional=True,
     ),
-    IO.Combo.Input("Material_Type", options=["PBR", "Shaded"], default="PBR", optional=True),
+    IO.Combo.Input(
+        "Material_Type", options=["PBR", "Shaded"], default="PBR", optional=True
+    ),
     IO.Combo.Input(
         "Polygon_count",
         options=["4K-Quad", "8K-Quad", "18K-Quad", "50K-Quad", "200K-Triangle"],
@@ -84,7 +86,7 @@ def get_quality_mode(poly_count):
     return mesh_mode, quality_override
 
 
-def tensor_to_filelike(tensor, max_pixels: int = 2048*2048):
+def tensor_to_filelike(tensor, max_pixels: int = 2048 * 2048):
     """
     Converts a PyTorch tensor to a file-like object.
 
@@ -96,8 +98,8 @@ def tensor_to_filelike(tensor, max_pixels: int = 2048*2048):
     - io.BytesIO: A file-like object containing the image data.
     """
     array = tensor.cpu().numpy()
-    array = (array * 255).astype('uint8')
-    image = Image.fromarray(array, 'RGB')
+    array = (array * 255).astype("uint8")
+    image = Image.fromarray(array, "RGB")
 
     original_width, original_height = image.size
     original_pixels = original_width * original_height
@@ -112,7 +114,7 @@ def tensor_to_filelike(tensor, max_pixels: int = 2048*2048):
         image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
     img_byte_arr = BytesIO()
-    image.save(img_byte_arr, format='PNG')  # PNG is used for lossless compression
+    image.save(img_byte_arr, format="PNG")  # PNG is used for lossless compression
     img_byte_arr.seek(0)
     return img_byte_arr
 
@@ -147,9 +149,12 @@ async def create_generate_task(
         files=[
             (
                 "images",
-                open(image, "rb") if isinstance(image, str) else tensor_to_filelike(image)
+                open(image, "rb")
+                if isinstance(image, str)
+                else tensor_to_filelike(image),
             )
-            for image in images if image is not None
+            for image in images
+            if image is not None
         ],
         content_type="multipart/form-data",
     )
@@ -171,11 +176,15 @@ def check_rodin_status(response: Rodin3DCheckStatusResponse) -> str:
     status_list = [str(job.status) for job in response.jobs]
     logging.info("[ Rodin3D API - CheckStatus ] Generate Status: %s", status_list)
     if any(job.status == JobStatus.Failed for job in response.jobs):
-        logging.error("[ Rodin3D API - CheckStatus ] Generate Failed: %s, Please try again.", status_list)
+        logging.error(
+            "[ Rodin3D API - CheckStatus ] Generate Failed: %s, Please try again.",
+            status_list,
+        )
         raise Exception("[ Rodin3D API ] Generate Failed, Please Try again.")
     if all_done:
         return "DONE"
     return "Generating"
+
 
 def extract_progress(response: Rodin3DCheckStatusResponse) -> Optional[int]:
     if not response.jobs:
@@ -184,7 +193,9 @@ def extract_progress(response: Rodin3DCheckStatusResponse) -> Optional[int]:
     return int((completed_count / len(response.jobs)) * 100)
 
 
-async def poll_for_task_status(subscription_key: str, cls: type[IO.ComfyNode]) -> Rodin3DCheckStatusResponse:
+async def poll_for_task_status(
+    subscription_key: str, cls: type[IO.ComfyNode]
+) -> Rodin3DCheckStatusResponse:
     logging.info("[ Rodin3D API - CheckStatus ] Generate Start!")
     return await poll_op(
         cls,
@@ -196,7 +207,9 @@ async def poll_for_task_status(subscription_key: str, cls: type[IO.ComfyNode]) -
     )
 
 
-async def get_rodin_download_list(uuid: str, cls: type[IO.ComfyNode]) -> Rodin3DDownloadResponse:
+async def get_rodin_download_list(
+    uuid: str, cls: type[IO.ComfyNode]
+) -> Rodin3DDownloadResponse:
     logging.info("[ Rodin3D API - Downloading ] Generate Successfully!")
     return await sync_op(
         cls,
@@ -454,10 +467,24 @@ class Rodin3D_Gen2(IO.ComfyNode):
                     display_mode=IO.NumberDisplay.number,
                     optional=True,
                 ),
-                IO.Combo.Input("Material_Type", options=["PBR", "Shaded"], default="PBR", optional=True),
+                IO.Combo.Input(
+                    "Material_Type",
+                    options=["PBR", "Shaded"],
+                    default="PBR",
+                    optional=True,
+                ),
                 IO.Combo.Input(
                     "Polygon_count",
-                    options=["4K-Quad", "8K-Quad", "18K-Quad", "50K-Quad", "2K-Triangle", "20K-Triangle", "150K-Triangle", "500K-Triangle"],
+                    options=[
+                        "4K-Quad",
+                        "8K-Quad",
+                        "18K-Quad",
+                        "50K-Quad",
+                        "2K-Triangle",
+                        "20K-Triangle",
+                        "150K-Triangle",
+                        "500K-Triangle",
+                    ],
                     default="500K-Triangle",
                     optional=True,
                 ),

@@ -5,11 +5,16 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from comfy.ldm.modules.diffusionmodules.mmdit import DismantledBlock, PatchEmbed, VectorEmbedder, TimestepEmbedder, get_2d_sincos_pos_embed_torch
+from comfy.ldm.modules.diffusionmodules.mmdit import (
+    DismantledBlock,
+    PatchEmbed,
+    VectorEmbedder,
+    TimestepEmbedder,
+    get_2d_sincos_pos_embed_torch,
+)
 
 
 class ControlNetEmbedder(nn.Module):
-
     def __init__(
         self,
         img_size: int,
@@ -24,7 +29,7 @@ class ControlNetEmbedder(nn.Module):
         device: torch.device,
         dtype: torch.dtype,
         pos_embed_max_size: Optional[int] = None,
-        operations = None,
+        operations=None,
     ):
         super().__init__()
         self.main_model_double = main_model_double
@@ -42,7 +47,9 @@ class ControlNetEmbedder(nn.Module):
             operations=operations,
         )
 
-        self.t_embedder = TimestepEmbedder(self.hidden_size, dtype=dtype, device=device, operations=operations)
+        self.t_embedder = TimestepEmbedder(
+            self.hidden_size, dtype=dtype, device=device, operations=operations
+        )
 
         self.double_y_emb = double_y_emb
         if self.double_y_emb:
@@ -59,8 +66,12 @@ class ControlNetEmbedder(nn.Module):
 
         self.transformer_blocks = nn.ModuleList(
             DismantledBlock(
-                hidden_size=self.hidden_size, num_heads=num_attention_heads, qkv_bias=True,
-                dtype=dtype, device=device, operations=operations
+                hidden_size=self.hidden_size,
+                num_heads=num_attention_heads,
+                qkv_bias=True,
+                dtype=dtype,
+                device=device,
+                operations=operations,
             )
             for _ in range(num_layers)
         )
@@ -71,7 +82,9 @@ class ControlNetEmbedder(nn.Module):
 
         self.controlnet_blocks = nn.ModuleList([])
         for _ in range(len(self.transformer_blocks)):
-            controlnet_block = operations.Linear(self.hidden_size, self.hidden_size, dtype=dtype, device=device)
+            controlnet_block = operations.Linear(
+                self.hidden_size, self.hidden_size, dtype=dtype, device=device
+            )
             self.controlnet_blocks.append(controlnet_block)
 
         self.pos_embed_input = PatchEmbed(
@@ -91,7 +104,7 @@ class ControlNetEmbedder(nn.Module):
         timesteps: torch.Tensor,
         y: Optional[torch.Tensor] = None,
         context: Optional[torch.Tensor] = None,
-        hint = None,
+        hint=None,
     ) -> Tuple[Tensor, List[Tensor]]:
         x_shape = list(x.shape)
         x = self.x_embedder(x)

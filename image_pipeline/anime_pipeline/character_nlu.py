@@ -88,10 +88,27 @@ _PAT_NAME_PAREN = re.compile(
 # Stop words we never want to treat as a "name" (false positives from
 # Vietnamese sentences like "ảnh trong vườn").
 _NAME_STOPWORDS = {
-    "ảnh", "anh", "em", "chị", "cô", "cậu", "bạn",
-    "image", "picture", "photo", "art",
-    "anime", "manga", "game", "series",
-    "một", "một bức", "1", "the", "a", "an",
+    "ảnh",
+    "anh",
+    "em",
+    "chị",
+    "cô",
+    "cậu",
+    "bạn",
+    "image",
+    "picture",
+    "photo",
+    "art",
+    "anime",
+    "manga",
+    "game",
+    "series",
+    "một",
+    "một bức",
+    "1",
+    "the",
+    "a",
+    "an",
 }
 
 
@@ -166,7 +183,9 @@ def extract_character_key(prompt: str) -> Optional[str]:
                 key, display = hit
                 logger.info(
                     "[character_nlu] '%s' → %s (%s)",
-                    query, key, display,
+                    query,
+                    key,
+                    display,
                 )
                 return key
 
@@ -180,7 +199,9 @@ def extract_character_key(prompt: str) -> Optional[str]:
                 key, display = hit
                 logger.info(
                     "[character_nlu] bare '%s' → %s (%s)",
-                    bare, key, display,
+                    bare,
+                    key,
+                    display,
                 )
                 return key
 
@@ -191,20 +212,80 @@ def extract_character_key(prompt: str) -> Optional[str]:
 # When the regex over-captures ("Blue Archive đang đứng"), we trim back
 # to the longest known franchise prefix.
 _KNOWN_FRANCHISE_HEADS = {
-    "blue", "genshin", "honkai", "star", "rail", "impact",
-    "arknights", "azur", "lane", "fate", "grand", "order",
-    "kantai", "collection", "girls", "frontline", "umamusume",
-    "love", "live", "idolmaster", "vocaloid", "touhou",
-    "fire", "emblem", "nikke", "wuthering", "waves",
-    "zenless", "zone", "zero", "league", "of", "legends",
-    "valorant", "overwatch", "genshin_impact", "honkai_star_rail",
-    "blue_archive", "punishing", "gray", "raven",
-    "re:zero", "rezero", "konosuba", "kaguya", "sama",
-    "spy", "x", "family", "jujutsu", "kaisen", "demon", "slayer",
-    "kimetsu", "yaiba", "naruto", "boruto", "bleach",
-    "one", "piece", "evangelion", "neon", "nge",
-    "lycoris", "recoil", "frieren", "oshi", "no", "ko",
-    "hololive", "nijisanji", "vshojo", "indie", "vtuber",
+    "blue",
+    "genshin",
+    "honkai",
+    "star",
+    "rail",
+    "impact",
+    "arknights",
+    "azur",
+    "lane",
+    "fate",
+    "grand",
+    "order",
+    "kantai",
+    "collection",
+    "girls",
+    "frontline",
+    "umamusume",
+    "love",
+    "live",
+    "idolmaster",
+    "vocaloid",
+    "touhou",
+    "fire",
+    "emblem",
+    "nikke",
+    "wuthering",
+    "waves",
+    "zenless",
+    "zone",
+    "zero",
+    "league",
+    "of",
+    "legends",
+    "valorant",
+    "overwatch",
+    "genshin_impact",
+    "honkai_star_rail",
+    "blue_archive",
+    "punishing",
+    "gray",
+    "raven",
+    "re:zero",
+    "rezero",
+    "konosuba",
+    "kaguya",
+    "sama",
+    "spy",
+    "x",
+    "family",
+    "jujutsu",
+    "kaisen",
+    "demon",
+    "slayer",
+    "kimetsu",
+    "yaiba",
+    "naruto",
+    "boruto",
+    "bleach",
+    "one",
+    "piece",
+    "evangelion",
+    "neon",
+    "nge",
+    "lycoris",
+    "recoil",
+    "frieren",
+    "oshi",
+    "no",
+    "ko",
+    "hololive",
+    "nijisanji",
+    "vshojo",
+    "indie",
+    "vtuber",
 }
 
 
@@ -223,9 +304,11 @@ def _trim_franchise_tail(fran: str) -> str:
         tl = tok.lower().strip(".,;:!?")
         # Keep capitalised tokens, or known franchise vocabulary, or
         # short ALL-CAPS abbreviations (HSR, GI, FGO).
-        if (tok[:1].isupper()
-                or tl in _KNOWN_FRANCHISE_HEADS
-                or (tok.isupper() and 2 <= len(tok) <= 5)):
+        if (
+            tok[:1].isupper()
+            or tl in _KNOWN_FRANCHISE_HEADS
+            or (tok.isupper() and 2 <= len(tok) <= 5)
+        ):
             keep.append(tok)
             continue
         break

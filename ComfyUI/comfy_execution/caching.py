@@ -19,8 +19,11 @@ def include_unique_id_in_input(class_type: str) -> bool:
     if class_type in NODE_CLASS_CONTAINS_UNIQUE_ID:
         return NODE_CLASS_CONTAINS_UNIQUE_ID[class_type]
     class_def = nodes.NODE_CLASS_MAPPINGS[class_type]
-    NODE_CLASS_CONTAINS_UNIQUE_ID[class_type] = "UNIQUE_ID" in class_def.INPUT_TYPES().get("hidden", {}).values()
+    NODE_CLASS_CONTAINS_UNIQUE_ID[class_type] = (
+        "UNIQUE_ID" in class_def.INPUT_TYPES().get("hidden", {}).values()
+    )
     return NODE_CLASS_CONTAINS_UNIQUE_ID[class_type]
+
 
 class CacheKeySet(ABC):
     def __init__(self, dynprompt, node_ids, is_changed_cache):
@@ -46,9 +49,11 @@ class CacheKeySet(ABC):
     def get_subcache_key(self, node_id):
         return self.subcache_keys.get(node_id, None)
 
+
 class Unhashable:
     def __init__(self):
         self.value = float("NaN")
+
 
 def to_hashable(obj):
     # So that we don't infinitely recurse since frozenset and tuples
@@ -56,12 +61,15 @@ def to_hashable(obj):
     if isinstance(obj, (int, float, str, bool, bytes, type(None))):
         return obj
     elif isinstance(obj, Mapping):
-        return frozenset([(to_hashable(k), to_hashable(v)) for k, v in sorted(obj.items())])
+        return frozenset(
+            [(to_hashable(k), to_hashable(v)) for k, v in sorted(obj.items())]
+        )
     elif isinstance(obj, Sequence):
         return frozenset(zip(itertools.count(), [to_hashable(i) for i in obj]))
     else:
         # TODO - Support other objects like tensors?
         return Unhashable()
+
 
 class CacheKeySetID(CacheKeySet):
     def __init__(self, dynprompt, node_ids, is_changed_cache):
@@ -77,6 +85,7 @@ class CacheKeySetID(CacheKeySet):
             node = self.dynprompt.get_node(node_id)
             self.keys[node_id] = (node_id, node["class_type"])
             self.subcache_keys[node_id] = (node_id, node["class_type"])
+
 
 class CacheKeySetInputSignature(CacheKeySet):
     def __init__(self, dynprompt, node_ids, is_changed_cache):
@@ -100,12 +109,20 @@ class CacheKeySetInputSignature(CacheKeySet):
     async def get_node_signature(self, dynprompt, node_id):
         signature = []
         ancestors, order_mapping = self.get_ordered_ancestry(dynprompt, node_id)
-        signature.append(await self.get_immediate_node_signature(dynprompt, node_id, order_mapping))
+        signature.append(
+            await self.get_immediate_node_signature(dynprompt, node_id, order_mapping)
+        )
         for ancestor_id in ancestors:
-            signature.append(await self.get_immediate_node_signature(dynprompt, ancestor_id, order_mapping))
+            signature.append(
+                await self.get_immediate_node_signature(
+                    dynprompt, ancestor_id, order_mapping
+                )
+            )
         return to_hashable(signature)
 
-    async def get_immediate_node_signature(self, dynprompt, node_id, ancestor_order_mapping):
+    async def get_immediate_node_signature(
+        self, dynprompt, node_id, ancestor_order_mapping
+    ):
         if not dynprompt.has_node(node_id):
             # This node doesn't exist -- we can't cache it.
             return [float("NaN")]
@@ -113,14 +130,18 @@ class CacheKeySetInputSignature(CacheKeySet):
         class_type = node["class_type"]
         class_def = nodes.NODE_CLASS_MAPPINGS[class_type]
         signature = [class_type, await self.is_changed_cache.get(node_id)]
-        if self.include_node_id_in_input() or (hasattr(class_def, "NOT_IDEMPOTENT") and class_def.NOT_IDEMPOTENT) or include_unique_id_in_input(class_type):
+        if (
+            self.include_node_id_in_input()
+            or (hasattr(class_def, "NOT_IDEMPOTENT") and class_def.NOT_IDEMPOTENT)
+            or include_unique_id_in_input(class_type)
+        ):
             signature.append(node_id)
         inputs = node["inputs"]
         for key in sorted(inputs.keys()):
             if is_link(inputs[key]):
                 (ancestor_id, ancestor_socket) = inputs[key]
                 ancestor_index = ancestor_order_mapping[ancestor_id]
-                signature.append((key,("ANCESTOR", ancestor_index, ancestor_socket)))
+                signature.append((key, ("ANCESTOR", ancestor_index, ancestor_socket)))
             else:
                 signature.append((key, inputs[key]))
         return signature
@@ -133,7 +154,9 @@ class CacheKeySetInputSignature(CacheKeySet):
         self.get_ordered_ancestry_internal(dynprompt, node_id, ancestors, order_mapping)
         return ancestors, order_mapping
 
-    def get_ordered_ancestry_internal(self, dynprompt, node_id, ancestors, order_mapping):
+    def get_ordered_ancestry_internal(
+        self, dynprompt, node_id, ancestors, order_mapping
+    ):
         if not dynprompt.has_node(node_id):
             return
         inputs = dynprompt.get_node(node_id)["inputs"]
@@ -144,7 +167,10 @@ class CacheKeySetInputSignature(CacheKeySet):
                 if ancestor_id not in order_mapping:
                     ancestors.append(ancestor_id)
                     order_mapping[ancestor_id] = len(ancestors) - 1
-                    self.get_ordered_ancestry_internal(dynprompt, ancestor_id, ancestors, order_mapping)
+                    self.get_ordered_ancestry_internal(
+                        dynprompt, ancestor_id, ancestors, order_mapping
+                    )
+
 
 class BasicCache:
     def __init__(self, key_class):
@@ -232,8 +258,14 @@ class BasicCache:
         for key in self.cache:
             result.append({"key": key, "value": self.cache[key]})
         for key in self.subcaches:
-            result.append({"subcache_key": key, "subcache": self.subcaches[key].recursive_debug_dump()})
+            result.append(
+                {
+                    "subcache_key": key,
+                    "subcache": self.subcaches[key].recursive_debug_dump(),
+                }
+            )
         return result
+
 
 class HierarchicalCache(BasicCache):
     def __init__(self, key_class):
@@ -273,8 +305,8 @@ class HierarchicalCache(BasicCache):
         assert cache is not None
         return await cache._ensure_subcache(node_id, children_ids)
 
-class NullCache:
 
+class NullCache:
     async def set_prompt(self, dynprompt, node_ids, is_changed_cache):
         pass
 
@@ -296,6 +328,7 @@ class NullCache:
     async def ensure_subcache_for(self, node_id, children_ids):
         return self
 
+
 class LRUCache(BasicCache):
     def __init__(self, key_class, max_size=100):
         super().__init__(key_class)
@@ -314,7 +347,11 @@ class LRUCache(BasicCache):
     def clean_unused(self):
         while len(self.cache) > self.max_size and self.min_generation < self.generation:
             self.min_generation += 1
-            to_remove = [key for key in self.cache if self.used_generation[key] < self.min_generation]
+            to_remove = [
+                key
+                for key in self.cache
+                if self.used_generation[key] < self.min_generation
+            ]
             for key in to_remove:
                 del self.cache[key]
                 del self.used_generation[key]
@@ -349,23 +386,23 @@ class LRUCache(BasicCache):
         return self
 
 
-#Iterating the cache for usage analysis might be expensive, so if we trigger make sure
-#to take a chunk out to give breathing space on high-node / low-ram-per-node flows.
+# Iterating the cache for usage analysis might be expensive, so if we trigger make sure
+# to take a chunk out to give breathing space on high-node / low-ram-per-node flows.
 
 RAM_CACHE_HYSTERESIS = 1.1
 
-#This is kinda in GB but not really. It needs to be non-zero for the below heuristic
-#and as long as Multi GB models dwarf this it will approximate OOM scoring OK
+# This is kinda in GB but not really. It needs to be non-zero for the below heuristic
+# and as long as Multi GB models dwarf this it will approximate OOM scoring OK
 
 RAM_CACHE_DEFAULT_RAM_USAGE = 0.1
 
-#Exponential bias towards evicting older workflows so garbage will be taken out
-#in constantly changing setups.
+# Exponential bias towards evicting older workflows so garbage will be taken out
+# in constantly changing setups.
 
 RAM_CACHE_OLD_WORKFLOW_OOM_MULTIPLIER = 1.3
 
-class RAMPressureCache(LRUCache):
 
+class RAMPressureCache(LRUCache):
     def __init__(self, key_class):
         super().__init__(key_class, 0)
         self.timestamps = {}
@@ -393,10 +430,16 @@ class RAMPressureCache(LRUCache):
 
         clean_list = []
 
-        for key, (outputs, _), in self.cache.items():
-            oom_score =  RAM_CACHE_OLD_WORKFLOW_OOM_MULTIPLIER ** (self.generation - self.used_generation[key])
+        for (
+            key,
+            (outputs, _),
+        ) in self.cache.items():
+            oom_score = RAM_CACHE_OLD_WORKFLOW_OOM_MULTIPLIER ** (
+                self.generation - self.used_generation[key]
+            )
 
             ram_usage = RAM_CACHE_DEFAULT_RAM_USAGE
+
             def scan_list_for_ram_usage(outputs):
                 nonlocal ram_usage
                 if outputs is None:
@@ -404,17 +447,20 @@ class RAMPressureCache(LRUCache):
                 for output in outputs:
                     if isinstance(output, list):
                         scan_list_for_ram_usage(output)
-                    elif isinstance(output, torch.Tensor) and output.device.type == 'cpu':
-                        #score Tensors at a 50% discount for RAM usage as they are likely to
-                        #be high value intermediates
+                    elif (
+                        isinstance(output, torch.Tensor) and output.device.type == "cpu"
+                    ):
+                        # score Tensors at a 50% discount for RAM usage as they are likely to
+                        # be high value intermediates
                         ram_usage += (output.numel() * output.element_size()) * 0.5
                     elif hasattr(output, "get_ram_usage"):
                         ram_usage += output.get_ram_usage()
+
             scan_list_for_ram_usage(outputs)
 
             oom_score *= ram_usage
-            #In the case where we have no information on the node ram usage at all,
-            #break OOM score ties on the last touch timestamp (pure LRU)
+            # In the case where we have no information on the node ram usage at all,
+            # break OOM score ties on the last touch timestamp (pure LRU)
             bisect.insort(clean_list, (oom_score, self.timestamps[key], key))
 
         while _ram_gb() < ram_headroom * RAM_CACHE_HYSTERESIS and clean_list:

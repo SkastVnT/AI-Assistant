@@ -66,15 +66,11 @@ class CausalContinuousVideoTokenizer(nn.Module):
         self.sigma_data = 0.5
 
         # encoder_name = kwargs.get("encoder", Encoder3DType.BASE.name)
-        self.encoder = EncoderFactorized(
-            z_channels=z_factor * z_channels, **kwargs
-        )
+        self.encoder = EncoderFactorized(z_channels=z_factor * z_channels, **kwargs)
         if kwargs.get("temporal_compression", 4) == 4:
             kwargs["channels_mult"] = [2, 4]
         # decoder_name = kwargs.get("decoder", Decoder3DType.BASE.name)
-        self.decoder = DecoderFactorized(
-            z_channels=z_channels, **kwargs
-        )
+        self.decoder = DecoderFactorized(z_channels=z_channels, **kwargs)
 
         self.quant_conv = CausalConv3d(
             z_factor * z_channels,
@@ -87,7 +83,9 @@ class CausalContinuousVideoTokenizer(nn.Module):
         )
 
         # formulation_name = kwargs.get("formulation", ContinuousFormulation.AE.name)
-        self.distribution = IdentityDistribution()  # ContinuousFormulation[formulation_name].value()
+        self.distribution = (
+            IdentityDistribution()
+        )  # ContinuousFormulation[formulation_name].value()
 
         num_parameters = sum(param.numel() for param in self.parameters())
         logging.debug(f"model={self.name}, num_parameters={num_parameters:,}")
@@ -96,9 +94,16 @@ class CausalContinuousVideoTokenizer(nn.Module):
         )
 
         latent_temporal_chunk = 16
-        self.latent_mean = nn.Parameter(torch.zeros([self.latent_channels * latent_temporal_chunk], dtype=torch.float32))
-        self.latent_std = nn.Parameter(torch.ones([self.latent_channels * latent_temporal_chunk], dtype=torch.float32))
-
+        self.latent_mean = nn.Parameter(
+            torch.zeros(
+                [self.latent_channels * latent_temporal_chunk], dtype=torch.float32
+            )
+        )
+        self.latent_std = nn.Parameter(
+            torch.ones(
+                [self.latent_channels * latent_temporal_chunk], dtype=torch.float32
+            )
+        )
 
     def encode(self, x):
         h = self.encoder(x)
@@ -110,8 +115,16 @@ class CausalContinuousVideoTokenizer(nn.Module):
         mean = self.latent_mean.view(latent_ch, -1)
         std = self.latent_std.view(latent_ch, -1)
 
-        mean = mean.repeat(1, math.ceil(latent_t / mean.shape[-1]))[:, : latent_t].reshape([1, latent_ch, -1, 1, 1]).to(dtype=in_dtype, device=z.device)
-        std = std.repeat(1, math.ceil(latent_t / std.shape[-1]))[:, : latent_t].reshape([1, latent_ch, -1, 1, 1]).to(dtype=in_dtype, device=z.device)
+        mean = (
+            mean.repeat(1, math.ceil(latent_t / mean.shape[-1]))[:, :latent_t]
+            .reshape([1, latent_ch, -1, 1, 1])
+            .to(dtype=in_dtype, device=z.device)
+        )
+        std = (
+            std.repeat(1, math.ceil(latent_t / std.shape[-1]))[:, :latent_t]
+            .reshape([1, latent_ch, -1, 1, 1])
+            .to(dtype=in_dtype, device=z.device)
+        )
         return ((z - mean) / std) * self.sigma_data
 
     def decode(self, z):
@@ -121,11 +134,18 @@ class CausalContinuousVideoTokenizer(nn.Module):
         mean = self.latent_mean.view(latent_ch, -1)
         std = self.latent_std.view(latent_ch, -1)
 
-        mean = mean.repeat(1, math.ceil(latent_t / mean.shape[-1]))[:, : latent_t].reshape([1, latent_ch, -1, 1, 1]).to(dtype=in_dtype, device=z.device)
-        std = std.repeat(1, math.ceil(latent_t / std.shape[-1]))[:, : latent_t].reshape([1, latent_ch, -1, 1, 1]).to(dtype=in_dtype, device=z.device)
+        mean = (
+            mean.repeat(1, math.ceil(latent_t / mean.shape[-1]))[:, :latent_t]
+            .reshape([1, latent_ch, -1, 1, 1])
+            .to(dtype=in_dtype, device=z.device)
+        )
+        std = (
+            std.repeat(1, math.ceil(latent_t / std.shape[-1]))[:, :latent_t]
+            .reshape([1, latent_ch, -1, 1, 1])
+            .to(dtype=in_dtype, device=z.device)
+        )
 
         z = z / self.sigma_data
         z = z * std + mean
         z = self.post_quant_conv(z)
         return self.decoder(z)
-

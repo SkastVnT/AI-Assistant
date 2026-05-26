@@ -212,6 +212,6 @@ def test_dual_conv3d_consistency():
     output_2d = dual_conv3d(test_input, use_conv3d=False)
 
     # Assert that the outputs from both methods are sufficiently close
-    assert torch.allclose(
-        output_conv3d, output_2d, atol=1e-6
-    ), "Outputs are not consistent between 3D and 2D convolutions."
+    assert torch.allclose(output_conv3d, output_2d, atol=1e-6), (
+        "Outputs are not consistent between 3D and 2D convolutions."
+    )

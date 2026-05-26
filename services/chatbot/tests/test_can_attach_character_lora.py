@@ -2,6 +2,7 @@
 gate that prevents wrong-LoRA attachment for ambiguous, unknown,
 low-data, OC, style-only, and collision-prone characters.
 """
+
 from __future__ import annotations
 
 import sys
@@ -26,15 +27,19 @@ def _isolate(monkeypatch):
     monkeypatch.setattr("core.character_registry.get_registry", lambda: stub)
 
     fake = types.ModuleType("image_pipeline.anime_pipeline.saa_character_db")
+
     def _boom(*a, **kw):
         raise RuntimeError("SAA off in tests")
+
     fake.lookup_character = _boom  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules,
-                        "image_pipeline.anime_pipeline.saa_character_db", fake)
+    monkeypatch.setitem(
+        sys.modules, "image_pipeline.anime_pipeline.saa_character_db", fake
+    )
     monkeypatch.setattr(cu, "_load_manual_overrides", lambda path=None: [])
 
 
 # ── Block cases ──────────────────────────────────────────────────────────────
+
 
 class TestBlockedCases:
     def test_none_input(self):
@@ -43,18 +48,14 @@ class TestBlockedCases:
         assert reason == "no_character_result"
 
     def test_unresolved_unknown_iroha_kaguya(self):
-        r = cu.resolve_character(
-            "Iroha trong Kaguya Cosmic Princess mặc váy trắng"
-        )
+        r = cu.resolve_character("Iroha trong Kaguya Cosmic Princess mặc váy trắng")
         assert r.mode == "unresolved_unknown"
         safe, reason = cu.can_attach_character_lora(r)
         assert safe is False
         assert reason == "unresolved_unknown"
 
     def test_unresolved_unknown_blocks_same_name_other_series_lora(self):
-        r = cu.resolve_character(
-            "Iroha trong Kaguya Cosmic Princess mặc váy trắng"
-        )
+        r = cu.resolve_character("Iroha trong Kaguya Cosmic Princess mặc váy trắng")
         # Even if a same-named LoRA from another series is offered,
         # the gate must refuse — the character is unresolved/unknown.
         safe, reason = cu.can_attach_character_lora(
@@ -94,20 +95,21 @@ class TestBlockedCases:
     def test_low_data_profile_without_lora_hint(self, monkeypatch):
         # Manual override that has NO lora_hint — must block.
         monkeypatch.setattr(
-            cu, "_load_manual_overrides",
-            lambda path=None: [{
-                "canonical_id": "iroha@cosmic_princess_kaguya",
-                "display_name": "Iroha",
-                "series_slug": "cosmic_princess_kaguya",
-                "series_name": "Cosmic Princess Kaguya",
-                "aliases": ["iroha"],
-                "confidence": 0.7,
-                # no lora_hint, no safe_to_attach_lora
-            }],
+            cu,
+            "_load_manual_overrides",
+            lambda path=None: [
+                {
+                    "canonical_id": "iroha@cosmic_princess_kaguya",
+                    "display_name": "Iroha",
+                    "series_slug": "cosmic_princess_kaguya",
+                    "series_name": "Cosmic Princess Kaguya",
+                    "aliases": ["iroha"],
+                    "confidence": 0.7,
+                    # no lora_hint, no safe_to_attach_lora
+                }
+            ],
         )
-        r = cu.resolve_character(
-            "Iroha trong Kaguya Cosmic Princess mặc váy trắng"
-        )
+        r = cu.resolve_character("Iroha trong Kaguya Cosmic Princess mặc váy trắng")
         assert r.mode == "low_data_profile"
         safe, reason = cu.can_attach_character_lora(r)
         assert safe is False
@@ -118,6 +120,7 @@ class TestBlockedCases:
 
 
 # ── Allow cases ──────────────────────────────────────────────────────────────
+
 
 class TestAllowedCases:
     def test_resolved_known_alias_table_hit(self):
@@ -164,22 +167,23 @@ class TestAllowedCases:
     def test_low_data_profile_with_explicit_lora_hint(self, monkeypatch):
         # Manual override with explicit lora_hint AND safe_to_attach_lora.
         monkeypatch.setattr(
-            cu, "_load_manual_overrides",
-            lambda path=None: [{
-                "canonical_id": "iroha@cosmic_princess_kaguya",
-                "display_name": "Iroha",
-                "series_slug": "cosmic_princess_kaguya",
-                "series_name": "Cosmic Princess Kaguya",
-                "aliases": ["iroha"],
-                "confidence": 0.85,
-                "lora_hint": "iroha_kaguya_v1",
-                "safe_to_attach_lora": True,
-                "data_status": "manual_override",
-            }],
+            cu,
+            "_load_manual_overrides",
+            lambda path=None: [
+                {
+                    "canonical_id": "iroha@cosmic_princess_kaguya",
+                    "display_name": "Iroha",
+                    "series_slug": "cosmic_princess_kaguya",
+                    "series_name": "Cosmic Princess Kaguya",
+                    "aliases": ["iroha"],
+                    "confidence": 0.85,
+                    "lora_hint": "iroha_kaguya_v1",
+                    "safe_to_attach_lora": True,
+                    "data_status": "manual_override",
+                }
+            ],
         )
-        r = cu.resolve_character(
-            "Iroha trong Kaguya Cosmic Princess mặc váy trắng"
-        )
+        r = cu.resolve_character("Iroha trong Kaguya Cosmic Princess mặc váy trắng")
         assert r.mode == "low_data_profile"
         safe, reason = cu.can_attach_character_lora(r)
         assert safe is True
@@ -203,6 +207,7 @@ class TestAllowedCases:
 
 
 # ── Series-pinning behavior ──────────────────────────────────────────────────
+
 
 class TestSeriesPinning:
     def test_firefly_with_hsr_only_attaches_on_exact_match(self):

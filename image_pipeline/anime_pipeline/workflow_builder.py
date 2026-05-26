@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 # Import StructureLayerConfig lazily to avoid circular import at module level
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from .config import StructureLayerConfig
 
@@ -46,6 +47,7 @@ def _normalize_upscale_model_name(name: str) -> str:
     try:
         import os as _os
         from pathlib import Path as _Path
+
         # Search common ComfyUI install paths relative to repo root
         candidates_roots = [
             _os.environ.get("COMFYUI_DIR"),
@@ -59,9 +61,11 @@ def _normalize_upscale_model_name(name: str) -> str:
             if not p.is_dir():
                 continue
             for entry in p.iterdir():
-                if (entry.is_file()
-                        and entry.stem == name
-                        and entry.suffix.lower() in _UPSCALE_MODEL_EXTS):
+                if (
+                    entry.is_file()
+                    and entry.stem == name
+                    and entry.suffix.lower() in _UPSCALE_MODEL_EXTS
+                ):
                     return entry.name
     except Exception:
         pass
@@ -130,12 +134,19 @@ class WorkflowBuilder:
         bs = max(1, min(int(batch_size or 1), 6))
         if source_image_b64:
             return self._build_composition_img2img(
-                pc, source_image_b64, seed, clip_skip,
+                pc,
+                source_image_b64,
+                seed,
+                clip_skip,
             )
         return self._build_composition_txt2img(pc, seed, clip_skip, bs)
 
     def _build_composition_txt2img(
-        self, pc: PassConfig, seed: int, clip_skip: int, batch_size: int = 1,
+        self,
+        pc: PassConfig,
+        seed: int,
+        clip_skip: int,
+        batch_size: int = 1,
     ) -> dict:
         """Composition txt2img: checkpoint → [CLIPSetLastLayer] → CLIP → latent → KSampler → VAE → Save."""
         self._reset()
@@ -181,14 +192,22 @@ class WorkflowBuilder:
         latent = self._nid()
         w[latent] = {
             "class_type": "EmptyLatentImage",
-            "inputs": {"width": pc.width, "height": pc.height, "batch_size": int(batch_size)},
+            "inputs": {
+                "width": pc.width,
+                "height": pc.height,
+                "batch_size": int(batch_size),
+            },
         }
 
         pos_out = clip_pos
         neg_out = clip_neg
 
         model_out, pos_out, neg_out = self._attach_controlnets(
-            w, pc.control_inputs, model_out, pos_out, neg_out,
+            w,
+            pc.control_inputs,
+            model_out,
+            pos_out,
+            neg_out,
         )
 
         sampler = self._nid()
@@ -226,7 +245,11 @@ class WorkflowBuilder:
         return w
 
     def _build_composition_img2img(
-        self, pc: PassConfig, source_b64: str, seed: int, clip_skip: int,
+        self,
+        pc: PassConfig,
+        source_b64: str,
+        seed: int,
+        clip_skip: int,
     ) -> dict:
         """Composition img2img: checkpoint → load source → VAE encode → KSampler → decode → save."""
         self._reset()
@@ -285,7 +308,11 @@ class WorkflowBuilder:
         neg_out = clip_neg
 
         model_out, pos_out, neg_out = self._attach_controlnets(
-            w, pc.control_inputs, model_out, pos_out, neg_out,
+            w,
+            pc.control_inputs,
+            model_out,
+            pos_out,
+            neg_out,
         )
 
         sampler = self._nid()
@@ -459,7 +486,11 @@ class WorkflowBuilder:
         neg_out = clip_neg
 
         model_out, pos_out, neg_out = self._attach_controlnets(
-            w, pc.control_inputs, model_out, pos_out, neg_out,
+            w,
+            pc.control_inputs,
+            model_out,
+            pos_out,
+            neg_out,
         )
 
         sampler = self._nid()
@@ -574,7 +605,11 @@ class WorkflowBuilder:
         neg_out = clip_neg
 
         model_out, pos_out, neg_out = self._attach_controlnets(
-            w, pc.control_inputs, model_out, pos_out, neg_out,
+            w,
+            pc.control_inputs,
+            model_out,
+            pos_out,
+            neg_out,
         )
 
         sampler = self._nid()
@@ -643,19 +678,31 @@ class WorkflowBuilder:
         w: dict[str, Any] = {}
 
         ckpt = self._nid()
-        w[ckpt] = {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": pc.checkpoint}}
+        w[ckpt] = {
+            "class_type": "CheckpointLoaderSimple",
+            "inputs": {"ckpt_name": pc.checkpoint},
+        }
 
         # Optional LoRA chain on top of base checkpoint
         model_out, clip_base = self._attach_loras(w, pc.lora_models, ckpt, ckpt)
 
         clip_pos = self._nid()
-        w[clip_pos] = {"class_type": "CLIPTextEncode", "inputs": {"text": pc.positive_prompt, "clip": [clip_base, 1]}}
+        w[clip_pos] = {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": pc.positive_prompt, "clip": [clip_base, 1]},
+        }
 
         clip_neg = self._nid()
-        w[clip_neg] = {"class_type": "CLIPTextEncode", "inputs": {"text": pc.negative_prompt, "clip": [clip_base, 1]}}
+        w[clip_neg] = {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": pc.negative_prompt, "clip": [clip_base, 1]},
+        }
 
         latent = self._nid()
-        w[latent] = {"class_type": "EmptyLatentImage", "inputs": {"width": pc.width, "height": pc.height, "batch_size": 1}}
+        w[latent] = {
+            "class_type": "EmptyLatentImage",
+            "inputs": {"width": pc.width, "height": pc.height, "batch_size": 1},
+        }
 
         pos_out = clip_pos
         neg_out = clip_neg
@@ -666,21 +713,36 @@ class WorkflowBuilder:
         )
 
         sampler = self._nid()
-        w[sampler] = {"class_type": "KSampler", "inputs": {
-            "model": [model_out, 0], "positive": [pos_out, 0], "negative": [neg_out, 0],
-            "latent_image": [latent, 0], "seed": seed, "steps": pc.steps,
-            "cfg": pc.cfg, "sampler_name": pc.sampler, "scheduler": pc.scheduler,
-            "denoise": pc.denoise,
-        }}
+        w[sampler] = {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": [model_out, 0],
+                "positive": [pos_out, 0],
+                "negative": [neg_out, 0],
+                "latent_image": [latent, 0],
+                "seed": seed,
+                "steps": pc.steps,
+                "cfg": pc.cfg,
+                "sampler_name": pc.sampler,
+                "scheduler": pc.scheduler,
+                "denoise": pc.denoise,
+            },
+        }
 
         vae_decode = self._nid()
-        w[vae_decode] = {"class_type": "VAEDecode", "inputs": {"samples": [sampler, 0], "vae": [ckpt, 2]}}
+        w[vae_decode] = {
+            "class_type": "VAEDecode",
+            "inputs": {"samples": [sampler, 0], "vae": [ckpt, 2]},
+        }
 
         save = self._nid()
-        w[save] = {"class_type": "SaveImage", "inputs": {
-            "filename_prefix": f"anime_pipeline/{pc.pass_name}_{seed}",
-            "images": [vae_decode, 0],
-        }}
+        w[save] = {
+            "class_type": "SaveImage",
+            "inputs": {
+                "filename_prefix": f"anime_pipeline/{pc.pass_name}_{seed}",
+                "images": [vae_decode, 0],
+            },
+        }
 
         return w
 
@@ -692,22 +754,37 @@ class WorkflowBuilder:
         w: dict[str, Any] = {}
 
         ckpt = self._nid()
-        w[ckpt] = {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": pc.checkpoint}}
+        w[ckpt] = {
+            "class_type": "CheckpointLoaderSimple",
+            "inputs": {"ckpt_name": pc.checkpoint},
+        }
 
         # Optional LoRA chain on top of base checkpoint
         model_out, clip_base = self._attach_loras(w, pc.lora_models, ckpt, ckpt)
 
         load_img = self._nid()
-        w[load_img] = {"class_type": "LoadImageFromBase64", "inputs": {"base64_image": source_b64}}
+        w[load_img] = {
+            "class_type": "LoadImageFromBase64",
+            "inputs": {"base64_image": source_b64},
+        }
 
         vae_enc = self._nid()
-        w[vae_enc] = {"class_type": "VAEEncode", "inputs": {"pixels": [load_img, 0], "vae": [ckpt, 2]}}
+        w[vae_enc] = {
+            "class_type": "VAEEncode",
+            "inputs": {"pixels": [load_img, 0], "vae": [ckpt, 2]},
+        }
 
         clip_pos = self._nid()
-        w[clip_pos] = {"class_type": "CLIPTextEncode", "inputs": {"text": pc.positive_prompt, "clip": [clip_base, 1]}}
+        w[clip_pos] = {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": pc.positive_prompt, "clip": [clip_base, 1]},
+        }
 
         clip_neg = self._nid()
-        w[clip_neg] = {"class_type": "CLIPTextEncode", "inputs": {"text": pc.negative_prompt, "clip": [clip_base, 1]}}
+        w[clip_neg] = {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": pc.negative_prompt, "clip": [clip_base, 1]},
+        }
 
         pos_out = clip_pos
         neg_out = clip_neg
@@ -717,33 +794,53 @@ class WorkflowBuilder:
         )
 
         sampler = self._nid()
-        w[sampler] = {"class_type": "KSampler", "inputs": {
-            "model": [model_out, 0], "positive": [pos_out, 0], "negative": [neg_out, 0],
-            "latent_image": [vae_enc, 0], "seed": seed, "steps": pc.steps,
-            "cfg": pc.cfg, "sampler_name": pc.sampler, "scheduler": pc.scheduler,
-            "denoise": pc.denoise,
-        }}
+        w[sampler] = {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": [model_out, 0],
+                "positive": [pos_out, 0],
+                "negative": [neg_out, 0],
+                "latent_image": [vae_enc, 0],
+                "seed": seed,
+                "steps": pc.steps,
+                "cfg": pc.cfg,
+                "sampler_name": pc.sampler,
+                "scheduler": pc.scheduler,
+                "denoise": pc.denoise,
+            },
+        }
 
         vae_decode = self._nid()
-        w[vae_decode] = {"class_type": "VAEDecode", "inputs": {"samples": [sampler, 0], "vae": [ckpt, 2]}}
+        w[vae_decode] = {
+            "class_type": "VAEDecode",
+            "inputs": {"samples": [sampler, 0], "vae": [ckpt, 2]},
+        }
 
         save = self._nid()
-        w[save] = {"class_type": "SaveImage", "inputs": {
-            "filename_prefix": f"anime_pipeline/{pc.pass_name}_{seed}",
-            "images": [vae_decode, 0],
-        }}
+        w[save] = {
+            "class_type": "SaveImage",
+            "inputs": {
+                "filename_prefix": f"anime_pipeline/{pc.pass_name}_{seed}",
+                "images": [vae_decode, 0],
+            },
+        }
 
         return w
 
     # ── Preprocessor (for structure lock) ─────────────────────────────
 
-    def build_preprocessor(self, image_b64: str, preprocessor: str, pass_name: str = "structure") -> dict:
+    def build_preprocessor(
+        self, image_b64: str, preprocessor: str, pass_name: str = "structure"
+    ) -> dict:
         """Preprocessor workflow: load image → preprocessor node → preview."""
         self._reset()
         w: dict[str, Any] = {}
 
         load = self._nid()
-        w[load] = {"class_type": "LoadImageFromBase64", "inputs": {"base64_image": image_b64}}
+        w[load] = {
+            "class_type": "LoadImageFromBase64",
+            "inputs": {"base64_image": image_b64},
+        }
 
         proc = self._nid()
         w[proc] = {"class_type": preprocessor, "inputs": {"image": [load, 0]}}
@@ -755,28 +852,43 @@ class WorkflowBuilder:
 
     # ── Upscale ───────────────────────────────────────────────────────
 
-    def build_upscale(self, image_b64: str, upscale_model: str, pass_name: str = "upscale") -> dict:
+    def build_upscale(
+        self, image_b64: str, upscale_model: str, pass_name: str = "upscale"
+    ) -> dict:
         """Upscale workflow: load image → upscale model → save."""
         self._reset()
         w: dict[str, Any] = {}
         upscale_model = _normalize_upscale_model_name(upscale_model)
 
         load = self._nid()
-        w[load] = {"class_type": "LoadImageFromBase64", "inputs": {"base64_image": image_b64}}
+        w[load] = {
+            "class_type": "LoadImageFromBase64",
+            "inputs": {"base64_image": image_b64},
+        }
 
         loader = self._nid()
-        w[loader] = {"class_type": "UpscaleModelLoader", "inputs": {"model_name": upscale_model}}
+        w[loader] = {
+            "class_type": "UpscaleModelLoader",
+            "inputs": {"model_name": upscale_model},
+        }
 
         upscale = self._nid()
-        w[upscale] = {"class_type": "ImageUpscaleWithModel", "inputs": {
-            "upscale_model": [loader, 0], "image": [load, 0],
-        }}
+        w[upscale] = {
+            "class_type": "ImageUpscaleWithModel",
+            "inputs": {
+                "upscale_model": [loader, 0],
+                "image": [load, 0],
+            },
+        }
 
         save = self._nid()
-        w[save] = {"class_type": "SaveImage", "inputs": {
-            "filename_prefix": f"anime_pipeline/{pass_name}",
-            "images": [upscale, 0],
-        }}
+        w[save] = {
+            "class_type": "SaveImage",
+            "inputs": {
+                "filename_prefix": f"anime_pipeline/{pass_name}",
+                "images": [upscale, 0],
+            },
+        }
 
         return w
 
@@ -798,30 +910,46 @@ class WorkflowBuilder:
         upscale_model = _normalize_upscale_model_name(upscale_model)
 
         load = self._nid()
-        w[load] = {"class_type": "LoadImageFromBase64", "inputs": {"base64_image": image_b64}}
+        w[load] = {
+            "class_type": "LoadImageFromBase64",
+            "inputs": {"base64_image": image_b64},
+        }
 
         loader = self._nid()
-        w[loader] = {"class_type": "UpscaleModelLoader", "inputs": {"model_name": upscale_model}}
+        w[loader] = {
+            "class_type": "UpscaleModelLoader",
+            "inputs": {"model_name": upscale_model},
+        }
 
         upscale = self._nid()
-        w[upscale] = {"class_type": "ImageUpscaleWithModel", "inputs": {
-            "upscale_model": [loader, 0], "image": [load, 0],
-        }}
+        w[upscale] = {
+            "class_type": "ImageUpscaleWithModel",
+            "inputs": {
+                "upscale_model": [loader, 0],
+                "image": [load, 0],
+            },
+        }
 
         rescale = self._nid()
-        w[rescale] = {"class_type": "ImageScale", "inputs": {
-            "image": [upscale, 0],
-            "width": target_width,
-            "height": target_height,
-            "upscale_method": "lanczos",
-            "crop": "disabled",
-        }}
+        w[rescale] = {
+            "class_type": "ImageScale",
+            "inputs": {
+                "image": [upscale, 0],
+                "width": target_width,
+                "height": target_height,
+                "upscale_method": "lanczos",
+                "crop": "disabled",
+            },
+        }
 
         save = self._nid()
-        w[save] = {"class_type": "SaveImage", "inputs": {
-            "filename_prefix": f"anime_pipeline/{pass_name}",
-            "images": [rescale, 0],
-        }}
+        w[save] = {
+            "class_type": "SaveImage",
+            "inputs": {
+                "filename_prefix": f"anime_pipeline/{pass_name}",
+                "images": [rescale, 0],
+            },
+        }
 
         return w
 
@@ -855,57 +983,80 @@ class WorkflowBuilder:
         upscale_model = _normalize_upscale_model_name(upscale_model)
 
         load = self._nid()
-        w[load] = {"class_type": "LoadImageFromBase64", "inputs": {"base64_image": image_b64}}
+        w[load] = {
+            "class_type": "LoadImageFromBase64",
+            "inputs": {"base64_image": image_b64},
+        }
 
         ckpt = self._nid()
-        w[ckpt] = {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": checkpoint}}
+        w[ckpt] = {
+            "class_type": "CheckpointLoaderSimple",
+            "inputs": {"ckpt_name": checkpoint},
+        }
 
         clip_pos = self._nid()
-        w[clip_pos] = {"class_type": "CLIPTextEncode", "inputs": {
-            "text": positive_prompt, "clip": [ckpt, 1],
-        }}
+        w[clip_pos] = {
+            "class_type": "CLIPTextEncode",
+            "inputs": {
+                "text": positive_prompt,
+                "clip": [ckpt, 1],
+            },
+        }
 
         clip_neg = self._nid()
-        w[clip_neg] = {"class_type": "CLIPTextEncode", "inputs": {
-            "text": negative_prompt, "clip": [ckpt, 1],
-        }}
+        w[clip_neg] = {
+            "class_type": "CLIPTextEncode",
+            "inputs": {
+                "text": negative_prompt,
+                "clip": [ckpt, 1],
+            },
+        }
 
         up_loader = self._nid()
-        w[up_loader] = {"class_type": "UpscaleModelLoader", "inputs": {"model_name": upscale_model}}
+        w[up_loader] = {
+            "class_type": "UpscaleModelLoader",
+            "inputs": {"model_name": upscale_model},
+        }
 
         ultimate = self._nid()
-        w[ultimate] = {"class_type": "UltimateSDUpscale", "inputs": {
-            "image": [load, 0],
-            "model": [ckpt, 0],
-            "positive": [clip_pos, 0],
-            "negative": [clip_neg, 0],
-            "vae": [ckpt, 2],
-            "upscale_model": [up_loader, 0],
-            "upscale_by": upscale_by,
-            "seed": seed,
-            "steps": steps,
-            "cfg": cfg,
-            "sampler_name": sampler,
-            "scheduler": scheduler,
-            "denoise": denoise,
-            "mode_type": "Linear",
-            "tile_width": tile_width,
-            "tile_height": tile_height,
-            "mask_blur": 8,
-            "tile_padding": 32,
-            "seam_fix_mode": "None",
-            "seam_fix_denoise": 0.0,
-            "seam_fix_width": 64,
-            "seam_fix_mask_blur": 8,
-            "seam_fix_padding": 16,
-            "force_uniform_tiles": True,
-        }}
+        w[ultimate] = {
+            "class_type": "UltimateSDUpscale",
+            "inputs": {
+                "image": [load, 0],
+                "model": [ckpt, 0],
+                "positive": [clip_pos, 0],
+                "negative": [clip_neg, 0],
+                "vae": [ckpt, 2],
+                "upscale_model": [up_loader, 0],
+                "upscale_by": upscale_by,
+                "seed": seed,
+                "steps": steps,
+                "cfg": cfg,
+                "sampler_name": sampler,
+                "scheduler": scheduler,
+                "denoise": denoise,
+                "mode_type": "Linear",
+                "tile_width": tile_width,
+                "tile_height": tile_height,
+                "mask_blur": 8,
+                "tile_padding": 32,
+                "seam_fix_mode": "None",
+                "seam_fix_denoise": 0.0,
+                "seam_fix_width": 64,
+                "seam_fix_mask_blur": 8,
+                "seam_fix_padding": 16,
+                "force_uniform_tiles": True,
+            },
+        }
 
         save = self._nid()
-        w[save] = {"class_type": "SaveImage", "inputs": {
-            "filename_prefix": f"anime_pipeline/{pass_name}",
-            "images": [ultimate, 0],
-        }}
+        w[save] = {
+            "class_type": "SaveImage",
+            "inputs": {
+                "filename_prefix": f"anime_pipeline/{pass_name}",
+                "images": [ultimate, 0],
+            },
+        }
 
         return w
 
@@ -946,66 +1097,104 @@ class WorkflowBuilder:
         upscale_model = _normalize_upscale_model_name(upscale_model)
 
         load = self._nid()
-        w[load] = {"class_type": "LoadImageFromBase64", "inputs": {"base64_image": image_b64}}
+        w[load] = {
+            "class_type": "LoadImageFromBase64",
+            "inputs": {"base64_image": image_b64},
+        }
 
         ckpt = self._nid()
-        w[ckpt] = {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": checkpoint}}
+        w[ckpt] = {
+            "class_type": "CheckpointLoaderSimple",
+            "inputs": {"ckpt_name": checkpoint},
+        }
 
         clip_pos = self._nid()
-        w[clip_pos] = {"class_type": "CLIPTextEncode", "inputs": {
-            "text": positive_prompt, "clip": [ckpt, 1],
-        }}
+        w[clip_pos] = {
+            "class_type": "CLIPTextEncode",
+            "inputs": {
+                "text": positive_prompt,
+                "clip": [ckpt, 1],
+            },
+        }
         clip_neg = self._nid()
-        w[clip_neg] = {"class_type": "CLIPTextEncode", "inputs": {
-            "text": negative_prompt, "clip": [ckpt, 1],
-        }}
+        w[clip_neg] = {
+            "class_type": "CLIPTextEncode",
+            "inputs": {
+                "text": negative_prompt,
+                "clip": [ckpt, 1],
+            },
+        }
 
         up_loader = self._nid()
-        w[up_loader] = {"class_type": "UpscaleModelLoader", "inputs": {"model_name": upscale_model}}
+        w[up_loader] = {
+            "class_type": "UpscaleModelLoader",
+            "inputs": {"model_name": upscale_model},
+        }
 
         upscale = self._nid()
-        w[upscale] = {"class_type": "ImageUpscaleWithModel", "inputs": {
-            "upscale_model": [up_loader, 0], "image": [load, 0],
-        }}
+        w[upscale] = {
+            "class_type": "ImageUpscaleWithModel",
+            "inputs": {
+                "upscale_model": [up_loader, 0],
+                "image": [load, 0],
+            },
+        }
 
         rescale = self._nid()
-        w[rescale] = {"class_type": "ImageScale", "inputs": {
-            "image": [upscale, 0],
-            "width": int(target_width),
-            "height": int(target_height),
-            "upscale_method": "lanczos",
-            "crop": "disabled",
-        }}
+        w[rescale] = {
+            "class_type": "ImageScale",
+            "inputs": {
+                "image": [upscale, 0],
+                "width": int(target_width),
+                "height": int(target_height),
+                "upscale_method": "lanczos",
+                "crop": "disabled",
+            },
+        }
 
         encode = self._nid()
-        w[encode] = {"class_type": "VAEEncode", "inputs": {
-            "pixels": [rescale, 0], "vae": [ckpt, 2],
-        }}
+        w[encode] = {
+            "class_type": "VAEEncode",
+            "inputs": {
+                "pixels": [rescale, 0],
+                "vae": [ckpt, 2],
+            },
+        }
 
         sample = self._nid()
-        w[sample] = {"class_type": "KSampler", "inputs": {
-            "model": [ckpt, 0],
-            "positive": [clip_pos, 0],
-            "negative": [clip_neg, 0],
-            "latent_image": [encode, 0],
-            "seed": int(seed),
-            "steps": int(steps),
-            "cfg": float(cfg),
-            "sampler_name": sampler,
-            "scheduler": scheduler,
-            "denoise": float(denoise),
-        }}
+        w[sample] = {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": [ckpt, 0],
+                "positive": [clip_pos, 0],
+                "negative": [clip_neg, 0],
+                "latent_image": [encode, 0],
+                "seed": int(seed),
+                "steps": int(steps),
+                "cfg": float(cfg),
+                "sampler_name": sampler,
+                "scheduler": scheduler,
+                "denoise": float(denoise),
+            },
+        }
 
         decode = self._nid()
-        w[decode] = {"class_type": "VAEDecode", "inputs": {
-            "samples": [sample, 0], "vae": [ckpt, 2],
-        }}
+        w[decode] = {
+            "class_type": "VAEDecode",
+            "inputs": {
+                "samples": [sample, 0],
+                "vae": [ckpt, 2],
+            },
+        }
 
         save = self._nid()
-        w[save] = {"class_type": "SaveImage", "inputs": {
-            "filename_prefix": f"anime_pipeline/{pass_name}",
-            "images": [decode, 0],
-        }}
+        w[save] = {
+            "class_type": "SaveImage",
+            "inputs": {
+                "filename_prefix": f"anime_pipeline/{pass_name}",
+                "images": [decode, 0],
+            },
+        }
 
         return w
 
@@ -1193,8 +1382,12 @@ class WorkflowBuilder:
         """
         if len(masks_b64) == 1:
             return self.build_detection_inpaint(
-                pc, source_image_b64, masks_b64[0], seed,
-                clip_skip=clip_skip, region_label=region_label,
+                pc,
+                source_image_b64,
+                masks_b64[0],
+                seed,
+                clip_skip=clip_skip,
+                region_label=region_label,
             )
 
         self._reset()
@@ -1364,10 +1557,7 @@ class WorkflowBuilder:
                 continue
 
             lora_name = (
-                lora.get("name")
-                or lora.get("model")
-                or lora.get("filename")
-                or ""
+                lora.get("name") or lora.get("model") or lora.get("filename") or ""
             )
             if not lora_name:
                 continue
@@ -1410,23 +1600,32 @@ class WorkflowBuilder:
 
             # Load control image
             ctrl_img = self._nid()
-            w[ctrl_img] = {"class_type": "LoadImageFromBase64", "inputs": {"base64_image": ctrl.image_b64}}
+            w[ctrl_img] = {
+                "class_type": "LoadImageFromBase64",
+                "inputs": {"base64_image": ctrl.image_b64},
+            }
 
             # Load ControlNet model
             cn_loader = self._nid()
-            w[cn_loader] = {"class_type": "ControlNetLoader", "inputs": {"control_net_name": ctrl.controlnet_model}}
+            w[cn_loader] = {
+                "class_type": "ControlNetLoader",
+                "inputs": {"control_net_name": ctrl.controlnet_model},
+            }
 
             # Apply
             cn_apply = self._nid()
-            w[cn_apply] = {"class_type": "ControlNetApplyAdvanced", "inputs": {
-                "positive": [current_pos, 0],
-                "negative": [current_neg, 0],
-                "control_net": [cn_loader, 0],
-                "image": [ctrl_img, 0],
-                "strength": ctrl.strength,
-                "start_percent": ctrl.start_percent,
-                "end_percent": ctrl.end_percent,
-            }}
+            w[cn_apply] = {
+                "class_type": "ControlNetApplyAdvanced",
+                "inputs": {
+                    "positive": [current_pos, 0],
+                    "negative": [current_neg, 0],
+                    "control_net": [cn_loader, 0],
+                    "image": [ctrl_img, 0],
+                    "strength": ctrl.strength,
+                    "start_percent": ctrl.start_percent,
+                    "end_percent": ctrl.end_percent,
+                },
+            }
 
             current_pos = cn_apply  # output 0 = positive
             current_neg = cn_apply  # output 1 = negative

@@ -6,6 +6,7 @@ from typing import Tuple, Union
 
 import comfy.model_management
 import comfy.ops
+
 ops = comfy.ops.disable_weight_init
 
 
@@ -19,7 +20,9 @@ class RMSNorm(ops.RMSNorm):
         x = super().forward(x)
         if self.elementwise_affine:
             if self.bias is not None:
-                x = x + comfy.model_management.cast_to(self.bias, dtype=x.dtype, device=x.device)
+                x = x + comfy.model_management.cast_to(
+                    self.bias, dtype=x.dtype, device=x.device
+                )
         return x
 
 
@@ -60,7 +63,9 @@ class ResBlock(nn.Module):
         super().__init__()
 
         self.norm_type = norm_type
-        self.nonlinearity = get_activation(act_fn) if act_fn is not None else nn.Identity()
+        self.nonlinearity = (
+            get_activation(act_fn) if act_fn is not None else nn.Identity()
+        )
         self.conv1 = ops.Conv2d(in_channels, in_channels, 3, 1, 1)
         self.conv2 = ops.Conv2d(in_channels, out_channels, 3, 1, 1, bias=False)
         self.norm = get_normalization(norm_type, out_channels)
@@ -78,6 +83,7 @@ class ResBlock(nn.Module):
             hidden_states = self.norm(hidden_states)
 
         return hidden_states + residual
+
 
 class SanaMultiscaleAttentionProjection(nn.Module):
     def __init__(
@@ -97,12 +103,15 @@ class SanaMultiscaleAttentionProjection(nn.Module):
             groups=channels,
             bias=False,
         )
-        self.proj_out = ops.Conv2d(channels, channels, 1, 1, 0, groups=3 * num_attention_heads, bias=False)
+        self.proj_out = ops.Conv2d(
+            channels, channels, 1, 1, 0, groups=3 * num_attention_heads, bias=False
+        )
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
         hidden_states = self.proj_in(hidden_states)
         hidden_states = self.proj_out(hidden_states)
         return hidden_states
+
 
 class SanaMultiscaleLinearAttention(nn.Module):
     def __init__(
@@ -138,11 +147,15 @@ class SanaMultiscaleLinearAttention(nn.Module):
         self.to_qkv_multiscale = nn.ModuleList()
         for kernel_size in kernel_sizes:
             self.to_qkv_multiscale.append(
-                SanaMultiscaleAttentionProjection(inner_dim, num_attention_heads, kernel_size)
+                SanaMultiscaleAttentionProjection(
+                    inner_dim, num_attention_heads, kernel_size
+                )
             )
 
         self.nonlinearity = nn.ReLU()
-        self.to_out = ops.Linear(inner_dim * (1 + len(kernel_sizes)), out_channels, bias=False)
+        self.to_out = ops.Linear(
+            inner_dim * (1 + len(kernel_sizes)), out_channels, bias=False
+        )
         self.norm_out = get_normalization(norm_type, out_channels)
 
     def apply_linear_attention(self, query, key, value):
@@ -190,7 +203,9 @@ class SanaMultiscaleLinearAttention(nn.Module):
             # for linear attention upcast hidden_states to float32
             hidden_states = hidden_states.to(dtype=torch.float32)
 
-        hidden_states = hidden_states.reshape(batch_size, -1, 3 * self.attention_head_dim, height * width)
+        hidden_states = hidden_states.reshape(
+            batch_size, -1, 3 * self.attention_head_dim, height * width
+        )
 
         query, key, value = hidden_states.chunk(3, dim=2)
         query = self.nonlinearity(query)
@@ -266,12 +281,21 @@ class GLUMBConv(nn.Module):
 
         self.nonlinearity = nn.SiLU()
         self.conv_inverted = ops.Conv2d(in_channels, hidden_channels * 2, 1, 1, 0)
-        self.conv_depth = ops.Conv2d(hidden_channels * 2, hidden_channels * 2, 3, 1, 1, groups=hidden_channels * 2)
+        self.conv_depth = ops.Conv2d(
+            hidden_channels * 2,
+            hidden_channels * 2,
+            3,
+            1,
+            1,
+            groups=hidden_channels * 2,
+        )
         self.conv_point = ops.Conv2d(hidden_channels, out_channels, 1, 1, 0, bias=False)
 
         self.norm = None
         if norm_type == "rms_norm":
-            self.norm = RMSNorm(out_channels, eps=1e-5, elementwise_affine=True, bias=True)
+            self.norm = RMSNorm(
+                out_channels, eps=1e-5, elementwise_affine=True, bias=True
+            )
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
         if self.residual_connection:
@@ -312,7 +336,7 @@ def get_block(
             in_channels,
             attention_head_dim=attention_head_dim,
             norm_type=norm_type,
-            qkv_multiscales=qkv_mutliscales
+            qkv_multiscales=qkv_mutliscales,
         )
     else:
         raise ValueError(f"Block with {block_type=} is not supported.")
@@ -321,7 +345,13 @@ def get_block(
 
 
 class DCDownBlock2d(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, downsample: bool = False, shortcut: bool = True) -> None:
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        downsample: bool = False,
+        shortcut: bool = True,
+    ) -> None:
         super().__init__()
 
         self.downsample = downsample
@@ -384,14 +414,18 @@ class DCUpBlock2d(nn.Module):
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
         if self.interpolate:
-            x = F.interpolate(hidden_states, scale_factor=self.factor, mode=self.interpolation_mode)
+            x = F.interpolate(
+                hidden_states, scale_factor=self.factor, mode=self.interpolation_mode
+            )
             x = self.conv(x)
         else:
             x = self.conv(hidden_states)
             x = F.pixel_shuffle(x, self.factor)
 
         if self.shortcut:
-            y = hidden_states.repeat_interleave(self.repeats, dim=1, output_size=hidden_states.shape[1] * self.repeats)
+            y = hidden_states.repeat_interleave(
+                self.repeats, dim=1, output_size=hidden_states.shape[1] * self.repeats
+            )
             y = F.pixel_shuffle(y, self.factor)
             hidden_states = x + y
         else:
@@ -423,7 +457,9 @@ class Encoder(nn.Module):
         if layers_per_block[0] > 0:
             self.conv_in = ops.Conv2d(
                 in_channels,
-                block_out_channels[0] if layers_per_block[0] > 0 else block_out_channels[1],
+                block_out_channels[0]
+                if layers_per_block[0] > 0
+                else block_out_channels[1],
                 kernel_size=3,
                 stride=1,
                 padding=1,
@@ -431,13 +467,17 @@ class Encoder(nn.Module):
         else:
             self.conv_in = DCDownBlock2d(
                 in_channels=in_channels,
-                out_channels=block_out_channels[0] if layers_per_block[0] > 0 else block_out_channels[1],
+                out_channels=block_out_channels[0]
+                if layers_per_block[0] > 0
+                else block_out_channels[1],
                 downsample=downsample_block_type == "pixel_unshuffle",
                 shortcut=False,
             )
 
         down_blocks = []
-        for i, (out_channel, num_layers) in enumerate(zip(block_out_channels, layers_per_block)):
+        for i, (out_channel, num_layers) in enumerate(
+            zip(block_out_channels, layers_per_block)
+        ):
             down_block_list = []
 
             for _ in range(num_layers):
@@ -469,7 +509,9 @@ class Encoder(nn.Module):
 
         self.out_shortcut = out_shortcut
         if out_shortcut:
-            self.out_shortcut_average_group_size = block_out_channels[-1] // latent_channels
+            self.out_shortcut_average_group_size = (
+                block_out_channels[-1] // latent_channels
+            )
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
         hidden_states = self.conv_in(hidden_states)
@@ -519,7 +561,9 @@ class Decoder(nn.Module):
             self.in_shortcut_repeats = block_out_channels[-1] // latent_channels
 
         up_blocks = []
-        for i, (out_channel, num_layers) in reversed(list(enumerate(zip(block_out_channels, layers_per_block)))):
+        for i, (out_channel, num_layers) in reversed(
+            list(enumerate(zip(block_out_channels, layers_per_block)))
+        ):
             up_block_list = []
 
             if i < num_blocks - 1 and num_layers > 0:
@@ -547,7 +591,9 @@ class Decoder(nn.Module):
 
         self.up_blocks = nn.ModuleList(up_blocks)
 
-        channels = block_out_channels[0] if layers_per_block[0] > 0 else block_out_channels[1]
+        channels = (
+            block_out_channels[0] if layers_per_block[0] > 0 else block_out_channels[1]
+        )
 
         self.norm_out = RMSNorm(channels, 1e-5, elementwise_affine=True, bias=True)
         self.conv_act = nn.ReLU()
@@ -557,13 +603,18 @@ class Decoder(nn.Module):
             self.conv_out = ops.Conv2d(channels, in_channels, 3, 1, 1)
         else:
             self.conv_out = DCUpBlock2d(
-                channels, in_channels, interpolate=upsample_block_type == "interpolate", shortcut=False
+                channels,
+                in_channels,
+                interpolate=upsample_block_type == "interpolate",
+                shortcut=False,
             )
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
         if self.in_shortcut:
             x = hidden_states.repeat_interleave(
-                self.in_shortcut_repeats, dim=1, output_size=hidden_states.shape[1] * self.in_shortcut_repeats
+                self.in_shortcut_repeats,
+                dim=1,
+                output_size=hidden_states.shape[1] * self.in_shortcut_repeats,
             )
             hidden_states = self.conv_in(hidden_states) + x
         else:
@@ -584,8 +635,18 @@ class AutoencoderDC(nn.Module):
         in_channels: int = 2,
         latent_channels: int = 8,
         attention_head_dim: int = 32,
-        encoder_block_types: Union[str, Tuple[str]] = ["ResBlock", "ResBlock", "ResBlock", "EfficientViTBlock"],
-        decoder_block_types: Union[str, Tuple[str]] = ["ResBlock", "ResBlock", "ResBlock", "EfficientViTBlock"],
+        encoder_block_types: Union[str, Tuple[str]] = [
+            "ResBlock",
+            "ResBlock",
+            "ResBlock",
+            "EfficientViTBlock",
+        ],
+        decoder_block_types: Union[str, Tuple[str]] = [
+            "ResBlock",
+            "ResBlock",
+            "ResBlock",
+            "EfficientViTBlock",
+        ],
         encoder_block_out_channels: Tuple[int, ...] = (128, 256, 512, 1024),
         decoder_block_out_channels: Tuple[int, ...] = (128, 256, 512, 1024),
         encoder_layers_per_block: Tuple[int] = (2, 2, 3, 3),
@@ -641,4 +702,3 @@ class AutoencoderDC(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         z = self.encode(x)
         return self.decode(z)
-

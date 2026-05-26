@@ -21,11 +21,12 @@ Usage inside an agent::
     )
     # result.content, result.tokens, result.elapsed_ms
 """
+
 from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Callable
+from typing import Any
 
 from core.agentic.agents.base import LLMCallResult
 
@@ -126,7 +127,8 @@ class LLMAdapter:
             if hasattr(response, "success") and not response.success:
                 logger.warning(
                     "[LLMAdapter] model=%s returned error: %s",
-                    model, getattr(response, "error", "unknown"),
+                    model,
+                    getattr(response, "error", "unknown"),
                 )
                 return LLMCallResult(
                     content="",

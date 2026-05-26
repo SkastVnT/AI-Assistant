@@ -207,7 +207,8 @@ async def run_pre_generation_guardrails(
 
     # ── Step 1: Prompt injection scan ─────────────────────────────────
     safe_chunks, flagged_chunks = scan_chunks_for_injection(
-        evidence_blocks, settings,
+        evidence_blocks,
+        settings,
     )
 
     if flagged_chunks:
@@ -256,7 +257,9 @@ async def run_pre_generation_guardrails(
             events_logged += 1
 
         formatted = format_evidence_with_trust_isolation(
-            trusted, untrusted, evidence_formatter,
+            trusted,
+            untrusted,
+            evidence_formatter,
         )
     else:
         formatted = evidence_formatter(safe_chunks)
@@ -313,8 +316,7 @@ async def run_post_generation_guardrails(
             user_id=user_id,
             details={
                 "findings": [
-                    {"check": f.check_name, "severity": f.severity}
-                    for f in output_val.findings
+                    {"check": f.check_name, "severity": f.severity} for f in output_val.findings
                 ],
             },
         )

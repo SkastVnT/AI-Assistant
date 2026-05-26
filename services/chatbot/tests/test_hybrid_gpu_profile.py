@@ -17,13 +17,14 @@ Run:
     cd services/chatbot
     python -m pytest tests/test_hybrid_gpu_profile.py -v -s --tb=short
 """
+
 from __future__ import annotations
 
+import logging
 import os
 import sys
-import logging
 import unittest
-from unittest.mock import patch, MagicMock, PropertyMock
+from unittest.mock import MagicMock, PropertyMock, patch
 
 # ── GPU PC env (all existing vars, full mode) ────────────────────────
 _GPU_ENV = {
@@ -51,18 +52,22 @@ def _apply_gpu_env():
 def _clear_singletons():
     """Reset module-level singletons so they re-read env vars."""
     from app.services.image_orchestrator import runtime_profile
+
     runtime_profile.reset_runtime_profile()
 
     from app.services.image_orchestrator import orchestrator
+
     orchestrator._scene_planner = None
     orchestrator._prompt_builder = None
     orchestrator._provider_router = None
     orchestrator._service_instance = None
 
     from app.services.image_orchestrator.provider_router import ProviderRouter
+
     ProviderRouter._shared_router = None
 
     from app.services.image_orchestrator import session_memory
+
     session_memory._store = None
 
 
@@ -70,8 +75,8 @@ def _clear_singletons():
 # Test class
 # ─────────────────────────────────────────────────────────────────────
 
-class TestHybridGPUProfile(unittest.TestCase):
 
+class TestHybridGPUProfile(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -89,6 +94,7 @@ class TestHybridGPUProfile(unittest.TestCase):
         from app.services.image_orchestrator.runtime_profile import (
             get_runtime_profile,
         )
+
         profile = get_runtime_profile()
 
         self.assertEqual(profile.mode, "full")
@@ -111,15 +117,16 @@ class TestHybridGPUProfile(unittest.TestCase):
         router = ImageGenerationRouter()
         provider_names = list(router._providers.keys())
 
-        self.assertIn("comfyui", provider_names,
-                       "ComfyUI MUST be registered in full mode")
+        self.assertIn(
+            "comfyui", provider_names, "ComfyUI MUST be registered in full mode"
+        )
 
         # Remote providers also registered
         self.assertIn("fal", provider_names)
         self.assertIn("together", provider_names)
 
         print(f"\n✅ Test 2: Registered providers = {provider_names}")
-        print(f"   ComfyUI present ✓ + remote fallback ✓")
+        print("   ComfyUI present ✓ + remote fallback ✓")
 
     # ── Test 3: HYBRID — local healthy → ComfyUI promoted first ─────
 
@@ -127,15 +134,19 @@ class TestHybridGPUProfile(unittest.TestCase):
         """
         When ComfyUI is healthy, _select_providers(AUTO) should put it FIRST.
         """
-        from core.image_gen.router import ImageGenerationRouter, QualityMode
         from core.image_gen.providers.base import ImageMode
+        from core.image_gen.router import ImageGenerationRouter, QualityMode
 
         router = ImageGenerationRouter()
 
         # Mock ComfyUI health_check to return True (local is healthy)
         comfyui_prov = router._providers["comfyui"].provider
-        with patch.object(type(comfyui_prov), "is_available",
-                          new_callable=PropertyMock, return_value=True):
+        with patch.object(
+            type(comfyui_prov),
+            "is_available",
+            new_callable=PropertyMock,
+            return_value=True,
+        ):
             providers = router._select_providers(
                 QualityMode.AUTO, ImageMode.TEXT_TO_IMAGE
             )
@@ -143,13 +154,17 @@ class TestHybridGPUProfile(unittest.TestCase):
         names = [c.provider.name for c in providers]
         self.assertGreater(len(names), 0, "Should have providers")
         local_comfyui_names = {"comfyui", "comfyui_fast"}
-        self.assertIn(names[0], local_comfyui_names,
-                         f"A local ComfyUI provider should be FIRST when healthy, got: {names}")
+        self.assertIn(
+            names[0],
+            local_comfyui_names,
+            f"A local ComfyUI provider should be FIRST when healthy, got: {names}",
+        )
 
         # Remote providers should be in the fallback chain
         remote_in_chain = [n for n in names if n not in local_comfyui_names]
-        self.assertGreater(len(remote_in_chain), 0,
-                           "Remote providers must still be in fallback chain")
+        self.assertGreater(
+            len(remote_in_chain), 0, "Remote providers must still be in fallback chain"
+        )
 
         print(f"\n✅ Test 3: HYBRID local healthy → provider order = {names}")
         print(f"   Local ComfyUI is FIRST ✓, fallback = {remote_in_chain}")
@@ -161,27 +176,33 @@ class TestHybridGPUProfile(unittest.TestCase):
         When ComfyUI is NOT healthy, _select_providers(AUTO) should only
         contain remote providers.
         """
-        from core.image_gen.router import ImageGenerationRouter, QualityMode
         from core.image_gen.providers.base import ImageMode
+        from core.image_gen.router import ImageGenerationRouter, QualityMode
 
         router = ImageGenerationRouter()
 
         # Mock ComfyUI health_check to return False (local is down)
         comfyui_prov = router._providers["comfyui"].provider
-        with patch.object(type(comfyui_prov), "is_available",
-                          new_callable=PropertyMock, return_value=False):
+        with patch.object(
+            type(comfyui_prov),
+            "is_available",
+            new_callable=PropertyMock,
+            return_value=False,
+        ):
             providers = router._select_providers(
                 QualityMode.AUTO, ImageMode.TEXT_TO_IMAGE
             )
 
         names = [c.provider.name for c in providers]
-        self.assertNotIn("comfyui", names,
-                         f"ComfyUI should NOT appear when unhealthy, got: {names}")
-        self.assertGreater(len(names), 0,
-                           "Remote providers must still be available as fallback")
+        self.assertNotIn(
+            "comfyui", names, f"ComfyUI should NOT appear when unhealthy, got: {names}"
+        )
+        self.assertGreater(
+            len(names), 0, "Remote providers must still be available as fallback"
+        )
 
         print(f"\n✅ Test 4: HYBRID local unhealthy → provider order = {names}")
-        print(f"   ComfyUI absent ✓, remote fallback active ✓")
+        print("   ComfyUI absent ✓, remote fallback active ✓")
 
     # ── Test 5: Full flow — local healthy → generate via comfyui ─────
 
@@ -229,8 +250,9 @@ class TestHybridGPUProfile(unittest.TestCase):
                 quality="auto",
             )
 
-            self.assertTrue(result.is_image,
-                            f"Expected image, got error: {result.error}")
+            self.assertTrue(
+                result.is_image, f"Expected image, got error: {result.error}"
+            )
             self.assertEqual(result.provider, "comfyui")
             self.assertEqual(result.cost_usd, 0.0)
 
@@ -240,7 +262,7 @@ class TestHybridGPUProfile(unittest.TestCase):
             self.assertEqual(mem.last_provider, "comfyui")
             self.assertTrue(mem.has_previous_image)
 
-            print(f"\n✅ Test 5: Full flow → LOCAL chosen")
+            print("\n✅ Test 5: Full flow → LOCAL chosen")
             print(f"   provider={result.provider}, cost=${result.cost_usd}")
             print(f"   images_url={result.images_url}")
             print(f"   session_memory.last_provider={mem.last_provider}")
@@ -291,15 +313,16 @@ class TestHybridGPUProfile(unittest.TestCase):
                 quality="auto",
             )
 
-            self.assertTrue(result.is_image,
-                            f"Expected image, got error: {result.error}")
+            self.assertTrue(
+                result.is_image, f"Expected image, got error: {result.error}"
+            )
             self.assertEqual(result.provider, "fal")
             self.assertGreater(result.cost_usd, 0)
 
             mem = mem_store.get(session_id)
             self.assertEqual(mem.last_provider, "fal")
 
-            print(f"\n✅ Test 6: Full flow → REMOTE fallback")
+            print("\n✅ Test 6: Full flow → REMOTE fallback")
             print(f"   provider={result.provider}, cost=${result.cost_usd}")
             print(f"   images_url={result.images_url}")
             print(f"   session_memory.last_provider={mem.last_provider}")
@@ -311,26 +334,28 @@ class TestHybridGPUProfile(unittest.TestCase):
         When quality=QUALITY, hybrid promotion should NOT apply —
         the user explicitly wants best quality (remote ultra/high tier).
         """
-        from core.image_gen.router import ImageGenerationRouter, QualityMode
         from core.image_gen.providers.base import ImageMode
+        from core.image_gen.router import ImageGenerationRouter, QualityMode
 
         router = ImageGenerationRouter()
 
         comfyui_prov = router._providers["comfyui"].provider
-        with patch.object(type(comfyui_prov), "is_available",
-                          new_callable=PropertyMock, return_value=True):
+        with patch.object(
+            type(comfyui_prov),
+            "is_available",
+            new_callable=PropertyMock,
+            return_value=True,
+        ):
             providers = router._select_providers(
                 QualityMode.QUALITY, ImageMode.TEXT_TO_IMAGE
             )
 
         names = [c.provider.name for c in providers]
         if names and names[0] == "comfyui":
-            self.fail(
-                f"ComfyUI should NOT be first in QUALITY mode, got: {names}"
-            )
+            self.fail(f"ComfyUI should NOT be first in QUALITY mode, got: {names}")
 
         print(f"\n✅ Test 7: quality=QUALITY → order = {names}")
-        print(f"   ComfyUI not promoted ✓ (user wants best quality)")
+        print("   ComfyUI not promoted ✓ (user wants best quality)")
 
     # ── Test 8: Verify prefer_local_when_healthy is False on laptop ──
 
@@ -339,7 +364,8 @@ class TestHybridGPUProfile(unittest.TestCase):
         Confirm that switching to laptop env disables hybrid promotion.
         """
         from app.services.image_orchestrator.runtime_profile import (
-            reset_runtime_profile, get_runtime_profile,
+            get_runtime_profile,
+            reset_runtime_profile,
         )
 
         saved = {k: os.environ.get(k) for k in _GPU_ENV}
@@ -352,12 +378,17 @@ class TestHybridGPUProfile(unittest.TestCase):
         try:
             profile = get_runtime_profile()
             self.assertEqual(profile.mode, "low_resource")
-            self.assertFalse(profile.prefer_local_when_healthy,
-                             "Laptop mode must NOT prefer local")
+            self.assertFalse(
+                profile.prefer_local_when_healthy, "Laptop mode must NOT prefer local"
+            )
             self.assertTrue(profile.skip_comfyui_provider)
 
-            print(f"\n✅ Test 8: Laptop env → prefer_local={profile.prefer_local_when_healthy}")
-            print(f"   mode={profile.mode}, skip_comfyui={profile.skip_comfyui_provider}")
+            print(
+                f"\n✅ Test 8: Laptop env → prefer_local={profile.prefer_local_when_healthy}"
+            )
+            print(
+                f"   mode={profile.mode}, skip_comfyui={profile.skip_comfyui_provider}"
+            )
         finally:
             for k, v in saved.items():
                 if v is None:

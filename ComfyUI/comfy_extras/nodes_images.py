@@ -13,9 +13,12 @@ from server import PromptServer
 from comfy_api.latest import ComfyExtension, IO, UI
 from typing_extensions import override
 
-SVG = IO.SVG.Type  # TODO: temporary solution for backward compatibility, will be removed later.
+SVG = (
+    IO.SVG.Type
+)  # TODO: temporary solution for backward compatibility, will be removed later.
 
 MAX_RESOLUTION = nodes.MAX_RESOLUTION
+
 
 class ImageCrop(IO.ComfyNode):
     @classmethod
@@ -26,8 +29,12 @@ class ImageCrop(IO.ComfyNode):
             category="image/transform",
             inputs=[
                 IO.Image.Input("image"),
-                IO.Int.Input("width", default=512, min=1, max=nodes.MAX_RESOLUTION, step=1),
-                IO.Int.Input("height", default=512, min=1, max=nodes.MAX_RESOLUTION, step=1),
+                IO.Int.Input(
+                    "width", default=512, min=1, max=nodes.MAX_RESOLUTION, step=1
+                ),
+                IO.Int.Input(
+                    "height", default=512, min=1, max=nodes.MAX_RESOLUTION, step=1
+                ),
                 IO.Int.Input("x", default=0, min=0, max=nodes.MAX_RESOLUTION, step=1),
                 IO.Int.Input("y", default=0, min=0, max=nodes.MAX_RESOLUTION, step=1),
             ],
@@ -40,7 +47,7 @@ class ImageCrop(IO.ComfyNode):
         y = min(y, image.shape[1] - 1)
         to_x = width + x
         to_y = height + y
-        img = image[:,y:to_y, x:to_x, :]
+        img = image[:, y:to_y, x:to_x, :]
         return IO.NodeOutput(img)
 
     crop = execute  # TODO: remove
@@ -61,7 +68,7 @@ class RepeatImageBatch(IO.ComfyNode):
 
     @classmethod
     def execute(cls, image, amount) -> IO.NodeOutput:
-        s = image.repeat((amount, 1,1,1))
+        s = image.repeat((amount, 1, 1, 1))
         return IO.NodeOutput(s)
 
     repeat = execute  # TODO: remove
@@ -86,7 +93,7 @@ class ImageFromBatch(IO.ComfyNode):
         s_in = image
         batch_index = min(s_in.shape[0] - 1, batch_index)
         length = min(s_in.shape[0] - batch_index, length)
-        s = s_in[batch_index:batch_index + length].clone()
+        s = s_in[batch_index : batch_index + length].clone()
         return IO.NodeOutput(s)
 
     frombatch = execute  # TODO: remove
@@ -116,7 +123,15 @@ class ImageAddNoise(IO.ComfyNode):
     @classmethod
     def execute(cls, image, seed, strength) -> IO.NodeOutput:
         generator = torch.manual_seed(seed)
-        s = torch.clip((image + strength * torch.randn(image.size(), generator=generator, device="cpu").to(image)), min=0.0, max=1.0)
+        s = torch.clip(
+            (
+                image
+                + strength
+                * torch.randn(image.size(), generator=generator, device="cpu").to(image)
+            ),
+            min=0.0,
+            max=1.0,
+        )
         return IO.NodeOutput(s)
 
     repeat = execute  # TODO: remove
@@ -144,7 +159,9 @@ class SaveAnimatedWEBP(IO.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, images, fps, filename_prefix, lossless, quality, method, num_frames=0) -> IO.NodeOutput:
+    def execute(
+        cls, images, fps, filename_prefix, lossless, quality, method, num_frames=0
+    ) -> IO.NodeOutput:
         return IO.NodeOutput(
             ui=UI.ImageSaveHelper.get_save_animated_webp_ui(
                 images=images,
@@ -153,7 +170,7 @@ class SaveAnimatedWEBP(IO.ComfyNode):
                 fps=fps,
                 lossless=lossless,
                 quality=quality,
-                method=cls.COMPRESS_METHODS.get(method)
+                method=cls.COMPRESS_METHODS.get(method),
             )
         )
 
@@ -161,7 +178,6 @@ class SaveAnimatedWEBP(IO.ComfyNode):
 
 
 class SaveAnimatedPNG(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -178,7 +194,9 @@ class SaveAnimatedPNG(IO.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, images, fps, compress_level, filename_prefix="ComfyUI") -> IO.NodeOutput:
+    def execute(
+        cls, images, fps, compress_level, filename_prefix="ComfyUI"
+    ) -> IO.NodeOutput:
         return IO.NodeOutput(
             ui=UI.ImageSaveHelper.get_save_animated_png_ui(
                 images=images,
@@ -206,10 +224,18 @@ class ImageStitch(IO.ComfyNode):
             category="image/transform",
             inputs=[
                 IO.Image.Input("image1"),
-                IO.Combo.Input("direction", options=["right", "down", "left", "up"], default="right"),
+                IO.Combo.Input(
+                    "direction",
+                    options=["right", "down", "left", "up"],
+                    default="right",
+                ),
                 IO.Boolean.Input("match_image_size", default=True),
                 IO.Int.Input("spacing_width", default=0, min=0, max=1024, step=2),
-                IO.Combo.Input("spacing_color", options=["white", "black", "red", "green", "blue"], default="white"),
+                IO.Combo.Input(
+                    "spacing_color",
+                    options=["white", "black", "red", "green", "blue"],
+                    default="white",
+                ),
                 IO.Image.Input("image2", optional=True),
             ],
             outputs=[IO.Image.Output()],
@@ -280,11 +306,21 @@ class ImageStitch(IO.ComfyNode):
                     if h1 < target_h:
                         pad_h = target_h - h1
                         pad_top, pad_bottom = pad_h // 2, pad_h - pad_h // 2
-                        image1 = torch.nn.functional.pad(image1, (0, 0, 0, 0, pad_top, pad_bottom), mode='constant', value=pad_value)
+                        image1 = torch.nn.functional.pad(
+                            image1,
+                            (0, 0, 0, 0, pad_top, pad_bottom),
+                            mode="constant",
+                            value=pad_value,
+                        )
                     if h2 < target_h:
                         pad_h = target_h - h2
                         pad_top, pad_bottom = pad_h // 2, pad_h - pad_h // 2
-                        image2 = torch.nn.functional.pad(image2, (0, 0, 0, 0, pad_top, pad_bottom), mode='constant', value=pad_value)
+                        image2 = torch.nn.functional.pad(
+                            image2,
+                            (0, 0, 0, 0, pad_top, pad_bottom),
+                            mode="constant",
+                            value=pad_value,
+                        )
             else:  # up, down
                 # For vertical concat, pad widths to match
                 if w1 != w2:
@@ -292,11 +328,21 @@ class ImageStitch(IO.ComfyNode):
                     if w1 < target_w:
                         pad_w = target_w - w1
                         pad_left, pad_right = pad_w // 2, pad_w - pad_w // 2
-                        image1 = torch.nn.functional.pad(image1, (0, 0, pad_left, pad_right), mode='constant', value=pad_value)
+                        image1 = torch.nn.functional.pad(
+                            image1,
+                            (0, 0, pad_left, pad_right),
+                            mode="constant",
+                            value=pad_value,
+                        )
                     if w2 < target_w:
                         pad_w = target_w - w2
                         pad_left, pad_right = pad_w // 2, pad_w - pad_w // 2
-                        image2 = torch.nn.functional.pad(image2, (0, 0, pad_left, pad_right), mode='constant', value=pad_value)
+                        image2 = torch.nn.functional.pad(
+                            image2,
+                            (0, 0, pad_left, pad_right),
+                            mode="constant",
+                            value=pad_value,
+                        )
 
         # Ensure same number of channels
         if image1.shape[-1] != image2.shape[-1]:
@@ -369,7 +415,6 @@ class ImageStitch(IO.ComfyNode):
 
 
 class ResizeAndPadImage(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -377,16 +422,29 @@ class ResizeAndPadImage(IO.ComfyNode):
             category="image/transform",
             inputs=[
                 IO.Image.Input("image"),
-                IO.Int.Input("target_width", default=512, min=1, max=nodes.MAX_RESOLUTION, step=1),
-                IO.Int.Input("target_height", default=512, min=1, max=nodes.MAX_RESOLUTION, step=1),
+                IO.Int.Input(
+                    "target_width", default=512, min=1, max=nodes.MAX_RESOLUTION, step=1
+                ),
+                IO.Int.Input(
+                    "target_height",
+                    default=512,
+                    min=1,
+                    max=nodes.MAX_RESOLUTION,
+                    step=1,
+                ),
                 IO.Combo.Input("padding_color", options=["white", "black"]),
-                IO.Combo.Input("interpolation", options=["area", "bicubic", "nearest-exact", "bilinear", "lanczos"]),
+                IO.Combo.Input(
+                    "interpolation",
+                    options=["area", "bicubic", "nearest-exact", "bilinear", "lanczos"],
+                ),
             ],
             outputs=[IO.Image.Output()],
         )
 
     @classmethod
-    def execute(cls, image, target_width, target_height, padding_color, interpolation) -> IO.NodeOutput:
+    def execute(
+        cls, image, target_width, target_height, padding_color, interpolation
+    ) -> IO.NodeOutput:
         batch_size, orig_height, orig_width, channels = image.shape
 
         scale_w = target_width / orig_width
@@ -398,20 +456,24 @@ class ResizeAndPadImage(IO.ComfyNode):
 
         image_permuted = image.permute(0, 3, 1, 2)
 
-        resized = comfy.utils.common_upscale(image_permuted, new_width, new_height, interpolation, "disabled")
+        resized = comfy.utils.common_upscale(
+            image_permuted, new_width, new_height, interpolation, "disabled"
+        )
 
         pad_value = 0.0 if padding_color == "black" else 1.0
         padded = torch.full(
             (batch_size, channels, target_height, target_width),
             pad_value,
             dtype=image.dtype,
-            device=image.device
+            device=image.device,
         )
 
         y_offset = (target_height - new_height) // 2
         x_offset = (target_width - new_width) // 2
 
-        padded[:, :, y_offset:y_offset + new_height, x_offset:x_offset + new_width] = resized
+        padded[
+            :, :, y_offset : y_offset + new_height, x_offset : x_offset + new_width
+        ] = resized
 
         output = padded.permute(0, 2, 3, 1)
         return IO.NodeOutput(output)
@@ -420,7 +482,6 @@ class ResizeAndPadImage(IO.ComfyNode):
 
 
 class SaveSVGNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -441,7 +502,11 @@ class SaveSVGNode(IO.ComfyNode):
 
     @classmethod
     def execute(cls, svg: IO.SVG.Type, filename_prefix="svg/ComfyUI") -> IO.NodeOutput:
-        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, folder_paths.get_output_directory())
+        full_output_folder, filename, counter, subfolder, filename_prefix = (
+            folder_paths.get_save_image_path(
+                filename_prefix, folder_paths.get_output_directory()
+            )
+        )
         results: list[UI.SavedResult] = []
 
         # Prepare metadata JSON
@@ -454,14 +519,13 @@ class SaveSVGNode(IO.ComfyNode):
         # Convert metadata to JSON string
         metadata_json = json.dumps(metadata_dict, indent=2) if metadata_dict else None
 
-
         for batch_number, svg_bytes in enumerate(svg.data):
             filename_with_batch_num = filename.replace("%batch_num%", str(batch_number))
             file = f"{filename_with_batch_num}_{counter:05}_.svg"
 
             # Read SVG content
             svg_bytes.seek(0)
-            svg_content = svg_bytes.read().decode('utf-8')
+            svg_content = svg_bytes.read().decode("utf-8")
 
             # Inject metadata if available
             if metadata_json:
@@ -472,19 +536,26 @@ class SaveSVGNode(IO.ComfyNode):
                 ]]>
             </metadata>
             """
+
                 # Insert metadata after opening svg tag using regex with a replacement function
                 def replacement(match):
                     # match.group(1) contains the captured <svg> tag
-                    return match.group(1) + '\n' + metadata_element
+                    return match.group(1) + "\n" + metadata_element
 
                 # Apply the substitution
-                svg_content = re.sub(r'(<svg[^>]*>)', replacement, svg_content, flags=re.UNICODE)
+                svg_content = re.sub(
+                    r"(<svg[^>]*>)", replacement, svg_content, flags=re.UNICODE
+                )
 
             # Write the modified SVG to file
-            with open(os.path.join(full_output_folder, file), 'wb') as svg_file:
-                svg_file.write(svg_content.encode('utf-8'))
+            with open(os.path.join(full_output_folder, file), "wb") as svg_file:
+                svg_file.write(svg_content.encode("utf-8"))
 
-            results.append(UI.SavedResult(filename=file, subfolder=subfolder, type=IO.FolderType.output))
+            results.append(
+                UI.SavedResult(
+                    filename=file, subfolder=subfolder, type=IO.FolderType.output
+                )
+            )
             counter += 1
         return IO.NodeOutput(ui={"images": results})
 
@@ -492,7 +563,6 @@ class SaveSVGNode(IO.ComfyNode):
 
 
 class GetImageSize(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -519,7 +589,10 @@ class GetImageSize(IO.ComfyNode):
 
         # Send progress text to display size on the node
         if cls.hidden.unique_id:
-            PromptServer.instance.send_progress_text(f"width: {width}, height: {height}\n batch size: {batch_size}", cls.hidden.unique_id)
+            PromptServer.instance.send_progress_text(
+                f"width: {width}, height: {height}\n batch size: {batch_size}",
+                cls.hidden.unique_id,
+            )
 
         return IO.NodeOutput(width, height, batch_size)
 
@@ -527,7 +600,6 @@ class GetImageSize(IO.ComfyNode):
 
 
 class ImageRotate(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -535,7 +607,10 @@ class ImageRotate(IO.ComfyNode):
             category="image/transform",
             inputs=[
                 IO.Image.Input("image"),
-                IO.Combo.Input("rotation", options=["none", "90 degrees", "180 degrees", "270 degrees"]),
+                IO.Combo.Input(
+                    "rotation",
+                    options=["none", "90 degrees", "180 degrees", "270 degrees"],
+                ),
             ],
             outputs=[IO.Image.Output()],
         )
@@ -557,7 +632,6 @@ class ImageRotate(IO.ComfyNode):
 
 
 class ImageFlip(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -565,7 +639,10 @@ class ImageFlip(IO.ComfyNode):
             category="image/transform",
             inputs=[
                 IO.Image.Input("image"),
-                IO.Combo.Input("flip_method", options=["x-axis: vertically", "y-axis: horizontally"]),
+                IO.Combo.Input(
+                    "flip_method",
+                    options=["x-axis: vertically", "y-axis: horizontally"],
+                ),
             ],
             outputs=[IO.Image.Output()],
         )
@@ -583,7 +660,6 @@ class ImageFlip(IO.ComfyNode):
 
 
 class ImageScaleToMaxDimension(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -593,9 +669,18 @@ class ImageScaleToMaxDimension(IO.ComfyNode):
                 IO.Image.Input("image"),
                 IO.Combo.Input(
                     "upscale_method",
-                    options=["area", "lanczos", "bilinear", "nearest-exact", "bilinear", "bicubic"],
+                    options=[
+                        "area",
+                        "lanczos",
+                        "bilinear",
+                        "nearest-exact",
+                        "bilinear",
+                        "bicubic",
+                    ],
                 ),
-                IO.Int.Input("largest_size", default=512, min=0, max=MAX_RESOLUTION, step=1),
+                IO.Int.Input(
+                    "largest_size", default=512, min=0, max=MAX_RESOLUTION, step=1
+                ),
             ],
             outputs=[IO.Image.Output()],
         )
@@ -616,11 +701,13 @@ class ImageScaleToMaxDimension(IO.ComfyNode):
             width = largest_size
 
         samples = image.movedim(-1, 1)
-        s = comfy.utils.common_upscale(samples, width, height, upscale_method, "disabled")
+        s = comfy.utils.common_upscale(
+            samples, width, height, upscale_method, "disabled"
+        )
         s = s.movedim(1, -1)
         return IO.NodeOutput(s)
 
-    upscale = execute    # TODO: remove
+    upscale = execute  # TODO: remove
 
 
 class ImagesExtension(ComfyExtension):

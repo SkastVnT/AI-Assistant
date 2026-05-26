@@ -14,13 +14,13 @@ Run:
     cd services/chatbot
     python -m pytest tests/test_smoke_laptop.py -v -s --tb=short
 """
+
 from __future__ import annotations
 
 import os
 import sys
 import unittest
-from dataclasses import replace as dc_replace
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 # ── Project path ──────────────────────────────────────────────────────
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -48,22 +48,32 @@ def _apply_laptop_env():
 
 def _clear_singletons():
     from app.services.image_orchestrator import runtime_profile
+
     runtime_profile.reset_runtime_profile()
     from app.services.image_orchestrator import orchestrator
+
     orchestrator._scene_planner = None
     orchestrator._prompt_builder = None
     orchestrator._provider_router = None
     orchestrator._service_instance = None
     from app.services.image_orchestrator.provider_router import ProviderRouter
+
     ProviderRouter._shared_router = None
     from app.services.image_orchestrator import session_memory
+
     session_memory._store = None
 
 
-def _fake_image_result(*, url="https://fal.run/test/img.png",
-                       provider="fal", model="fal-ai/flux/dev",
-                       cost=0.025, seed=42):
+def _fake_image_result(
+    *,
+    url="https://fal.run/test/img.png",
+    provider="fal",
+    model="fal-ai/flux/dev",
+    cost=0.025,
+    seed=42,
+):
     from core.image_gen.providers.base import ImageResult
+
     return ImageResult(
         success=True,
         images_b64=[],
@@ -80,8 +90,8 @@ def _fake_image_result(*, url="https://fal.run/test/img.png",
 # Test class
 # =====================================================================
 
-class TestSmokeLaptop(unittest.TestCase):
 
+class TestSmokeLaptop(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         _apply_laptop_env()
@@ -98,6 +108,7 @@ class TestSmokeLaptop(unittest.TestCase):
         from app.services.image_orchestrator.runtime_profile import (
             get_runtime_profile,
         )
+
         profile = get_runtime_profile()
         self.assertEqual(profile.mode, "low_resource")
         self.assertTrue(profile.is_low_resource)
@@ -108,22 +119,23 @@ class TestSmokeLaptop(unittest.TestCase):
     def test_02_comfyui_not_in_router(self):
         """ImageGenerationRouter should NOT register ComfyUI."""
         from core.image_gen.router import ImageGenerationRouter
+
         router = ImageGenerationRouter()
-        self.assertNotIn("comfyui", router._providers,
-                         "ComfyUI must be excluded in laptop mode")
+        self.assertNotIn(
+            "comfyui", router._providers, "ComfyUI must be excluded in laptop mode"
+        )
         print(f"\n✅ 2: Providers = {list(router._providers.keys())}")
 
     def test_03_no_comfyui_in_selection(self):
         """_select_providers() must never return ComfyUI."""
-        from core.image_gen.router import ImageGenerationRouter, QualityMode
         from core.image_gen.providers.base import ImageMode
+        from core.image_gen.router import ImageGenerationRouter, QualityMode
 
         router = ImageGenerationRouter()
         for q in (QualityMode.AUTO, QualityMode.FAST, QualityMode.QUALITY):
             provs = router._select_providers(q, ImageMode.TEXT_TO_IMAGE)
             names = [c.provider.name for c in provs]
-            self.assertNotIn("comfyui", names,
-                             f"ComfyUI leaked into selection for {q}")
+            self.assertNotIn("comfyui", names, f"ComfyUI leaked into selection for {q}")
         print("\n✅ 3: ComfyUI absent from all quality modes")
 
     # ── 2. Remote provider selected ───────────────────────────────────
@@ -141,6 +153,7 @@ class TestSmokeLaptop(unittest.TestCase):
             from app.services.image_orchestrator.orchestrator import (
                 ImageOrchestrationService,
             )
+
             svc = ImageOrchestrationService(use_llm_enhancer=False)
             result = svc.handle(
                 message="vẽ con mèo tam thể ngồi cạnh cửa sổ mưa buồn",
@@ -167,6 +180,7 @@ class TestSmokeLaptop(unittest.TestCase):
             from app.services.image_orchestrator.orchestrator import (
                 ImageOrchestrationService,
             )
+
             svc = ImageOrchestrationService(use_llm_enhancer=False)
             result = svc.handle(
                 message="tạo ảnh phong cảnh núi rừng mùa thu",
@@ -191,13 +205,16 @@ class TestSmokeLaptop(unittest.TestCase):
             "app.services.image_orchestrator.provider_router.ProviderRouter._get_router"
         ) as mock_get:
             gen_result = _fake_image_result(
-                url="https://fal.run/test/gen.png", seed=100,
+                url="https://fal.run/test/gen.png",
+                seed=100,
             )
             edit1_result = _fake_image_result(
-                url="https://fal.run/test/edit1.png", seed=101,
+                url="https://fal.run/test/edit1.png",
+                seed=101,
             )
             edit2_result = _fake_image_result(
-                url="https://fal.run/test/edit2.png", seed=102,
+                url="https://fal.run/test/edit2.png",
+                seed=102,
             )
 
             mock_router = MagicMock()
@@ -218,7 +235,8 @@ class TestSmokeLaptop(unittest.TestCase):
             # Turn 1: GENERATE
             r1 = svc.handle(
                 message="vẽ cô gái anime tóc hồng dưới ánh trăng",
-                session_id=sid, language="vi",
+                session_id=sid,
+                language="vi",
                 tools=["image-generation"],
             )
             self.assertTrue(r1.is_image)
@@ -230,7 +248,8 @@ class TestSmokeLaptop(unittest.TestCase):
             # Turn 2: EDIT — change hair
             r2 = svc.handle(
                 message="đổi tóc thành trắng",
-                session_id=sid, language="vi",
+                session_id=sid,
+                language="vi",
             )
             self.assertTrue(r2.is_image)
             mem2 = store.get(sid)
@@ -240,7 +259,8 @@ class TestSmokeLaptop(unittest.TestCase):
             # Turn 3: EDIT — add glasses
             r3 = svc.handle(
                 message="thêm kính",
-                session_id=sid, language="vi",
+                session_id=sid,
+                language="vi",
             )
             self.assertTrue(r3.is_image)
             mem3 = store.get(sid)
@@ -269,6 +289,7 @@ class TestSmokeLaptop(unittest.TestCase):
             from app.services.image_orchestrator.orchestrator import (
                 ImageOrchestrationService,
             )
+
             svc = ImageOrchestrationService(use_llm_enhancer=False)
             result = svc.handle(
                 message="thêm kính cho nhân vật",
@@ -279,8 +300,10 @@ class TestSmokeLaptop(unittest.TestCase):
 
         # Should either produce an image or fall back to LLM — never crash
         self.assertTrue(result.is_image or result.fallback_to_llm)
-        print(f"\n✅ 7: Edit w/o prior → is_image={result.is_image}, "
-              f"fallback={result.fallback_to_llm}")
+        print(
+            f"\n✅ 7: Edit w/o prior → is_image={result.is_image}, "
+            f"fallback={result.fallback_to_llm}"
+        )
 
     def test_08_streaming_events_on_laptop(self):
         """handle_stream() should yield SSE events on laptop mode."""
@@ -295,13 +318,16 @@ class TestSmokeLaptop(unittest.TestCase):
             from app.services.image_orchestrator.orchestrator import (
                 ImageOrchestrationService,
             )
+
             svc = ImageOrchestrationService(use_llm_enhancer=False)
-            events = list(svc.handle_stream(
-                message="vẽ con mèo dễ thương",
-                session_id="laptop-stream",
-                language="vi",
-                tools=["image-generation"],
-            ))
+            events = list(
+                svc.handle_stream(
+                    message="vẽ con mèo dễ thương",
+                    session_id="laptop-stream",
+                    language="vi",
+                    tools=["image-generation"],
+                )
+            )
 
         self.assertGreater(len(events), 0, "Should yield at least one SSE event")
         event_types = [e["event"] for e in events]

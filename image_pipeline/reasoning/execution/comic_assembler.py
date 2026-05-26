@@ -43,7 +43,7 @@ __all__ = [
 _GRID_DIMS: Mapping[OutputLayout, Tuple[int, int] | None] = {
     OutputLayout.SINGLE: (1, 1),
     OutputLayout.HORIZONTAL_STRIP: None,  # 1 row, N cols
-    OutputLayout.VERTICAL_STRIP: None,    # N rows, 1 col
+    OutputLayout.VERTICAL_STRIP: None,  # N rows, 1 col
     OutputLayout.GRID_2X2: (2, 2),
     OutputLayout.GRID_2X3: (2, 3),
     OutputLayout.GRID_3X3: (3, 3),

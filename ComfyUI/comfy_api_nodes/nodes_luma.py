@@ -68,7 +68,9 @@ class LumaReferenceNode(IO.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, image: torch.Tensor, weight: float, luma_ref: LumaReferenceChain = None) -> IO.NodeOutput:
+    def execute(
+        cls, image: torch.Tensor, weight: float, luma_ref: LumaReferenceChain = None
+    ) -> IO.NodeOutput:
         if luma_ref is not None:
             luma_ref = luma_ref.clone()
         else:
@@ -108,7 +110,9 @@ class LumaConceptsNode(IO.ComfyNode):
                     optional=True,
                 ),
             ],
-            outputs=[IO.Custom(LumaIO.LUMA_CONCEPTS).Output(display_name="luma_concepts")],
+            outputs=[
+                IO.Custom(LumaIO.LUMA_CONCEPTS).Output(display_name="luma_concepts")
+            ],
         )
 
     @classmethod
@@ -211,12 +215,18 @@ class LumaImageGenerationNode(IO.ComfyNode):
         # handle style_luma_ref
         api_style_ref = None
         if style_image is not None:
-            api_style_ref = await cls._convert_style_image(style_image, weight=style_image_weight)
+            api_style_ref = await cls._convert_style_image(
+                style_image, weight=style_image_weight
+            )
         # handle character_ref images
         character_ref = None
         if character_image is not None:
-            download_urls = await upload_images_to_comfyapi(cls, character_image, max_images=4)
-            character_ref = LumaCharacterRef(identity0=LumaImageIdentity(images=download_urls))
+            download_urls = await upload_images_to_comfyapi(
+                cls, character_image, max_images=4
+            )
+            character_ref = LumaCharacterRef(
+                identity0=LumaImageIdentity(images=download_urls)
+            )
 
         response_api = await sync_op(
             cls,
@@ -237,14 +247,18 @@ class LumaImageGenerationNode(IO.ComfyNode):
             response_model=LumaGeneration,
             status_extractor=lambda x: x.state,
         )
-        return IO.NodeOutput(await download_url_to_image_tensor(response_poll.assets.image))
+        return IO.NodeOutput(
+            await download_url_to_image_tensor(response_poll.assets.image)
+        )
 
     @classmethod
     async def _convert_luma_refs(cls, luma_ref: LumaReferenceChain, max_refs: int):
         luma_urls = []
         ref_count = 0
         for ref in luma_ref.refs:
-            download_urls = await upload_images_to_comfyapi(cls, ref.image, max_images=1)
+            download_urls = await upload_images_to_comfyapi(
+                cls, ref.image, max_images=1
+            )
             luma_urls.append(download_urls[0])
             ref_count += 1
             if ref_count >= max_refs:
@@ -253,7 +267,9 @@ class LumaImageGenerationNode(IO.ComfyNode):
 
     @classmethod
     async def _convert_style_image(cls, style_image: torch.Tensor, weight: float):
-        chain = LumaReferenceChain(first_ref=LumaReference(image=style_image, weight=weight))
+        chain = LumaReferenceChain(
+            first_ref=LumaReference(image=style_image, weight=weight)
+        )
         return await cls._convert_luma_refs(chain, max_refs=1)
 
 
@@ -324,7 +340,8 @@ class LumaImageModifyNode(IO.ComfyNode):
                 prompt=prompt,
                 model=model,
                 modify_image_ref=LumaModifyImageRef(
-                    url=image_url, weight=round(max(min(1.0 - image_weight, 0.98), 0.0), 2)
+                    url=image_url,
+                    weight=round(max(min(1.0 - image_weight, 0.98), 0.0), 2),
                 ),
             ),
         )
@@ -334,7 +351,9 @@ class LumaImageModifyNode(IO.ComfyNode):
             response_model=LumaGeneration,
             status_extractor=lambda x: x.state,
         )
-        return IO.NodeOutput(await download_url_to_image_tensor(response_poll.assets.image))
+        return IO.NodeOutput(
+            await download_url_to_image_tensor(response_poll.assets.image)
+        )
 
 
 class LumaTextToVideoGenerationNode(IO.ComfyNode):
@@ -434,7 +453,9 @@ class LumaTextToVideoGenerationNode(IO.ComfyNode):
             status_extractor=lambda x: x.state,
             estimated_duration=LUMA_T2V_AVERAGE_DURATION,
         )
-        return IO.NodeOutput(await download_url_to_video_output(response_poll.assets.video))
+        return IO.NodeOutput(
+            await download_url_to_video_output(response_poll.assets.video)
+        )
 
 
 class LumaImageToVideoGenerationNode(IO.ComfyNode):
@@ -521,7 +542,9 @@ class LumaImageToVideoGenerationNode(IO.ComfyNode):
         luma_concepts: LumaConceptChain = None,
     ) -> IO.NodeOutput:
         if first_image is None and last_image is None:
-            raise Exception("At least one of first_image and last_image requires an input.")
+            raise Exception(
+                "At least one of first_image and last_image requires an input."
+            )
         keyframes = await cls._convert_to_keyframes(first_image, last_image)
         duration = duration if model != LumaVideoModel.ray_1_6 else None
         resolution = resolution if model != LumaVideoModel.ray_1_6 else None
@@ -542,12 +565,16 @@ class LumaImageToVideoGenerationNode(IO.ComfyNode):
         )
         response_poll = await poll_op(
             cls,
-            poll_endpoint=ApiEndpoint(path=f"/proxy/luma/generations/{response_api.id}"),
+            poll_endpoint=ApiEndpoint(
+                path=f"/proxy/luma/generations/{response_api.id}"
+            ),
             response_model=LumaGeneration,
             status_extractor=lambda x: x.state,
             estimated_duration=LUMA_I2V_AVERAGE_DURATION,
         )
-        return IO.NodeOutput(await download_url_to_video_output(response_poll.assets.video))
+        return IO.NodeOutput(
+            await download_url_to_video_output(response_poll.assets.video)
+        )
 
     @classmethod
     async def _convert_to_keyframes(
@@ -560,10 +587,14 @@ class LumaImageToVideoGenerationNode(IO.ComfyNode):
         frame0 = None
         frame1 = None
         if first_image is not None:
-            download_urls = await upload_images_to_comfyapi(cls, first_image, max_images=1)
+            download_urls = await upload_images_to_comfyapi(
+                cls, first_image, max_images=1
+            )
             frame0 = LumaImageReference(type="image", url=download_urls[0])
         if last_image is not None:
-            download_urls = await upload_images_to_comfyapi(cls, last_image, max_images=1)
+            download_urls = await upload_images_to_comfyapi(
+                cls, last_image, max_images=1
+            )
             frame1 = LumaImageReference(type="image", url=download_urls[0])
         return LumaKeyframes(frame0=frame0, frame1=frame1)
 

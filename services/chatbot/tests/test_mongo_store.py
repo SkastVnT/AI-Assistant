@@ -9,6 +9,7 @@ Covers:
 5. Route integration — preflight branch saves a job; generation route
    continues even when the Mongo save raises.
 """
+
 from __future__ import annotations
 
 import sys
@@ -31,6 +32,7 @@ if str(_CHATBOT_DIR) not in sys.path:
 @pytest.fixture(autouse=True)
 def _reset_mongo_store():
     from core import mongo_store
+
     mongo_store._reset_for_tests()
     yield
     mongo_store._reset_for_tests()
@@ -47,6 +49,7 @@ def disabled_mongo(monkeypatch):
 def fake_db(monkeypatch):
     """Inject a MagicMock DB and mark mongo_store as initialized+enabled."""
     from core import mongo_store
+
     db = MagicMock(name="fake_db")
     # Each collection is itself a MagicMock with the methods we use.
     monkeypatch.setattr(mongo_store._state, "initialized", True)
@@ -61,34 +64,40 @@ def fake_db(monkeypatch):
 class TestDisabled:
     def test_is_mongo_enabled_false_without_env(self, disabled_mongo):
         from core import mongo_store
+
         assert mongo_store.is_mongo_enabled() is False
 
     def test_save_generation_job_noop(self, disabled_mongo):
         from core import mongo_store
+
         out = mongo_store.save_generation_job({"job_id": "j1"})
         assert out["ok"] is False
         assert out["disabled"] is True
 
     def test_update_generation_job_noop(self, disabled_mongo):
         from core import mongo_store
+
         out = mongo_store.update_generation_job("j1", {"status": "completed"})
         assert out["ok"] is False
         assert out["disabled"] is True
 
     def test_save_image_asset_noop(self, disabled_mongo):
         from core import mongo_store
+
         out = mongo_store.save_image_asset({"image_id": "i1"})
         assert out["ok"] is False
         assert out["disabled"] is True
 
     def test_upsert_character_profile_noop(self, disabled_mongo):
         from core import mongo_store
+
         out = mongo_store.upsert_character_profile({"canonical_id": "c1"})
         assert out["ok"] is False
         assert out["disabled"] is True
 
     def test_get_character_profile_returns_none(self, disabled_mongo):
         from core import mongo_store
+
         assert mongo_store.get_character_profile("c1") is None
 
 
@@ -98,12 +107,15 @@ class TestDisabled:
 class TestMockedClient:
     def test_save_generation_job_inserts_expected_document(self, fake_db):
         from core import mongo_store
-        out = mongo_store.save_generation_job({
-            "job_id": "j1",
-            "raw_prompt": "Furina dancing",
-            "character_result": {"canonical_id": "furina@genshin_impact"},
-            "preflight": {"risk_level": "low"},
-        })
+
+        out = mongo_store.save_generation_job(
+            {
+                "job_id": "j1",
+                "raw_prompt": "Furina dancing",
+                "character_result": {"canonical_id": "furina@genshin_impact"},
+                "preflight": {"risk_level": "low"},
+            }
+        )
         assert out["ok"] is True
         assert out["job_id"] == "j1"
         # update_one called with upsert=True on generation_jobs
@@ -121,6 +133,7 @@ class TestMockedClient:
 
     def test_update_generation_job_patches_status(self, fake_db):
         from core import mongo_store
+
         # Pretend the update matched.
         fake_db["generation_jobs"].update_one.return_value = MagicMock(
             matched_count=1, modified_count=1
@@ -134,14 +147,17 @@ class TestMockedClient:
 
     def test_save_image_asset_strips_binary_keys(self, fake_db):
         from core import mongo_store
-        out = mongo_store.save_image_asset({
-            "image_id": "img1",
-            "job_id": "j1",
-            "local_path": "storage/outputs/img1.png",
-            "sha256": "abc",
-            "image_b64": "AAAA",  # forbidden
-            "data": b"\x89PNG",     # forbidden
-        })
+
+        out = mongo_store.save_image_asset(
+            {
+                "image_id": "img1",
+                "job_id": "j1",
+                "local_path": "storage/outputs/img1.png",
+                "sha256": "abc",
+                "image_b64": "AAAA",  # forbidden
+                "data": b"\x89PNG",  # forbidden
+            }
+        )
         assert out["ok"] is True
         call = fake_db["image_assets"].update_one.call_args
         doc = call.args[1]["$setOnInsert"]
@@ -154,13 +170,16 @@ class TestMockedClient:
 
     def test_upsert_character_profile_stores_canonical_id(self, fake_db):
         from core import mongo_store
-        out = mongo_store.upsert_character_profile({
-            "canonical_id": "furina@genshin_impact",
-            "display_name": "Furina",
-            "series_slug": "genshin_impact",
-            "data_status": "known",
-            "safe_to_attach_lora": True,
-        })
+
+        out = mongo_store.upsert_character_profile(
+            {
+                "canonical_id": "furina@genshin_impact",
+                "display_name": "Furina",
+                "series_slug": "genshin_impact",
+                "data_status": "known",
+                "safe_to_attach_lora": True,
+            }
+        )
         assert out["ok"] is True
         call = fake_db["character_profiles"].update_one.call_args
         assert call.args[0] == {"canonical_id": "furina@genshin_impact"}
@@ -171,17 +190,21 @@ class TestMockedClient:
 
     def test_upsert_character_profile_clamps_unsafe_when_unknown(self, fake_db):
         from core import mongo_store
-        out = mongo_store.upsert_character_profile({
-            "canonical_id": "unknown:aria@custom",
-            "data_status": "unknown",
-            "safe_to_attach_lora": True,  # caller asks True — must be clamped
-        })
+
+        out = mongo_store.upsert_character_profile(
+            {
+                "canonical_id": "unknown:aria@custom",
+                "data_status": "unknown",
+                "safe_to_attach_lora": True,  # caller asks True — must be clamped
+            }
+        )
         assert out["ok"] is True
         doc = fake_db["character_profiles"].update_one.call_args.args[1]["$set"]
         assert doc["safe_to_attach_lora"] is False
 
     def test_save_generation_job_missing_job_id_rejected(self, fake_db):
         from core import mongo_store
+
         out = mongo_store.save_generation_job({"raw_prompt": "x"})
         assert out["ok"] is False
         assert "job_id" in out["error"]
@@ -199,6 +222,7 @@ class _ExplodingComfyClient:
 def _make_app():
     from flask import Flask
     from routes.reasoning_image_gen import reasoning_image_gen_bp
+
     app = Flask(__name__)
     app.register_blueprint(reasoning_image_gen_bp)
     return app
@@ -207,6 +231,7 @@ def _make_app():
 class TestRouteIntegration:
     def test_high_risk_preflight_saves_blocked_job(self, monkeypatch):
         from routes import reasoning_image_gen as route_mod
+
         monkeypatch.setattr(
             route_mod, "_default_comfy_client", lambda: _ExplodingComfyClient()
         )
@@ -218,7 +243,8 @@ class TestRouteIntegration:
 
         monkeypatch.setattr(route_mod.mongo_store, "save_generation_job", _fake_save)
         monkeypatch.setattr(
-            route_mod.mongo_store, "upsert_character_profile",
+            route_mod.mongo_store,
+            "upsert_character_profile",
             lambda *_a, **_k: {"ok": True},
         )
 
@@ -246,6 +272,7 @@ class TestRouteIntegration:
         """If mongo_store.save_generation_job raises, the request must still
         return a normal preflight-only response (fail-safe)."""
         from routes import reasoning_image_gen as route_mod
+
         monkeypatch.setattr(
             route_mod, "_default_comfy_client", lambda: _ExplodingComfyClient()
         )
@@ -268,5 +295,3 @@ class TestRouteIntegration:
         body = res.get_json()
         assert body["preflight"] is True
         assert "risk_level" in body
-
-

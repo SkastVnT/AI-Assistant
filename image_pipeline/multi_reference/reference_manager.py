@@ -32,19 +32,21 @@ logger = logging.getLogger(__name__)
 
 _CACHE_DIR = Path("storage/references")
 _DOWNLOAD_TIMEOUT = 30.0
-_MAX_IMAGE_SIZE = 20 * 1024 * 1024   # 20 MB — BFL limit
+_MAX_IMAGE_SIZE = 20 * 1024 * 1024  # 20 MB — BFL limit
 
 
 # ── Data types ───────────────────────────────────────────────────────
 
+
 @dataclass
 class ResolvedRef:
     """A reference image ready for FLUX.2: has base64 data + metadata."""
-    index:      int                       # 1-based index for FLUX.2 prompt
-    role:       ReferenceRole
-    label:      str           = ""        # "face from ref_0"
-    image_b64:  str           = ""        # Raw base64 (no data URI prefix)
-    weight:     float         = 1.0
+
+    index: int  # 1-based index for FLUX.2 prompt
+    role: ReferenceRole
+    label: str = ""  # "face from ref_0"
+    image_b64: str = ""  # Raw base64 (no data URI prefix)
+    weight: float = 1.0
     cached_path: Optional[str] = None
 
     @property
@@ -64,10 +66,11 @@ class ResolvedRef:
 @dataclass
 class RefPlan:
     """Ordered set of resolved references + prompt fragment."""
-    refs:            list[ResolvedRef] = field(default_factory=list)
-    prompt_fragment: str               = ""      # "image 1 = face, image 2 = outfit, ..."
-    total_bytes:     int               = 0
-    resolve_ms:      float             = 0.0
+
+    refs: list[ResolvedRef] = field(default_factory=list)
+    prompt_fragment: str = ""  # "image 1 = face, image 2 = outfit, ..."
+    total_bytes: int = 0
+    resolve_ms: float = 0.0
 
     @property
     def count(self) -> int:
@@ -90,6 +93,7 @@ class RefPlan:
 
 
 # ── Manager ──────────────────────────────────────────────────────────
+
 
 class ReferenceManager:
     """
@@ -130,34 +134,39 @@ class ReferenceManager:
 
         # Source image gets index 1 if present
         if source_image_b64:
-            plan.refs.append(ResolvedRef(
-                index=idx,
-                role=ReferenceRole.FULL,
-                label="source image",
-                image_b64=source_image_b64,
-                weight=1.0,
-            ))
+            plan.refs.append(
+                ResolvedRef(
+                    index=idx,
+                    role=ReferenceRole.FULL,
+                    label="source image",
+                    image_b64=source_image_b64,
+                    weight=1.0,
+                )
+            )
             plan.total_bytes += len(source_image_b64) * 3 // 4
             idx += 1
 
         # Resolve each reference
-        for ref in references[:max_refs - (idx - 1)]:
+        for ref in references[: max_refs - (idx - 1)]:
             b64 = self._resolve_single(ref)
             if not b64:
                 logger.warning(
                     "[RefManager] Could not resolve ref role=%s label=%s",
-                    ref.role.value, ref.label,
+                    ref.role.value,
+                    ref.label,
                 )
                 continue
 
-            plan.refs.append(ResolvedRef(
-                index=idx,
-                role=ref.role,
-                label=ref.label or ref.role.value,
-                image_b64=b64,
-                weight=ref.weight,
-                cached_path=ref.cached_path,
-            ))
+            plan.refs.append(
+                ResolvedRef(
+                    index=idx,
+                    role=ref.role,
+                    label=ref.label or ref.role.value,
+                    image_b64=b64,
+                    weight=ref.weight,
+                    cached_path=ref.cached_path,
+                )
+            )
             plan.total_bytes += len(b64) * 3 // 4
             idx += 1
 
@@ -204,7 +213,9 @@ class ReferenceManager:
         try:
             data = Path(path).read_bytes()
             if len(data) > _MAX_IMAGE_SIZE:
-                logger.warning("[RefManager] Cached file too large: %s (%d bytes)", path, len(data))
+                logger.warning(
+                    "[RefManager] Cached file too large: %s (%d bytes)", path, len(data)
+                )
                 return None
             return base64.b64encode(data).decode("ascii")
         except Exception as e:
@@ -222,7 +233,9 @@ class ReferenceManager:
 
             data = resp.content
             if len(data) > _MAX_IMAGE_SIZE:
-                logger.warning("[RefManager] Downloaded image too large: %d bytes", len(data))
+                logger.warning(
+                    "[RefManager] Downloaded image too large: %d bytes", len(data)
+                )
                 return None
 
             # Cache with content hash
@@ -231,7 +244,12 @@ class ReferenceManager:
             cache_path = self._cache_dir / f"{h}{ext}"
             cache_path.write_bytes(data)
 
-            logger.info("[RefManager] Cached %s → %s (%d bytes)", url[:60], cache_path, len(data))
+            logger.info(
+                "[RefManager] Cached %s → %s (%d bytes)",
+                url[:60],
+                cache_path,
+                len(data),
+            )
             return base64.b64encode(data).decode("ascii")
 
         except Exception as e:
@@ -257,17 +275,17 @@ class ReferenceManager:
             return base_instruction
 
         # Only add reference mapping if not already in the instruction
-        if "image 1" in base_instruction.lower() or "image 2" in base_instruction.lower():
+        if (
+            "image 1" in base_instruction.lower()
+            or "image 2" in base_instruction.lower()
+        ):
             return base_instruction
 
         ref_map = []
         for r in plan.refs:
             ref_map.append(f"image {r.index}: {r.prompt_ref}")
 
-        return (
-            f"{base_instruction}\n\n"
-            f"Reference images: {'; '.join(ref_map)}"
-        )
+        return f"{base_instruction}\n\nReference images: {'; '.join(ref_map)}"
 
     def close(self) -> None:
         """Release HTTP client."""
@@ -278,12 +296,13 @@ class ReferenceManager:
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
+
 def _guess_extension(content_type: str) -> str:
     """Map content-type to file extension."""
     ct = content_type.lower().split(";")[0].strip()
     return {
-        "image/png":  ".png",
+        "image/png": ".png",
         "image/jpeg": ".jpg",
         "image/webp": ".webp",
-        "image/gif":  ".gif",
+        "image/gif": ".gif",
     }.get(ct, ".png")

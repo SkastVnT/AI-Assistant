@@ -22,7 +22,6 @@ GET /api/nano-banana/status
 
 from __future__ import annotations
 
-import base64
 import logging
 import time as _time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -32,10 +31,13 @@ from flask import Blueprint, jsonify, request, session
 
 from core import config as _config
 from core.image_gen import ImageStorage
+from core.image_gen.providers.base import ImageMode, ImageRequest
 from core.image_gen.providers.nano_banana_provider import (
-    NanoBananaProvider, MAX_REFERENCE_IMAGES, VALID_ASPECT_RATIOS, VALID_IMAGE_SIZES,
+    MAX_REFERENCE_IMAGES,
+    VALID_ASPECT_RATIOS,
+    VALID_IMAGE_SIZES,
+    NanoBananaProvider,
 )
-from core.image_gen.providers.base import ImageRequest, ImageMode
 from core.private_logger import log_image_generation
 
 logger = logging.getLogger(__name__)
@@ -52,7 +54,9 @@ def _get_provider() -> NanoBananaProvider:
     if _provider is None:
         _provider = NanoBananaProvider(
             api_keys=getattr(_config, "GEMINI_API_KEYS", []) or [],
-            default_model=getattr(_config, "NANO_BANANA_MODEL", "gemini-2.5-flash-image"),
+            default_model=getattr(
+                _config, "NANO_BANANA_MODEL", "gemini-2.5-flash-image"
+            ),
         )
     return _provider
 
@@ -65,8 +69,8 @@ def _get_storage() -> ImageStorage:
 
 
 # ── Validation & rate limiting ──────────────────────────────────────
-_MAX_PROMPT = 8000          # nano-banana handles long structured prompts well
-_MAX_REF_BYTES = 10 * 1024 * 1024   # 10 MB per reference (base64 decoded)
+_MAX_PROMPT = 8000  # nano-banana handles long structured prompts well
+_MAX_REF_BYTES = 10 * 1024 * 1024  # 10 MB per reference (base64 decoded)
 _RATE_WINDOW = 60
 _RATE_MAX = 8
 _req_log: dict = {}
@@ -111,18 +115,19 @@ def _validate(data: dict) -> str | None:
     model = (data.get("model") or "").strip()
     if model:
         allowed_aliases = set(getattr(_config, "NANO_BANANA_ALLOWED_MODELS", {}).keys())
-        allowed_ids     = set(getattr(_config, "NANO_BANANA_ALLOWED_MODELS", {}).values())
+        allowed_ids = set(getattr(_config, "NANO_BANANA_ALLOWED_MODELS", {}).values())
         if model not in allowed_aliases and model not in allowed_ids:
             return (
-                "model must be one of "
-                f"{sorted(allowed_aliases) or sorted(allowed_ids)}"
+                f"model must be one of {sorted(allowed_aliases) or sorted(allowed_ids)}"
             )
 
     refs = data.get("reference_images_b64") or []
     if not isinstance(refs, list):
         return "reference_images_b64 must be a list"
-    max_refs = min(MAX_REFERENCE_IMAGES,
-                   getattr(_config, "NANO_BANANA_MAX_REFERENCE_IMAGES", MAX_REFERENCE_IMAGES))
+    max_refs = min(
+        MAX_REFERENCE_IMAGES,
+        getattr(_config, "NANO_BANANA_MAX_REFERENCE_IMAGES", MAX_REFERENCE_IMAGES),
+    )
     if len(refs) > max_refs:
         return f"too many reference images (max {max_refs})"
     for i, b64 in enumerate(refs):
@@ -152,6 +157,7 @@ def _guarded(f):
         if err:
             return jsonify({"success": False, "error": err}), 400
         return f(data, *args, **kwargs)
+
     return wrapper
 
 
@@ -161,26 +167,36 @@ def status():
     enabled = bool(getattr(_config, "NANO_BANANA_ENABLED", True))
     has_key = bool(getattr(_config, "GEMINI_API_KEYS", []))
     cap = getattr(_config, "NANO_BANANA_MAX_IMAGES_PER_REQUEST", 4)
-    max_refs = min(MAX_REFERENCE_IMAGES,
-                   getattr(_config, "NANO_BANANA_MAX_REFERENCE_IMAGES", MAX_REFERENCE_IMAGES))
+    max_refs = min(
+        MAX_REFERENCE_IMAGES,
+        getattr(_config, "NANO_BANANA_MAX_REFERENCE_IMAGES", MAX_REFERENCE_IMAGES),
+    )
     allowed = getattr(_config, "NANO_BANANA_ALLOWED_MODELS", {})
-    labels  = getattr(_config, "NANO_BANANA_MODEL_LABELS", {})
-    default_alias = getattr(_config, "NANO_BANANA_DEFAULT_ALIAS", next(iter(allowed), ""))
-    return jsonify({
-        "enabled": enabled,
-        "available": enabled and has_key,
-        "model": allowed.get(default_alias, getattr(_config, "NANO_BANANA_MODEL", "")),
-        "default_model_alias": default_alias,
-        "models": [
-            {"alias": alias, "id": model_id, "label": labels.get(alias, alias)}
-            for alias, model_id in allowed.items()
-        ],
-        "default_image_size": getattr(_config, "NANO_BANANA_DEFAULT_IMAGE_SIZE", "2K"),
-        "max_num_images": cap,
-        "max_reference_images": max_refs,
-        "aspect_ratios": sorted(VALID_ASPECT_RATIOS),
-        "image_sizes": sorted(VALID_IMAGE_SIZES),
-    })
+    labels = getattr(_config, "NANO_BANANA_MODEL_LABELS", {})
+    default_alias = getattr(
+        _config, "NANO_BANANA_DEFAULT_ALIAS", next(iter(allowed), "")
+    )
+    return jsonify(
+        {
+            "enabled": enabled,
+            "available": enabled and has_key,
+            "model": allowed.get(
+                default_alias, getattr(_config, "NANO_BANANA_MODEL", "")
+            ),
+            "default_model_alias": default_alias,
+            "models": [
+                {"alias": alias, "id": model_id, "label": labels.get(alias, alias)}
+                for alias, model_id in allowed.items()
+            ],
+            "default_image_size": getattr(
+                _config, "NANO_BANANA_DEFAULT_IMAGE_SIZE", "2K"
+            ),
+            "max_num_images": cap,
+            "max_reference_images": max_refs,
+            "aspect_ratios": sorted(VALID_ASPECT_RATIOS),
+            "image_sizes": sorted(VALID_IMAGE_SIZES),
+        }
+    )
 
 
 @nano_banana_bp.route("/api/nano-banana/generate", methods=["POST"])
@@ -191,31 +207,41 @@ def generate(data: dict):
 
     provider = _get_provider()
     if not provider.is_available:
-        return jsonify({
-            "success": False,
-            "error": "GEMINI_API_KEY not configured. Set GEMINI_API_KEY_1..4 in env.",
-        }), 503
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": "GEMINI_API_KEY not configured. Set GEMINI_API_KEY_1..4 in env.",
+                }
+            ),
+            503,
+        )
 
     # ── Quota check (best-effort, mirrors /api/image-gen/generate) ──
     username = session.get("username", "")
     quota_db = None
     if username:
         try:
-            from core.user_auth import check_image_quota
             from core.extensions import get_db as _get_quota_db
+            from core.user_auth import check_image_quota
+
             quota_db = _get_quota_db()
             ok, reason = check_image_quota(quota_db, username)
             if not ok:
-                return jsonify({"success": False, "error": reason, "quota_exceeded": True}), 403
+                return (
+                    jsonify(
+                        {"success": False, "error": reason, "quota_exceeded": True}
+                    ),
+                    403,
+                )
         except Exception as e:
             logger.warning("[nano_banana] quota check failed: %s", e)
 
     prompt: str = data["prompt"].strip()
     num_images: int = int(data.get("num_images", 1))
     aspect_ratio: str = data.get("aspect_ratio") or "1:1"
-    image_size: str = (
-        data.get("image_size")
-        or getattr(_config, "NANO_BANANA_DEFAULT_IMAGE_SIZE", "2K")
+    image_size: str = data.get("image_size") or getattr(
+        _config, "NANO_BANANA_DEFAULT_IMAGE_SIZE", "2K"
     )
     refs: list[str] = list(data.get("reference_images_b64") or [])
     ref_mimes: list[str] = list(data.get("reference_mime_types") or [])
@@ -227,7 +253,9 @@ def generate(data: dict):
     elif model_override and model_override not in allowed.values():
         # Defensive: validation already rejected this; clear to default.
         model_override = ""
-    conversation_id: str = data.get("conversation_id", session.get("conversation_id", ""))
+    conversation_id: str = data.get(
+        "conversation_id", session.get("conversation_id", "")
+    )
 
     # Build a prototype request (we'll reuse it for each parallel call).
     extra = {
@@ -246,7 +274,8 @@ def generate(data: dict):
         req = ImageRequest(
             prompt=prompt,
             mode=ImageMode.IMAGE_TO_IMAGE if refs else ImageMode.TEXT_TO_IMAGE,
-            width=w, height=h,
+            width=w,
+            height=h,
             num_images=1,
             extra=dict(extra),  # shallow copy per call
         )
@@ -296,7 +325,7 @@ def generate(data: dict):
         used_model = res.model or used_model
         total_cost += res.cost_usd or 0.0
         attempt_count = max(attempt_count, (res.metadata or {}).get("attempt", 1))
-        for img_b64 in (res.images_b64 or []):
+        for img_b64 in res.images_b64 or []:
             saved = storage.save(
                 image_b64=img_b64,
                 prompt=prompt,
@@ -319,6 +348,7 @@ def generate(data: dict):
     if username and quota_db is not None and saved_images:
         try:
             from core.user_auth import increment_image_quota
+
             increment_image_quota(quota_db, username, len(saved_images))
         except Exception:
             pass
@@ -326,8 +356,11 @@ def generate(data: dict):
     for s in saved_images:
         try:
             log_image_generation(
-                prompt=prompt, provider=used_provider, model=used_model,
-                image_url=s.get("url", ""), image_path=s.get("local_path", ""),
+                prompt=prompt,
+                provider=used_provider,
+                model=used_model,
+                image_url=s.get("url", ""),
+                image_path=s.get("local_path", ""),
                 session_id=conversation_id,
                 mode="i2i" if refs else "txt2img",
                 extra={
@@ -341,38 +374,45 @@ def generate(data: dict):
 
     latency_ms = (_time.time() - t0) * 1000.0
     if not saved_images:
-        return jsonify({
-            "success": False,
-            "error": "; ".join(errors[:3]) or "no images generated",
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": "; ".join(errors[:3]) or "no images generated",
+                    "provider": used_provider,
+                    "model": used_model,
+                    "attempt_count": attempt_count,
+                    "errors": errors,
+                }
+            ),
+            500,
+        )
+
+    return jsonify(
+        {
+            "success": True,
+            "images": [
+                {
+                    "url": s.get("url", ""),
+                    "image_id": s.get("image_id", ""),
+                    "local_path": s.get("local_path", ""),
+                }
+                for s in saved_images
+            ],
             "provider": used_provider,
             "model": used_model,
+            "prompt_used": prompt,
+            "aspect_ratio": aspect_ratio,
+            "image_size": image_size,
+            "ref_count": len(refs),
+            "requested_num_images": num_images,
+            "delivered_num_images": len(saved_images),
             "attempt_count": attempt_count,
+            "latency_ms": round(latency_ms, 1),
+            "cost_usd": round(total_cost, 4),
             "errors": errors,
-        }), 500
-
-    return jsonify({
-        "success": True,
-        "images": [
-            {
-                "url": s.get("url", ""),
-                "image_id": s.get("image_id", ""),
-                "local_path": s.get("local_path", ""),
-            }
-            for s in saved_images
-        ],
-        "provider": used_provider,
-        "model": used_model,
-        "prompt_used": prompt,
-        "aspect_ratio": aspect_ratio,
-        "image_size": image_size,
-        "ref_count": len(refs),
-        "requested_num_images": num_images,
-        "delivered_num_images": len(saved_images),
-        "attempt_count": attempt_count,
-        "latency_ms": round(latency_ms, 1),
-        "cost_usd": round(total_cost, 4),
-        "errors": errors,
-    })
+        }
+    )
 
 
 # ── Helpers ─────────────────────────────────────────────────────────
@@ -380,41 +420,46 @@ def _ar_to_dims(ar: str, image_size: str) -> tuple[int, int]:
     """Map aspect-ratio + image_size to nominal WxH for downstream metadata."""
     base = {"1K": 1024, "2K": 2048, "4K": 3840}.get(image_size, 2048)
     table = {
-        "1:1":  (base, base),
+        "1:1": (base, base),
         "16:9": (base, int(base * 9 / 16)),
         "9:16": (int(base * 9 / 16), base),
-        "4:3":  (base, int(base * 3 / 4)),
-        "3:4":  (int(base * 3 / 4), base),
-        "3:2":  (base, int(base * 2 / 3)),
-        "2:3":  (int(base * 2 / 3), base),
-        "4:5":  (int(base * 4 / 5), base),
-        "5:4":  (base, int(base * 4 / 5)),
+        "4:3": (base, int(base * 3 / 4)),
+        "3:4": (int(base * 3 / 4), base),
+        "3:2": (base, int(base * 2 / 3)),
+        "2:3": (int(base * 2 / 3), base),
+        "4:5": (int(base * 4 / 5), base),
+        "5:4": (base, int(base * 4 / 5)),
         "21:9": (base, int(base * 9 / 21)),
     }
     return table.get(ar, (base, base))
 
 
-def _save_to_gallery(saved: dict, prompt: str, provider: str, model: str,
-                     conversation_id: str) -> None:
+def _save_to_gallery(
+    saved: dict, prompt: str, provider: str, model: str, conversation_id: str
+) -> None:
     """Persist metadata to MongoDB so it appears in the main image gallery."""
     if saved.get("error"):
         return
     try:
-        from core.image_storage import save_to_mongodb
-        from datetime import datetime
         import os
-        save_to_mongodb({
-            "url": saved.get("url", ""),
-            "local_path": saved.get("url", ""),
-            "filename": os.path.basename(saved.get("local_path", "")),
-            "prompt": prompt,
-            "provider": provider,
-            "model": model,
-            "source": "nano_banana",
-            "conversation_id": conversation_id,
-            "session_id": conversation_id,
-            "created_at": datetime.utcnow(),
-            "image_id": saved.get("image_id", ""),
-        })
+        from datetime import datetime
+
+        from core.image_storage import save_to_mongodb
+
+        save_to_mongodb(
+            {
+                "url": saved.get("url", ""),
+                "local_path": saved.get("url", ""),
+                "filename": os.path.basename(saved.get("local_path", "")),
+                "prompt": prompt,
+                "provider": provider,
+                "model": model,
+                "source": "nano_banana",
+                "conversation_id": conversation_id,
+                "session_id": conversation_id,
+                "created_at": datetime.utcnow(),
+                "image_id": saved.get("image_id", ""),
+            }
+        )
     except Exception as e:
         logger.warning("[nano_banana] gallery sync failed (non-fatal): %s", e)

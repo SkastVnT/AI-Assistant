@@ -30,13 +30,16 @@ def frontend_install_warning_message():
 This error is happening because the ComfyUI frontend is no longer shipped as part of the main repo but as a pip package instead.
 """.strip()
 
+
 def parse_version(version: str) -> tuple[int, int, int]:
-        return tuple(map(int, version.split(".")))
+    return tuple(map(int, version.split(".")))
+
 
 def is_valid_version(version: str) -> bool:
     """Validate if a string is a valid semantic version (X.Y.Z format)."""
     pattern = r"^(\d+)\.(\d+)\.(\d+)$"
     return bool(re.match(pattern, version))
+
 
 def get_installed_frontend_version():
     """Get the currently installed frontend package version."""
@@ -53,13 +56,17 @@ def get_required_frontend_version():
                 if line.startswith("comfyui-frontend-package=="):
                     version_str = line.split("==")[-1]
                     if not is_valid_version(version_str):
-                        logging.error(f"Invalid version format in requirements.txt: {version_str}")
+                        logging.error(
+                            f"Invalid version format in requirements.txt: {version_str}"
+                        )
                         return None
                     return version_str
             logging.error("comfyui-frontend-package not found in requirements.txt")
             return None
     except FileNotFoundError:
-        logging.error("requirements.txt not found. Cannot determine required frontend version.")
+        logging.error(
+            "requirements.txt not found. Cannot determine required frontend version."
+        )
         return None
     except Exception as e:
         logging.error(f"Error reading requirements.txt: {e}")
@@ -225,13 +232,19 @@ class FrontendManager:
                     if line.startswith("comfyui-workflow-templates=="):
                         version_str = line.split("==")[-1]
                         if not is_valid_version(version_str):
-                            logging.error(f"Invalid templates version format in requirements.txt: {version_str}")
+                            logging.error(
+                                f"Invalid templates version format in requirements.txt: {version_str}"
+                            )
                             return None
                         return version_str
-                logging.error("comfyui-workflow-templates not found in requirements.txt")
+                logging.error(
+                    "comfyui-workflow-templates not found in requirements.txt"
+                )
                 return None
         except FileNotFoundError:
-            logging.error("requirements.txt not found. Cannot determine required templates version.")
+            logging.error(
+                "requirements.txt not found. Cannot determine required templates version."
+            )
             return None
         except Exception as e:
             logging.error(f"Error reading requirements.txt: {e}")
@@ -297,11 +310,12 @@ comfyui-workflow-templates is not installed.
             return None
 
         if not asset_map:
-            logging.error("No workflow template assets found. Did the packages install correctly?")
+            logging.error(
+                "No workflow template assets found. Did the packages install correctly?"
+            )
             return None
 
         return asset_map
-
 
     @classmethod
     def legacy_templates_path(cls) -> Optional[str]:
@@ -332,9 +346,7 @@ comfyui-workflow-templates is not installed.
         try:
             import comfyui_embedded_docs
 
-            return str(
-                importlib.resources.files(comfyui_embedded_docs) / "docs"
-            )
+            return str(importlib.resources.files(comfyui_embedded_docs) / "docs")
         except ImportError:
             logging.info("comfyui-embedded-docs package not found")
             return None
@@ -441,6 +453,7 @@ comfyui-workflow-templates is not installed.
             logging.info("Falling back to the default frontend.")
             check_frontend_version()
             return cls.default_frontend_path()
+
     @classmethod
     def template_asset_handler(cls):
         assets = cls.template_asset_map()

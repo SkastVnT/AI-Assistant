@@ -41,9 +41,11 @@ def is_oom_error(error_text: str) -> bool:
 
 # ── Retry strategy ────────────────────────────────────────────────
 
+
 @dataclass
 class RetryContext:
     """Tracks OOM retry state for a single pipeline pass."""
+
     original_width: int = 0
     original_height: int = 0
     current_width: int = 0
@@ -98,19 +100,24 @@ def step_down_resolution(ctx: RetryContext) -> tuple[int, int]:
     new_w = (new_w // 8) * 8
     new_h = (new_h // 8) * 8
 
-    ctx.retries_log.append({
-        "attempt": ctx.attempts,
-        "action": "resolution_step_down",
-        "from": f"{ctx.current_width}x{ctx.current_height}",
-        "to": f"{new_w}x{new_h}",
-        "cause": ctx.last_error[:200] if ctx.last_error else "oom",
-    })
+    ctx.retries_log.append(
+        {
+            "attempt": ctx.attempts,
+            "action": "resolution_step_down",
+            "from": f"{ctx.current_width}x{ctx.current_height}",
+            "to": f"{new_w}x{new_h}",
+            "cause": ctx.last_error[:200] if ctx.last_error else "oom",
+        }
+    )
 
     logger.warning(
         "[VRAMManager] OOM retry %d/%d: resolution %dx%d → %dx%d",
-        ctx.attempts, ctx.max_retries,
-        ctx.current_width, ctx.current_height,
-        new_w, new_h,
+        ctx.attempts,
+        ctx.max_retries,
+        ctx.current_width,
+        ctx.current_height,
+        new_w,
+        new_h,
     )
 
     ctx.current_width = new_w
@@ -126,13 +133,15 @@ def escalate_to_lowvram(ctx: RetryContext) -> VRAMProfileConfig:
     from .config import resolve_vram_profile
 
     ctx.profile_escalated = True
-    ctx.retries_log.append({
-        "attempt": ctx.attempts,
-        "action": "profile_escalation",
-        "from": "normalvram",
-        "to": "lowvram",
-        "cause": "oom_retries_exhausted",
-    })
+    ctx.retries_log.append(
+        {
+            "attempt": ctx.attempts,
+            "action": "profile_escalation",
+            "from": "normalvram",
+            "to": "lowvram",
+            "cause": "oom_retries_exhausted",
+        }
+    )
 
     logger.warning(
         "[VRAMManager] Escalating to lowvram profile after %d failed attempts",
@@ -144,6 +153,7 @@ def escalate_to_lowvram(ctx: RetryContext) -> VRAMProfileConfig:
 
 # ── Workflow patching ─────────────────────────────────────────────
 
+
 def strip_preview_nodes(workflow: dict) -> dict:
     """Remove PreviewImage nodes from a workflow dict.
 
@@ -154,16 +164,14 @@ def strip_preview_nodes(workflow: dict) -> dict:
     any dangling references cleaned up.
     """
     preview_ids = {
-        nid for nid, node in workflow.items()
+        nid
+        for nid, node in workflow.items()
         if isinstance(node, dict) and node.get("class_type") == "PreviewImage"
     }
     if not preview_ids:
         return workflow
 
-    cleaned = {
-        nid: node for nid, node in workflow.items()
-        if nid not in preview_ids
-    }
+    cleaned = {nid: node for nid, node in workflow.items() if nid not in preview_ids}
 
     logger.debug(
         "[VRAMManager] Stripped %d PreviewImage node(s) from workflow",
@@ -186,6 +194,7 @@ def inject_model_unload_node(workflow: dict) -> dict:
 
 
 # ── Model unloading via ComfyUI API ──────────────────────────────
+
 
 def free_models_between_passes(
     base_url: str,
@@ -213,7 +222,8 @@ def free_models_between_passes(
                 logger.info("[VRAMManager] Models unloaded via /free")
                 return True
             logger.warning(
-                "[VRAMManager] /free returned HTTP %d", resp.status_code,
+                "[VRAMManager] /free returned HTTP %d",
+                resp.status_code,
             )
     except Exception as e:
         logger.warning("[VRAMManager] Failed to call /free: %s", e)
@@ -221,6 +231,7 @@ def free_models_between_passes(
 
 
 # ── Logging helpers ───────────────────────────────────────────────
+
 
 def log_pass_memory_mode(
     pass_name: str,
@@ -235,7 +246,9 @@ def log_pass_memory_mode(
         "cpu_vae=%s unload=%s tile=%d",
         pass_name,
         vram.profile.value,
-        width, height, megapixels,
+        width,
+        height,
+        megapixels,
         vram.cpu_vae_offload,
         vram.unload_models_between_passes,
         vram.upscale_tile_size,
@@ -251,8 +264,10 @@ def log_retry_cause(
         "[VRAMManager] pass=%s OOM retry cause: attempts=%d/%d "
         "resolution=%dx%d escalated=%s error=%s",
         pass_name,
-        ctx.attempts, ctx.max_retries,
-        ctx.current_width, ctx.current_height,
+        ctx.attempts,
+        ctx.max_retries,
+        ctx.current_width,
+        ctx.current_height,
         ctx.profile_escalated,
         ctx.last_error[:100] if ctx.last_error else "none",
     )
@@ -265,17 +280,18 @@ def log_final_fallback(
 ) -> None:
     """Log the final fallback state after all retries."""
     logger.info(
-        "[VRAMManager] pass=%s FINAL: profile=%s res=%dx%d "
-        "attempts=%d escalated=%s",
+        "[VRAMManager] pass=%s FINAL: profile=%s res=%dx%d attempts=%d escalated=%s",
         pass_name,
         vram.profile.value,
-        ctx.current_width, ctx.current_height,
+        ctx.current_width,
+        ctx.current_height,
         ctx.attempts,
         ctx.profile_escalated,
     )
 
 
 # ── OOM-aware workflow submission ─────────────────────────────────
+
 
 def submit_with_oom_retry(
     client: Any,

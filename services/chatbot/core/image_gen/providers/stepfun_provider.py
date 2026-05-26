@@ -1,4 +1,4 @@
-﻿"""
+"""
 StepFun (é˜¶è·ƒæ˜Ÿè¾°) provider â€” Chinese SOTA image generation & editing.
 Step1X-Edit: Best-in-class instruction-based image editing.
 Step1X-Fill: High quality inpainting.
@@ -9,13 +9,17 @@ API: https://platform.stepfun.com
 
 from __future__ import annotations
 
-import time
 import logging
+import time
+
 import httpx
 
 from .base import (
-    BaseImageProvider, ImageRequest, ImageResult,
-    ImageMode, ProviderTier,
+    BaseImageProvider,
+    ImageMode,
+    ImageRequest,
+    ImageResult,
+    ProviderTier,
 )
 
 logger = logging.getLogger(__name__)
@@ -23,19 +27,19 @@ logger = logging.getLogger(__name__)
 # StepFun model mappings
 STEPFUN_MODELS = {
     # Text-to-image
-    "step1x-turbo":   "step-1x-turbo",
-    "step1x-medium":  "step-1x-medium",
+    "step1x-turbo": "step-1x-turbo",
+    "step1x-medium": "step-1x-medium",
     # Image editing (instruction-based, like "add a hat")
-    "step1x-edit":    "step-1x-edit",
+    "step1x-edit": "step-1x-edit",
     # Inpainting
-    "step1x-fill":    "step-1x-fill",
+    "step1x-fill": "step-1x-fill",
 }
 
 STEPFUN_COST = {
-    "step1x-turbo":   0.005,
-    "step1x-medium":  0.015,
-    "step1x-edit":    0.020,
-    "step1x-fill":    0.020,
+    "step1x-turbo": 0.005,
+    "step1x-medium": 0.015,
+    "step1x-edit": 0.020,
+    "step1x-fill": 0.020,
 }
 
 
@@ -44,8 +48,8 @@ class StepFunProvider(BaseImageProvider):
 
     name = "stepfun"
     tier = ProviderTier.HIGH
-    supports_i2i = True       # Step1X-Edit excels here
-    supports_inpaint = True   # Step1X-Fill
+    supports_i2i = True  # Step1X-Edit excels here
+    supports_inpaint = True  # Step1X-Fill
     cost_per_image = 0.010
 
     def __init__(self, api_key: str = "", **kwargs):
@@ -146,9 +150,7 @@ class StepFunProvider(BaseImageProvider):
 
         return self._parse_response(data, model_key, t0)
 
-    def _inpaint(
-        self, req: ImageRequest, model_key: str, t0: float
-    ) -> ImageResult:
+    def _inpaint(self, req: ImageRequest, model_key: str, t0: float) -> ImageResult:
         """Inpainting using Step1X-Fill."""
         model_key = "step1x-fill"
         model_id = STEPFUN_MODELS["step1x-fill"]
@@ -168,9 +170,7 @@ class StepFunProvider(BaseImageProvider):
 
         return self._parse_response(data, model_key, t0)
 
-    def _parse_response(
-        self, data: dict, model_key: str, t0: float
-    ) -> ImageResult:
+    def _parse_response(self, data: dict, model_key: str, t0: float) -> ImageResult:
         """Parse StepFun API response."""
         images_b64 = []
         images_url = []

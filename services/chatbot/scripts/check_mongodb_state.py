@@ -19,11 +19,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from config.mongodb_config import get_db, test_connection, DATABASE_NAME
+from config.mongodb_config import DATABASE_NAME, get_db, test_connection
 
 CANONICAL = [
-    "conversations", "messages", "learning_data",
-    "rag_documents", "rag_chunks", "rag_ingestion_jobs",
+    "conversations",
+    "messages",
+    "learning_data",
+    "rag_documents",
+    "rag_chunks",
+    "rag_ingestion_jobs",
 ]
 
 
@@ -97,7 +101,8 @@ def check_schema(db):
         if docs:
             bad_id = [d for d in docs if not isinstance(d["_id"], str)]
             bad_cid = [
-                d for d in docs
+                d
+                for d in docs
                 if "conversation_id" in d and not isinstance(d["conversation_id"], str)
             ]
             ok_id = len(docs) - len(bad_id)
@@ -105,9 +110,7 @@ def check_schema(db):
             print(f"  messages._id: {ok_id}/{len(docs)} are string")
             print(f"  messages.conversation_id: {ok_cid}/{len(docs)} are string")
             if bad_id:
-                errors.append(
-                    f"messages._id: {len(bad_id)}/{len(docs)} are NOT string"
-                )
+                errors.append(f"messages._id: {len(bad_id)}/{len(docs)} are NOT string")
             if bad_cid:
                 errors.append(
                     f"messages.conversation_id: {len(bad_cid)}/{len(docs)} are NOT string"

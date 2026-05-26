@@ -1,4 +1,4 @@
-#original code from https://github.com/genmoai/models under apache 2.0 license
+# original code from https://github.com/genmoai/models under apache 2.0 license
 
 # Based on Llama3 Implementation.
 import torch

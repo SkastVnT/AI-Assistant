@@ -133,7 +133,7 @@ description: "Reason about chatbot thinking modes and route requests to the corr
 | Action | Files to touch |
 |---|---|
 | Add a new mode | `routes/stream.py`, `templates/index.html` (dropdown option), `static/js/modules/api-service.js` (if new default logic), `static/js/main.js` (if new rendering), `README.md` (thinking modes table) |
-| Rename a mode | Same as "add" plus grep all references in `AGENTS.md`, `.github/copilot-instructions.md`, `.github/instructions/chatbot-core.instructions.md` |
+| Rename a mode | Same as "add" plus grep all references in `.claude/skills/repo-guidelines/AGENTS.md`, `.github/copilot-instructions.md`, `.github/instructions/chatbot-core.instructions.md` |
 | Change mode behavior | `routes/stream.py` (branching), `core/thinking_generator.py` (if step generation changes), `core/chatbot.py` (if `deep_thinking` semantics change) |
 | Change agentic pipeline | `core/agentic/orchestrator.py`, `core/agentic/agents/*.py`, `core/agentic/contracts.py` |
 | Fix broken thinking display | Check `static/js/main.js` callbacks, `routes/stream.py` event emission, `core/thinking_generator.py` ThinkTagParser |
@@ -199,4 +199,4 @@ After using this skill, report:
 - [ ] `_build_complete_event_payload` includes the correct `thinking_mode`.
 - [ ] UI callbacks in `main.js` handle any new data fields.
 - [ ] `pytest tests/test_stream_complete_contract.py tests/test_agentic_agents.py -v` passes.
-- [ ] Docs updated if a mode was added, renamed, or removed (`README.md`, `AGENTS.md`, `.github/copilot-instructions.md`).
+- [ ] Docs updated if a mode was added, renamed, or removed (`README.md`, `.claude/skills/repo-guidelines/AGENTS.md`, `.github/copilot-instructions.md`).

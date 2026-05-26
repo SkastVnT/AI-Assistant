@@ -18,18 +18,28 @@ only suggests "fast" so a route can pick its own cheaper preset (e.g.
 single panel, fewer correction passes). No new image backend is
 introduced.
 """
+
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 CostLevel = str  # "low" | "medium" | "high"
 RecommendedMode = str  # "normal" | "fast" | "ask_confirmation"
 
-_HIGH_LAYOUTS = frozenset({
-    "grid_2x2", "grid_2x3", "grid_3x2", "grid_3x3",
-    "horizontal_strip", "vertical_strip",
-    "comic", "storyboard", "multi_panel",
-})
+_HIGH_LAYOUTS = frozenset(
+    {
+        "grid_2x2",
+        "grid_2x3",
+        "grid_3x2",
+        "grid_3x3",
+        "horizontal_strip",
+        "vertical_strip",
+        "comic",
+        "storyboard",
+        "multi_panel",
+    }
+)
 _LARGE_PIXEL_THRESHOLD = 1024 * 1024 * 2  # ≥ ~2 MP → "high resolution"
 _MANY_REFERENCES = 3  # ≥ 3 attachments → high
 
@@ -145,16 +155,13 @@ def estimate_image_request_cost(
 
     if budget_mode == "fast":
         recommended: RecommendedMode = "fast"
-    elif level == "high" and max_cost in {"low", "medium"}:
-        recommended = "ask_confirmation"
-    elif level == "high":
+    elif level == "high" and max_cost in {"low", "medium"} or level == "high":
         recommended = "ask_confirmation"
     else:
         recommended = "normal"
 
-    should_require_confirmation = (
-        max_cost in {"low", "medium"}
-        and _level_exceeds(level, max_cost)
+    should_require_confirmation = max_cost in {"low", "medium"} and _level_exceeds(
+        level, max_cost
     )
 
     return {

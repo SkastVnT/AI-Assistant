@@ -86,6 +86,7 @@ def validate_output(
     """
     if settings is None:
         from libs.core.settings import get_settings
+
         settings = get_settings().guardrails
 
     if not settings.validate_output:
@@ -103,33 +104,38 @@ def validate_output(
 
     # ── 1. Length check ───────────────────────────────────────────────
     if len(answer_text) > settings.max_output_length:
-        findings.append(OutputFinding(
-            check_name="excessive_length",
-            description=(
-                f"Output length {len(answer_text)} exceeds "
-                f"max {settings.max_output_length}"
-            ),
-            severity="medium",
-        ))
-        cleaned = cleaned[:settings.max_output_length]
+        findings.append(
+            OutputFinding(
+                check_name="excessive_length",
+                description=(
+                    f"Output length {len(answer_text)} exceeds max {settings.max_output_length}"
+                ),
+                severity="medium",
+            )
+        )
+        cleaned = cleaned[: settings.max_output_length]
 
     # ── 2. Empty / whitespace-only ────────────────────────────────────
     if not answer_text.strip():
-        findings.append(OutputFinding(
-            check_name="empty_output",
-            description="LLM returned empty or whitespace-only response",
-            severity="medium",
-        ))
+        findings.append(
+            OutputFinding(
+                check_name="empty_output",
+                description="LLM returned empty or whitespace-only response",
+                severity="medium",
+            )
+        )
 
     # ── 3. System prompt leakage ──────────────────────────────────────
     if settings.block_output_injection:
         for pattern in _SYSTEM_LEAK_PATTERNS:
             if pattern.search(cleaned):
-                findings.append(OutputFinding(
-                    check_name="system_prompt_leakage",
-                    description="Output may contain leaked system prompt content",
-                    severity="high",
-                ))
+                findings.append(
+                    OutputFinding(
+                        check_name="system_prompt_leakage",
+                        description="Output may contain leaked system prompt content",
+                        severity="high",
+                    )
+                )
                 should_block = True
                 max_severity = "high"
                 break
@@ -139,14 +145,16 @@ def validate_output(
         cited_indices = {int(m.group(1)) for m in _CITATION_REF.finditer(cleaned)}
         invalid_citations = {i for i in cited_indices if i < 1 or i > evidence_count}
         if invalid_citations:
-            findings.append(OutputFinding(
-                check_name="hallucinated_citations",
-                description=(
-                    f"Output references non-existent sources: "
-                    f"{sorted(invalid_citations)} (evidence has {evidence_count} chunks)"
-                ),
-                severity="medium",
-            ))
+            findings.append(
+                OutputFinding(
+                    check_name="hallucinated_citations",
+                    description=(
+                        f"Output references non-existent sources: "
+                        f"{sorted(invalid_citations)} (evidence has {evidence_count} chunks)"
+                    ),
+                    severity="medium",
+                )
+            )
 
     # ── 5. Injection echo (LLM repeating injected instructions) ──────
     if settings.block_output_injection:
@@ -158,11 +166,13 @@ def validate_output(
         ]
         for marker in injection_markers:
             if re.search(marker, cleaned, re.IGNORECASE):
-                findings.append(OutputFinding(
-                    check_name="injection_echo",
-                    description="Output echoes prompt injection markers",
-                    severity="critical",
-                ))
+                findings.append(
+                    OutputFinding(
+                        check_name="injection_echo",
+                        description="Output echoes prompt injection markers",
+                        severity="critical",
+                    )
+                )
                 should_block = True
                 max_severity = "critical"
                 break
@@ -182,8 +192,7 @@ def validate_output(
     blocked_reason = None
     if should_block:
         blocked_reason = "; ".join(
-            f.description for f in findings
-            if f.severity in ("high", "critical")
+            f.description for f in findings if f.severity in ("high", "critical")
         )
         logger.warning(
             "output_blocked: %s (findings=%d, severity=%s)",

@@ -7,6 +7,7 @@ without touching the orchestrator or router layer.
 The built-in :class:`RetrievalService` (pgvector cosine similarity)
 already satisfies this protocol out of the box.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol, runtime_checkable

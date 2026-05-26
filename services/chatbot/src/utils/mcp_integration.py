@@ -1,4 +1,4 @@
-﻿"""
+"""
 MCP Integration for ChatBot Service
 ====================================
 TÃ­ch há»£p Model Context Protocol vÃ o ChatBot Ä‘á»ƒ:
@@ -8,15 +8,15 @@ TÃ­ch há»£p Model Context Protocol vÃ o ChatBot Ä‘á»ƒ:
 - Enhanced AI responses with file context
 """
 
-import logging
-import re
-import os
-import json
 import importlib.util
-import urllib.request
+import json
+import logging
+import os
+import re
 import urllib.error
+import urllib.request
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +35,7 @@ MCP_SAFE_ROOT = Path(os.environ.get("MCP_SAFE_ROOT", Path.cwd())).resolve()
 
 try:
     from src.ocr_integration import ocr_client
+
     OCR_AVAILABLE = True
 except ImportError:
     ocr_client = None
@@ -46,7 +47,7 @@ def sanitize_for_log(text: str) -> str:
     if not text:
         return ""
     # Remove control characters, newlines, and limit length
-    sanitized = re.sub(r'[\r\n\t\x00-\x1f\x7f-\x9f]', '', str(text))
+    sanitized = re.sub(r"[\r\n\t\x00-\x1f\x7f-\x9f]", "", str(text))
     return sanitized[:200]  # Limit to 200 chars
 
 
@@ -59,7 +60,7 @@ def _is_subpath(path: Path, base: Path) -> bool:
         return False
 
 
-def validate_and_resolve_path(path_str: str, must_exist: bool = True) -> Optional[Path]:
+def validate_and_resolve_path(path_str: str, must_exist: bool = True) -> Path | None:
     """
     Safely validate and resolve a path.
 
@@ -74,12 +75,12 @@ def validate_and_resolve_path(path_str: str, must_exist: bool = True) -> Optiona
         return None
 
     # Check for path traversal patterns BEFORE creating Path object
-    if '..' in path_str or path_str.startswith('~'):
+    if ".." in path_str or path_str.startswith("~"):
         logger.warning("Path traversal or home expansion detected")
         return None
 
     # Check for suspicious characters
-    if any(char in path_str for char in ['\0', '\n', '\r']):
+    if any(char in path_str for char in ["\0", "\n", "\r"]):
         logger.warning("Suspicious characters in path")
         return None
 
@@ -107,7 +108,9 @@ def validate_and_resolve_path(path_str: str, must_exist: bool = True) -> Optiona
             # Fallback for older Python versions
             safe_root_str = str(MCP_SAFE_ROOT)
             real_str = str(real_path)
-            if not (real_str == safe_root_str or real_str.startswith(safe_root_str + os.sep)):
+            if not (
+                real_str == safe_root_str or real_str.startswith(safe_root_str + os.sep)
+            ):
                 logger.warning("Path outside of MCP safe root rejected")
                 return None
 
@@ -123,21 +126,21 @@ class MCPClient:
     """
     MCP Client for ChatBot to communicate with MCP Server
     """
-    
+
     def __init__(self, mcp_server_url: str = "http://localhost:37778"):
         """
         Initialize MCP Client
-        
+
         Args:
             mcp_server_url: URL cá»§a MCP Server
         """
         self.mcp_server_url = mcp_server_url
         self.enabled = False
-        self.selected_folders: List[str] = []
+        self.selected_folders: list[str] = []
         self.session_id = None
         self.ocr_available = OCR_AVAILABLE
 
-    DOMAIN_QUERY_MAP: Dict[str, List[str]] = {
+    DOMAIN_QUERY_MAP: dict[str, list[str]] = {
         "bugfix": ["error", "exception", "traceback", "bugfix", "fix"],
         "performance": ["performance", "optimize", "latency", "slow", "throughput"],
         "security": ["security", "auth", "permission", "injection", "xss", "csrf"],
@@ -146,9 +149,9 @@ class MCPClient:
         "frontend": ["frontend", "ui", "css", "javascript", "react", "html"],
         "devops": ["docker", "deploy", "ci", "pipeline", "kubernetes", "infra"],
         "mcp": ["mcp", "memory", "context", "tool", "server"],
-        "general": ["chatbot", "assistant", "feature", "refactor", "project"]
+        "general": ["chatbot", "assistant", "feature", "refactor", "project"],
     }
-        
+
     def enable(self):
         """Báº­t MCP integration"""
         # ChatBot MCP works standalone - no server connection needed
@@ -156,20 +159,20 @@ class MCPClient:
         self.enabled = True
         logger.info("âœ… MCP Client enabled (Standalone mode)")
         return True
-    
+
     def disable(self):
         """Táº¯t MCP integration"""
         self.enabled = False
         self.selected_folders = []
         logger.info("ðŸ”´ MCP Client disabled")
-    
+
     def add_folder(self, folder_path: str) -> bool:
         """
         ThÃªm folder vÃ o danh sÃ¡ch accessible folders
-        
+
         Args:
             folder_path: ÄÆ°á»ng dáº«n folder
-            
+
         Returns:
             True if success
         """
@@ -178,156 +181,176 @@ class MCPClient:
         if path is None:
             logger.error("Invalid or suspicious folder path provided")
             return False
-            
+
         if not path.is_dir():
             logger.error("Path is not a directory")
             return False
-        
+
         folder_abs = str(path)
         if folder_abs not in self.selected_folders:
             self.selected_folders.append(folder_abs)
             # Don't log user-provided paths
             logger.info("ðŸ“ Folder added successfully")
-        
+
         return True
-    
+
     def remove_folder(self, folder_path: str):
         """Remove folder khá»i danh sÃ¡ch"""
         if folder_path in self.selected_folders:
             self.selected_folders.remove(folder_path)
             logger.info("ðŸ—‘ï¸ Folder removed successfully")
-    
-    def list_files_in_folder(self, folder_path: str = None) -> List[Dict[str, Any]]:
+
+    def list_files_in_folder(self, folder_path: str = None) -> list[dict[str, Any]]:
         """
         List files trong folder
-        
+
         Args:
             folder_path: ÄÆ°á»ng dáº«n folder (None = list all selected folders)
-            
+
         Returns:
             List of file info
         """
         if not self.enabled:
             return []
-        
+
         folders_to_scan = [folder_path] if folder_path else self.selected_folders
         all_files = []
-        
+
         for folder in folders_to_scan:
             # Validate path before using
             validated_path = validate_and_resolve_path(folder, must_exist=True)
             if validated_path is None:
                 logger.warning("Skipping invalid folder in scan")
                 continue
-            
+
             try:
                 for file_path in validated_path.rglob("*"):
                     if file_path.is_file():
                         # Skip certain files
-                        if any(skip in str(file_path) for skip in [
-                            '.venv', '__pycache__', 'node_modules', '.git', 
-                            '.pyc', '.pyo', '.so', '.dll'
-                        ]):
+                        if any(
+                            skip in str(file_path)
+                            for skip in [
+                                ".venv",
+                                "__pycache__",
+                                "node_modules",
+                                ".git",
+                                ".pyc",
+                                ".pyo",
+                                ".so",
+                                ".dll",
+                            ]
+                        ):
                             continue
-                        
-                        all_files.append({
-                            'path': str(file_path),
-                            'relative_path': str(file_path.relative_to(validated_path)),
-                            'name': file_path.name,
-                            'extension': file_path.suffix,
-                            'size': file_path.stat().st_size,
-                            'modified': file_path.stat().st_mtime
-                        })
+
+                        all_files.append(
+                            {
+                                "path": str(file_path),
+                                "relative_path": str(
+                                    file_path.relative_to(validated_path)
+                                ),
+                                "name": file_path.name,
+                                "extension": file_path.suffix,
+                                "size": file_path.stat().st_size,
+                                "modified": file_path.stat().st_mtime,
+                            }
+                        )
             except Exception:
                 logger.error("Error scanning folder")
-        
+
         return all_files
-    
-    def search_files(self, query: str, file_type: str = "all") -> List[Dict[str, Any]]:
+
+    def search_files(self, query: str, file_type: str = "all") -> list[dict[str, Any]]:
         """
         Search files trong selected folders (by filename)
-        
+
         Args:
             query: Tá»« khÃ³a tÃ¬m kiáº¿m
             file_type: Loáº¡i file (py, js, md, etc.)
-            
+
         Returns:
             List of matching files
         """
         if not self.enabled:
             return []
-        
+
         all_files = self.list_files_in_folder()
-        
+
         # Filter by file type
         if file_type != "all":
-            all_files = [f for f in all_files if f['extension'] == f".{file_type}"]
-        
+            all_files = [f for f in all_files if f["extension"] == f".{file_type}"]
+
         # Filter by query
         results = [
-            f for f in all_files
-            if query.lower() in f['name'].lower() or query.lower() in f['path'].lower()
+            f
+            for f in all_files
+            if query.lower() in f["name"].lower() or query.lower() in f["path"].lower()
         ]
-        
+
         return results[:50]  # Limit results
-    
-    def read_file(self, file_path: str, max_lines: int = 500) -> Optional[Dict[str, Any]]:
+
+    def read_file(self, file_path: str, max_lines: int = 500) -> dict[str, Any] | None:
         """
         Äá»c ná»™i dung file
-        
+
         Args:
             file_path: ÄÆ°á»ng dáº«n file
             max_lines: Sá»‘ dÃ²ng tá»‘i Ä‘a
-            
+
         Returns:
             Dict with file content
         """
         if not self.enabled:
             return None
-        
+
         # Validate and resolve path safely
         path = validate_and_resolve_path(file_path, must_exist=True)
         if path is None:
             logger.warning("Invalid or suspicious file path")
             return {"error": "Invalid file path"}
-        
+
         # Check if file is within allowed folders
         path_str = str(path)
         is_allowed = any(
-            path_str.startswith(str(validate_and_resolve_path(folder, must_exist=False) or ""))
+            path_str.startswith(
+                str(validate_and_resolve_path(folder, must_exist=False) or "")
+            )
             for folder in self.selected_folders
         )
-        
+
         if not is_allowed:
             logger.warning("File not in allowed folders")
             return {"error": "File not in allowed folders"}
-            
+
         if not path.is_file():
             return {"error": "Not a file"}
-        
+
         try:
             # Use os.open to avoid taint tracking through Path object
             # Open file descriptor first, then wrap in file object
             fd = os.open(str(path), os.O_RDONLY | os.O_TEXT)
-            with os.fdopen(fd, 'r', encoding='utf-8', errors='ignore') as f:
+            with os.fdopen(fd, "r", encoding="utf-8", errors="ignore") as f:
                 lines = f.readlines()
-            
+
             total_lines = len(lines)
             content_lines = lines[:max_lines] if len(lines) > max_lines else lines
-            
+
             return {
-                'path': str(path),
-                'name': path.name,
-                'total_lines': total_lines,
-                'returned_lines': len(content_lines),
-                'content': ''.join(content_lines),
-                'truncated': total_lines > max_lines
+                "path": str(path),
+                "name": path.name,
+                "total_lines": total_lines,
+                "returned_lines": len(content_lines),
+                "content": "".join(content_lines),
+                "truncated": total_lines > max_lines,
             }
         except Exception as e:
-            logger.error(f"Error reading file: {sanitize_for_log(str(type(e).__name__))}")
+            logger.error(
+                f"Error reading file: {sanitize_for_log(str(type(e).__name__))}"
+            )
             return {"error": "Failed to read file"}
 
-    def extract_file_with_ocr(self, file_path: str, max_chars: int = 12000) -> Dict[str, Any]:
+    def extract_file_with_ocr(
+        self, file_path: str, max_chars: int = 12000
+    ) -> dict[str, Any]:
         """
         Extract text from a document/image file using OCR integration.
 
@@ -349,7 +372,7 @@ class MCPClient:
             return {"success": False, "error": "Invalid file path"}
 
         # Ensure path is under allowed folders configured for this client.
-        resolved_allowed_folders: List[Path] = []
+        resolved_allowed_folders: list[Path] = []
         for folder in getattr(self, "selected_folders", []) or []:
             if not folder:
                 continue
@@ -357,22 +380,29 @@ class MCPClient:
             if resolved_folder is not None:
                 resolved_allowed_folders.append(resolved_folder)
 
-        is_allowed = any(_is_subpath(path, base) for base in resolved_allowed_folders) if resolved_allowed_folders else False
+        is_allowed = (
+            any(_is_subpath(path, base) for base in resolved_allowed_folders)
+            if resolved_allowed_folders
+            else False
+        )
         if not is_allowed:
             return {"success": False, "error": "File not in allowed folders"}
 
         try:
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 file_data = f.read()
 
             result = ocr_client.process_file(file_data, path.name)
-            text = result.get('text', '') or ''
-            result['text'] = text[:max_chars]
-            result['truncated'] = len(text) > max_chars
-            result['path'] = str(path)
+            text = result.get("text", "") or ""
+            result["text"] = text[:max_chars]
+            result["truncated"] = len(text) > max_chars
+            result["path"] = str(path)
             return result
         except Exception as e:
-            return {"success": False, "error": f"OCR extraction failed: {sanitize_for_log(str(e))}"}
+            return {
+                "success": False,
+                "error": f"OCR extraction failed: {sanitize_for_log(str(e))}",
+            }
 
     def grep_content(
         self,
@@ -381,7 +411,7 @@ class MCPClient:
         max_results: int = 30,
         case_sensitive: bool = False,
         regex: bool = False,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search file contents across selected folders (grep-like).
 
@@ -397,7 +427,7 @@ class MCPClient:
         """
         if not self.enabled:
             return []
-        
+
         try:
             flags = 0 if case_sensitive else re.IGNORECASE
             if regex:
@@ -408,14 +438,26 @@ class MCPClient:
         except re.error:
             logger.warning("Invalid regex pattern in grep_content")
             return []
-        
+
         ext_map = {
-            "py": [".py"], "js": [".js", ".jsx", ".ts", ".tsx"],
-            "md": [".md"], "json": [".json"], "txt": [".txt"],
-            "html": [".html", ".htm"], "css": [".css", ".scss"]
+            "py": [".py"],
+            "js": [".js", ".jsx", ".ts", ".tsx"],
+            "md": [".md"],
+            "json": [".json"],
+            "txt": [".txt"],
+            "html": [".html", ".htm"],
+            "css": [".css", ".scss"],
         }
         target_exts = ext_map.get(file_type) if file_type != "all" else None
-        skip_dirs = {'.venv', 'venv', '__pycache__', 'node_modules', '.git', 'build', 'dist'}
+        skip_dirs = {
+            ".venv",
+            "venv",
+            "__pycache__",
+            "node_modules",
+            ".git",
+            "build",
+            "dist",
+        }
         results = []
 
         for folder in self.selected_folders:
@@ -435,15 +477,18 @@ class MCPClient:
                     continue
                 try:
                     for lineno, line in enumerate(
-                        fpath.read_text(encoding='utf-8', errors='ignore').splitlines(), 1
+                        fpath.read_text(encoding="utf-8", errors="ignore").splitlines(),
+                        1,
                     ):
                         if compiled.search(line):
-                            results.append({
-                                "file": str(fpath),
-                                "relative": str(fpath.relative_to(folder_path)),
-                                "line": lineno,
-                                "content": line.strip()
-                            })
+                            results.append(
+                                {
+                                    "file": str(fpath),
+                                    "relative": str(fpath.relative_to(folder_path)),
+                                    "line": lineno,
+                                    "content": line.strip(),
+                                }
+                            )
                             if len(results) >= max_results:
                                 break
                 except OSError:
@@ -451,7 +496,9 @@ class MCPClient:
 
         return results
 
-    def get_code_context(self, user_message: str, selected_files: list = None) -> Optional[str]:
+    def get_code_context(
+        self, user_message: str, selected_files: list = None
+    ) -> str | None:
         """
         Build contextual code snippets for improving AI responses.
 
@@ -469,9 +516,9 @@ class MCPClient:
         """
         if not self.enabled or not self.selected_folders:
             return None
-        
+
         context_parts = []
-        
+
         # Æ¯u tiÃªn files Ä‘Æ°á»£c chá»n tá»« UI
         if selected_files and len(selected_files) > 0:
             logger.info(f"ðŸ“Œ Using {len(selected_files)} selected files for context")
@@ -481,39 +528,62 @@ class MCPClient:
                 if validated_path is None:
                     logger.warning("Skipping invalid or restricted file")
                     continue
-                
+
                 # Use validated path string
                 ext = validated_path.suffix.lower()
-                ocr_exts = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.tiff', '.pdf', '.docx', '.doc', '.xlsx', '.xls'}
+                ocr_exts = {
+                    ".png",
+                    ".jpg",
+                    ".jpeg",
+                    ".gif",
+                    ".webp",
+                    ".bmp",
+                    ".tiff",
+                    ".pdf",
+                    ".docx",
+                    ".doc",
+                    ".xlsx",
+                    ".xls",
+                }
 
                 # For binary document/image types, prefer OCR extraction
                 if ext in ocr_exts:
-                    ocr_result = self.extract_file_with_ocr(str(validated_path), max_chars=5000)
-                    if ocr_result.get('success') and ocr_result.get('text'):
+                    ocr_result = self.extract_file_with_ocr(
+                        str(validated_path), max_chars=5000
+                    )
+                    if ocr_result.get("success") and ocr_result.get("text"):
                         logger.info("âœ… OCR extraction successful for selected file")
                         context_parts.append("\n### ðŸ“„ OCR Extracted Content\n")
                         context_parts.append(f"File: {validated_path.name}\n")
-                        context_parts.append(f"Method: {ocr_result.get('method', 'ocr')}\n")
+                        context_parts.append(
+                            f"Method: {ocr_result.get('method', 'ocr')}\n"
+                        )
                         context_parts.append("```text\n")
-                        context_parts.append(ocr_result.get('text', ''))
+                        context_parts.append(ocr_result.get("text", ""))
                         context_parts.append("\n```\n")
                     else:
-                        logger.warning("âš ï¸ OCR extraction unavailable/failed for selected file")
+                        logger.warning(
+                            "âš ï¸ OCR extraction unavailable/failed for selected file"
+                        )
                     continue
 
                 file_content = self.read_file(str(validated_path), max_lines=200)
-                if file_content and 'content' in file_content:
+                if file_content and "content" in file_content:
                     logger.info("âœ… File read successfully")
                     # Don't log file name to avoid injection
                     context_parts.append("\n### ðŸ“„ File\n")
                     context_parts.append("```")
                     # Safely get extension from validated path (not user input)
-                    safe_ext = validated_path.suffix.lstrip('.') if validated_path.suffix else 'txt'
+                    safe_ext = (
+                        validated_path.suffix.lstrip(".")
+                        if validated_path.suffix
+                        else "txt"
+                    )
                     context_parts.append(safe_ext)
                     context_parts.append("\n")
-                    context_parts.append(file_content['content'])
+                    context_parts.append(file_content["content"])
                     context_parts.append("\n```\n")
-                elif file_content and 'error' in file_content:
+                elif file_content and "error" in file_content:
                     logger.error("âŒ Error reading file from selection")
                 else:
                     logger.warning("âš ï¸ No content available for file")
@@ -527,46 +597,57 @@ class MCPClient:
             for keyword in keywords[:3]:
                 matches = self.grep_content(keyword, max_results=10)
                 for match in matches:
-                    fpath = match['file']
+                    fpath = match["file"]
                     if fpath not in seen_paths:
                         seen_paths.add(fpath)
-                        relevant_files.append({'path': fpath, 'relative_path': match['relative'], 'extension': os.path.splitext(fpath)[1]})
+                        relevant_files.append(
+                            {
+                                "path": fpath,
+                                "relative_path": match["relative"],
+                                "extension": os.path.splitext(fpath)[1],
+                            }
+                        )
 
             # 2) Fallback: tÃ¬m theo tÃªn file náº¿u chÆ°a Ä‘á»§
             if len(relevant_files) < 3:
                 for keyword in keywords[:5]:
                     files = self.search_files(keyword, file_type="all")
                     for f in files[:3]:
-                        if f['path'] not in seen_paths:
-                            seen_paths.add(f['path'])
+                        if f["path"] not in seen_paths:
+                            seen_paths.add(f["path"])
                             relevant_files.append(f)
 
             # Read top files (giá»›i háº¡n 50 dÃ²ng má»—i file khi auto-detect)
             for file_info in relevant_files[:5]:
-                file_content = self.read_file(file_info['path'], max_lines=50)
-                if file_content and 'content' in file_content:
-                    rel = file_info.get('relative_path', file_info['path'])
-                    ext = (file_info.get('extension') or '').lstrip('.')
+                file_content = self.read_file(file_info["path"], max_lines=50)
+                if file_content and "content" in file_content:
+                    rel = file_info.get("relative_path", file_info["path"])
+                    ext = (file_info.get("extension") or "").lstrip(".")
                     context_parts.append(f"\n### File: {rel}\n```{ext}\n")
-                    context_parts.append(file_content['content'])
+                    context_parts.append(file_content["content"])
                     context_parts.append("\n```\n")
-        
+
         if context_parts:
             context = "".join(context_parts)
             return f"\n\nðŸ“ **CODE CONTEXT FROM LOCAL FILES:**\n{context}"
-        
+
         return None
 
-    def infer_domain_from_question(self, question: str) -> Dict[str, Any]:
+    def infer_domain_from_question(self, question: str) -> dict[str, Any]:
         """
         Infer technical domain from user's question for targeted memory cache warmup.
         """
         q = (question or "").lower()
         if not q:
-            return {"domain": "general", "score": 0, "matched_keywords": [], "queries": self.DOMAIN_QUERY_MAP["general"]}
+            return {
+                "domain": "general",
+                "score": 0,
+                "matched_keywords": [],
+                "queries": self.DOMAIN_QUERY_MAP["general"],
+            }
 
-        scores: Dict[str, int] = {k: 0 for k in self.DOMAIN_QUERY_MAP.keys()}
-        matched: Dict[str, List[str]] = {k: [] for k in self.DOMAIN_QUERY_MAP.keys()}
+        scores: dict[str, int] = dict.fromkeys(self.DOMAIN_QUERY_MAP.keys(), 0)
+        matched: dict[str, list[str]] = {k: [] for k in self.DOMAIN_QUERY_MAP.keys()}
 
         for domain, keywords in self.DOMAIN_QUERY_MAP.items():
             for kw in keywords:
@@ -579,24 +660,26 @@ class MCPClient:
             best_domain = "general"
 
         tokens = [tok for tok in re.findall(r"[a-zA-Z0-9_\-]{4,}", q) if len(tok) <= 40]
-        domain_queries = list(dict.fromkeys(self.DOMAIN_QUERY_MAP.get(best_domain, []) + tokens[:5]))
+        domain_queries = list(
+            dict.fromkeys(self.DOMAIN_QUERY_MAP.get(best_domain, []) + tokens[:5])
+        )
 
         return {
             "domain": best_domain,
             "score": scores.get(best_domain, 0),
             "matched_keywords": matched.get(best_domain, []),
-            "queries": domain_queries[:12]
+            "queries": domain_queries[:12],
         }
 
     def _warm_cache_via_http(
         self,
-        queries: List[str],
+        queries: list[str],
         force_refresh: bool,
         cache_ttl_seconds: int,
         limit: int,
         min_importance: int,
-        max_chars: int
-    ) -> Dict[str, Any]:
+        max_chars: int,
+    ) -> dict[str, Any]:
         """Try warming cache through MCP server HTTP endpoint (if available)."""
         payload = {
             "queries": queries,
@@ -618,8 +701,9 @@ class MCPClient:
             try:
                 # Security: Validate URL scheme to prevent file:// or other unsafe schemes
                 from urllib.parse import urlparse
+
                 parsed_url = urlparse(url)
-                if parsed_url.scheme not in ('http', 'https'):
+                if parsed_url.scheme not in ("http", "https"):
                     continue
 
                 data = json.dumps(payload).encode("utf-8")
@@ -627,7 +711,7 @@ class MCPClient:
                     url,
                     data=data,
                     headers={"Content-Type": "application/json"},
-                    method="POST"
+                    method="POST",
                 )
                 with urllib.request.urlopen(req, timeout=8) as resp:  # nosec B310  # URL scheme validated above
                     body = resp.read().decode("utf-8", errors="replace")
@@ -636,7 +720,7 @@ class MCPClient:
                         "success": True,
                         "source": "mcp-server-http",
                         "endpoint": url,
-                        "result": parsed
+                        "result": parsed,
                     }
             except Exception:
                 continue
@@ -644,37 +728,53 @@ class MCPClient:
         return {
             "success": False,
             "source": "mcp-server-http",
-            "error": "No compatible MCP HTTP warm-cache endpoint available"
+            "error": "No compatible MCP HTTP warm-cache endpoint available",
         }
 
     def _warm_cache_via_local_db(
         self,
-        queries: List[str],
+        queries: list[str],
         force_refresh: bool,
         cache_ttl_seconds: int,
         limit: int,
         min_importance: int,
-        max_chars: int
-    ) -> Dict[str, Any]:
+        max_chars: int,
+    ) -> dict[str, Any]:
         """Warm cache directly via mcp-server memory DB as a local fallback."""
         try:
             current_file = Path(__file__).resolve()
             repo_root = current_file.parents[4]
-            mm_path = repo_root / "services" / "mcp-server" / "database" / "memory_manager.py"
+            mm_path = (
+                repo_root / "services" / "mcp-server" / "database" / "memory_manager.py"
+            )
             db_path = repo_root / "resources" / "memory" / "mcp_memory.db"
 
             if not mm_path.exists():
-                return {"success": False, "source": "local-db", "error": "memory_manager.py not found"}
+                return {
+                    "success": False,
+                    "source": "local-db",
+                    "error": "memory_manager.py not found",
+                }
 
-            spec = importlib.util.spec_from_file_location("mcp_memory_manager_dynamic", str(mm_path))
+            spec = importlib.util.spec_from_file_location(
+                "mcp_memory_manager_dynamic", str(mm_path)
+            )
             if spec is None or spec.loader is None:
-                return {"success": False, "source": "local-db", "error": "Failed to load memory_manager module"}
+                return {
+                    "success": False,
+                    "source": "local-db",
+                    "error": "Failed to load memory_manager module",
+                }
 
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             MemoryManager = getattr(module, "MemoryManager", None)
             if MemoryManager is None:
-                return {"success": False, "source": "local-db", "error": "MemoryManager class not found"}
+                return {
+                    "success": False,
+                    "source": "local-db",
+                    "error": "MemoryManager class not found",
+                }
 
             manager = MemoryManager(db_path=str(db_path))
             result = manager.warm_context_cache(
@@ -684,32 +784,28 @@ class MCPClient:
                 min_importance=min_importance,
                 max_chars=max_chars,
                 cache_ttl_seconds=cache_ttl_seconds,
-                force_refresh=force_refresh
+                force_refresh=force_refresh,
             )
 
-            return {
-                "success": True,
-                "source": "local-db",
-                "result": result
-            }
+            return {"success": True, "source": "local-db", "result": result}
         except Exception as e:
             return {
                 "success": False,
                 "source": "local-db",
-                "error": sanitize_for_log(str(e))
+                "error": sanitize_for_log(str(e)),
             }
 
     def warm_memory_cache_by_question(
         self,
         question: str,
-        domain: Optional[str] = None,
-        extra_queries: Optional[List[str]] = None,
+        domain: str | None = None,
+        extra_queries: list[str] | None = None,
         force_refresh: bool = False,
         cache_ttl_seconds: int = 900,
         limit: int = 20,
         min_importance: int = 4,
-        max_chars: int = 12000
-    ) -> Dict[str, Any]:
+        max_chars: int = 12000,
+    ) -> dict[str, Any]:
         """
         Trigger memory cache warmup based on inferred domain from user question.
         """
@@ -741,7 +837,7 @@ class MCPClient:
             cache_ttl_seconds=max(60, min(int(cache_ttl_seconds), 86400)),
             limit=max(1, min(int(limit), 100)),
             min_importance=max(0, min(int(min_importance), 10)),
-            max_chars=max(1000, min(int(max_chars), 50000))
+            max_chars=max(1000, min(int(max_chars), 50000)),
         )
         if http_result.get("success"):
             return {
@@ -749,7 +845,7 @@ class MCPClient:
                 "domain": selected_domain,
                 "inferred": inferred,
                 "queries": dedup_queries,
-                "warmup": http_result
+                "warmup": http_result,
             }
 
         local_result = self._warm_cache_via_local_db(
@@ -758,7 +854,7 @@ class MCPClient:
             cache_ttl_seconds=max(60, min(int(cache_ttl_seconds), 86400)),
             limit=max(1, min(int(limit), 100)),
             min_importance=max(0, min(int(min_importance), 10)),
-            max_chars=max(1000, min(int(max_chars), 50000))
+            max_chars=max(1000, min(int(max_chars), 50000)),
         )
 
         return {
@@ -767,21 +863,22 @@ class MCPClient:
             "inferred": inferred,
             "queries": dedup_queries,
             "warmup": local_result,
-            "fallback_from_http": True
+            "fallback_from_http": True,
         }
-    
-    def get_status(self) -> Dict[str, Any]:
+
+    def get_status(self) -> dict[str, Any]:
         """Get MCP client status"""
         return {
-            'enabled': self.enabled,
-            'folders_count': len(self.selected_folders),
-            'folders': self.selected_folders,
-            'server_url': self.mcp_server_url
+            "enabled": self.enabled,
+            "folders_count": len(self.selected_folders),
+            "folders": self.selected_folders,
+            "server_url": self.mcp_server_url,
         }
 
 
 # Singleton instance
 _mcp_client = None
+
 
 def get_mcp_client(mcp_server_url: str = "http://localhost:37778") -> MCPClient:
     """Get singleton MCP client instance"""
@@ -791,34 +888,38 @@ def get_mcp_client(mcp_server_url: str = "http://localhost:37778") -> MCPClient:
     return _mcp_client
 
 
-def inject_code_context(user_message: str, mcp_client: MCPClient = None, selected_files: list = None) -> str:
+def inject_code_context(
+    user_message: str, mcp_client: MCPClient = None, selected_files: list = None
+) -> str:
     """
     Inject code context vÃ o user message
-    
+
     Args:
         user_message: Original message
         mcp_client: MCP client instance
         selected_files: List of selected file paths from UI
-        
+
     Returns:
         Enhanced message with code context
     """
     if mcp_client is None:
         mcp_client = get_mcp_client()
-    
+
     if not mcp_client.enabled:
         return user_message
-    
+
     context = mcp_client.get_code_context(user_message, selected_files)
-    
+
     if context:
         # Prepend context to message
         enhanced_message = f"{context}\n\n---\n\n**USER QUESTION:**\n{user_message}"
         file_count = len(selected_files) if selected_files else 0
-        logger.info(f"ðŸ“ Injected code context ({len(context)} chars, {file_count} files)")
+        logger.info(
+            f"ðŸ“ Injected code context ({len(context)} chars, {file_count} files)"
+        )
         # Don't log context preview to avoid log injection
         return enhanced_message
     else:
         logger.warning("âš ï¸ No context generated despite MCP being enabled")
-    
+
     return user_message

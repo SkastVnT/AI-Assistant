@@ -105,8 +105,14 @@ textenc_conversion_lst = [
     (".c_proj.", ".fc2."),
     (".attn", ".self_attn"),
     ("ln_final.", "transformer.text_model.final_layer_norm."),
-    ("token_embedding.weight", "transformer.text_model.embeddings.token_embedding.weight"),
-    ("positional_embedding", "transformer.text_model.embeddings.position_embedding.weight"),
+    (
+        "token_embedding.weight",
+        "transformer.text_model.embeddings.token_embedding.weight",
+    ),
+    (
+        "positional_embedding",
+        "transformer.text_model.embeddings.position_embedding.weight",
+    ),
 ]
 protected = {re.escape(x[1]): x[0] for x in textenc_conversion_lst}
 textenc_pattern = re.compile("|".join(protected.keys()))
@@ -126,7 +132,7 @@ def cat_tensors(tensors):
 
     x = 0
     for t in tensors:
-        out[x:x + t.shape[0]] = t
+        out[x : x + t.shape[0]] = t
         x += t.shape[0]
 
     return out
@@ -140,9 +146,9 @@ def convert_text_enc_state_dict_v20(text_enc_dict, prefix=""):
         if not k.startswith(prefix):
             continue
         if (
-                k.endswith(".self_attn.q_proj.weight")
-                or k.endswith(".self_attn.k_proj.weight")
-                or k.endswith(".self_attn.v_proj.weight")
+            k.endswith(".self_attn.q_proj.weight")
+            or k.endswith(".self_attn.k_proj.weight")
+            or k.endswith(".self_attn.v_proj.weight")
         ):
             k_pre = k[: -len(".q_proj.weight")]
             k_code = k[-len("q_proj.weight")]
@@ -152,9 +158,9 @@ def convert_text_enc_state_dict_v20(text_enc_dict, prefix=""):
             continue
 
         if (
-                k.endswith(".self_attn.q_proj.bias")
-                or k.endswith(".self_attn.k_proj.bias")
-                or k.endswith(".self_attn.v_proj.bias")
+            k.endswith(".self_attn.q_proj.bias")
+            or k.endswith(".self_attn.k_proj.bias")
+            or k.endswith(".self_attn.v_proj.bias")
         ):
             k_pre = k[: -len(".q_proj.bias")]
             k_code = k[-len("q_proj.bias")]
@@ -165,21 +171,33 @@ def convert_text_enc_state_dict_v20(text_enc_dict, prefix=""):
 
         text_proj = "transformer.text_projection.weight"
         if k.endswith(text_proj):
-            new_state_dict[k.replace(text_proj, "text_projection")] = v.transpose(0, 1).contiguous()
+            new_state_dict[k.replace(text_proj, "text_projection")] = v.transpose(
+                0, 1
+            ).contiguous()
         else:
-            relabelled_key = textenc_pattern.sub(lambda m: protected[re.escape(m.group(0))], k)
+            relabelled_key = textenc_pattern.sub(
+                lambda m: protected[re.escape(m.group(0))], k
+            )
             new_state_dict[relabelled_key] = v
 
     for k_pre, tensors in capture_qkv_weight.items():
         if None in tensors:
-            raise Exception("CORRUPTED MODEL: one of the q-k-v values for the text encoder was missing")
-        relabelled_key = textenc_pattern.sub(lambda m: protected[re.escape(m.group(0))], k_pre)
+            raise Exception(
+                "CORRUPTED MODEL: one of the q-k-v values for the text encoder was missing"
+            )
+        relabelled_key = textenc_pattern.sub(
+            lambda m: protected[re.escape(m.group(0))], k_pre
+        )
         new_state_dict[relabelled_key + ".in_proj_weight"] = cat_tensors(tensors)
 
     for k_pre, tensors in capture_qkv_bias.items():
         if None in tensors:
-            raise Exception("CORRUPTED MODEL: one of the q-k-v values for the text encoder was missing")
-        relabelled_key = textenc_pattern.sub(lambda m: protected[re.escape(m.group(0))], k_pre)
+            raise Exception(
+                "CORRUPTED MODEL: one of the q-k-v values for the text encoder was missing"
+            )
+        relabelled_key = textenc_pattern.sub(
+            lambda m: protected[re.escape(m.group(0))], k_pre
+        )
         new_state_dict[relabelled_key + ".in_proj_bias"] = cat_tensors(tensors)
 
     return new_state_dict

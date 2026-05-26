@@ -94,9 +94,7 @@ def _make_settings(**overrides) -> QueryTransformSettings:
     return QueryTransformSettings(**defaults)
 
 
-def _make_search_result(
-    *, chunk_id: uuid.UUID | None = None, score: float = 0.8
-) -> SearchResult:
+def _make_search_result(*, chunk_id: uuid.UUID | None = None, score: float = 0.8) -> SearchResult:
     return SearchResult(
         chunk_id=chunk_id or uuid.uuid4(),
         document_id=DOC_ID,
@@ -267,9 +265,7 @@ class TestAcronymExpansion:
 class TestHyDE:
     @pytest.mark.asyncio
     async def test_hyde_generates_document(self):
-        llm = FakeLLM({
-            "knowledgeable assistant": "Revenue in Q4 was $50M, up 15% YoY."
-        })
+        llm = FakeLLM({"knowledgeable assistant": "Revenue in Q4 was $50M, up 15% YoY."})
         settings = _make_settings(enable_hyde=True)
         ctx = TransformContext(original_query="What was Q4 revenue?")
 
@@ -295,17 +291,17 @@ class TestHyDE:
 class TestDecomposition:
     @pytest.mark.asyncio
     async def test_decompose_multi_hop(self):
-        llm = FakeLLM({
-            "question decomposer": (
-                "1. What was Q4 revenue?\n"
-                "2. What was Q3 revenue?\n"
-                "3. What is the percentage change?"
-            )
-        })
-        settings = _make_settings(enable_decomposition=True, max_sub_queries=3)
-        ctx = TransformContext(
-            original_query="How did Q4 revenue compare to Q3?"
+        llm = FakeLLM(
+            {
+                "question decomposer": (
+                    "1. What was Q4 revenue?\n"
+                    "2. What was Q3 revenue?\n"
+                    "3. What is the percentage change?"
+                )
+            }
         )
+        settings = _make_settings(enable_decomposition=True, max_sub_queries=3)
+        ctx = TransformContext(original_query="How did Q4 revenue compare to Q3?")
 
         result = await decompose_query(ctx, llm, settings)
         assert len(result.sub_queries) == 3
@@ -314,9 +310,7 @@ class TestDecomposition:
     @pytest.mark.asyncio
     async def test_decompose_simple_query_no_split(self):
         """A simple query should return 1 line — no decomposition."""
-        llm = FakeLLM({
-            "question decomposer": "1. What is the company revenue?"
-        })
+        llm = FakeLLM({"question decomposer": "1. What is the company revenue?"})
         settings = _make_settings(enable_decomposition=True)
         ctx = TransformContext(original_query="What is revenue?")
 
@@ -325,9 +319,7 @@ class TestDecomposition:
 
     @pytest.mark.asyncio
     async def test_decompose_respects_max(self):
-        llm = FakeLLM({
-            "question decomposer": "1. Q1\n2. Q2\n3. Q3\n4. Q4\n5. Q5"
-        })
+        llm = FakeLLM({"question decomposer": "1. Q1\n2. Q2\n3. Q3\n4. Q4\n5. Q5"})
         settings = _make_settings(enable_decomposition=True, max_sub_queries=2)
         ctx = TransformContext(original_query="complex question")
 
@@ -374,9 +366,7 @@ class TestQueryTransformPipeline:
 
     @pytest.mark.asyncio
     async def test_hyde_enabled(self):
-        llm = FakeLLM({
-            "knowledgeable assistant": "The revenue was $100M."
-        })
+        llm = FakeLLM({"knowledgeable assistant": "The revenue was $100M."})
         settings = _make_settings(enable_hyde=True)
         pipeline = QueryTransformPipeline(llm=llm, settings=settings)
         ctx = await pipeline.transform("What was revenue?")
@@ -384,9 +374,7 @@ class TestQueryTransformPipeline:
 
     @pytest.mark.asyncio
     async def test_decomposition_enabled(self):
-        llm = FakeLLM({
-            "question decomposer": "1. Sub Q1\n2. Sub Q2"
-        })
+        llm = FakeLLM({"question decomposer": "1. Sub Q1\n2. Sub Q2"})
         settings = _make_settings(enable_decomposition=True)
         pipeline = QueryTransformPipeline(llm=llm, settings=settings)
         ctx = await pipeline.transform("complex multi-hop question")
@@ -462,9 +450,7 @@ class TestRetrieveWithTransforms:
         db.add = MagicMock()
         db.flush = AsyncMock()
 
-        request = RetrievalRequest(
-            tenant_id=TENANT_ID, user_id=None, query="test"
-        )
+        request = RetrievalRequest(tenant_id=TENANT_ID, user_id=None, query="test")
 
         with patch(
             "libs.retrieval.service.vector_search_from_embedding",
@@ -489,18 +475,14 @@ class TestRetrieveWithTransforms:
         settings = _make_settings(enable_rewrite=True)
         pipeline = QueryTransformPipeline(llm=llm, settings=settings)
 
-        request = RetrievalRequest(
-            tenant_id=TENANT_ID, user_id=None, query="vague question"
-        )
+        request = RetrievalRequest(tenant_id=TENANT_ID, user_id=None, query="vague question")
 
         with patch(
             "libs.retrieval.service.vector_search_from_embedding",
             new_callable=AsyncMock,
             return_value=[_make_search_result()],
         ):
-            result = await retrieve(
-                db, provider, request, llm=llm, transform_pipeline=pipeline
-            )
+            result = await retrieve(db, provider, request, llm=llm, transform_pipeline=pipeline)
 
         assert result.transformed_query == "optimized query"
         assert result.transform_ms >= 0
@@ -517,18 +499,14 @@ class TestRetrieveWithTransforms:
         settings = _make_settings(enable_hyde=True)
         pipeline = QueryTransformPipeline(llm=llm, settings=settings)
 
-        request = RetrievalRequest(
-            tenant_id=TENANT_ID, user_id=None, query="What was Q4 revenue?"
-        )
+        request = RetrievalRequest(tenant_id=TENANT_ID, user_id=None, query="What was Q4 revenue?")
 
         with patch(
             "libs.retrieval.service.vector_search_from_embedding",
             new_callable=AsyncMock,
             return_value=[_make_search_result()],
         ):
-            result = await retrieve(
-                db, provider, request, llm=llm, transform_pipeline=pipeline
-            )
+            result = await retrieve(db, provider, request, llm=llm, transform_pipeline=pipeline)
 
         assert result.total_found == 1
         # HyDE doc was used for search (logged in transform_log)
@@ -538,9 +516,7 @@ class TestRetrieveWithTransforms:
     @pytest.mark.asyncio
     async def test_retrieve_with_decomposition(self):
         provider = FakeEmbeddingProvider()
-        llm = FakeLLM({
-            "question decomposer": "1. What was Q4 revenue?\n2. What was Q3 revenue?"
-        })
+        llm = FakeLLM({"question decomposer": "1. What was Q4 revenue?\n2. What was Q3 revenue?"})
         db = AsyncMock()
         db.add = MagicMock()
         db.flush = AsyncMock()
@@ -568,9 +544,7 @@ class TestRetrieveWithTransforms:
             "libs.retrieval.service._embed_and_search",
             side_effect=mock_search,
         ):
-            result = await retrieve(
-                db, provider, request, llm=llm, transform_pipeline=pipeline
-            )
+            result = await retrieve(db, provider, request, llm=llm, transform_pipeline=pipeline)
 
         assert result.total_found == 2
         assert len(result.sub_queries) == 2
@@ -590,18 +564,14 @@ class TestRetrieveWithTransforms:
         settings = _make_settings(enable_rewrite=True)
         pipeline = QueryTransformPipeline(llm=llm, settings=settings)
 
-        request = RetrievalRequest(
-            tenant_id=TENANT_ID, user_id=None, query="original"
-        )
+        request = RetrievalRequest(tenant_id=TENANT_ID, user_id=None, query="original")
 
         with patch(
             "libs.retrieval.service.vector_search_from_embedding",
             new_callable=AsyncMock,
             return_value=[],
         ):
-            await retrieve(
-                db, provider, request, llm=llm, transform_pipeline=pipeline
-            )
+            await retrieve(db, provider, request, llm=llm, transform_pipeline=pipeline)
 
         from libs.core.models import RetrievalTrace
 

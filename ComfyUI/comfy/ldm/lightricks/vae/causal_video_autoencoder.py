@@ -12,6 +12,7 @@ import comfy.ops
 
 ops = comfy.ops.disable_weight_init
 
+
 class Encoder(nn.Module):
     r"""
     The `Encoder` layer of a variational autoencoder that encodes its input into a latent representation.
@@ -424,7 +425,9 @@ class Decoder(nn.Module):
                 torch.tensor(1000.0, dtype=torch.float32)
             )
             self.last_time_embedder = PixArtAlphaCombinedTimestepSizeEmbeddings(
-                output_channel * 2, 0, operations=ops,
+                output_channel * 2,
+                0,
+                operations=ops,
             )
             self.last_scale_shift_table = nn.Parameter(torch.empty(2, output_channel))
 
@@ -447,10 +450,12 @@ class Decoder(nn.Module):
 
         scaled_timestep = None
         if self.timestep_conditioning:
-            assert (
-                timestep is not None
-            ), "should pass timestep with timestep_conditioning=True"
-            scaled_timestep = timestep * self.timestep_scale_multiplier.to(dtype=sample.dtype, device=sample.device)
+            assert timestep is not None, (
+                "should pass timestep with timestep_conditioning=True"
+            )
+            scaled_timestep = timestep * self.timestep_scale_multiplier.to(
+                dtype=sample.dtype, device=sample.device
+            )
 
         for up_block in self.up_blocks:
             if self.timestep_conditioning and isinstance(up_block, UNetMidBlock3D):
@@ -473,9 +478,9 @@ class Decoder(nn.Module):
             embedded_timestep = embedded_timestep.view(
                 batch_size, embedded_timestep.shape[-1], 1, 1, 1
             )
-            ada_values = self.last_scale_shift_table[
-                None, ..., None, None, None
-            ].to(device=sample.device, dtype=sample.dtype) + embedded_timestep.reshape(
+            ada_values = self.last_scale_shift_table[None, ..., None, None, None].to(
+                device=sample.device, dtype=sample.dtype
+            ) + embedded_timestep.reshape(
                 batch_size,
                 2,
                 -1,
@@ -540,7 +545,9 @@ class UNetMidBlock3D(nn.Module):
 
         if timestep_conditioning:
             self.time_embedder = PixArtAlphaCombinedTimestepSizeEmbeddings(
-                in_channels * 4, 0, operations=ops,
+                in_channels * 4,
+                0,
+                operations=ops,
             )
 
         self.res_blocks = nn.ModuleList(
@@ -569,9 +576,9 @@ class UNetMidBlock3D(nn.Module):
     ) -> torch.FloatTensor:
         timestep_embed = None
         if self.timestep_conditioning:
-            assert (
-                timestep is not None
-            ), "should pass timestep with timestep_conditioning=True"
+            assert timestep is not None, (
+                "should pass timestep with timestep_conditioning=True"
+            )
             batch_size = hidden_states.shape[0]
             timestep_embed = self.time_embedder(
                 timestep=timestep.flatten(),
@@ -585,7 +592,9 @@ class UNetMidBlock3D(nn.Module):
             )
 
         for resnet in self.res_blocks:
-            hidden_states = resnet(hidden_states, causal=causal, timestep=timestep_embed)
+            hidden_states = resnet(
+                hidden_states, causal=causal, timestep=timestep_embed
+            )
 
         return hidden_states
 
@@ -691,6 +700,7 @@ class DepthToSpaceUpsample(nn.Module):
         if self.residual:
             x = x + x_in
         return x
+
 
 class LayerNorm(nn.Module):
     def __init__(self, dim, eps, elementwise_affine=True) -> None:
@@ -832,12 +842,12 @@ class ResnetBlock3D(nn.Module):
 
         hidden_states = self.norm1(hidden_states)
         if self.timestep_conditioning:
-            assert (
-                timestep is not None
-            ), "should pass timestep with timestep_conditioning=True"
-            ada_values = self.scale_shift_table[
-                None, ..., None, None, None
-            ].to(device=hidden_states.device, dtype=hidden_states.dtype) + timestep.reshape(
+            assert timestep is not None, (
+                "should pass timestep with timestep_conditioning=True"
+            )
+            ada_values = self.scale_shift_table[None, ..., None, None, None].to(
+                device=hidden_states.device, dtype=hidden_states.dtype
+            ) + timestep.reshape(
                 batch_size,
                 4,
                 -1,
@@ -855,7 +865,10 @@ class ResnetBlock3D(nn.Module):
 
         if self.inject_noise:
             hidden_states = self._feed_spatial_noise(
-                hidden_states, self.per_channel_scale1.to(device=hidden_states.device, dtype=hidden_states.dtype)
+                hidden_states,
+                self.per_channel_scale1.to(
+                    device=hidden_states.device, dtype=hidden_states.dtype
+                ),
             )
 
         hidden_states = self.norm2(hidden_states)
@@ -871,7 +884,10 @@ class ResnetBlock3D(nn.Module):
 
         if self.inject_noise:
             hidden_states = self._feed_spatial_noise(
-                hidden_states, self.per_channel_scale2.to(device=hidden_states.device, dtype=hidden_states.dtype)
+                hidden_states,
+                self.per_channel_scale2.to(
+                    device=hidden_states.device, dtype=hidden_states.dtype
+                ),
             )
 
         input_tensor = self.norm3(input_tensor)
@@ -925,6 +941,7 @@ def unpatchify(x, patch_size_hw, patch_size_t=1):
 
     return x
 
+
 class processor(nn.Module):
     def __init__(self):
         super().__init__()
@@ -935,10 +952,15 @@ class processor(nn.Module):
         self.register_buffer("channel", torch.empty(128))
 
     def un_normalize(self, x):
-        return (x * self.get_buffer("std-of-means").view(1, -1, 1, 1, 1).to(x)) + self.get_buffer("mean-of-means").view(1, -1, 1, 1, 1).to(x)
+        return (
+            x * self.get_buffer("std-of-means").view(1, -1, 1, 1, 1).to(x)
+        ) + self.get_buffer("mean-of-means").view(1, -1, 1, 1, 1).to(x)
 
     def normalize(self, x):
-        return (x - self.get_buffer("mean-of-means").view(1, -1, 1, 1, 1).to(x)) / self.get_buffer("std-of-means").view(1, -1, 1, 1, 1).to(x)
+        return (
+            x - self.get_buffer("mean-of-means").view(1, -1, 1, 1, 1).to(x)
+        ) / self.get_buffer("std-of-means").view(1, -1, 1, 1, 1).to(x)
+
 
 class VideoVAE(nn.Module):
     def __init__(self, version=0, config=None):
@@ -957,7 +979,9 @@ class VideoVAE(nn.Module):
             dims=config["dims"],
             in_channels=config.get("in_channels", 3),
             out_channels=config["latent_channels"],
-            blocks=config.get("encoder_blocks", config.get("encoder_blocks", config.get("blocks"))),
+            blocks=config.get(
+                "encoder_blocks", config.get("encoder_blocks", config.get("blocks"))
+            ),
             patch_size=config.get("patch_size", 1),
             latent_log_var=latent_log_var,
             norm_layer=config.get("norm_layer", "group_norm"),
@@ -968,7 +992,9 @@ class VideoVAE(nn.Module):
             dims=config["dims"],
             in_channels=config["latent_channels"],
             out_channels=config.get("out_channels", 3),
-            blocks=config.get("decoder_blocks", config.get("decoder_blocks", config.get("blocks"))),
+            blocks=config.get(
+                "decoder_blocks", config.get("decoder_blocks", config.get("blocks"))
+            ),
             patch_size=config.get("patch_size", 1),
             norm_layer=config.get("norm_layer", "group_norm"),
             causal=config.get("causal_decoder", False),
@@ -1019,7 +1045,7 @@ class VideoVAE(nn.Module):
                     ["compress_all", {"residual": True, "multiplier": 2}],
                     ["res_x", {"num_layers": 7, "inject_noise": True}],
                     ["compress_all", {"residual": True, "multiplier": 2}],
-                    ["res_x", {"num_layers": 8, "inject_noise": False}]
+                    ["res_x", {"num_layers": 8, "inject_noise": False}],
                 ],
                 "encoder_blocks": [
                     ["res_x", {"num_layers": 4}],
@@ -1031,7 +1057,7 @@ class VideoVAE(nn.Module):
                     ["res_x", {"num_layers": 3}],
                     ["compress_all", {}],
                     ["res_x", {"num_layers": 3}],
-                    ["res_x", {"num_layers": 4}]
+                    ["res_x", {"num_layers": 4}],
                 ],
                 "scaling_factor": 1.0,
                 "norm_layer": "pixel_norm",
@@ -1057,7 +1083,7 @@ class VideoVAE(nn.Module):
                     ["compress_all_res", {"multiplier": 2}],
                     ["res_x", {"num_layers": 2}],
                     ["compress_all_res", {"multiplier": 2}],
-                    ["res_x", {"num_layers": 2}]
+                    ["res_x", {"num_layers": 2}],
                 ],
                 "decoder_blocks": [
                     ["res_x", {"num_layers": 5, "inject_noise": False}],
@@ -1066,7 +1092,7 @@ class VideoVAE(nn.Module):
                     ["compress_all", {"residual": True, "multiplier": 2}],
                     ["res_x", {"num_layers": 5, "inject_noise": False}],
                     ["compress_all", {"residual": True, "multiplier": 2}],
-                    ["res_x", {"num_layers": 5, "inject_noise": False}]
+                    ["res_x", {"num_layers": 5, "inject_noise": False}],
                 ],
                 "scaling_factor": 1.0,
                 "norm_layer": "pixel_norm",
@@ -1074,19 +1100,22 @@ class VideoVAE(nn.Module):
                 "latent_log_var": "uniform",
                 "use_quant_conv": False,
                 "causal_decoder": False,
-                "timestep_conditioning": True
+                "timestep_conditioning": True,
             }
         return config
 
     def encode(self, x):
         frames_count = x.shape[2]
         if ((frames_count - 1) % 8) != 0:
-            raise ValueError("Invalid number of frames: Encode input must have 1 + 8 * x frames (e.g., 1, 9, 17, ...). Please check your input.")
+            raise ValueError(
+                "Invalid number of frames: Encode input must have 1 + 8 * x frames (e.g., 1, 9, 17, ...). Please check your input."
+            )
         means, logvar = torch.chunk(self.encoder(x), 2, dim=1)
         return self.per_channel_statistics.normalize(means)
 
     def decode(self, x, timestep=0.05, noise_scale=0.025):
-        if self.timestep_conditioning: #TODO: seed
+        if self.timestep_conditioning:  # TODO: seed
             x = torch.randn_like(x) * noise_scale + (1.0 - noise_scale) * x
-        return self.decoder(self.per_channel_statistics.un_normalize(x), timestep=timestep)
-
+        return self.decoder(
+            self.per_channel_statistics.un_normalize(x), timestep=timestep
+        )

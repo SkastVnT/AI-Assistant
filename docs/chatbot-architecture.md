@@ -138,7 +138,7 @@ docker compose up chatbot
 The Dockerfile at `services/chatbot/Dockerfile` uses `python:3.11-slim` and
 runs as a non-root user (`appuser`, uid 1000).
 
-See [docs/deployment.md](deployment.md) for the full deployment guide.
+See [docs/DEPLOYMENT.md](DEPLOYMENT.md) for the full deployment guide.
 
 ---
 

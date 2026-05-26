@@ -5,6 +5,7 @@ The timeline module is pure JS (no DOM, no fetch), and the test file lives at
 the exit code. If node is not available we skip — the JS code still works
 in the browser; the test just cannot run in this environment.
 """
+
 from __future__ import annotations
 
 import shutil

@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 # Kontext Editor — fal.ai FLUX.1-Kontext
 # ═════════════════════════════════════════════════════════════════════
 
+
 class KontextEditor:
     """
     FLUX.1-Kontext via fal.ai queue API.
@@ -65,7 +66,11 @@ class KontextEditor:
         t0 = time.time()
         try:
             payload = self._build_payload(
-                instruction, source_image_b64, width, height, seed,
+                instruction,
+                source_image_b64,
+                width,
+                height,
+                seed,
             )
             with httpx.Client(
                 base_url=self._base_url,
@@ -97,11 +102,11 @@ class KontextEditor:
             if image_url:
                 return EditResponse(
                     success=True,
-                    image_b64=None,       # URL-based result
+                    image_b64=None,  # URL-based result
                     latency_ms=latency,
                     model="flux1-kontext",
                     provider="fal",
-                    raw_text=image_url,    # Store URL in raw_text
+                    raw_text=image_url,  # Store URL in raw_text
                 )
             else:
                 return EditResponse(
@@ -150,8 +155,13 @@ class KontextEditor:
     ) -> dict:
         import time as _time
 
-        _status = status_url or f"{self._base_url}/{self.ENDPOINT}/requests/{request_id}/status"
-        _result = response_url or f"{self._base_url}/{self.ENDPOINT}/requests/{request_id}"
+        _status = (
+            status_url
+            or f"{self._base_url}/{self.ENDPOINT}/requests/{request_id}/status"
+        )
+        _result = (
+            response_url or f"{self._base_url}/{self.ENDPOINT}/requests/{request_id}"
+        )
         deadline = _time.time() + max_wait
 
         while _time.time() < deadline:
@@ -188,6 +198,7 @@ class KontextEditor:
 # ═════════════════════════════════════════════════════════════════════
 # Step1X-Edit Editor — StepFun API
 # ═════════════════════════════════════════════════════════════════════
+
 
 class StepEditEditor:
     """
@@ -297,6 +308,7 @@ class StepEditEditor:
 # Nano-Banana Fallback — fal.ai (generation-only, no edit)
 # ═════════════════════════════════════════════════════════════════════
 
+
 class NanoBananaEditor:
     """
     Nano-Banana via fal.ai — last-resort fallback for generation.
@@ -396,8 +408,13 @@ class NanoBananaEditor:
     ) -> dict:
         import time as _time
 
-        _status = status_url or f"{self._base_url}/{self.ENDPOINT}/requests/{request_id}/status"
-        _result = response_url or f"{self._base_url}/{self.ENDPOINT}/requests/{request_id}"
+        _status = (
+            status_url
+            or f"{self._base_url}/{self.ENDPOINT}/requests/{request_id}/status"
+        )
+        _result = (
+            response_url or f"{self._base_url}/{self.ENDPOINT}/requests/{request_id}"
+        )
         deadline = _time.time() + max_wait
 
         while _time.time() < deadline:
@@ -420,12 +437,14 @@ class NanoBananaEditor:
 # FallbackChain — Ordered fallback execution
 # ═════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class FallbackAttempt:
     """Record of one fallback attempt."""
-    editor:    str
-    success:   bool
-    error:     str = ""
+
+    editor: str
+    success: bool
+    error: str = ""
     latency_ms: float = 0.0
 
 
@@ -515,22 +534,27 @@ class FallbackChain:
                     source_image_b64=source_image_b64,
                 )
 
-            attempts.append(FallbackAttempt(
-                editor=editor_name,
-                success=resp.success,
-                error=resp.error or "",
-                latency_ms=resp.latency_ms,
-            ))
+            attempts.append(
+                FallbackAttempt(
+                    editor=editor_name,
+                    success=resp.success,
+                    error=resp.error or "",
+                    latency_ms=resp.latency_ms,
+                )
+            )
 
             if resp.success:
                 logger.info(
                     "[FallbackChain] %s succeeded (%.0f ms)",
-                    editor_name, resp.latency_ms,
+                    editor_name,
+                    resp.latency_ms,
                 )
                 return resp, attempts
 
             logger.warning(
-                "[FallbackChain] %s failed: %s", editor_name, resp.error,
+                "[FallbackChain] %s failed: %s",
+                editor_name,
+                resp.error,
             )
 
         # All failed

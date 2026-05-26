@@ -242,33 +242,25 @@ def build_workflow(plan: ExecutionPlan) -> dict[str, dict[str, Any]]:
                 raise ValueError(
                     "INPAINT stage requires a prior RENDER stage in the plan"
                 )
-            new = _build_inpaint_subgraph(
-                alloc, step, plan, upstream, suffix="inpaint"
-            )
+            new = _build_inpaint_subgraph(alloc, step, plan, upstream, suffix="inpaint")
             upstream = {**upstream, "decode": new["decode"], "save": new["save"]}
         elif step.stage is StageKind.FACE_PATCH:
             if not upstream:
-                raise ValueError(
-                    "FACE_PATCH requires a prior RENDER stage in the plan"
-                )
+                raise ValueError("FACE_PATCH requires a prior RENDER stage in the plan")
             new = _build_inpaint_subgraph(
                 alloc, step, plan, upstream, suffix="face_patch"
             )
             upstream = {**upstream, "decode": new["decode"], "save": new["save"]}
         elif step.stage is StageKind.PROP_PATCH:
             if not upstream:
-                raise ValueError(
-                    "PROP_PATCH requires a prior RENDER stage in the plan"
-                )
+                raise ValueError("PROP_PATCH requires a prior RENDER stage in the plan")
             new = _build_inpaint_subgraph(
                 alloc, step, plan, upstream, suffix="prop_patch"
             )
             upstream = {**upstream, "decode": new["decode"], "save": new["save"]}
         elif step.stage is StageKind.UPSCALE:
             if not upstream:
-                raise ValueError(
-                    "UPSCALE requires a prior RENDER stage in the plan"
-                )
+                raise ValueError("UPSCALE requires a prior RENDER stage in the plan")
             new = _build_upscale_subgraph(alloc, step, plan, upstream)
             upstream = {**upstream, "decode": new["upscale"], "save": new["save"]}
         elif step.stage is StageKind.OVERLAY:

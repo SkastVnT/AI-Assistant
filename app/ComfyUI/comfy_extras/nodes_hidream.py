@@ -14,14 +14,26 @@ class QuadrupleCLIPLoader(io.ComfyNode):
             category="advanced/loaders",
             description="[Recipes]\n\nhidream: long clip-l, long clip-g, t5xxl, llama_8b_3.1_instruct",
             inputs=[
-                io.Combo.Input("clip_name1", options=folder_paths.get_filename_list("text_encoders")),
-                io.Combo.Input("clip_name2", options=folder_paths.get_filename_list("text_encoders")),
-                io.Combo.Input("clip_name3", options=folder_paths.get_filename_list("text_encoders")),
-                io.Combo.Input("clip_name4", options=folder_paths.get_filename_list("text_encoders")),
+                io.Combo.Input(
+                    "clip_name1",
+                    options=folder_paths.get_filename_list("text_encoders"),
+                ),
+                io.Combo.Input(
+                    "clip_name2",
+                    options=folder_paths.get_filename_list("text_encoders"),
+                ),
+                io.Combo.Input(
+                    "clip_name3",
+                    options=folder_paths.get_filename_list("text_encoders"),
+                ),
+                io.Combo.Input(
+                    "clip_name4",
+                    options=folder_paths.get_filename_list("text_encoders"),
+                ),
             ],
             outputs=[
                 io.Clip.Output(),
-            ]
+            ],
         )
 
     @classmethod
@@ -30,8 +42,12 @@ class QuadrupleCLIPLoader(io.ComfyNode):
         clip_path2 = folder_paths.get_full_path_or_raise("text_encoders", clip_name2)
         clip_path3 = folder_paths.get_full_path_or_raise("text_encoders", clip_name3)
         clip_path4 = folder_paths.get_full_path_or_raise("text_encoders", clip_name4)
-        clip = comfy.sd.load_clip(ckpt_paths=[clip_path1, clip_path2, clip_path3, clip_path4], embedding_directory=folder_paths.get_folder_paths("embeddings"))
+        clip = comfy.sd.load_clip(
+            ckpt_paths=[clip_path1, clip_path2, clip_path3, clip_path4],
+            embedding_directory=folder_paths.get_folder_paths("embeddings"),
+        )
         return io.NodeOutput(clip)
+
 
 class CLIPTextEncodeHiDream(io.ComfyNode):
     @classmethod
@@ -48,7 +64,7 @@ class CLIPTextEncodeHiDream(io.ComfyNode):
             ],
             outputs=[
                 io.Conditioning.Output(),
-            ]
+            ],
         )
 
     @classmethod

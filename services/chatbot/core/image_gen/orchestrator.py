@@ -23,12 +23,12 @@ import base64
 import logging
 import os
 import time
+from collections.abc import Generator
 from dataclasses import dataclass, field
-from typing import Generator, Optional
 
 from .intent import ImageIntent, IntentResult, detect_intent
-from .providers.base import ImageMode, ImageResult
-from .router import ImageGenerationRouter, QualityMode
+from .providers.base import ImageResult
+from .router import ImageGenerationRouter
 from .session import ImageSession
 from .storage import ImageStorage
 
@@ -39,28 +39,31 @@ logger = logging.getLogger(__name__)
 # Result dataclass
 # ─────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class OrchestratorResult:
     """Returned by ImageOrchestrator.handle()."""
-    is_image:       bool            = False   # True → image was generated
-    intent:         ImageIntent     = ImageIntent.NONE
-    intent_result:  Optional[IntentResult] = None
-    images_b64:     list[str]       = field(default_factory=list)
-    images_url:     list[str]       = field(default_factory=list)
-    enhanced_prompt: str            = ""
-    original_prompt: str            = ""
-    provider:       str             = ""
-    model:          str             = ""
-    cost_usd:       float           = 0.0
-    latency_ms:     float           = 0.0
-    response_text:  str             = ""      # Formatted markdown for the chat UI
-    error:          str             = ""
-    fallback_to_llm: bool           = False   # True → caller should use LLM instead
+
+    is_image: bool = False  # True → image was generated
+    intent: ImageIntent = ImageIntent.NONE
+    intent_result: IntentResult | None = None
+    images_b64: list[str] = field(default_factory=list)
+    images_url: list[str] = field(default_factory=list)
+    enhanced_prompt: str = ""
+    original_prompt: str = ""
+    provider: str = ""
+    model: str = ""
+    cost_usd: float = 0.0
+    latency_ms: float = 0.0
+    response_text: str = ""  # Formatted markdown for the chat UI
+    error: str = ""
+    fallback_to_llm: bool = False  # True → caller should use LLM instead
 
 
 # ─────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────
+
 
 def _orchestrator_enabled() -> bool:
     """
@@ -72,31 +75,35 @@ def _orchestrator_enabled() -> bool:
     flag = os.getenv("IMAGE_ORCHESTRATOR_ENABLED", "").lower()
     if flag in ("0", "false", "no", "off"):
         return False
-    return any([
-        os.getenv("FAL_API_KEY"),
-        os.getenv("REPLICATE_API_TOKEN"),
-        os.getenv("BFL_API_KEY"),
-        os.getenv("TOGETHER_API_KEY"),
-        os.getenv("OPENAI_API_KEY"),
-        os.getenv("COMFYUI_URL"),
-    ])
+    return any(
+        [
+            os.getenv("FAL_API_KEY"),
+            os.getenv("REPLICATE_API_TOKEN"),
+            os.getenv("BFL_API_KEY"),
+            os.getenv("TOGETHER_API_KEY"),
+            os.getenv("OPENAI_API_KEY"),
+            os.getenv("COMFYUI_URL"),
+        ]
+    )
 
 
 # Tools that, when explicitly selected by the user, indicate the request
 # is NOT for image generation. The orchestrator must defer to the LLM/tool
 # path so these tools actually execute (saucenao reverse-image search,
 # serpapi reverse-image, web search, github search, etc.).
-_CONFLICTING_TOOLS = frozenset({
-    "saucenao",
-    "serpapi-reverse-image",
-    "serpapi-images",
-    "serpapi-bing",
-    "serpapi-baidu",
-    "google-search",
-    "github",
-    "deep-research",
-    "last30days-research",
-})
+_CONFLICTING_TOOLS = frozenset(
+    {
+        "saucenao",
+        "serpapi-reverse-image",
+        "serpapi-images",
+        "serpapi-bing",
+        "serpapi-baidu",
+        "google-search",
+        "github",
+        "deep-research",
+        "last30days-research",
+    }
+)
 
 
 def _has_conflicting_tools(tools: list[str]) -> bool:
@@ -104,10 +111,11 @@ def _has_conflicting_tools(tools: list[str]) -> bool:
     return any(t in _CONFLICTING_TOOLS for t in tools)
 
 
-def _fetch_url_as_b64(url: str) -> Optional[str]:
+def _fetch_url_as_b64(url: str) -> str | None:
     """Download an image URL and return base64-encoded bytes (best-effort)."""
     try:
         import httpx
+
         with httpx.Client(timeout=20) as client:
             resp = client.get(url)
             if resp.status_code == 200:
@@ -118,20 +126,20 @@ def _fetch_url_as_b64(url: str) -> Optional[str]:
 
 
 def _build_response_text(
-    message:    str,
+    message: str,
     img_result: ImageResult,
     stored_urls: list[str],
-    intent:     ImageIntent,
-    is_edit:    bool,
-    language:   str,
+    intent: ImageIntent,
+    is_edit: bool,
+    language: str,
     latency_ms: float,
 ) -> str:
     """Build a formatted markdown + inline-HTML response for the chat UI."""
     vi = language.startswith("vi")
 
     action_label = {
-        ImageIntent.GENERATE:      "🎨 Ảnh đã được tạo!" if vi else "🎨 Image Generated!",
-        ImageIntent.EDIT:          "✏️ Ảnh đã được chỉnh sửa!" if vi else "✏️ Image Edited!",
+        ImageIntent.GENERATE: "🎨 Ảnh đã được tạo!" if vi else "🎨 Image Generated!",
+        ImageIntent.EDIT: "✏️ Ảnh đã được chỉnh sửa!" if vi else "✏️ Image Edited!",
         ImageIntent.FOLLOWUP_EDIT: "✏️ Đã cập nhật ảnh!" if vi else "✏️ Image Updated!",
     }.get(intent, "🎨 Image Generated!")
 
@@ -165,30 +173,34 @@ def _build_response_text(
                 f'class="generated-preview">'
             )
 
-    cloud = " | ".join(f"[Open]({u})" for u in stored_urls[:3] if not u.startswith("data:"))
+    cloud = " | ".join(
+        f"[Open]({u})" for u in stored_urls[:3] if not u.startswith("data:")
+    )
     if cloud:
         lines.append(f"\n☁️ **URLs:** {cloud}")
 
     model_label = f" ({img_result.model})" if img_result.model else ""
-    lines.extend([
-        "\n---",
-        f"🎯 **Info:** Provider: `{img_result.provider}`{model_label}"
-        f" · Size: {img_result.metadata.get('width', '?')}×{img_result.metadata.get('height', '?')}"
-        f" · Cost: ${img_result.cost_usd:.4f}"
-        f" · {latency_ms / 1000:.1f}s",
-    ])
+    lines.extend(
+        [
+            "\n---",
+            f"🎯 **Info:** Provider: `{img_result.provider}`{model_label}"
+            f" · Size: {img_result.metadata.get('width', '?')}×{img_result.metadata.get('height', '?')}"
+            f" · Cost: ${img_result.cost_usd:.4f}"
+            f" · {latency_ms / 1000:.1f}s",
+        ]
+    )
 
     if is_edit:
         hint = (
             "\n💡 *Bạn có thể tiếp tục chỉnh sửa bằng cách mô tả thay đổi muốn thực hiện.*"
-            if vi else
-            "\n💡 *Keep editing by describing the next change you want.*"
+            if vi
+            else "\n💡 *Keep editing by describing the next change you want.*"
         )
     else:
         hint = (
             '\n💡 *Để chỉnh sửa ảnh, mô tả thay đổi bạn muốn (vd: "thêm cầu vồng", "đổi nền trắng").*'
-            if vi else
-            '\n💡 *To edit this image, describe the change you want (e.g. "add a rainbow", "white background").*'
+            if vi
+            else '\n💡 *To edit this image, describe the change you want (e.g. "add a rainbow", "white background").*'
         )
     lines.append(hint)
 
@@ -198,6 +210,7 @@ def _build_response_text(
 # ─────────────────────────────────────────────────────────────────────
 # Orchestrator
 # ─────────────────────────────────────────────────────────────────────
+
 
 class ImageOrchestrator:
     """
@@ -211,13 +224,13 @@ class ImageOrchestrator:
     """
 
     # Class-level singletons shared by all sessions
-    _shared_router:  Optional[ImageGenerationRouter] = None
-    _shared_storage: Optional[ImageStorage]          = None
+    _shared_router: ImageGenerationRouter | None = None
+    _shared_storage: ImageStorage | None = None
 
     def __init__(self, session_id: str):
-        self.session_id    = session_id
-        self._img_session  = ImageSession(conversation_id=session_id)
-        self._enabled      = _orchestrator_enabled()
+        self.session_id = session_id
+        self._img_session = ImageSession(conversation_id=session_id)
+        self._enabled = _orchestrator_enabled()
 
     # ── Shared singletons ─────────────────────────────────────────────
 
@@ -240,11 +253,11 @@ class ImageOrchestrator:
         return bool(self._img_session.last_image)
 
     @property
-    def last_image_b64(self) -> Optional[str]:
+    def last_image_b64(self) -> str | None:
         return self._img_session.last_image_b64
 
     @property
-    def last_image_url(self) -> Optional[str]:
+    def last_image_url(self) -> str | None:
         return self._img_session.last_image_url
 
     # ── Public sync API ───────────────────────────────────────────────
@@ -252,8 +265,8 @@ class ImageOrchestrator:
     def handle(
         self,
         message: str,
-        language: str  = "vi",
-        tools:    list[str] | None = None,
+        language: str = "vi",
+        tools: list[str] | None = None,
     ) -> OrchestratorResult:
         """
         Main entry point (sync).
@@ -270,7 +283,9 @@ class ImageOrchestrator:
             return OrchestratorResult(fallback_to_llm=True)
 
         explicit_tool = "image-generation" in tools or "img2img" in tools
-        intent_result = detect_intent(message, has_previous_image=self.has_previous_image)
+        intent_result = detect_intent(
+            message, has_previous_image=self.has_previous_image
+        )
 
         # ── Conflicting tools → never hijack ───────────────────────────
         # If user explicitly selected a non-image-gen tool (search,
@@ -286,9 +301,9 @@ class ImageOrchestrator:
         # Explicit tool but intent detector found nothing → force GENERATE
         if explicit_tool and intent_result.intent == ImageIntent.NONE:
             intent_result = IntentResult(
-                intent     = ImageIntent.GENERATE,
-                confidence = 0.9,
-                debug      = {"reason": "explicit_tool"},
+                intent=ImageIntent.GENERATE,
+                confidence=0.9,
+                debug={"reason": "explicit_tool"},
             )
 
         return self._execute(message, intent_result, language)
@@ -297,9 +312,9 @@ class ImageOrchestrator:
 
     def handle_stream(
         self,
-        message:  str,
-        language: str              = "vi",
-        tools:    list[str] | None = None,
+        message: str,
+        language: str = "vi",
+        tools: list[str] | None = None,
     ) -> Generator[dict, None, None]:
         """
         Streaming version — yields SSE-ready dicts.
@@ -319,7 +334,9 @@ class ImageOrchestrator:
             return
 
         explicit_tool = "image-generation" in tools or "img2img" in tools
-        intent_result = detect_intent(message, has_previous_image=self.has_previous_image)
+        intent_result = detect_intent(
+            message, has_previous_image=self.has_previous_image
+        )
 
         # ── Conflicting tools → never hijack (mirrors handle()) ────────
         if _has_conflicting_tools(tools) and not explicit_tool:
@@ -330,9 +347,9 @@ class ImageOrchestrator:
 
         if explicit_tool and intent_result.intent == ImageIntent.NONE:
             intent_result = IntentResult(
-                intent     = ImageIntent.GENERATE,
-                confidence = 0.9,
-                debug      = {"reason": "explicit_tool"},
+                intent=ImageIntent.GENERATE,
+                confidence=0.9,
+                debug={"reason": "explicit_tool"},
             )
 
         intent = intent_result.intent
@@ -340,13 +357,13 @@ class ImageOrchestrator:
         yield {
             "event": "image_gen_start",
             "data": {
-                "intent":      intent.value,
-                "quality":     intent_result.quality_hint,
-                "style":       intent_result.style_hint,
-                "dimensions":  f"{intent_result.width}×{intent_result.height}",
-                "is_edit":     intent in (ImageIntent.EDIT, ImageIntent.FOLLOWUP_EDIT),
+                "intent": intent.value,
+                "quality": intent_result.quality_hint,
+                "style": intent_result.style_hint,
+                "dimensions": f"{intent_result.width}×{intent_result.height}",
+                "is_edit": intent in (ImageIntent.EDIT, ImageIntent.FOLLOWUP_EDIT),
                 "has_previous": self.has_previous_image,
-                "confidence":  round(intent_result.confidence, 2),
+                "confidence": round(intent_result.confidence, 2),
             },
         }
 
@@ -361,7 +378,7 @@ class ImageOrchestrator:
             yield {
                 "event": "image_gen_error",
                 "data": {
-                    "error":           orch_result.error or "Generation failed",
+                    "error": orch_result.error or "Generation failed",
                     "fallback_to_llm": orch_result.fallback_to_llm,
                 },
             }
@@ -370,15 +387,15 @@ class ImageOrchestrator:
         yield {
             "event": "image_gen_result",
             "data": {
-                "images_b64":      orch_result.images_b64,
-                "images_url":      orch_result.images_url,
+                "images_b64": orch_result.images_b64,
+                "images_url": orch_result.images_url,
                 "enhanced_prompt": orch_result.enhanced_prompt,
-                "provider":        orch_result.provider,
-                "model":           orch_result.model,
-                "cost_usd":        orch_result.cost_usd,
-                "latency_ms":      orch_result.latency_ms,
-                "response_text":   orch_result.response_text,
-                "intent":          intent.value,
+                "provider": orch_result.provider,
+                "model": orch_result.model,
+                "cost_usd": orch_result.cost_usd,
+                "latency_ms": orch_result.latency_ms,
+                "response_text": orch_result.response_text,
+                "intent": intent.value,
             },
         }
 
@@ -386,20 +403,20 @@ class ImageOrchestrator:
 
     def _execute(
         self,
-        message:       str,
+        message: str,
         intent_result: IntentResult,
-        language:      str,
+        language: str,
     ) -> OrchestratorResult:
         """Run the full generation pipeline (synchronous)."""
         t_start = time.monotonic()
 
         try:
-            router  = self._get_router()
+            router = self._get_router()
             storage = self._get_storage()
-            intent  = intent_result.intent
+            intent = intent_result.intent
 
             # ── Mode + source image (i2i for edits) ──────────────────
-            source_b64: Optional[str] = None
+            source_b64: str | None = None
             is_edit = intent in (ImageIntent.EDIT, ImageIntent.FOLLOWUP_EDIT)
 
             if is_edit:
@@ -425,15 +442,15 @@ class ImageOrchestrator:
             )
 
             img_result: ImageResult = router.generate(
-                prompt           = message,
-                mode             = mode,
-                quality          = intent_result.quality_hint,
-                style            = style,
-                width            = intent_result.width,
-                height           = intent_result.height,
-                source_image_b64 = source_b64,
-                enhance_prompt   = True,
-                context          = session_context or None,
+                prompt=message,
+                mode=mode,
+                quality=intent_result.quality_hint,
+                style=style,
+                width=intent_result.width,
+                height=intent_result.height,
+                source_image_b64=source_b64,
+                enhance_prompt=True,
+                context=session_context or None,
             )
 
             latency_ms = (time.monotonic() - t_start) * 1000
@@ -441,18 +458,18 @@ class ImageOrchestrator:
             if not img_result.success:
                 logger.warning(f"[Orchestrator] Generation failed: {img_result.error}")
                 return OrchestratorResult(
-                    intent          = intent,
-                    intent_result   = intent_result,
-                    error           = img_result.error or "Generation failed",
-                    fallback_to_llm = True,
+                    intent=intent,
+                    intent_result=intent_result,
+                    error=img_result.error or "Generation failed",
+                    fallback_to_llm=True,
                 )
 
             # ── Update persistent session ─────────────────────────────
             self._img_session.add_generation(
-                user_prompt     = message,
-                enhanced_prompt = img_result.prompt_used or message,
-                result          = img_result,
-                is_edit         = is_edit,
+                user_prompt=message,
+                enhanced_prompt=img_result.prompt_used or message,
+                result=img_result,
+                is_edit=is_edit,
             )
             if intent_result.style_hint:
                 self._img_session.active_style = intent_result.style_hint
@@ -462,13 +479,13 @@ class ImageOrchestrator:
             for b64 in img_result.images_b64:
                 try:
                     store_result = storage.save(
-                        image_b64 = b64,
-                        prompt    = img_result.prompt_used or message,
-                        provider  = img_result.provider,
-                        metadata  = {
+                        image_b64=b64,
+                        prompt=img_result.prompt_used or message,
+                        provider=img_result.provider,
+                        metadata={
                             "original_message": message,
-                            "model":            img_result.model,
-                            "session_id":       self.session_id,
+                            "model": img_result.model,
+                            "session_id": self.session_id,
                         },
                     )
                     url = store_result.get("url")
@@ -479,33 +496,33 @@ class ImageOrchestrator:
 
             # ── Build chat response text ──────────────────────────────
             response_text = _build_response_text(
-                message     = message,
-                img_result  = img_result,
-                stored_urls = stored_urls,
-                intent      = intent,
-                is_edit     = is_edit,
-                language    = language,
-                latency_ms  = latency_ms,
+                message=message,
+                img_result=img_result,
+                stored_urls=stored_urls,
+                intent=intent,
+                is_edit=is_edit,
+                language=language,
+                latency_ms=latency_ms,
             )
 
             return OrchestratorResult(
-                is_image        = True,
-                intent          = intent,
-                intent_result   = intent_result,
-                images_b64      = img_result.images_b64,
-                images_url      = stored_urls,
-                enhanced_prompt = img_result.prompt_used or message,
-                original_prompt = message,
-                provider        = img_result.provider,
-                model           = img_result.model,
-                cost_usd        = img_result.cost_usd,
-                latency_ms      = latency_ms,
-                response_text   = response_text,
+                is_image=True,
+                intent=intent,
+                intent_result=intent_result,
+                images_b64=img_result.images_b64,
+                images_url=stored_urls,
+                enhanced_prompt=img_result.prompt_used or message,
+                original_prompt=message,
+                provider=img_result.provider,
+                model=img_result.model,
+                cost_usd=img_result.cost_usd,
+                latency_ms=latency_ms,
+                response_text=response_text,
             )
 
         except Exception as exc:
             logger.error(f"[Orchestrator] Unexpected error: {exc}", exc_info=True)
             return OrchestratorResult(
-                error           = str(exc),
-                fallback_to_llm = True,
+                error=str(exc),
+                fallback_to_llm=True,
             )

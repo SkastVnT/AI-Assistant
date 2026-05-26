@@ -12,6 +12,7 @@ Set ``AGENTIC_V1_ENABLED=true`` in environment to activate council mode.
 When the flag is ``false`` (default), requesting ``agent_mode="council"``
 returns a graceful error message — existing behaviour is never broken.
 """
+
 from __future__ import annotations
 
 import logging
@@ -19,7 +20,7 @@ import os
 from typing import Any
 
 from core.agentic.config import CouncilConfig
-from core.agentic.contracts import AgentRole, CouncilResult
+from core.agentic.contracts import CouncilResult
 from core.agentic.orchestrator import CouncilOrchestrator
 from core.agentic.state import PreContext
 
@@ -71,8 +72,7 @@ async def run_council(
     """
     if not is_council_enabled():
         raise RuntimeError(
-            "Council mode is not enabled. "
-            "Set AGENTIC_V1_ENABLED=true to activate."
+            "Council mode is not enabled. Set AGENTIC_V1_ENABLED=true to activate."
         )
 
     # Build CouncilConfig with any per-role model overrides

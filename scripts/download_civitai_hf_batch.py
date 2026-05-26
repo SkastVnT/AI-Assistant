@@ -11,6 +11,7 @@ Notes:
 - Set DRY_RUN=1 to only print what would be downloaded.
 - Resumes via HTTP Range when a partial file already exists.
 """
+
 from __future__ import annotations
 
 import os
@@ -26,6 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEST_ROOT = ROOT / "LORA" / "new_2"
 ENV_FILE = ROOT / "private" / ".env"
 
+
 # --- Load CIVITAI_API_KEY ---
 def _load_env_key(name: str) -> str | None:
     if name in os.environ:
@@ -37,6 +39,7 @@ def _load_env_key(name: str) -> str | None:
                 return line.split("=", 1)[1].strip()
     return None
 
+
 CIVITAI_API_KEY = _load_env_key("CIVITAI_API_KEY")
 HF_TOKEN = _load_env_key("HUGGINGFACE_API_KEY") or _load_env_key("HUGGINGFACE_TOKEN")
 DRY_RUN = os.environ.get("DRY_RUN") == "1"
@@ -46,40 +49,33 @@ DRY_RUN = os.environ.get("DRY_RUN") == "1"
 # source: "hf"      → identifier is repo path
 INVENTORY: list[tuple[str, str, str]] = [
     # Character LoRA / packs
-    ("character", "civitai", "434763"),   # all-characters-honkai-star-rail
+    ("character", "civitai", "434763"),  # all-characters-honkai-star-rail
     ("character", "civitai", "2043415"),  # 2025 all-characters HSR
     ("character", "civitai", "1866697"),  # all-characters Amphoreus v36 HSR
-    ("character", "civitai", "357976"),   # pony all-characters Genshin 124
-    ("character", "civitai", "450738"),   # all-characters Genshin 100
-    ("character", "civitai", "471854"),   # all-characters ZZZ
-    ("character", "civitai", "796742"),   # all-characters Wuthering Waves
-
+    ("character", "civitai", "357976"),  # pony all-characters Genshin 124
+    ("character", "civitai", "450738"),  # all-characters Genshin 100
+    ("character", "civitai", "471854"),  # all-characters ZZZ
+    ("character", "civitai", "796742"),  # all-characters Wuthering Waves
     # Eye / face / detail
-    ("eyes", "civitai", "596221"),        # eyes-for-pony perfect-anime-eyes
-    ("eyes", "civitai", "1719571"),       # illustriousxl-eye-focus
-    ("eyes", "civitai", "1690241"),       # sdxl white eyelashes helper
-
+    ("eyes", "civitai", "596221"),  # eyes-for-pony perfect-anime-eyes
+    ("eyes", "civitai", "1719571"),  # illustriousxl-eye-focus
+    ("eyes", "civitai", "1690241"),  # sdxl white eyelashes helper
     # Style / detail polish
-    ("style", "civitai", "1145743"),      # smooth-detailer-booster
-    ("style", "civitai", "345962"),       # fine-anime-screencap-xl
-    ("style", "civitai", "269772"),       # memaxl flat-anime-style
-    ("style", "civitai", "1059388"),      # flux-illustrious-anime-style
-
+    ("style", "civitai", "1145743"),  # smooth-detailer-booster
+    ("style", "civitai", "345962"),  # fine-anime-screencap-xl
+    ("style", "civitai", "269772"),  # memaxl flat-anime-style
+    ("style", "civitai", "1059388"),  # flux-illustrious-anime-style
     # Expression
     ("expression", "civitai", "140423"),  # sleepy-eyes
-    ("expression", "civitai", "1297732"), # sleeping-with-eyes-open
+    ("expression", "civitai", "1297732"),  # sleeping-with-eyes-open
     ("expression", "civitai", "158012"),  # rolling-eyes
     ("expression", "civitai", "174836"),  # a-better-crying
-
     # PixAI mirror collections
     ("pixai_mirror", "civitai", "1756576"),  # PIXAI style collection
-
     # Checkpoint / base model
     ("checkpoint", "civitai", "827184"),  # WAI illustrious SDXL
-
     # ADetailer / detection (Civitai)
-    ("detection", "civitai", "178518"),   # eyeful robust eye detection
-
+    ("detection", "civitai", "178518"),  # eyeful robust eye detection
     # ADetailer / detection (HuggingFace)
     ("detection", "hf", "deepghs/anime_head_detection"),
     ("detection", "hf", "Fuyucchi/yolov8_animeface"),
@@ -120,7 +116,9 @@ def _download(url: str, dest: Path, headers: dict | None = None) -> bool:
         headers["Range"] = f"bytes={pos}-"
         print(f"      resume from {pos:,} bytes")
     try:
-        with requests.get(url, headers=headers, stream=True, timeout=60, allow_redirects=True) as r:
+        with requests.get(
+            url, headers=headers, stream=True, timeout=60, allow_redirects=True
+        ) as r:
             if r.status_code == 416:  # already complete
                 os.replace(tmp, dest)
                 return True
@@ -128,7 +126,9 @@ def _download(url: str, dest: Path, headers: dict | None = None) -> bool:
                 print(f"      HTTP {r.status_code}: {r.text[:200]}")
                 return False
             mode = "ab" if pos and r.status_code == 206 else "wb"
-            total = int(r.headers.get("content-length", 0)) + (pos if r.status_code == 206 else 0)
+            total = int(r.headers.get("content-length", 0)) + (
+                pos if r.status_code == 206 else 0
+            )
             done = pos if r.status_code == 206 else 0
             last_print = time.time()
             with open(tmp, mode) as f:
@@ -139,7 +139,9 @@ def _download(url: str, dest: Path, headers: dict | None = None) -> bool:
                     done += len(chunk)
                     if time.time() - last_print > 2:
                         pct = (done / total * 100) if total else 0
-                        print(f"      {done/1e6:.1f} MB / {total/1e6:.1f} MB ({pct:.1f}%)")
+                        print(
+                            f"      {done / 1e6:.1f} MB / {total / 1e6:.1f} MB ({pct:.1f}%)"
+                        )
                         last_print = time.time()
         os.replace(tmp, dest)  # atomic overwrite; handles existing dest on Windows
         size_mb = dest.stat().st_size / 1e6
@@ -183,7 +185,9 @@ def fetch_civitai(model_id: str, category: str) -> None:
         print("   no files in version")
         return
     # prefer primary, then largest .safetensors
-    primary = next((f for f in files if f.get("primary")), None) or max(files, key=lambda f: f.get("sizeKB") or 0)
+    primary = next((f for f in files if f.get("primary")), None) or max(
+        files, key=lambda f: f.get("sizeKB") or 0
+    )
     fname = _safe_name(primary.get("name") or f"{model_id}.safetensors")
     url = primary.get("downloadUrl")
     if not url:
@@ -193,7 +197,7 @@ def fetch_civitai(model_id: str, category: str) -> None:
     if dest.exists():
         print(f"   already exists: {dest.name}")
         return
-    print(f"   {data.get('name','?')} :: {fname}")
+    print(f"   {data.get('name', '?')} :: {fname}")
     _download(url, dest, headers=headers)
 
 
@@ -212,7 +216,11 @@ def fetch_hf(repo: str, category: str) -> None:
         print(f"   API HTTP {r.status_code}: {r.text[:200]}")
         return
     siblings = r.json().get("siblings") or []
-    targets = [s["rfilename"] for s in siblings if s.get("rfilename", "").lower().endswith(DOWNLOAD_EXTS)]
+    targets = [
+        s["rfilename"]
+        for s in siblings
+        if s.get("rfilename", "").lower().endswith(DOWNLOAD_EXTS)
+    ]
     if not targets:
         print(f"   no model files in repo (siblings={len(siblings)})")
         return
@@ -230,7 +238,9 @@ def fetch_hf(repo: str, category: str) -> None:
 
 def main() -> int:
     if not CIVITAI_API_KEY:
-        print("WARNING: CIVITAI_API_KEY not found in env; Civitai downloads will likely fail (login required).")
+        print(
+            "WARNING: CIVITAI_API_KEY not found in env; Civitai downloads will likely fail (login required)."
+        )
     print(f"DEST_ROOT={DEST_ROOT}")
     DEST_ROOT.mkdir(parents=True, exist_ok=True)
     for category, source, ident in INVENTORY:

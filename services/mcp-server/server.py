@@ -1,4 +1,4 @@
-﻿"""
+"""
 AI-Assistant MCP Server
 =======================
 Model Context Protocol server cho AI-Assistant project.
@@ -10,15 +10,13 @@ Server nÃ y cung cáº¥p:
 - Prompts: Template prompts cho cÃ¡c tÃ¡c vá»¥ phá»• biáº¿n
 """
 
-import os
 import ast
 import math
-import json
-import sqlite3
 import operator as _op
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+import os
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 try:
     from mcp.server.fastmcp import FastMCP
@@ -52,10 +50,16 @@ workspace_relative = _guard_mod.workspace_relative
 
 # Module-level safe math evaluator setup
 _MATH_ALLOWED = {k: v for k, v in math.__dict__.items() if not k.startswith("__")}
-_MATH_ALLOWED.update({"abs": abs, "round": round, "min": min, "max": max, "sum": sum, "pow": pow})
+_MATH_ALLOWED.update(
+    {"abs": abs, "round": round, "min": min, "max": max, "sum": sum, "pow": pow}
+)
 _MATH_BINOPS = {
-    ast.Add: _op.add, ast.Sub: _op.sub, ast.Mult: _op.mul,
-    ast.Div: _op.truediv, ast.Pow: _op.pow, ast.Mod: _op.mod,
+    ast.Add: _op.add,
+    ast.Sub: _op.sub,
+    ast.Mult: _op.mul,
+    ast.Div: _op.truediv,
+    ast.Pow: _op.pow,
+    ast.Mod: _op.mod,
     ast.FloorDiv: _op.floordiv,
 }
 _MATH_UNOPS = {ast.UAdd: _op.pos, ast.USub: _op.neg}
@@ -63,6 +67,7 @@ _MATH_UNOPS = {ast.UAdd: _op.pos, ast.USub: _op.neg}
 
 def _safe_math_eval(expression: str):
     """Evaluate a mathematical expression safely using AST parsing."""
+
     def _eval_node(node):
         if isinstance(node, ast.Constant):
             if isinstance(node.value, (int, float, complex)):
@@ -75,34 +80,44 @@ def _safe_math_eval(expression: str):
         if isinstance(node, ast.BinOp):
             if type(node.op) not in _MATH_BINOPS:
                 raise ValueError(f"Operator not allowed: {type(node.op).__name__}")
-            return _MATH_BINOPS[type(node.op)](_eval_node(node.left), _eval_node(node.right))
+            return _MATH_BINOPS[type(node.op)](
+                _eval_node(node.left), _eval_node(node.right)
+            )
         if isinstance(node, ast.UnaryOp):
             if type(node.op) not in _MATH_UNOPS:
                 raise ValueError(f"Operator not allowed: {type(node.op).__name__}")
             return _MATH_UNOPS[type(node.op)](_eval_node(node.operand))
         if isinstance(node, ast.Call):
-            if not isinstance(node.func, ast.Name) or node.func.id not in _MATH_ALLOWED or not callable(_MATH_ALLOWED[node.func.id]):
+            if (
+                not isinstance(node.func, ast.Name)
+                or node.func.id not in _MATH_ALLOWED
+                or not callable(_MATH_ALLOWED[node.func.id])
+            ):
                 raise ValueError(f"Function not allowed: {ast.dump(node.func)}")
             func = _MATH_ALLOWED[node.func.id]
             args = [_eval_node(a) for a in node.args]
             kwargs = {kw.arg: _eval_node(kw.value) for kw in node.keywords}
             return func(*args, **kwargs)
         raise ValueError(f"Unsupported expression: {type(node).__name__}")
-    return _eval_node(ast.parse(expression, mode='eval').body)
+
+    return _eval_node(ast.parse(expression, mode="eval").body)
 
 
 # ==================== TOOLS ====================
 
+
 @mcp.tool()
-def search_files(query: str, file_type: str = "all", max_results: int = 10) -> Dict[str, Any]:
+def search_files(
+    query: str, file_type: str = "all", max_results: int = 10
+) -> dict[str, Any]:
     """
     TÃ¬m kiáº¿m files trong workspace theo query.
-    
+
     Args:
         query: Tá»« khÃ³a tÃ¬m kiáº¿m
         file_type: Loáº¡i file (all, py, md, json, txt)
         max_results: Sá»‘ káº¿t quáº£ tá»‘i Ä‘a
-        
+
     Returns:
         Dict chá»©a danh sÃ¡ch files tÃ¬m tháº¥y
     """
@@ -112,9 +127,9 @@ def search_files(query: str, file_type: str = "all", max_results: int = 10) -> D
         "py": [".py"],
         "md": [".md"],
         "json": [".json"],
-        "txt": [".txt"]
+        "txt": [".txt"],
     }
-    
+
     exts = extensions.get(file_type, ["*"])
     max_results = max(1, min(int(max_results), 50))
 
@@ -124,11 +139,8 @@ def search_files(query: str, file_type: str = "all", max_results: int = 10) -> D
             dirs[:] = []
             continue
 
-        dirs[:] = [
-            d for d in dirs
-            if not is_blocked_workspace_path(root_path / d)
-        ]
-        
+        dirs[:] = [d for d in dirs if not is_blocked_workspace_path(root_path / d)]
+
         for file in files:
             if any(ext == "*" or file.endswith(ext) for ext in exts):
                 if query.lower() in file.lower():
@@ -136,128 +148,132 @@ def search_files(query: str, file_type: str = "all", max_results: int = 10) -> D
                     if is_blocked_workspace_path(full_path):
                         continue
                     rel_path = workspace_relative(full_path)
-                    results.append({
-                        "filename": file,
-                        "path": rel_path,
-                        "size": full_path.stat().st_size
-                    })
-                    
+                    results.append(
+                        {
+                            "filename": file,
+                            "path": rel_path,
+                            "size": full_path.stat().st_size,
+                        }
+                    )
+
                     if len(results) >= max_results:
                         break
-        
+
         if len(results) >= max_results:
             break
-    
+
     return {
         "query": query,
         "file_type": file_type,
         "total_found": len(results),
-        "results": results
+        "results": results,
     }
 
 
 @mcp.tool()
-def read_file_content(file_path: str, max_lines: int = 100) -> Dict[str, Any]:
+def read_file_content(file_path: str, max_lines: int = 100) -> dict[str, Any]:
     """
     Äá»c ná»™i dung file.
-    
+
     Args:
         file_path: ÄÆ°á»ng dáº«n tÆ°Æ¡ng Ä‘á»‘i tá»« project root
         max_lines: Sá»‘ dÃ²ng tá»‘i Ä‘a Ä‘á»c
-        
+
     Returns:
         Dict chá»©a ná»™i dung file
     """
     try:
         full_path = validate_text_file(file_path)
         max_lines = max(1, min(int(max_lines), 500))
-        
+
         # Äá»c file
-        with open(full_path, 'r', encoding='utf-8') as f:
+        with open(full_path, encoding="utf-8") as f:
             lines = f.readlines()
-        
+
         total_lines = len(lines)
         content_lines = lines[:max_lines]
-        
+
         return {
             "file_path": workspace_relative(full_path),
             "total_lines": total_lines,
             "lines_read": len(content_lines),
             "truncated": total_lines > max_lines,
-            "content": "".join(content_lines)
+            "content": "".join(content_lines),
         }
-    
+
     except Exception as e:
         return {"error": f"Lá»—i Ä‘á»c file: {str(e)}"}
 
 
 @mcp.tool()
-def list_directory(dir_path: str = ".", include_hidden: bool = False) -> Dict[str, Any]:
+def list_directory(dir_path: str = ".", include_hidden: bool = False) -> dict[str, Any]:
     """
     Liá»‡t kÃª ná»™i dung thÆ° má»¥c.
-    
+
     Args:
         dir_path: ÄÆ°á»ng dáº«n thÆ° má»¥c (tÆ°Æ¡ng Ä‘á»‘i tá»« project root)
         include_hidden: CÃ³ hiá»ƒn thá»‹ file/folder áº©n khÃ´ng
-        
+
     Returns:
         Dict chá»©a danh sÃ¡ch files vÃ  folders
     """
     try:
         full_path = validate_workspace_path(dir_path)
-        
+
         if not full_path.is_dir():
             return {"error": f"ÄÆ°á»ng dáº«n khÃ´ng pháº£i lÃ  thÆ° má»¥c: {dir_path}"}
-        
+
         files = []
         folders = []
-        
+
         for item in os.listdir(full_path):
-            if not include_hidden and item.startswith('.'):
+            if not include_hidden and item.startswith("."):
                 continue
-            
+
             item_path = full_path / item
             if is_blocked_workspace_path(item_path):
                 continue
             item_info = {
                 "name": item,
                 "size": os.path.getsize(item_path) if item_path.is_file() else None,
-                "modified": datetime.fromtimestamp(os.path.getmtime(item_path)).isoformat()
+                "modified": datetime.fromtimestamp(
+                    os.path.getmtime(item_path)
+                ).isoformat(),
             }
-            
+
             if item_path.is_file():
                 files.append(item_info)
             else:
                 folders.append(item_info)
-        
+
         return {
             "directory": workspace_relative(full_path),
             "total_items": len(files) + len(folders),
             "folders": sorted(folders, key=lambda x: x["name"]),
-            "files": sorted(files, key=lambda x: x["name"])
+            "files": sorted(files, key=lambda x: x["name"]),
         }
-    
+
     except Exception as e:
         return {"error": f"Lá»—i liá»‡t kÃª thÆ° má»¥c: {str(e)}"}
 
 
 @mcp.tool()
-def get_project_info() -> Dict[str, Any]:
+def get_project_info() -> dict[str, Any]:
     """
     Láº¥y thÃ´ng tin tá»•ng quan vá» project AI-Assistant.
-    
+
     Returns:
         Dict chá»©a thÃ´ng tin project
     """
     services = []
     services_dir = BASE_DIR / "services"
-    
+
     if services_dir.exists():
         for item in os.listdir(services_dir):
             item_path = services_dir / item
-            if item_path.is_dir() and not item.startswith('.'):
+            if item_path.is_dir() and not item.startswith("."):
                 services.append(item)
-    
+
     return {
         "project_name": "AI-Assistant",
         "base_directory": str(BASE_DIR),
@@ -268,91 +284,93 @@ def get_project_info() -> Dict[str, Any]:
             "tests": (BASE_DIR / "tests").exists(),
             "docs": (BASE_DIR / "docs").exists(),
             "resources": (BASE_DIR / "resources").exists(),
-            "local_data": (BASE_DIR / "local_data").exists()
+            "local_data": (BASE_DIR / "local_data").exists(),
         },
-        "description": "Multi-service AI application vá»›i chatbot, document intelligence, image processing, vÃ  nhiá»u tÃ­nh nÄƒng khÃ¡c."
+        "description": "Multi-service AI application vá»›i chatbot, document intelligence, image processing, vÃ  nhiá»u tÃ­nh nÄƒng khÃ¡c.",
     }
 
 
 @mcp.tool()
-def search_logs(service: str = "all", level: str = "all", last_n_lines: int = 50) -> Dict[str, Any]:
+def search_logs(
+    service: str = "all", level: str = "all", last_n_lines: int = 50
+) -> dict[str, Any]:
     """
     TÃ¬m kiáº¿m vÃ  Ä‘á»c logs tá»« cÃ¡c services.
-    
+
     Args:
         service: TÃªn service (all, chatbot, text2sql, etc.)
         level: Log level (all, error, warning, info)
         last_n_lines: Sá»‘ dÃ²ng cuá»‘i cÃ¹ng Ä‘á»c tá»« log
-        
+
     Returns:
         Dict chá»©a log entries
     """
     try:
         logs_found = []
-        
+
         if not LOGS_DIR.exists():
             return {"error": "ThÆ° má»¥c logs khÃ´ng tá»“n táº¡i"}
-        
+
         # TÃ¬m log files
         for log_file in LOGS_DIR.glob("*.log"):
             if service != "all" and service.lower() not in log_file.name.lower():
                 continue
-            
-            with open(log_file, 'r', encoding='utf-8') as f:
+
+            with open(log_file, encoding="utf-8") as f:
                 lines = f.readlines()
-            
+
             recent_lines = lines[-last_n_lines:] if len(lines) > last_n_lines else lines
-            
+
             # Filter by level
             if level != "all":
                 recent_lines = [line for line in recent_lines if level.upper() in line]
-            
-            logs_found.append({
-                "service": log_file.stem,
-                "file": log_file.name,
-                "total_lines": len(lines),
-                "entries": recent_lines
-            })
-        
+
+            logs_found.append(
+                {
+                    "service": log_file.stem,
+                    "file": log_file.name,
+                    "total_lines": len(lines),
+                    "entries": recent_lines,
+                }
+            )
+
         return {
             "service_filter": service,
             "level_filter": level,
             "logs_found": len(logs_found),
-            "data": logs_found
+            "data": logs_found,
         }
-    
+
     except Exception as e:
         return {"error": f"Lá»—i Ä‘á»c logs: {str(e)}"}
 
 
 @mcp.tool()
-def calculate(expression: str) -> Dict[str, Any]:
+def calculate(expression: str) -> dict[str, Any]:
     """
     Thá»±c hiá»‡n phÃ©p tÃ­nh toÃ¡n há»c.
-    
+
     Args:
         expression: Biá»ƒu thá»©c toÃ¡n há»c (vd: "2 + 2", "sqrt(16)", "10 ** 2")
-        
+
     Returns:
         Dict chứa kết quả tính toán
     """
     try:
         result = _safe_math_eval(expression)
-        
+
         return {
             "expression": expression,
             "result": result,
-            "type": type(result).__name__
+            "type": type(result).__name__,
         }
-    
+
     except Exception as e:
-        return {
-            "expression": expression,
-            "error": f"Lỗi tính toán: {str(e)}"
-        }
+        return {"expression": expression, "error": f"Lỗi tính toán: {str(e)}"}
 
 
 # ==================== RESOURCES ====================
+
 
 @mcp.resource("config://model")
 def get_model_config() -> str:
@@ -360,7 +378,7 @@ def get_model_config() -> str:
     try:
         config_file = BASE_DIR / "config" / "model_config.py"
         if config_file.exists():
-            with open(config_file, 'r', encoding='utf-8') as f:
+            with open(config_file, encoding="utf-8") as f:
                 return f.read()
         return "Model config file not found"
     except Exception as e:
@@ -373,7 +391,7 @@ def get_logging_config() -> str:
     try:
         config_file = BASE_DIR / "config" / "logging_config.py"
         if config_file.exists():
-            with open(config_file, 'r', encoding='utf-8') as f:
+            with open(config_file, encoding="utf-8") as f:
                 return f.read()
         return "Logging config file not found"
     except Exception as e:
@@ -386,7 +404,7 @@ def get_readme() -> str:
     try:
         readme_file = BASE_DIR / "README.md"
         if readme_file.exists():
-            with open(readme_file, 'r', encoding='utf-8') as f:
+            with open(readme_file, encoding="utf-8") as f:
                 return f.read()
         return "README.md not found"
     except Exception as e:
@@ -399,7 +417,7 @@ def get_structure_doc() -> str:
     try:
         structure_file = BASE_DIR / "docs" / "STRUCTURE.md"
         if structure_file.exists():
-            with open(structure_file, 'r', encoding='utf-8') as f:
+            with open(structure_file, encoding="utf-8") as f:
                 return f.read()
         return "STRUCTURE.md not found"
     except Exception as e:
@@ -408,11 +426,12 @@ def get_structure_doc() -> str:
 
 # ==================== PROMPTS ====================
 
+
 @mcp.prompt()
 def code_review_prompt(file_path: str) -> str:
     """
     Prompt template Ä‘á»ƒ review code.
-    
+
     Args:
         file_path: ÄÆ°á»ng dáº«n file cáº§n review
     """
@@ -432,7 +451,7 @@ HÃ£y Ä‘Æ°a ra phÃ¢n tÃ­ch chi tiáº¿t vÃ  constructive feedback."
 def debug_prompt(error_message: str, context: str = "") -> str:
     """
     Prompt template Ä‘á»ƒ debug lá»—i.
-    
+
     Args:
         error_message: ThÃ´ng bÃ¡o lá»—i
         context: Context thÃªm vá» lá»—i
@@ -454,7 +473,7 @@ HÃ£y:
 def explain_code_prompt(code_snippet: str) -> str:
     """
     Prompt template Ä‘á»ƒ giáº£i thÃ­ch code.
-    
+
     Args:
         code_snippet: Äoáº¡n code cáº§n giáº£i thÃ­ch
     """
@@ -473,17 +492,18 @@ Giáº£i thÃ­ch:
 
 # ==================== MAIN ====================
 
+
 def main():
     """Khá»Ÿi Ä‘á»™ng MCP server"""
-    print(f"ðŸš€ Starting AI-Assistant MCP Server...")
+    print("ðŸš€ Starting AI-Assistant MCP Server...")
     print(f"ðŸ“ Base Directory: {BASE_DIR}")
-    print(f"\nðŸ“‹ Available Features:")
-    print(f"   ðŸ”§ Tools: File operations, search, logs, calculations")
-    print(f"   ðŸ“¦ Resources: Configuration, documentation")
-    print(f"   ðŸ’¬ Prompts: Code review, debugging, explanations")
-    print(f"\nâœ… Server is ready!")
-    print(f"ðŸ“¡ Listening for MCP client connections...")
-    
+    print("\nðŸ“‹ Available Features:")
+    print("   ðŸ”§ Tools: File operations, search, logs, calculations")
+    print("   ðŸ“¦ Resources: Configuration, documentation")
+    print("   ðŸ’¬ Prompts: Code review, debugging, explanations")
+    print("\nâœ… Server is ready!")
+    print("ðŸ“¡ Listening for MCP client connections...")
+
     # Run server
     mcp.run()
 

@@ -148,7 +148,10 @@ class VeoVideoGenerationNode(IO.ComfyNode):
         if image is not None:
             image_base64 = tensor_to_base64_string(image)
             if image_base64:
-                instance["image"] = {"bytesBase64Encoded": image_base64, "mimeType": "image/png"}
+                instance["image"] = {
+                    "bytesBase64Encoded": image_base64,
+                    "mimeType": "image/png",
+                }
 
         instances.append(instance)
 
@@ -201,14 +204,15 @@ class VeoVideoGenerationNode(IO.ComfyNode):
         # Now check for errors in the final response
         # Check for error in poll response
         if poll_response.error:
-            raise Exception(f"Veo API error: {poll_response.error.message} (code: {poll_response.error.code})")
+            raise Exception(
+                f"Veo API error: {poll_response.error.message} (code: {poll_response.error.code})"
+            )
 
         # Check for RAI filtered content
         if (
             hasattr(poll_response.response, "raiMediaFilteredCount")
             and poll_response.response.raiMediaFilteredCount > 0
         ):
-
             # Extract reason message if available
             if (
                 hasattr(poll_response.response, "raiMediaFilteredReasons")
@@ -232,7 +236,11 @@ class VeoVideoGenerationNode(IO.ComfyNode):
 
             # Check if video is provided as base64 or URL
             if hasattr(video, "bytesBase64Encoded") and video.bytesBase64Encoded:
-                return IO.NodeOutput(InputImpl.VideoFromFile(BytesIO(base64.b64decode(video.bytesBase64Encoded))))
+                return IO.NodeOutput(
+                    InputImpl.VideoFromFile(
+                        BytesIO(base64.b64decode(video.bytesBase64Encoded))
+                    )
+                )
 
             if hasattr(video, "gcsUri") and video.gcsUri:
                 return IO.NodeOutput(await download_url_to_video_output(video.gcsUri))
@@ -351,7 +359,6 @@ class Veo3VideoGenerationNode(VeoVideoGenerationNode):
 
 
 class Veo3FirstLastFrameNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -446,10 +453,12 @@ class Veo3FirstLastFrameNode(IO.ComfyNode):
                     VeoRequestInstance(
                         prompt=prompt,
                         image=VeoRequestInstanceImage(
-                            bytesBase64Encoded=tensor_to_base64_string(first_frame), mimeType="image/png"
+                            bytesBase64Encoded=tensor_to_base64_string(first_frame),
+                            mimeType="image/png",
                         ),
                         lastFrame=VeoRequestInstanceImage(
-                            bytesBase64Encoded=tensor_to_base64_string(last_frame), mimeType="image/png"
+                            bytesBase64Encoded=tensor_to_base64_string(last_frame),
+                            mimeType="image/png",
                         ),
                     ),
                 ],
@@ -478,7 +487,9 @@ class Veo3FirstLastFrameNode(IO.ComfyNode):
         )
 
         if poll_response.error:
-            raise Exception(f"Veo API error: {poll_response.error.message} (code: {poll_response.error.code})")
+            raise Exception(
+                f"Veo API error: {poll_response.error.message} (code: {poll_response.error.code})"
+            )
 
         response = poll_response.response
         filtered_count = response.raiMediaFilteredCount
@@ -493,7 +504,11 @@ class Veo3FirstLastFrameNode(IO.ComfyNode):
         if response.videos:
             video = response.videos[0]
             if video.bytesBase64Encoded:
-                return IO.NodeOutput(InputImpl.VideoFromFile(BytesIO(base64.b64decode(video.bytesBase64Encoded))))
+                return IO.NodeOutput(
+                    InputImpl.VideoFromFile(
+                        BytesIO(base64.b64decode(video.bytesBase64Encoded))
+                    )
+                )
             if video.gcsUri:
                 return IO.NodeOutput(await download_url_to_video_output(video.gcsUri))
             raise Exception("Video returned but no data or URL was provided")

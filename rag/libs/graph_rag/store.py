@@ -42,25 +42,33 @@ class GraphStore(Protocol):
     # ── Write operations ───────────────────────────────────────────
 
     async def upsert_entity(
-        self, tenant_id: UUID, entity: Entity,
+        self,
+        tenant_id: UUID,
+        entity: Entity,
     ) -> Entity:
         """Insert or update an entity (merge by name + type)."""
         ...
 
     async def upsert_relationship(
-        self, tenant_id: UUID, relationship: Relationship,
+        self,
+        tenant_id: UUID,
+        relationship: Relationship,
     ) -> Relationship:
         """Insert or update a relationship (merge by source + target + type)."""
         ...
 
     async def upsert_community(
-        self, tenant_id: UUID, community: Community,
+        self,
+        tenant_id: UUID,
+        community: Community,
     ) -> Community:
         """Insert or update a community."""
         ...
 
     async def assign_entity_community(
-        self, entity_id: UUID, community_id: UUID,
+        self,
+        entity_id: UUID,
+        community_id: UUID,
     ) -> None:
         """Assign an entity to a community."""
         ...
@@ -68,7 +76,9 @@ class GraphStore(Protocol):
     # ── Read operations ────────────────────────────────────────────
 
     async def get_entities_by_name(
-        self, tenant_id: UUID, names: list[str],
+        self,
+        tenant_id: UUID,
+        names: list[str],
     ) -> list[Entity]:
         """Fetch entities by exact name match."""
         ...
@@ -96,13 +106,15 @@ class GraphStore(Protocol):
         ...
 
     async def get_all_entities(
-        self, tenant_id: UUID,
+        self,
+        tenant_id: UUID,
     ) -> list[Entity]:
         """Get all entities for a tenant (for community detection)."""
         ...
 
     async def get_all_relationships(
-        self, tenant_id: UUID,
+        self,
+        tenant_id: UUID,
     ) -> list[Relationship]:
         """Get all relationships for a tenant (for community detection)."""
         ...
@@ -120,7 +132,9 @@ class GraphStore(Protocol):
     # ── Delete operations ──────────────────────────────────────────
 
     async def delete_entities_for_document(
-        self, tenant_id: UUID, document_id: UUID,
+        self,
+        tenant_id: UUID,
+        document_id: UUID,
     ) -> int:
         """Remove all entities sourced from a document. Returns count."""
         ...
@@ -144,7 +158,9 @@ class PostgresGraphStore:
         self._session_factory = session_factory
 
     async def upsert_entity(
-        self, tenant_id: UUID, entity: Entity,
+        self,
+        tenant_id: UUID,
+        entity: Entity,
     ) -> Entity:
         from libs.core.models import GraphEntity
 
@@ -192,7 +208,9 @@ class PostgresGraphStore:
             return entity
 
     async def upsert_relationship(
-        self, tenant_id: UUID, relationship: Relationship,
+        self,
+        tenant_id: UUID,
+        relationship: Relationship,
     ) -> Relationship:
         from libs.core.models import GraphRelationship
 
@@ -236,9 +254,7 @@ class PostgresGraphStore:
             existing = result.scalar_one_or_none()
 
             if existing:
-                existing.description = (
-                    relationship.description or existing.description
-                )
+                existing.description = relationship.description or existing.description
                 existing.weight = max(existing.weight, relationship.weight)
                 current_ids = existing.source_chunk_ids or []
                 new_ids = relationship.source_chunk_ids or []
@@ -271,7 +287,9 @@ class PostgresGraphStore:
             return relationship
 
     async def upsert_community(
-        self, tenant_id: UUID, community: Community,
+        self,
+        tenant_id: UUID,
+        community: Community,
     ) -> Community:
         from libs.core.models import GraphCommunity
 
@@ -294,7 +312,9 @@ class PostgresGraphStore:
             return community
 
     async def assign_entity_community(
-        self, entity_id: UUID, community_id: UUID,
+        self,
+        entity_id: UUID,
+        community_id: UUID,
     ) -> None:
         from libs.core.models import GraphEntity
 
@@ -305,7 +325,9 @@ class PostgresGraphStore:
                 await db.commit()
 
     async def get_entities_by_name(
-        self, tenant_id: UUID, names: list[str],
+        self,
+        tenant_id: UUID,
+        names: list[str],
     ) -> list[Entity]:
         from libs.core.models import GraphEntity
 
@@ -396,7 +418,9 @@ class PostgresGraphStore:
             seed_rows = seed_result.scalars().all()
             seed_entities = [
                 Entity(
-                    id=r.id, name=r.name, entity_type=r.entity_type,
+                    id=r.id,
+                    name=r.name,
+                    entity_type=r.entity_type,
                     description=r.description,
                     source_chunk_ids=r.source_chunk_ids or [],
                     community_id=r.community_id,
@@ -425,17 +449,19 @@ class PostgresGraphStore:
 
                 next_frontier: set[UUID] = set()
                 for r in rel_rows:
-                    all_relationships.append(Relationship(
-                        id=r.id,
-                        source_entity=r.source_entity_id,
-                        target_entity=r.target_entity_id,
-                        relationship_type=r.relationship_type,
-                        description=r.description,
-                        weight=r.weight,
-                        source_chunk_ids=r.source_chunk_ids or [],
-                        source_entity_id=r.source_entity_id,
-                        target_entity_id=r.target_entity_id,
-                    ))
+                    all_relationships.append(
+                        Relationship(
+                            id=r.id,
+                            source_entity=r.source_entity_id,
+                            target_entity=r.target_entity_id,
+                            relationship_type=r.relationship_type,
+                            description=r.description,
+                            weight=r.weight,
+                            source_chunk_ids=r.source_chunk_ids or [],
+                            source_entity_id=r.source_entity_id,
+                            target_entity_id=r.target_entity_id,
+                        )
+                    )
                     for eid in (r.source_entity_id, r.target_entity_id):
                         if eid not in visited_ids:
                             next_frontier.add(eid)
@@ -448,19 +474,23 @@ class PostgresGraphStore:
                     )
                     ent_result = await db.execute(ent_stmt)
                     for r in ent_result.scalars().all():
-                        neighbour_entities.append(Entity(
-                            id=r.id, name=r.name,
-                            entity_type=r.entity_type,
-                            description=r.description,
-                            source_chunk_ids=r.source_chunk_ids or [],
-                            community_id=r.community_id,
-                        ))
+                        neighbour_entities.append(
+                            Entity(
+                                id=r.id,
+                                name=r.name,
+                                entity_type=r.entity_type,
+                                description=r.description,
+                                source_chunk_ids=r.source_chunk_ids or [],
+                                community_id=r.community_id,
+                            )
+                        )
                 frontier_ids = next_frontier
 
             # Resolve entity names in relationships
             all_ids = visited_ids
             name_stmt = select(
-                GraphEntity.id, GraphEntity.name,
+                GraphEntity.id,
+                GraphEntity.name,
             ).where(GraphEntity.id.in_(all_ids))
             name_result = await db.execute(name_stmt)
             id_to_name = {row.id: row.name for row in name_result.all()}
@@ -493,7 +523,9 @@ class PostgresGraphStore:
             result = await db.execute(stmt)
             return [
                 Entity(
-                    id=r.id, name=r.name, entity_type=r.entity_type,
+                    id=r.id,
+                    name=r.name,
+                    entity_type=r.entity_type,
                     description=r.description,
                     source_chunk_ids=r.source_chunk_ids or [],
                     community_id=r.community_id,
@@ -569,7 +601,9 @@ class PostgresGraphStore:
             return communities
 
     async def delete_entities_for_document(
-        self, tenant_id: UUID, document_id: UUID,
+        self,
+        tenant_id: UUID,
+        document_id: UUID,
     ) -> int:
         from libs.core.models import GraphEntity
 
@@ -614,48 +648,63 @@ class Neo4jGraphStore:
         if self._driver is None:
             try:
                 from neo4j import AsyncGraphDatabase
+
                 self._driver = AsyncGraphDatabase.driver(
-                    self._uri, auth=(self._user, self._password),
+                    self._uri,
+                    auth=(self._user, self._password),
                 )
             except ImportError as exc:
-                raise RuntimeError(
-                    "neo4j package not installed. "
-                    "Run: pip install neo4j"
-                ) from exc
+                raise RuntimeError("neo4j package not installed. Run: pip install neo4j") from exc
         return self._driver
 
     async def upsert_entity(self, tenant_id: UUID, entity: Entity) -> Entity:
         raise NotImplementedError("Neo4j upsert_entity — implement with Cypher MERGE")
 
     async def upsert_relationship(
-        self, tenant_id: UUID, relationship: Relationship,
+        self,
+        tenant_id: UUID,
+        relationship: Relationship,
     ) -> Relationship:
         raise NotImplementedError("Neo4j upsert_relationship — implement with Cypher MERGE")
 
     async def upsert_community(
-        self, tenant_id: UUID, community: Community,
+        self,
+        tenant_id: UUID,
+        community: Community,
     ) -> Community:
         raise NotImplementedError("Neo4j upsert_community")
 
     async def assign_entity_community(
-        self, entity_id: UUID, community_id: UUID,
+        self,
+        entity_id: UUID,
+        community_id: UUID,
     ) -> None:
         raise NotImplementedError("Neo4j assign_entity_community")
 
     async def get_entities_by_name(
-        self, tenant_id: UUID, names: list[str],
+        self,
+        tenant_id: UUID,
+        names: list[str],
     ) -> list[Entity]:
         raise NotImplementedError("Neo4j get_entities_by_name")
 
     async def search_entities_by_embedding(
-        self, tenant_id: UUID, query_embedding: list[float],
-        *, top_k: int = 10, score_threshold: float = 0.3,
+        self,
+        tenant_id: UUID,
+        query_embedding: list[float],
+        *,
+        top_k: int = 10,
+        score_threshold: float = 0.3,
     ) -> list[tuple[Entity, float]]:
         raise NotImplementedError("Neo4j search_entities_by_embedding")
 
     async def get_entity_neighbourhood(
-        self, tenant_id: UUID, entity_ids: list[UUID],
-        *, hops: int = 2, max_entities: int = 20,
+        self,
+        tenant_id: UUID,
+        entity_ids: list[UUID],
+        *,
+        hops: int = 2,
+        max_entities: int = 20,
     ) -> GraphNeighbourhood:
         raise NotImplementedError("Neo4j get_entity_neighbourhood — use MATCH path pattern")
 
@@ -666,12 +715,17 @@ class Neo4jGraphStore:
         raise NotImplementedError("Neo4j get_all_relationships")
 
     async def search_communities_by_embedding(
-        self, tenant_id: UUID, query_embedding: list[float],
-        *, top_k: int = 10,
+        self,
+        tenant_id: UUID,
+        query_embedding: list[float],
+        *,
+        top_k: int = 10,
     ) -> list[tuple[Community, float]]:
         raise NotImplementedError("Neo4j search_communities_by_embedding")
 
     async def delete_entities_for_document(
-        self, tenant_id: UUID, document_id: UUID,
+        self,
+        tenant_id: UUID,
+        document_id: UUID,
     ) -> int:
         raise NotImplementedError("Neo4j delete_entities_for_document")

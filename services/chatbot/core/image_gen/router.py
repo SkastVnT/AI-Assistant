@@ -1,4 +1,4 @@
-﻿"""
+"""
 ImageRouter â€” the brain of the image generation system.
 Selects the optimal provider based on: quality preference, cost budget,
 speed requirements, feature needs (i2i, inpaint), and provider availability.
@@ -6,51 +6,62 @@ speed requirements, feature needs (i2i, inpaint), and provider availability.
 
 from __future__ import annotations
 
-import os
-import time
-import random
 import logging
-from typing import Optional, Generator
-from dataclasses import dataclass, field
+import os
+import random
+import time
+from collections.abc import Generator
+from dataclasses import dataclass
 
-from .providers.base import (
-    BaseImageProvider, ImageRequest, ImageResult,
-    ImageMode, ProviderTier, LoraSpec,
-)
+from .character_detector import CharacterDetector
+from .enhancer import STYLE_PRESETS, PromptEnhancer, create_enhancer
 from .providers import (
-    FalProvider, ReplicateProvider, BFLProvider,
-    OpenAIImageProvider, ComfyUIProvider, ComfyUIFastProvider,
-    TogetherProvider, StepFunProvider,
+    BFLProvider,
+    ComfyUIFastProvider,
+    ComfyUIProvider,
+    FalProvider,
+    OpenAIImageProvider,
+    ReplicateProvider,
+    StepFunProvider,
+    TogetherProvider,
+)
+from .providers.base import (
+    BaseImageProvider,
+    ImageMode,
+    ImageRequest,
+    ImageResult,
+    LoraSpec,
+    ProviderTier,
 )
 from .providers.fal_provider import FAL_COST
 from .providers.replicate_provider import REPLICATE_COST
-from .enhancer import PromptEnhancer, create_enhancer, STYLE_PRESETS
-from .character_detector import CharacterDetector
 
 logger = logging.getLogger(__name__)
 
 
 class QualityMode:
     """User-facing quality selection."""
-    AUTO    = "auto"       # Router decides optimal provider
-    FAST    = "fast"       # Speed priority (klein-4b, schnell)
-    QUALITY = "quality"    # Best quality (flux2-pro, grok-imagine)
-    FREE    = "free"       # Local only (ComfyUI)
-    CHEAP   = "cheap"      # Lowest cost cloud ($0.003/img)
+
+    AUTO = "auto"  # Router decides optimal provider
+    FAST = "fast"  # Speed priority (klein-4b, schnell)
+    QUALITY = "quality"  # Best quality (flux2-pro, grok-imagine)
+    FREE = "free"  # Local only (ComfyUI)
+    CHEAP = "cheap"  # Lowest cost cloud ($0.003/img)
 
 
-@dataclass 
+@dataclass
 class ProviderConfig:
     """Holds initialized providers and their priority."""
+
     provider: BaseImageProvider
-    priority: int = 0       # higher = preferred
+    priority: int = 0  # higher = preferred
     enabled: bool = True
 
 
 class ImageGenerationRouter:
     """
     Central orchestrator for image generation.
-    
+
     Features:
     - Auto-selects best provider based on request
     - Prompt enhancement via LLM
@@ -61,8 +72,8 @@ class ImageGenerationRouter:
 
     def __init__(self):
         self._providers: dict[str, ProviderConfig] = {}
-        self._enhancer: Optional[PromptEnhancer] = None
-        self._character_detector: Optional[CharacterDetector] = None
+        self._enhancer: PromptEnhancer | None = None
+        self._character_detector: CharacterDetector | None = None
         self._total_cost: float = 0.0
         self._total_generations: int = 0
         self._init_providers()
@@ -71,7 +82,7 @@ class ImageGenerationRouter:
 
     def _init_providers(self):
         """Initialize all available providers from environment."""
-        
+
         # fal.ai
         fal_key = os.getenv("FAL_API_KEY", "")
         if fal_key:
@@ -107,10 +118,15 @@ class ImageGenerationRouter:
 
         # ComfyUI (local) — register only when not in low-resource mode
         try:
-            from app.services.image_orchestrator.runtime_profile import get_runtime_profile
+            from app.services.image_orchestrator.runtime_profile import (
+                get_runtime_profile,
+            )
+
             profile = get_runtime_profile()
             if not profile.skip_comfyui_provider:
-                comfyui_url = os.getenv("COMFYUI_URL", os.getenv("SD_API_URL", "http://127.0.0.1:8188"))
+                comfyui_url = os.getenv(
+                    "COMFYUI_URL", os.getenv("SD_API_URL", "http://127.0.0.1:8188")
+                )
                 self._providers["comfyui"] = ProviderConfig(
                     provider=ComfyUIProvider(base_url=comfyui_url),
                     priority=10,  # lowest priority unless explicitly requested or FREE mode
@@ -123,7 +139,9 @@ class ImageGenerationRouter:
                     priority=15,
                 )
         except Exception as e:
-            logger.warning(f"[ImageRouter] Failed to check runtime profile, skipping ComfyUI: {e}")
+            logger.warning(
+                f"[ImageRouter] Failed to check runtime profile, skipping ComfyUI: {e}"
+            )
 
         # Together.ai (free tier available)
         together_key = os.getenv("TOGETHER_API_KEY", "")
@@ -141,7 +159,9 @@ class ImageGenerationRouter:
                 priority=75,  # high for editing tasks
             )
 
-        available = [name for name, cfg in self._providers.items() if cfg.provider.is_available]
+        available = [
+            name for name, cfg in self._providers.items() if cfg.provider.is_available
+        ]
         logger.info(f"[ImageRouter] Initialized providers: {available}")
 
     def _init_enhancer(self):
@@ -156,6 +176,7 @@ class ImageGenerationRouter:
         """Initialize character detector from LoRA catalog."""
         try:
             from config.model_presets import LORA_CATALOG
+
             self._character_detector = CharacterDetector(LORA_CATALOG)
             logger.info("[ImageRouter] Character detector initialized")
         except Exception as e:
@@ -168,24 +189,24 @@ class ImageGenerationRouter:
         prompt: str,
         mode: str = "auto",
         quality: str = QualityMode.AUTO,
-        style: Optional[str] = None,
+        style: str | None = None,
         width: int = 1024,
         height: int = 1024,
-        source_image_b64: Optional[str] = None,
-        mask_b64: Optional[str] = None,
+        source_image_b64: str | None = None,
+        mask_b64: str | None = None,
         strength: float = 0.75,
         steps: int = 28,
         guidance: float = 3.5,
-        seed: Optional[int] = None,
+        seed: int | None = None,
         num_images: int = 1,
-        provider_name: Optional[str] = None,
-        model_name: Optional[str] = None,
+        provider_name: str | None = None,
+        model_name: str | None = None,
         enhance_prompt: bool = True,
-        context: Optional[str] = None,
-        lora_models: Optional[list[dict]] = None,
-        vae_name: Optional[str] = None,
-        checkpoint: Optional[str] = None,
-        preset_id: Optional[str] = None,
+        context: str | None = None,
+        lora_models: list[dict] | None = None,
+        vae_name: str | None = None,
+        checkpoint: str | None = None,
+        preset_id: str | None = None,
         hires_fix: bool = False,
         hires_scale: float = 1.5,
         hires_denoise: float = 0.45,
@@ -193,13 +214,13 @@ class ImageGenerationRouter:
     ) -> ImageResult:
         """
         Generate image(s) with automatic provider selection.
-        
+
         Args:
             prompt: User's image description
             mode: "t2i", "i2i", "inpaint" or "auto"
             quality: "auto", "fast", "quality", "free", "cheap"
             style: Style preset name (e.g., "photorealistic", "anime")
-            width/height: Output dimensions 
+            width/height: Output dimensions
             source_image_b64: Base64 source image for img2img/inpaint
             mask_b64: Base64 mask for inpainting
             strength: Denoising strength for img2img (0-1)
@@ -223,7 +244,9 @@ class ImageGenerationRouter:
         resolved_neg = ""
         if preset_id:
             resolved_checkpoint, resolved_loras, preset_settings = self._resolve_preset(
-                preset_id, checkpoint, lora_models,
+                preset_id,
+                checkpoint,
+                lora_models,
             )
             if preset_settings:
                 steps = preset_settings.get("steps", steps)
@@ -244,7 +267,8 @@ class ImageGenerationRouter:
                     clip_weight=float(l.get("clip_weight", l.get("weight", 0.8))),
                     trigger_words=l.get("trigger_words", []),
                 )
-                for l in lora_models if l.get("name")
+                for l in lora_models
+                if l.get("name")
             ]
 
         # 0b. Auto-detect characters → pick ComfyUI with character LoRA only
@@ -266,7 +290,9 @@ class ImageGenerationRouter:
                     for c in detection.characters
                     if c.lora_file  # skip trait-only characters
                 ]
-                detected_char_keys = {c.key for c in detection.characters if getattr(c, "key", None)}
+                detected_char_keys = {
+                    c.key for c in detection.characters if getattr(c, "key", None)
+                }
                 if not resolved_checkpoint and detection.suggested_checkpoint:
                     resolved_checkpoint = detection.suggested_checkpoint
                 logger.info(
@@ -289,6 +315,7 @@ class ImageGenerationRouter:
         if not preset_id:
             try:
                 from .lora_resolver import resolve_loras_from_text
+
                 already = {l.name for l in resolved_loras}
                 extras = resolve_loras_from_text(
                     prompt,
@@ -322,10 +349,14 @@ class ImageGenerationRouter:
         if enhance_prompt and self._enhancer:
             try:
                 enhanced_prompt = self._enhancer.enhance(
-                    prompt, style_preset=style, context=context,
+                    prompt,
+                    style_preset=style,
+                    context=context,
                     provider_hint=provider_name or "",
                 )
-                logger.info(f"[ImageRouter] Enhanced: '{prompt[:50]}...' → '{enhanced_prompt[:80]}...'")
+                logger.info(
+                    f"[ImageRouter] Enhanced: '{prompt[:50]}...' → '{enhanced_prompt[:80]}...'"
+                )
             except Exception as e:
                 logger.warning(f"[ImageRouter] Enhance failed: {e}")
 
@@ -349,16 +380,25 @@ class ImageGenerationRouter:
             vae_name=vae_name,
             checkpoint=resolved_checkpoint,
             preset_id=preset_id,
-            extra={
-                "model": resolved_model,
-                "hires_fix": hires_fix,
-                "hires_scale": hires_scale,
-                "hires_denoise": hires_denoise,
-                "hires_steps": hires_steps,
-            } if resolved_model or hires_fix else (
-                {"hires_fix": True, "hires_scale": hires_scale,
-                 "hires_denoise": hires_denoise, "hires_steps": hires_steps}
-                if hires_fix else {}
+            extra=(
+                {
+                    "model": resolved_model,
+                    "hires_fix": hires_fix,
+                    "hires_scale": hires_scale,
+                    "hires_denoise": hires_denoise,
+                    "hires_steps": hires_steps,
+                }
+                if resolved_model or hires_fix
+                else (
+                    {
+                        "hires_fix": True,
+                        "hires_scale": hires_scale,
+                        "hires_denoise": hires_denoise,
+                        "hires_steps": hires_steps,
+                    }
+                    if hires_fix
+                    else {}
+                )
             ),
         )
 
@@ -366,7 +406,9 @@ class ImageGenerationRouter:
         providers = self._select_providers(quality, img_mode, provider_name)
 
         if resolved_model and resolved_model.startswith("nano-banana"):
-            providers = [cfg for cfg in providers if cfg.provider.name in {"fal", "replicate"}]
+            providers = [
+                cfg for cfg in providers if cfg.provider.name in {"fal", "replicate"}
+            ]
 
         if not providers:
             if resolved_model and resolved_model.startswith("nano-banana"):
@@ -421,25 +463,25 @@ class ImageGenerationRouter:
         prompt: str,
         mode: str = "auto",
         quality: str = QualityMode.AUTO,
-        style: Optional[str] = None,
+        style: str | None = None,
         width: int = 1024,
         height: int = 1024,
-        source_image_b64: Optional[str] = None,
-        mask_b64: Optional[str] = None,
+        source_image_b64: str | None = None,
+        mask_b64: str | None = None,
         strength: float = 0.75,
         steps: int = 28,
         guidance: float = 3.5,
-        seed: Optional[int] = None,
+        seed: int | None = None,
         num_images: int = 1,
-        provider_name: Optional[str] = None,
-        model_name: Optional[str] = None,
+        provider_name: str | None = None,
+        model_name: str | None = None,
         enhance_prompt: bool = True,
-        context: Optional[str] = None,
+        context: str | None = None,
         negative_prompt: str = "",
-        lora_models: Optional[list[dict]] = None,
-        vae_name: Optional[str] = None,
-        checkpoint: Optional[str] = None,
-        preset_id: Optional[str] = None,
+        lora_models: list[dict] | None = None,
+        vae_name: str | None = None,
+        checkpoint: str | None = None,
+        preset_id: str | None = None,
         hires_fix: bool = False,
         hires_scale: float = 1.5,
         hires_denoise: float = 0.45,
@@ -447,7 +489,7 @@ class ImageGenerationRouter:
     ) -> Generator[dict, None, None]:
         """
         Generate image(s) with streaming status updates.
-        
+
         Yields dicts with 'event' and 'data' keys:
           - {"event": "status", "data": {"step": "...", "phase": "...", ...}}
           - {"event": "provider_try", "data": {"provider": "...", "priority": N, ...}}
@@ -459,42 +501,61 @@ class ImageGenerationRouter:
         start_time = time.time()
 
         # 1. Resolve mode
-        yield {"event": "status", "data": {"step": "Analyzing request...", "phase": "init"}}
+        yield {
+            "event": "status",
+            "data": {"step": "Analyzing request...", "phase": "init"},
+        }
         img_mode = self._resolve_mode(mode, source_image_b64, mask_b64)
         mode_labels = {
             ImageMode.TEXT_TO_IMAGE: "Text → Image",
             ImageMode.IMAGE_TO_IMAGE: "Image → Image",
             ImageMode.INPAINT: "Inpainting",
         }
-        yield {"event": "status", "data": {
-            "step": f"Mode: {mode_labels.get(img_mode, str(img_mode))}",
-            "phase": "init",
-        }}
+        yield {
+            "event": "status",
+            "data": {
+                "step": f"Mode: {mode_labels.get(img_mode, str(img_mode))}",
+                "phase": "init",
+            },
+        }
 
         # 2. Enhance prompt
         enhanced_prompt = prompt
         if enhance_prompt and self._enhancer:
-            yield {"event": "status", "data": {
-                "step": "Enhancing prompt with AI...",
-                "phase": "enhance",
-            }}
+            yield {
+                "event": "status",
+                "data": {
+                    "step": "Enhancing prompt with AI...",
+                    "phase": "enhance",
+                },
+            }
             try:
                 enhanced_prompt = self._enhancer.enhance(
-                    prompt, style_preset=style, context=context,
+                    prompt,
+                    style_preset=style,
+                    context=context,
                     provider_hint=provider_name or "",
                 )
-                logger.info(f"[ImageRouter] Enhanced: '{prompt[:50]}...' → '{enhanced_prompt[:80]}...'")
-                yield {"event": "status", "data": {
-                    "step": f"Prompt enhanced",
-                    "phase": "enhance",
-                    "enhanced_prompt": enhanced_prompt,
-                }}
+                logger.info(
+                    f"[ImageRouter] Enhanced: '{prompt[:50]}...' → '{enhanced_prompt[:80]}...'"
+                )
+                yield {
+                    "event": "status",
+                    "data": {
+                        "step": "Prompt enhanced",
+                        "phase": "enhance",
+                        "enhanced_prompt": enhanced_prompt,
+                    },
+                }
             except Exception as e:
                 logger.warning(f"[ImageRouter] Enhance failed: {e}")
-                yield {"event": "status", "data": {
-                    "step": "Prompt enhancement skipped",
-                    "phase": "enhance",
-                }}
+                yield {
+                    "event": "status",
+                    "data": {
+                        "step": "Prompt enhancement skipped",
+                        "phase": "enhance",
+                    },
+                }
 
         # 3. Resolve workflow preset / loras for streaming flow
         resolved_loras: list[LoraSpec] = []
@@ -502,7 +563,9 @@ class ImageGenerationRouter:
         resolved_neg = negative_prompt or ""
         if preset_id:
             resolved_checkpoint, resolved_loras, preset_settings = self._resolve_preset(
-                preset_id, checkpoint, lora_models,
+                preset_id,
+                checkpoint,
+                lora_models,
             )
             if preset_settings:
                 steps = preset_settings.get("steps", steps)
@@ -524,7 +587,8 @@ class ImageGenerationRouter:
                     clip_weight=float(l.get("clip_weight", l.get("weight", 0.8))),
                     trigger_words=l.get("trigger_words", []),
                 )
-                for l in lora_models if l.get("name")
+                for l in lora_models
+                if l.get("name")
             ]
 
         if resolved_loras and not provider_name:
@@ -561,28 +625,41 @@ class ImageGenerationRouter:
         )
 
         # 5. Select providers
-        yield {"event": "status", "data": {
-            "step": "Selecting providers...",
-            "phase": "select",
-        }}
+        yield {
+            "event": "status",
+            "data": {
+                "step": "Selecting providers...",
+                "phase": "select",
+            },
+        }
         providers = self._select_providers(quality, img_mode, provider_name)
 
         if resolved_model and resolved_model.startswith("nano-banana"):
-            providers = [cfg for cfg in providers if cfg.provider.name in {"fal", "replicate"}]
+            providers = [
+                cfg for cfg in providers if cfg.provider.name in {"fal", "replicate"}
+            ]
 
         if not providers:
-            error_msg = ("Nano Banana requires fal.ai or Replicate API key."
-                         if resolved_model and resolved_model.startswith("nano-banana")
-                         else "No image providers available. Add API keys for fal.ai, Replicate, or BFL.")
-            yield {"event": "error", "data": {"error": error_msg, "prompt_used": enhanced_prompt}}
+            error_msg = (
+                "Nano Banana requires fal.ai or Replicate API key."
+                if resolved_model and resolved_model.startswith("nano-banana")
+                else "No image providers available. Add API keys for fal.ai, Replicate, or BFL."
+            )
+            yield {
+                "event": "error",
+                "data": {"error": error_msg, "prompt_used": enhanced_prompt},
+            }
             return
 
         provider_names = [cfg.provider.name for cfg in providers]
-        yield {"event": "status", "data": {
-            "step": f"Available providers: {', '.join(provider_names)}",
-            "phase": "select",
-            "providers": provider_names,
-        }}
+        yield {
+            "event": "status",
+            "data": {
+                "step": f"Available providers: {', '.join(provider_names)}",
+                "phase": "select",
+                "providers": provider_names,
+            },
+        }
 
         # 6. Try providers with fallback (streaming status)
         last_error = ""
@@ -590,12 +667,15 @@ class ImageGenerationRouter:
         for prov_config in providers:
             prov = prov_config.provider
             attempt += 1
-            yield {"event": "provider_try", "data": {
-                "provider": prov.name,
-                "priority": prov_config.priority,
-                "attempt": attempt,
-                "total_providers": len(providers),
-            }}
+            yield {
+                "event": "provider_try",
+                "data": {
+                    "provider": prov.name,
+                    "priority": prov_config.priority,
+                    "attempt": attempt,
+                    "total_providers": len(providers),
+                },
+            }
 
             try:
                 result = prov.generate(req)
@@ -610,61 +690,82 @@ class ImageGenerationRouter:
                         result.metadata["requested_model"] = resolved_model
 
                     latency = round((time.time() - start_time) * 1000, 1)
-                    yield {"event": "provider_success", "data": {
-                        "provider": result.provider,
-                        "model": result.model,
-                        "latency_ms": latency,
-                    }}
-                    yield {"event": "result", "data": {
-                        "success": True,
-                        "provider": result.provider,
-                        "model": result.model,
-                        "images_b64": result.images_b64,
-                        "images_url": result.images_url,
-                        "prompt_used": enhanced_prompt,
-                        "original_prompt": prompt,
-                        "latency_ms": latency,
-                        "cost_usd": result.cost_usd,
-                        "metadata": result.metadata,
-                    }}
+                    yield {
+                        "event": "provider_success",
+                        "data": {
+                            "provider": result.provider,
+                            "model": result.model,
+                            "latency_ms": latency,
+                        },
+                    }
+                    yield {
+                        "event": "result",
+                        "data": {
+                            "success": True,
+                            "provider": result.provider,
+                            "model": result.model,
+                            "images_b64": result.images_b64,
+                            "images_url": result.images_url,
+                            "prompt_used": enhanced_prompt,
+                            "original_prompt": prompt,
+                            "latency_ms": latency,
+                            "cost_usd": result.cost_usd,
+                            "metadata": result.metadata,
+                        },
+                    }
                     return
                 else:
                     last_error = result.error or "Unknown error"
                     logger.warning(f"[ImageRouter] {prov.name} failed: {last_error}")
-                    yield {"event": "provider_fail", "data": {
-                        "provider": prov.name,
-                        "error": last_error,
-                        "attempt": attempt,
-                    }}
+                    yield {
+                        "event": "provider_fail",
+                        "data": {
+                            "provider": prov.name,
+                            "error": last_error,
+                            "attempt": attempt,
+                        },
+                    }
             except Exception as e:
                 last_error = str(e)
                 logger.error(f"[ImageRouter] {prov.name} exception: {e}")
-                yield {"event": "provider_fail", "data": {
-                    "provider": prov.name,
-                    "error": last_error,
-                    "attempt": attempt,
-                }}
+                yield {
+                    "event": "provider_fail",
+                    "data": {
+                        "provider": prov.name,
+                        "error": last_error,
+                        "attempt": attempt,
+                    },
+                }
 
-        yield {"event": "error", "data": {
-            "error": f"All providers failed. Last error: {last_error}",
-            "prompt_used": enhanced_prompt,
-        }}
+        yield {
+            "event": "error",
+            "data": {
+                "error": f"All providers failed. Last error: {last_error}",
+                "prompt_used": enhanced_prompt,
+            },
+        }
 
     def get_available_providers(self) -> list[dict]:
         """Return info about all configured providers."""
         result = []
         for name, cfg in self._providers.items():
             prov = cfg.provider
-            result.append({
-                "name": name,
-                "tier": prov.tier.value if hasattr(prov.tier, 'value') else str(prov.tier),
-                "available": prov.is_available,
-                "supports_i2i": prov.supports_i2i,
-                "supports_inpaint": prov.supports_inpaint,
-                "cost_per_image": prov.cost_per_image,
-                "priority": cfg.priority,
-                "enabled": cfg.enabled,
-            })
+            result.append(
+                {
+                    "name": name,
+                    "tier": (
+                        prov.tier.value
+                        if hasattr(prov.tier, "value")
+                        else str(prov.tier)
+                    ),
+                    "available": prov.is_available,
+                    "supports_i2i": prov.supports_i2i,
+                    "supports_inpaint": prov.supports_inpaint,
+                    "cost_per_image": prov.cost_per_image,
+                    "priority": cfg.priority,
+                    "enabled": cfg.enabled,
+                }
+            )
         return sorted(result, key=lambda x: x["priority"], reverse=True)
 
     def get_style_presets(self) -> dict[str, str]:
@@ -692,7 +793,7 @@ class ImageGenerationRouter:
     # â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _resolve_mode(
-        self, mode: str, source_b64: Optional[str], mask_b64: Optional[str]
+        self, mode: str, source_b64: str | None, mask_b64: str | None
     ) -> ImageMode:
         if mode == "inpaint" or (source_b64 and mask_b64):
             return ImageMode.INPAINT
@@ -700,7 +801,7 @@ class ImageGenerationRouter:
             return ImageMode.IMAGE_TO_IMAGE
         return ImageMode.TEXT_TO_IMAGE
 
-    def _resolve_requested_model(self, model_name: Optional[str]) -> Optional[str]:
+    def _resolve_requested_model(self, model_name: str | None) -> str | None:
         """Resolve model alias/defaults, including nano-banana auto cost selection."""
         raw = (model_name or os.getenv("IMAGE_GEN_DEFAULT_MODEL", "")).strip().lower()
         if not raw:
@@ -735,13 +836,16 @@ class ImageGenerationRouter:
             return "nano-banana-pro"
         return "nano-banana-pro" if pro_cost <= v2_cost else "nano-banana-2"
 
-    def _estimate_model_cost(self, model_key: str) -> Optional[float]:
+    def _estimate_model_cost(self, model_key: str) -> float | None:
         """Estimate lowest available cost for a model across configured providers."""
         costs: list[float] = []
         if "fal" in self._providers and self._providers["fal"].provider.is_available:
             if model_key in FAL_COST:
                 costs.append(FAL_COST[model_key])
-        if "replicate" in self._providers and self._providers["replicate"].provider.is_available:
+        if (
+            "replicate" in self._providers
+            and self._providers["replicate"].provider.is_available
+        ):
             if model_key in REPLICATE_COST:
                 costs.append(REPLICATE_COST[model_key])
         if not costs:
@@ -752,7 +856,7 @@ class ImageGenerationRouter:
         self,
         quality: str,
         mode: ImageMode,
-        force_provider: Optional[str] = None,
+        force_provider: str | None = None,
     ) -> list[ProviderConfig]:
         """Select and order providers based on quality preference."""
 
@@ -782,21 +886,31 @@ class ImageGenerationRouter:
         # Sort by quality preference
         if quality == QualityMode.FAST:
             # Prefer fast/cheap providers
-            candidates.sort(key=lambda c: (
-                0 if c.provider.tier == ProviderTier.FAST else
-                1 if c.provider.tier == ProviderTier.LOCAL else
-                2
-            ))
+            candidates.sort(
+                key=lambda c: (
+                    0
+                    if c.provider.tier == ProviderTier.FAST
+                    else 1
+                    if c.provider.tier == ProviderTier.LOCAL
+                    else 2
+                )
+            )
         elif quality == QualityMode.QUALITY:
             # Prefer ultra/high tier
-            candidates.sort(key=lambda c: (
-                0 if c.provider.tier == ProviderTier.ULTRA else
-                1 if c.provider.tier == ProviderTier.HIGH else
-                2
-            ))
+            candidates.sort(
+                key=lambda c: (
+                    0
+                    if c.provider.tier == ProviderTier.ULTRA
+                    else 1
+                    if c.provider.tier == ProviderTier.HIGH
+                    else 2
+                )
+            )
         elif quality == QualityMode.FREE:
             # Only local providers
-            candidates = [c for c in candidates if c.provider.tier == ProviderTier.LOCAL]
+            candidates = [
+                c for c in candidates if c.provider.tier == ProviderTier.LOCAL
+            ]
         elif quality == QualityMode.CHEAP:
             # Sort by cost
             candidates.sort(key=lambda c: c.provider.cost_per_image)
@@ -813,13 +927,20 @@ class ImageGenerationRouter:
 
         # ── Hybrid mode: promote healthy local providers when profile is "full" ──
         try:
-            from app.services.image_orchestrator.runtime_profile import get_runtime_profile
+            from app.services.image_orchestrator.runtime_profile import (
+                get_runtime_profile,
+            )
+
             profile = get_runtime_profile()
             if profile.prefer_local_when_healthy and quality in (
-                QualityMode.AUTO, QualityMode.FREE, QualityMode.CHEAP,
+                QualityMode.AUTO,
+                QualityMode.FREE,
+                QualityMode.CHEAP,
             ):
                 local = [c for c in candidates if c.provider.tier == ProviderTier.LOCAL]
-                remote = [c for c in candidates if c.provider.tier != ProviderTier.LOCAL]
+                remote = [
+                    c for c in candidates if c.provider.tier != ProviderTier.LOCAL
+                ]
                 if local:
                     local_names = [c.provider.name for c in local]
                     remote_names = [c.provider.name for c in remote]
@@ -848,16 +969,18 @@ class ImageGenerationRouter:
     def _resolve_preset(
         self,
         preset_id: str,
-        checkpoint_override: Optional[str],
-        lora_override: Optional[list[dict]],
-    ) -> tuple[Optional[str], list[LoraSpec], dict]:
+        checkpoint_override: str | None,
+        lora_override: list[dict] | None,
+    ) -> tuple[str | None, list[LoraSpec], dict]:
         """
         Resolve a workflow preset into checkpoint, LoRA specs, and settings.
         User-supplied overrides take priority over preset defaults.
         """
         try:
             from config.model_presets import (
-                get_workflow_preset, resolve_loras_for_preset, get_lora_by_key,
+                get_lora_by_key,
+                get_workflow_preset,
+                resolve_loras_for_preset,
             )
         except ImportError:
             logger.warning("[ImageRouter] model_presets import failed — preset ignored")
@@ -876,19 +999,22 @@ class ImageGenerationRouter:
         lora_specs: list[LoraSpec] = []
         if lora_override:
             for l in lora_override:
-                lora_specs.append(LoraSpec(
-                    name=l.get("name", ""),
-                    weight=float(l.get("weight", 0.8)),
-                    clip_weight=float(l.get("clip_weight", l.get("weight", 0.8))),
-                    trigger_words=l.get("trigger_words", []),
-                ))
+                lora_specs.append(
+                    LoraSpec(
+                        name=l.get("name", ""),
+                        weight=float(l.get("weight", 0.8)),
+                        clip_weight=float(l.get("clip_weight", l.get("weight", 0.8))),
+                        trigger_words=l.get("trigger_words", []),
+                    )
+                )
         else:
             if preset.get("use_live_loras"):
                 live_weight = float(preset.get("live_lora_weight", 0.55))
                 live_limit = int(preset.get("live_lora_limit", 8))
                 all_live_loras = self.get_available_loras()
                 preferred = [
-                    n for n in all_live_loras
+                    n
+                    for n in all_live_loras
                     if str(n).startswith("imported_lora_chatbot/")
                 ]
                 include_keywords = [
@@ -902,43 +1028,59 @@ class ImageGenerationRouter:
                 filtered: list[str] = []
                 for n in candidate_pool:
                     name_lower = str(n).lower()
-                    if include_keywords and not any(k in name_lower for k in include_keywords):
+                    if include_keywords and not any(
+                        k in name_lower for k in include_keywords
+                    ):
                         continue
-                    if exclude_keywords and any(k in name_lower for k in exclude_keywords):
+                    if exclude_keywords and any(
+                        k in name_lower for k in exclude_keywords
+                    ):
                         continue
                     filtered.append(n)
 
-                live_loras = (filtered or candidate_pool)[:max(0, live_limit)]
+                live_loras = (filtered or candidate_pool)[: max(0, live_limit)]
                 for name in live_loras:
-                    lora_specs.append(LoraSpec(
-                        name=name,
-                        weight=live_weight,
-                        clip_weight=live_weight,
-                        trigger_words=[],
-                    ))
+                    lora_specs.append(
+                        LoraSpec(
+                            name=name,
+                            weight=live_weight,
+                            clip_weight=live_weight,
+                            trigger_words=[],
+                        )
+                    )
             else:
                 resolved = resolve_loras_for_preset(preset_id)
                 for r in resolved:
-                    lora_specs.append(LoraSpec(
-                        name=r["file"],
-                        weight=r["weight"],
-                        clip_weight=r["weight"],
-                        trigger_words=r.get("trigger", []),
-                    ))
+                    lora_specs.append(
+                        LoraSpec(
+                            name=r["file"],
+                            weight=r["weight"],
+                            clip_weight=r["weight"],
+                            trigger_words=r.get("trigger", []),
+                        )
+                    )
 
         # Gather other settings
         settings = {
-            k: preset[k] for k in (
-                "steps", "cfg_scale", "width", "height",
-                "negative_prompt", "sampler",
-                "hires_fix", "hires_scale", "hires_denoise", "hires_steps",
-            ) if k in preset
+            k: preset[k]
+            for k in (
+                "steps",
+                "cfg_scale",
+                "width",
+                "height",
+                "negative_prompt",
+                "sampler",
+                "hires_fix",
+                "hires_scale",
+                "hires_denoise",
+                "hires_steps",
+            )
+            if k in preset
         }
 
         safe_preset_id = str(preset_id).replace("\r", "").replace("\n", "")
         safe_ckpt = (
-            str(ckpt).replace("\r", "").replace("\n", "")
-            if ckpt is not None else None
+            str(ckpt).replace("\r", "").replace("\n", "") if ckpt is not None else None
         )
         logger.info(
             "[ImageRouter] Preset '%s': ckpt=%s, loras=%s, settings=%s",

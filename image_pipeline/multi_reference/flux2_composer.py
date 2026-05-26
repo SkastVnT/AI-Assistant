@@ -45,51 +45,54 @@ logger = logging.getLogger(__name__)
 # ── Model catalog ────────────────────────────────────────────────────
 
 FLUX2_MODELS = {
-    "flux2-pro":          "flux-2-pro",
-    "flux2-pro-preview":  "flux-2-pro-preview",
-    "flux2-max":          "flux-2-max",
-    "flux2-klein-4b":     "flux-2-klein-4b",
-    "flux2-klein-9b":     "flux-2-klein-9b",
+    "flux2-pro": "flux-2-pro",
+    "flux2-pro-preview": "flux-2-pro-preview",
+    "flux2-max": "flux-2-max",
+    "flux2-klein-4b": "flux-2-klein-4b",
+    "flux2-klein-9b": "flux-2-klein-9b",
     "flux2-klein-9b-preview": "flux-2-klein-9b-preview",
 }
 
 FLUX2_COST_PER_MP = {
-    "flux2-pro":          0.030,
-    "flux2-pro-preview":  0.030,
-    "flux2-max":          0.070,
-    "flux2-klein-4b":     0.001,
-    "flux2-klein-9b":     0.002,
+    "flux2-pro": 0.030,
+    "flux2-pro-preview": 0.030,
+    "flux2-max": 0.070,
+    "flux2-klein-4b": 0.001,
+    "flux2-klein-9b": 0.002,
     "flux2-klein-9b-preview": 0.002,
 }
 
 FLUX2_MAX_REFS = {
-    "flux2-pro":          8,
-    "flux2-pro-preview":  8,
-    "flux2-max":          8,
-    "flux2-klein-4b":     4,
-    "flux2-klein-9b":     4,
+    "flux2-pro": 8,
+    "flux2-pro-preview": 8,
+    "flux2-max": 8,
+    "flux2-klein-4b": 4,
+    "flux2-klein-9b": 4,
     "flux2-klein-9b-preview": 4,
 }
 
 
 # ── Response type ────────────────────────────────────────────────────
 
+
 @dataclass
 class ComposeResponse:
     """Result from a FLUX.2 composition call."""
-    success:     bool
-    image_url:   Optional[str] = None     # Signed URL (valid 10 min per BFL docs)
-    image_b64:   Optional[str] = None     # Only if we download the result
-    latency_ms:  float         = 0.0
-    model:       str           = ""
-    provider:    str           = "bfl"
-    cost_usd:    float         = 0.0
-    task_id:     str           = ""
-    error:       Optional[str] = None
-    metadata:    dict          = field(default_factory=dict)
+
+    success: bool
+    image_url: Optional[str] = None  # Signed URL (valid 10 min per BFL docs)
+    image_b64: Optional[str] = None  # Only if we download the result
+    latency_ms: float = 0.0
+    model: str = ""
+    provider: str = "bfl"
+    cost_usd: float = 0.0
+    task_id: str = ""
+    error: Optional[str] = None
+    metadata: dict = field(default_factory=dict)
 
 
 # ── Composer ─────────────────────────────────────────────────────────
+
 
 class Flux2Composer:
     """
@@ -128,7 +131,10 @@ class Flux2Composer:
                     "Content-Type": "application/json",
                 },
                 timeout=httpx.Timeout(
-                    connect=8.0, read=self._timeout, write=30.0, pool=5.0,
+                    connect=8.0,
+                    read=self._timeout,
+                    write=30.0,
+                    pool=5.0,
                 ),
             )
         return self._http
@@ -173,7 +179,9 @@ class Flux2Composer:
         if ref_plan.count > max_refs:
             logger.warning(
                 "[Flux2Composer] %d refs exceeds %s limit (%d), truncating",
-                ref_plan.count, model, max_refs,
+                ref_plan.count,
+                model,
+                max_refs,
             )
 
         t0 = time.time()
@@ -213,9 +221,7 @@ class Flux2Composer:
             latency = (time.time() - t0) * 1000
 
             # Estimate cost based on megapixels
-            mp = (
-                ((width or 1024) * (height or 1024)) / 1_000_000
-            )
+            mp = ((width or 1024) * (height or 1024)) / 1_000_000
             cost_per_mp = FLUX2_COST_PER_MP.get(model, 0.030)
             # BFL reports actual cost in response; use that if available
             actual_cost = submit_data.get("cost")
@@ -369,9 +375,7 @@ class Flux2Composer:
             if status == "Ready":
                 return data
             if status in ("Error", "Failed", "Request Moderated"):
-                raise RuntimeError(
-                    f"FLUX.2 task {task_id} {status}: {data}"
-                )
+                raise RuntimeError(f"FLUX.2 task {task_id} {status}: {data}")
 
             time.sleep(self._poll_interval)
 

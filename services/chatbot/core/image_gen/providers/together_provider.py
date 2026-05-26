@@ -1,4 +1,4 @@
-﻿"""
+"""
 Together.ai provider â€” cheap/free FLUX inference.
 Free tier: ~60 images/day. Paid: $0.001-0.006/image.
 Good fallback when fal/replicate are down.
@@ -6,33 +6,37 @@ Good fallback when fal/replicate are down.
 
 from __future__ import annotations
 
-import time
 import logging
+import time
+
 import httpx
 
 from .base import (
-    BaseImageProvider, ImageRequest, ImageResult,
-    ImageMode, ProviderTier,
+    BaseImageProvider,
+    ImageMode,
+    ImageRequest,
+    ImageResult,
+    ProviderTier,
 )
 
 logger = logging.getLogger(__name__)
 
 TOGETHER_MODELS = {
-    "flux1-schnell":     "black-forest-labs/FLUX.1-schnell",
-    "flux1-dev":         "black-forest-labs/FLUX.1-dev",
-    "flux1-kontext":     "black-forest-labs/FLUX.1-Kontext",
-    "flux1-canny":       "black-forest-labs/FLUX.1-canny",
-    "flux1-depth":       "black-forest-labs/FLUX.1-depth",
-    "flux1-redux":       "black-forest-labs/FLUX.1-Redux",
+    "flux1-schnell": "black-forest-labs/FLUX.1-schnell",
+    "flux1-dev": "black-forest-labs/FLUX.1-dev",
+    "flux1-kontext": "black-forest-labs/FLUX.1-Kontext",
+    "flux1-canny": "black-forest-labs/FLUX.1-canny",
+    "flux1-depth": "black-forest-labs/FLUX.1-depth",
+    "flux1-redux": "black-forest-labs/FLUX.1-Redux",
 }
 
 TOGETHER_COST = {
-    "flux1-schnell":     0.001,
-    "flux1-dev":         0.006,
-    "flux1-kontext":     0.006,
-    "flux1-canny":       0.006,
-    "flux1-depth":       0.006,
-    "flux1-redux":       0.006,
+    "flux1-schnell": 0.001,
+    "flux1-dev": 0.006,
+    "flux1-kontext": 0.006,
+    "flux1-canny": 0.006,
+    "flux1-depth": 0.006,
+    "flux1-redux": 0.006,
 }
 
 
@@ -64,7 +68,9 @@ class TogetherProvider(BaseImageProvider):
         model_key = req.extra.get("model", self.default_model)
         model_id = TOGETHER_MODELS.get(model_key)
         if not model_id:
-            return ImageResult(success=False, error=f"Unknown Together model: {model_key}")
+            return ImageResult(
+                success=False, error=f"Unknown Together model: {model_key}"
+            )
 
         t0 = time.time()
 
@@ -117,14 +123,19 @@ class TogetherProvider(BaseImageProvider):
                 model=model_key,
                 prompt_used=req.prompt,
                 latency_ms=latency,
-                cost_usd=TOGETHER_COST.get(model_key, 0.001) * max(1, len(images_b64) + len(images_url)),
+                cost_usd=TOGETHER_COST.get(model_key, 0.001)
+                * max(1, len(images_b64) + len(images_url)),
                 metadata={"together_model": model_id},
             )
 
         except httpx.HTTPStatusError as e:
             body = e.response.text[:500] if e.response else "no body"
             logger.error(f"[Together] HTTP {e.response.status_code}: {body}")
-            return ImageResult(success=False, error=f"Together error: {e.response.status_code}", provider=self.name)
+            return ImageResult(
+                success=False,
+                error=f"Together error: {e.response.status_code}",
+                provider=self.name,
+            )
         except Exception as e:
             logger.error(f"[Together] Error: {e}", exc_info=True)
             return ImageResult(success=False, error=str(e), provider=self.name)

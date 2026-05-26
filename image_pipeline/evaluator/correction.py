@@ -39,26 +39,26 @@ _PIPELINE_YAML = _CONFIGS_DIR / "pipeline.yaml"
 
 _DIM_TO_STRATEGY: dict[str, str] = {
     EvalDimension.INSTRUCTION_ADHERENCE: "semantic",
-    EvalDimension.SEMANTIC_EDIT:         "semantic",
-    EvalDimension.IDENTITY_CONSISTENCY:  "semantic",
-    EvalDimension.MULTI_REF_QUALITY:     "composite",
-    EvalDimension.DETAIL_HANDLING:       "fill",
-    EvalDimension.TEXT_RENDERING:        "fill",
-    EvalDimension.MULTI_TURN_STABILITY:  "semantic",
-    EvalDimension.CORRECTION_SUCCESS:    "composite",
+    EvalDimension.SEMANTIC_EDIT: "semantic",
+    EvalDimension.IDENTITY_CONSISTENCY: "semantic",
+    EvalDimension.MULTI_REF_QUALITY: "composite",
+    EvalDimension.DETAIL_HANDLING: "fill",
+    EvalDimension.TEXT_RENDERING: "fill",
+    EvalDimension.MULTI_TURN_STABILITY: "semantic",
+    EvalDimension.CORRECTION_SUCCESS: "composite",
 }
 
 # Dimension → which region to target for spatial corrections
 _DIM_TO_REGION: dict[str, str] = {
-    EvalDimension.DETAIL_HANDLING:      "auto",  # ADetailer auto-detect
-    EvalDimension.TEXT_RENDERING:       "text",
+    EvalDimension.DETAIL_HANDLING: "auto",  # ADetailer auto-detect
+    EvalDimension.TEXT_RENDERING: "text",
     EvalDimension.IDENTITY_CONSISTENCY: "face",
 }
 
 # Strategy → task type for routing
 _STRATEGY_TO_TASK: dict[str, str] = {
-    "semantic":  "semantic_edit",
-    "fill":      "inpaint",
+    "semantic": "semantic_edit",
+    "fill": "inpaint",
     "composite": "detail_fix",
 }
 
@@ -66,6 +66,7 @@ _STRATEGY_TO_TASK: dict[str, str] = {
 @dataclass
 class CorrectionRound:
     """Record of a single correction attempt."""
+
     round_number: int
     strategy: str
     targets: list[str]
@@ -83,6 +84,7 @@ class CorrectionRound:
 @dataclass
 class CorrectionResult:
     """Aggregate result of the correction loop."""
+
     rounds: list[CorrectionRound] = field(default_factory=list)
     total_rounds: int = 0
     total_cost_usd: float = 0.0
@@ -132,7 +134,9 @@ class CorrectionLoop:
 
         logger.info(
             "CorrectionLoop: max_rounds=%d, budget=$%.2f, strategies=%s",
-            self._max_rounds, self._budget_usd, self._strategies,
+            self._max_rounds,
+            self._budget_usd,
+            self._strategies,
         )
 
     # ───────────────────────────────────────────────────────────────
@@ -145,8 +149,8 @@ class CorrectionLoop:
         eval_result: EvalResult,
         output_image_path: str | Path,
         *,
-        scorer: Any = None,          # evaluator.scorer.Scorer
-        router: Any = None,          # workflow.capability_router.CapabilityRouter
+        scorer: Any = None,  # evaluator.scorer.Scorer
+        router: Any = None,  # workflow.capability_router.CapabilityRouter
         apply_correction_fn: Any = None,  # async (job, strategy, model, image_path) -> new_path
     ) -> CorrectionResult:
         """
@@ -189,7 +193,9 @@ class CorrectionLoop:
             strategy, targets = self._pick_strategy(current_eval, local_fail_count)
             logger.info(
                 "Correction round %d: strategy=%s, targets=%s",
-                round_num, strategy, targets,
+                round_num,
+                strategy,
+                targets,
             )
 
             # 2. Route to model
@@ -220,9 +226,11 @@ class CorrectionLoop:
 
             if apply_correction_fn:
                 try:
-                    new_image_path = Path(await apply_correction_fn(
-                        job, strategy, model_name, str(current_image)
-                    ))
+                    new_image_path = Path(
+                        await apply_correction_fn(
+                            job, strategy, model_name, str(current_image)
+                        )
+                    )
                     # Estimate cost from router
                     if router:
                         model_info = router.get_model(model_name)
@@ -337,7 +345,11 @@ class CorrectionLoop:
             4. If local already failed → escalate strategy
         """
         failed = eval_result.failed_dimensions
-        targets = list(eval_result.correction_targets) if eval_result.correction_targets else []
+        targets = (
+            list(eval_result.correction_targets)
+            if eval_result.correction_targets
+            else []
+        )
 
         if not failed:
             return "semantic", targets

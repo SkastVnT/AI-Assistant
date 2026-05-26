@@ -21,6 +21,7 @@ Adapted from: https://github.com/lucidrains/magvit2-pytorch/blob/
 https://github.com/lucidrains/magvit2-pytorch/blob/
 9f49074179c912736e617d61b32be367eb5f993a/LICENSE
 """
+
 import math
 from typing import Tuple, Union
 
@@ -51,6 +52,7 @@ from .utils import (
 )
 
 import comfy.ops
+
 ops = comfy.ops.disable_weight_init
 
 _LEGACY_NUM_GROUPS = 32
@@ -246,7 +248,6 @@ class CausalHybridDownsample3d(nn.Module):
             time_stride=1,
             padding=0,
         )
-
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if not self.spatial_down and not self.temporal_down:
@@ -761,16 +762,16 @@ class EncoderFactorized(nn.Module):
         self.num_spatial_downs = int(math.log2(spatial_compression)) - int(
             math.log2(patch_size)
         )
-        assert (
-            self.num_spatial_downs <= self.num_resolutions
-        ), f"Spatially downsample {self.num_resolutions} times at most"
+        assert self.num_spatial_downs <= self.num_resolutions, (
+            f"Spatially downsample {self.num_resolutions} times at most"
+        )
 
         self.num_temporal_downs = int(math.log2(temporal_compression)) - int(
             math.log2(patch_size)
         )
-        assert (
-            self.num_temporal_downs <= self.num_resolutions
-        ), f"Temporally downsample {self.num_resolutions} times at most"
+        assert self.num_temporal_downs <= self.num_resolutions, (
+            f"Temporally downsample {self.num_resolutions} times at most"
+        )
 
         # downsampling
         self.conv_in = nn.Sequential(
@@ -915,15 +916,15 @@ class DecoderFactorized(nn.Module):
         self.num_spatial_ups = int(math.log2(spatial_compression)) - int(
             math.log2(patch_size)
         )
-        assert (
-            self.num_spatial_ups <= self.num_resolutions
-        ), f"Spatially upsample {self.num_resolutions} times at most"
+        assert self.num_spatial_ups <= self.num_resolutions, (
+            f"Spatially upsample {self.num_resolutions} times at most"
+        )
         self.num_temporal_ups = int(math.log2(temporal_compression)) - int(
             math.log2(patch_size)
         )
-        assert (
-            self.num_temporal_ups <= self.num_resolutions
-        ), f"Temporally upsample {self.num_resolutions} times at most"
+        assert self.num_temporal_ups <= self.num_resolutions, (
+            f"Temporally upsample {self.num_resolutions} times at most"
+        )
 
         block_in = channels * channels_mult[self.num_resolutions - 1]
         curr_res = (resolution // patch_size) // 2 ** (self.num_resolutions - 1)

@@ -18,14 +18,17 @@ import comfy.patcher_extension
 def modulate(x, scale):
     return x * (1 + scale.unsqueeze(1))
 
+
 #############################################################################
 #                               Core NextDiT Model                              #
 #############################################################################
+
 
 def clamp_fp16(x):
     if x.dtype == torch.float16:
         return torch.nan_to_num(x, nan=0.0, posinf=65504, neginf=-65504)
     return x
+
 
 class JointAttention(nn.Module):
     """Multi-head attention module."""
@@ -71,8 +74,18 @@ class JointAttention(nn.Module):
         )
 
         if qk_norm:
-            self.q_norm = operation_settings.get("operations").RMSNorm(self.head_dim, elementwise_affine=True, device=operation_settings.get("device"), dtype=operation_settings.get("dtype"))
-            self.k_norm = operation_settings.get("operations").RMSNorm(self.head_dim, elementwise_affine=True, device=operation_settings.get("device"), dtype=operation_settings.get("dtype"))
+            self.q_norm = operation_settings.get("operations").RMSNorm(
+                self.head_dim,
+                elementwise_affine=True,
+                device=operation_settings.get("device"),
+                dtype=operation_settings.get("dtype"),
+            )
+            self.k_norm = operation_settings.get("operations").RMSNorm(
+                self.head_dim,
+                elementwise_affine=True,
+                device=operation_settings.get("device"),
+                dtype=operation_settings.get("dtype"),
+            )
         else:
             self.q_norm = self.k_norm = nn.Identity()
 
@@ -117,7 +130,15 @@ class JointAttention(nn.Module):
         if n_rep >= 1:
             xk = xk.unsqueeze(3).repeat(1, 1, 1, n_rep, 1).flatten(2, 3)
             xv = xv.unsqueeze(3).repeat(1, 1, 1, n_rep, 1).flatten(2, 3)
-        output = optimized_attention_masked(xq.movedim(1, 2), xk.movedim(1, 2), xv.movedim(1, 2), self.n_local_heads, x_mask, skip_reshape=True, transformer_options=transformer_options)
+        output = optimized_attention_masked(
+            xq.movedim(1, 2),
+            xk.movedim(1, 2),
+            xv.movedim(1, 2),
+            self.n_local_heads,
+            x_mask,
+            skip_reshape=True,
+            transformer_options=transformer_options,
+        )
 
         return self.out(output)
 
@@ -213,7 +234,14 @@ class JointTransformerBlock(nn.Module):
         super().__init__()
         self.dim = dim
         self.head_dim = dim // n_heads
-        self.attention = JointAttention(dim, n_heads, n_kv_heads, qk_norm, out_bias=attn_out_bias, operation_settings=operation_settings)
+        self.attention = JointAttention(
+            dim,
+            n_heads,
+            n_kv_heads,
+            qk_norm,
+            out_bias=attn_out_bias,
+            operation_settings=operation_settings,
+        )
         self.feed_forward = FeedForward(
             dim=dim,
             hidden_dim=dim,
@@ -222,11 +250,35 @@ class JointTransformerBlock(nn.Module):
             operation_settings=operation_settings,
         )
         self.layer_id = layer_id
-        self.attention_norm1 = operation_settings.get("operations").RMSNorm(dim, eps=norm_eps, elementwise_affine=True, device=operation_settings.get("device"), dtype=operation_settings.get("dtype"))
-        self.ffn_norm1 = operation_settings.get("operations").RMSNorm(dim, eps=norm_eps, elementwise_affine=True, device=operation_settings.get("device"), dtype=operation_settings.get("dtype"))
+        self.attention_norm1 = operation_settings.get("operations").RMSNorm(
+            dim,
+            eps=norm_eps,
+            elementwise_affine=True,
+            device=operation_settings.get("device"),
+            dtype=operation_settings.get("dtype"),
+        )
+        self.ffn_norm1 = operation_settings.get("operations").RMSNorm(
+            dim,
+            eps=norm_eps,
+            elementwise_affine=True,
+            device=operation_settings.get("device"),
+            dtype=operation_settings.get("dtype"),
+        )
 
-        self.attention_norm2 = operation_settings.get("operations").RMSNorm(dim, eps=norm_eps, elementwise_affine=True, device=operation_settings.get("device"), dtype=operation_settings.get("dtype"))
-        self.ffn_norm2 = operation_settings.get("operations").RMSNorm(dim, eps=norm_eps, elementwise_affine=True, device=operation_settings.get("device"), dtype=operation_settings.get("dtype"))
+        self.attention_norm2 = operation_settings.get("operations").RMSNorm(
+            dim,
+            eps=norm_eps,
+            elementwise_affine=True,
+            device=operation_settings.get("device"),
+            dtype=operation_settings.get("dtype"),
+        )
+        self.ffn_norm2 = operation_settings.get("operations").RMSNorm(
+            dim,
+            eps=norm_eps,
+            elementwise_affine=True,
+            device=operation_settings.get("device"),
+            dtype=operation_settings.get("dtype"),
+        )
 
         self.modulation = modulation
         if modulation:
@@ -257,7 +309,7 @@ class JointTransformerBlock(nn.Module):
         x: torch.Tensor,
         x_mask: torch.Tensor,
         freqs_cis: torch.Tensor,
-        adaln_input: Optional[torch.Tensor]=None,
+        adaln_input: Optional[torch.Tensor] = None,
         transformer_options={},
     ):
         """
@@ -274,30 +326,38 @@ class JointTransformerBlock(nn.Module):
         """
         if self.modulation:
             assert adaln_input is not None
-            scale_msa, gate_msa, scale_mlp, gate_mlp = self.adaLN_modulation(adaln_input).chunk(4, dim=1)
+            scale_msa, gate_msa, scale_mlp, gate_mlp = self.adaLN_modulation(
+                adaln_input
+            ).chunk(4, dim=1)
 
             x = x + gate_msa.unsqueeze(1).tanh() * self.attention_norm2(
-                clamp_fp16(self.attention(
-                    modulate(self.attention_norm1(x), scale_msa),
-                    x_mask,
-                    freqs_cis,
-                    transformer_options=transformer_options,
-                ))
+                clamp_fp16(
+                    self.attention(
+                        modulate(self.attention_norm1(x), scale_msa),
+                        x_mask,
+                        freqs_cis,
+                        transformer_options=transformer_options,
+                    )
+                )
             )
             x = x + gate_mlp.unsqueeze(1).tanh() * self.ffn_norm2(
-                clamp_fp16(self.feed_forward(
-                    modulate(self.ffn_norm1(x), scale_mlp),
-                ))
+                clamp_fp16(
+                    self.feed_forward(
+                        modulate(self.ffn_norm1(x), scale_mlp),
+                    )
+                )
             )
         else:
             assert adaln_input is None
             x = x + self.attention_norm2(
-                clamp_fp16(self.attention(
-                    self.attention_norm1(x),
-                    x_mask,
-                    freqs_cis,
-                    transformer_options=transformer_options,
-                ))
+                clamp_fp16(
+                    self.attention(
+                        self.attention_norm1(x),
+                        x_mask,
+                        freqs_cis,
+                        transformer_options=transformer_options,
+                    )
+                )
             )
             x = x + self.ffn_norm2(
                 self.feed_forward(
@@ -312,7 +372,14 @@ class FinalLayer(nn.Module):
     The final layer of NextDiT.
     """
 
-    def __init__(self, hidden_size, patch_size, out_channels, z_image_modulation=False, operation_settings={}):
+    def __init__(
+        self,
+        hidden_size,
+        patch_size,
+        out_channels,
+        z_image_modulation=False,
+        operation_settings={},
+    ):
         super().__init__()
         self.norm_final = operation_settings.get("operations").LayerNorm(
             hidden_size,
@@ -385,7 +452,11 @@ class NextDiT(nn.Module):
     ) -> None:
         super().__init__()
         self.dtype = dtype
-        operation_settings = {"operations": operations, "device": device, "dtype": dtype}
+        operation_settings = {
+            "operations": operations,
+            "device": device,
+            "dtype": dtype,
+        }
         self.in_channels = in_channels
         self.out_channels = in_channels
         self.patch_size = patch_size
@@ -436,9 +507,19 @@ class NextDiT(nn.Module):
             ]
         )
 
-        self.t_embedder = TimestepEmbedder(min(dim, 1024), output_size=256 if z_image_modulation else None, **operation_settings)
+        self.t_embedder = TimestepEmbedder(
+            min(dim, 1024),
+            output_size=256 if z_image_modulation else None,
+            **operation_settings,
+        )
         self.cap_embedder = nn.Sequential(
-            operation_settings.get("operations").RMSNorm(cap_feat_dim, eps=norm_eps, elementwise_affine=True, device=operation_settings.get("device"), dtype=operation_settings.get("dtype")),
+            operation_settings.get("operations").RMSNorm(
+                cap_feat_dim,
+                eps=norm_eps,
+                elementwise_affine=True,
+                device=operation_settings.get("device"),
+                dtype=operation_settings.get("dtype"),
+            ),
             operation_settings.get("operations").Linear(
                 cap_feat_dim,
                 dim,
@@ -453,7 +534,13 @@ class NextDiT(nn.Module):
         if clip_text_dim is not None:
             self.clip_text_dim = clip_text_dim
             self.clip_text_pooled_proj = nn.Sequential(
-                operation_settings.get("operations").RMSNorm(clip_text_dim, eps=norm_eps, elementwise_affine=True, device=operation_settings.get("device"), dtype=operation_settings.get("dtype")),
+                operation_settings.get("operations").RMSNorm(
+                    clip_text_dim,
+                    eps=norm_eps,
+                    elementwise_affine=True,
+                    device=operation_settings.get("device"),
+                    dtype=operation_settings.get("dtype"),
+                ),
                 operation_settings.get("operations").Linear(
                     clip_text_dim,
                     clip_text_dim,
@@ -493,21 +580,37 @@ class NextDiT(nn.Module):
         )
         # This norm final is in the lumina 2.0 code but isn't actually used for anything.
         # self.norm_final = operation_settings.get("operations").RMSNorm(dim, eps=norm_eps, elementwise_affine=True, device=operation_settings.get("device"), dtype=operation_settings.get("dtype"))
-        self.final_layer = FinalLayer(dim, patch_size, self.out_channels, z_image_modulation=z_image_modulation, operation_settings=operation_settings)
+        self.final_layer = FinalLayer(
+            dim,
+            patch_size,
+            self.out_channels,
+            z_image_modulation=z_image_modulation,
+            operation_settings=operation_settings,
+        )
 
         if self.pad_tokens_multiple is not None:
-            self.x_pad_token = nn.Parameter(torch.empty((1, dim), device=device, dtype=dtype))
-            self.cap_pad_token = nn.Parameter(torch.empty((1, dim), device=device, dtype=dtype))
+            self.x_pad_token = nn.Parameter(
+                torch.empty((1, dim), device=device, dtype=dtype)
+            )
+            self.cap_pad_token = nn.Parameter(
+                torch.empty((1, dim), device=device, dtype=dtype)
+            )
 
         assert (dim // n_heads) == sum(axes_dims)
         self.axes_dims = axes_dims
         self.axes_lens = axes_lens
-        self.rope_embedder = EmbedND(dim=dim // n_heads, theta=rope_theta, axes_dim=axes_dims)
+        self.rope_embedder = EmbedND(
+            dim=dim // n_heads, theta=rope_theta, axes_dim=axes_dims
+        )
         self.dim = dim
         self.n_heads = n_heads
 
     def unpatchify(
-        self, x: torch.Tensor, img_size: List[Tuple[int, int]], cap_size: List[int], return_tensor=False
+        self,
+        x: torch.Tensor,
+        img_size: List[Tuple[int, int]],
+        cap_size: List[int],
+        return_tensor=False,
     ) -> List[torch.Tensor]:
         """
         x: (N, T, patch_size**2 * C)
@@ -532,8 +635,16 @@ class NextDiT(nn.Module):
         return imgs
 
     def patchify_and_embed(
-        self, x: List[torch.Tensor] | torch.Tensor, cap_feats: torch.Tensor, cap_mask: torch.Tensor, t: torch.Tensor, num_tokens, transformer_options={}
-    ) -> Tuple[torch.Tensor, torch.Tensor, List[Tuple[int, int]], List[int], torch.Tensor]:
+        self,
+        x: List[torch.Tensor] | torch.Tensor,
+        cap_feats: torch.Tensor,
+        cap_mask: torch.Tensor,
+        t: torch.Tensor,
+        num_tokens,
+        transformer_options={},
+    ) -> Tuple[
+        torch.Tensor, torch.Tensor, List[Tuple[int, int]], List[int], torch.Tensor
+    ]:
         bsz = len(x)
         pH = pW = self.patch_size
         device = x[0].device
@@ -541,13 +652,32 @@ class NextDiT(nn.Module):
 
         if self.pad_tokens_multiple is not None:
             pad_extra = (-cap_feats.shape[1]) % self.pad_tokens_multiple
-            cap_feats = torch.cat((cap_feats, self.cap_pad_token.to(device=cap_feats.device, dtype=cap_feats.dtype, copy=True).unsqueeze(0).repeat(cap_feats.shape[0], pad_extra, 1)), dim=1)
+            cap_feats = torch.cat(
+                (
+                    cap_feats,
+                    self.cap_pad_token.to(
+                        device=cap_feats.device, dtype=cap_feats.dtype, copy=True
+                    )
+                    .unsqueeze(0)
+                    .repeat(cap_feats.shape[0], pad_extra, 1),
+                ),
+                dim=1,
+            )
 
-        cap_pos_ids = torch.zeros(bsz, cap_feats.shape[1], 3, dtype=torch.float32, device=device)
-        cap_pos_ids[:, :, 0] = torch.arange(cap_feats.shape[1], dtype=torch.float32, device=device) + 1.0
+        cap_pos_ids = torch.zeros(
+            bsz, cap_feats.shape[1], 3, dtype=torch.float32, device=device
+        )
+        cap_pos_ids[:, :, 0] = (
+            torch.arange(cap_feats.shape[1], dtype=torch.float32, device=device) + 1.0
+        )
 
         B, C, H, W = x.shape
-        x = self.x_embedder(x.view(B, C, H // pH, pH, W // pW, pW).permute(0, 2, 4, 3, 5, 1).flatten(3).flatten(1, 2))
+        x = self.x_embedder(
+            x.view(B, C, H // pH, pH, W // pW, pW)
+            .permute(0, 2, 4, 3, 5, 1)
+            .flatten(3)
+            .flatten(1, 2)
+        )
 
         rope_options = transformer_options.get("rope_options", None)
         h_scale = 1.0
@@ -562,31 +692,82 @@ class NextDiT(nn.Module):
             w_start = rope_options.get("shift_x", 0.0)
 
         H_tokens, W_tokens = H // pH, W // pW
-        x_pos_ids = torch.zeros((bsz, x.shape[1], 3), dtype=torch.float32, device=device)
+        x_pos_ids = torch.zeros(
+            (bsz, x.shape[1], 3), dtype=torch.float32, device=device
+        )
         x_pos_ids[:, :, 0] = cap_feats.shape[1] + 1
-        x_pos_ids[:, :, 1] = (torch.arange(H_tokens, dtype=torch.float32, device=device) * h_scale + h_start).view(-1, 1).repeat(1, W_tokens).flatten()
-        x_pos_ids[:, :, 2] = (torch.arange(W_tokens, dtype=torch.float32, device=device) * w_scale + w_start).view(1, -1).repeat(H_tokens, 1).flatten()
+        x_pos_ids[:, :, 1] = (
+            (
+                torch.arange(H_tokens, dtype=torch.float32, device=device) * h_scale
+                + h_start
+            )
+            .view(-1, 1)
+            .repeat(1, W_tokens)
+            .flatten()
+        )
+        x_pos_ids[:, :, 2] = (
+            (
+                torch.arange(W_tokens, dtype=torch.float32, device=device) * w_scale
+                + w_start
+            )
+            .view(1, -1)
+            .repeat(H_tokens, 1)
+            .flatten()
+        )
 
         if self.pad_tokens_multiple is not None:
             pad_extra = (-x.shape[1]) % self.pad_tokens_multiple
-            x = torch.cat((x, self.x_pad_token.to(device=x.device, dtype=x.dtype, copy=True).unsqueeze(0).repeat(x.shape[0], pad_extra, 1)), dim=1)
+            x = torch.cat(
+                (
+                    x,
+                    self.x_pad_token.to(device=x.device, dtype=x.dtype, copy=True)
+                    .unsqueeze(0)
+                    .repeat(x.shape[0], pad_extra, 1),
+                ),
+                dim=1,
+            )
             x_pos_ids = torch.nn.functional.pad(x_pos_ids, (0, 0, 0, pad_extra))
 
-        freqs_cis = self.rope_embedder(torch.cat((cap_pos_ids, x_pos_ids), dim=1)).movedim(1, 2)
+        freqs_cis = self.rope_embedder(
+            torch.cat((cap_pos_ids, x_pos_ids), dim=1)
+        ).movedim(1, 2)
 
         patches = transformer_options.get("patches", {})
 
         # refine context
         for layer in self.context_refiner:
-            cap_feats = layer(cap_feats, cap_mask, freqs_cis[:, :cap_pos_ids.shape[1]], transformer_options=transformer_options)
+            cap_feats = layer(
+                cap_feats,
+                cap_mask,
+                freqs_cis[:, : cap_pos_ids.shape[1]],
+                transformer_options=transformer_options,
+            )
 
         padded_img_mask = None
         x_input = x
         for i, layer in enumerate(self.noise_refiner):
-            x = layer(x, padded_img_mask, freqs_cis[:, cap_pos_ids.shape[1]:], t, transformer_options=transformer_options)
+            x = layer(
+                x,
+                padded_img_mask,
+                freqs_cis[:, cap_pos_ids.shape[1] :],
+                t,
+                transformer_options=transformer_options,
+            )
             if "noise_refiner" in patches:
                 for p in patches["noise_refiner"]:
-                    out = p({"img": x, "img_input": x_input, "txt": cap_feats, "pe": freqs_cis[:, cap_pos_ids.shape[1]:], "vec": t, "x": orig_x, "block_index": i, "transformer_options": transformer_options, "block_type": "noise_refiner"})
+                    out = p(
+                        {
+                            "img": x,
+                            "img_input": x_input,
+                            "txt": cap_feats,
+                            "pe": freqs_cis[:, cap_pos_ids.shape[1] :],
+                            "vec": t,
+                            "x": orig_x,
+                            "block_index": i,
+                            "transformer_options": transformer_options,
+                            "block_type": "noise_refiner",
+                        }
+                    )
                     if "img" in out:
                         x = out["img"]
 
@@ -600,16 +781,30 @@ class NextDiT(nn.Module):
         return comfy.patcher_extension.WrapperExecutor.new_class_executor(
             self._forward,
             self,
-            comfy.patcher_extension.get_all_wrappers(comfy.patcher_extension.WrappersMP.DIFFUSION_MODEL, kwargs.get("transformer_options", {}))
+            comfy.patcher_extension.get_all_wrappers(
+                comfy.patcher_extension.WrappersMP.DIFFUSION_MODEL,
+                kwargs.get("transformer_options", {}),
+            ),
         ).execute(x, timesteps, context, num_tokens, attention_mask, **kwargs)
 
     # def forward(self, x, t, cap_feats, cap_mask):
-    def _forward(self, x, timesteps, context, num_tokens, attention_mask=None, transformer_options={}, **kwargs):
+    def _forward(
+        self,
+        x,
+        timesteps,
+        context,
+        num_tokens,
+        attention_mask=None,
+        transformer_options={},
+        **kwargs,
+    ):
         t = 1.0 - timesteps
         cap_feats = context
         cap_mask = attention_mask
         bs, c, h, w = x.shape
-        x = comfy.ldm.common_dit.pad_to_patch_size(x, (self.patch_size, self.patch_size))
+        x = comfy.ldm.common_dit.pad_to_patch_size(
+            x, (self.patch_size, self.patch_size)
+        )
         """
         Forward pass of NextDiT.
         t: (N,) tensor of diffusion timesteps
@@ -619,20 +814,31 @@ class NextDiT(nn.Module):
         t = self.t_embedder(t * self.time_scale, dtype=x.dtype)  # (N, D)
         adaln_input = t
 
-        cap_feats = self.cap_embedder(cap_feats)  # (N, L, D)  # todo check if able to batchify w.o. redundant compute
+        cap_feats = self.cap_embedder(
+            cap_feats
+        )  # (N, L, D)  # todo check if able to batchify w.o. redundant compute
 
         if self.clip_text_pooled_proj is not None:
             pooled = kwargs.get("clip_text_pooled", None)
             if pooled is not None:
                 pooled = self.clip_text_pooled_proj(pooled)
             else:
-                pooled = torch.zeros((x.shape[0], self.clip_text_dim), device=x.device, dtype=x.dtype)
+                pooled = torch.zeros(
+                    (x.shape[0], self.clip_text_dim), device=x.device, dtype=x.dtype
+                )
 
             adaln_input = self.time_text_embed(torch.cat((t, pooled), dim=-1))
 
         patches = transformer_options.get("patches", {})
         x_is_tensor = isinstance(x, torch.Tensor)
-        img, mask, img_size, cap_size, freqs_cis = self.patchify_and_embed(x, cap_feats, cap_mask, adaln_input, num_tokens, transformer_options=transformer_options)
+        img, mask, img_size, cap_size, freqs_cis = self.patchify_and_embed(
+            x,
+            cap_feats,
+            cap_mask,
+            adaln_input,
+            num_tokens,
+            transformer_options=transformer_options,
+        )
         freqs_cis = freqs_cis.to(img.device)
 
         transformer_options["total_blocks"] = len(self.layers)
@@ -640,17 +846,35 @@ class NextDiT(nn.Module):
         img_input = img
         for i, layer in enumerate(self.layers):
             transformer_options["block_index"] = i
-            img = layer(img, mask, freqs_cis, adaln_input, transformer_options=transformer_options)
+            img = layer(
+                img,
+                mask,
+                freqs_cis,
+                adaln_input,
+                transformer_options=transformer_options,
+            )
             if "double_block" in patches:
                 for p in patches["double_block"]:
-                    out = p({"img": img[:, cap_size[0]:], "img_input": img_input[:, cap_size[0]:], "txt": img[:, :cap_size[0]], "pe": freqs_cis[:, cap_size[0]:], "vec": adaln_input, "x": x, "block_index": i, "transformer_options": transformer_options})
+                    out = p(
+                        {
+                            "img": img[:, cap_size[0] :],
+                            "img_input": img_input[:, cap_size[0] :],
+                            "txt": img[:, : cap_size[0]],
+                            "pe": freqs_cis[:, cap_size[0] :],
+                            "vec": adaln_input,
+                            "x": x,
+                            "block_index": i,
+                            "transformer_options": transformer_options,
+                        }
+                    )
                     if "img" in out:
-                        img[:, cap_size[0]:] = out["img"]
+                        img[:, cap_size[0] :] = out["img"]
                     if "txt" in out:
-                        img[:, :cap_size[0]] = out["txt"]
+                        img[:, : cap_size[0]] = out["txt"]
 
         img = self.final_layer(img, adaln_input)
-        img = self.unpatchify(img, img_size, cap_size, return_tensor=x_is_tensor)[:, :, :h, :w]
+        img = self.unpatchify(img, img_size, cap_size, return_tensor=x_is_tensor)[
+            :, :, :h, :w
+        ]
 
         return -img
-

@@ -11,7 +11,7 @@ import json
 import logging
 import time
 from threading import Lock
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +23,8 @@ class _MemoryCache:
     """
 
     def __init__(self) -> None:
-        self._store: Dict[str, Any] = {}
-        self._expiry: Dict[str, float] = {}
+        self._store: dict[str, Any] = {}
+        self._expiry: dict[str, float] = {}
         self._lock = Lock()
 
     # ------------------------------------------------------------------
@@ -45,14 +45,14 @@ class _MemoryCache:
     # Public interface (mirrors a minimal Redis client)
     # ------------------------------------------------------------------
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         with self._lock:
             if self._is_expired(key):
                 self._cleanup(key)
                 return None
             return self._store.get(key)
 
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         with self._lock:
             self._store[key] = value
             if ttl is not None:
@@ -64,7 +64,7 @@ class _MemoryCache:
         with self._lock:
             self._cleanup(key)
 
-    def keys(self, pattern: str) -> List[str]:
+    def keys(self, pattern: str) -> list[str]:
         """Return all non-expired keys matching a simple prefix pattern."""
         prefix = pattern.rstrip("*")
         with self._lock:
@@ -79,7 +79,7 @@ class _MemoryCache:
             self._store.clear()
             self._expiry.clear()
 
-    def info(self) -> Dict[str, Any]:
+    def info(self) -> dict[str, Any]:
         with self._lock:
             return {
                 "used_memory_human": f"{len(self._store)} entries",
@@ -88,9 +88,7 @@ class _MemoryCache:
 
     def dbsize(self) -> int:
         with self._lock:
-            return len(
-                [k for k in self._store if not self._is_expired(k)]
-            )
+            return len([k for k in self._store if not self._is_expired(k)])
 
 
 def _build_redis_client():
@@ -111,6 +109,7 @@ def _build_redis_client():
 # ChatbotCache – public singleton
 # ---------------------------------------------------------------------------
 
+
 class ChatbotCache:
     """
     Singleton cache façade for the chatbot service.
@@ -125,11 +124,11 @@ class ChatbotCache:
     """
 
     # Default TTL values (seconds)
-    TTL_CONVERSATION = 3600        # 1 hour
+    TTL_CONVERSATION = 3600  # 1 hour
     TTL_USER_CONVERSATIONS = 1800  # 30 minutes
-    TTL_MESSAGES = 3600            # 1 hour
-    TTL_MEMORY = 7200              # 2 hours
-    TTL_QUERY = 3600               # 1 hour
+    TTL_MESSAGES = 3600  # 1 hour
+    TTL_MEMORY = 7200  # 2 hours
+    TTL_QUERY = 3600  # 1 hour
 
     _instance: Optional["ChatbotCache"] = None
     _lock = Lock()
@@ -142,7 +141,7 @@ class ChatbotCache:
         with cls._lock:
             if cls._instance is None:
                 obj = super().__new__(cls)
-                obj._backend = None          # lazily initialised
+                obj._backend = None  # lazily initialised
                 obj._backend_name = "none"
                 cls._instance = obj
         return cls._instance
@@ -195,7 +194,7 @@ class ChatbotCache:
     # ------------------------------------------------------------------
 
     @classmethod
-    def _get(cls, key: str) -> Optional[Any]:
+    def _get(cls, key: str) -> Any | None:
         try:
             backend = cls._get_backend()
             raw = backend.get(key)
@@ -249,7 +248,7 @@ class ChatbotCache:
     # ------------------------------------------------------------------
 
     @classmethod
-    def get_conversation(cls, conversation_id: str) -> Optional[Any]:
+    def get_conversation(cls, conversation_id: str) -> Any | None:
         return cls._get(cls._conv_key(conversation_id))
 
     @classmethod
@@ -265,7 +264,7 @@ class ChatbotCache:
     # ------------------------------------------------------------------
 
     @classmethod
-    def get_user_conversations(cls, user_id: str) -> Optional[Any]:
+    def get_user_conversations(cls, user_id: str) -> Any | None:
         return cls._get(cls._user_convs_key(user_id))
 
     @classmethod
@@ -281,7 +280,7 @@ class ChatbotCache:
     # ------------------------------------------------------------------
 
     @classmethod
-    def get_messages(cls, conversation_id: str) -> Optional[Any]:
+    def get_messages(cls, conversation_id: str) -> Any | None:
         return cls._get(cls._msgs_key(conversation_id))
 
     @classmethod
@@ -297,7 +296,7 @@ class ChatbotCache:
     # ------------------------------------------------------------------
 
     @classmethod
-    def get_user_memories(cls, user_id: str) -> Optional[Any]:
+    def get_user_memories(cls, user_id: str) -> Any | None:
         return cls._get(cls._memory_key(user_id))
 
     @classmethod
@@ -313,11 +312,13 @@ class ChatbotCache:
     # ------------------------------------------------------------------
 
     @classmethod
-    def get_query_result(cls, cache_key: str) -> Optional[Any]:
+    def get_query_result(cls, cache_key: str) -> Any | None:
         return cls._get(cls._query_key(cache_key))
 
     @classmethod
-    def set_query_result(cls, cache_key: str, result: Any, ttl: int = TTL_QUERY) -> None:
+    def set_query_result(
+        cls, cache_key: str, result: Any, ttl: int = TTL_QUERY
+    ) -> None:
         cls._set(cls._query_key(cache_key), result, ttl)
 
     # ------------------------------------------------------------------
@@ -327,11 +328,13 @@ class ChatbotCache:
     @classmethod
     def make_query_hash(cls, *args: Any, **kwargs: Any) -> str:
         """Generate a stable hash string for the given arguments."""
-        payload = json.dumps({"args": args, "kwargs": kwargs}, sort_keys=True, default=str)
+        payload = json.dumps(
+            {"args": args, "kwargs": kwargs}, sort_keys=True, default=str
+        )
         return hashlib.md5(payload.encode("utf-8"), usedforsecurity=False).hexdigest()
 
     @classmethod
-    def get_stats(cls) -> Dict[str, Any]:
+    def get_stats(cls) -> dict[str, Any]:
         """Return cache backend statistics."""
         try:
             inst = cls.__new__(cls)

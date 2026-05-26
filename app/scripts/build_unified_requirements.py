@@ -138,13 +138,19 @@ def main() -> None:
         key = normalize_key(req)
         existing = entries.get(key)
         if existing is None or priority < existing.priority:
-            entries[key] = DepEntry(key=key, requirement=req, source=source, priority=priority)
+            entries[key] = DepEntry(
+                key=key, requirement=req, source=source, priority=priority
+            )
 
     req_files = [
         p
         for p in ROOT.rglob("*.txt")
         if "requirement" in p.name.lower()
-        and not any(part.lower() in {".venv", "venv", "env", "site-packages", "node_modules", "__pycache__"} for part in p.parts)
+        and not any(
+            part.lower()
+            in {".venv", "venv", "env", "site-packages", "node_modules", "__pycache__"}
+            for part in p.parts
+        )
     ]
     for path in sorted(req_files, key=lambda x: str(x).lower()):
         rel = path.relative_to(ROOT)
@@ -152,14 +158,22 @@ def main() -> None:
             add_dep(dep, source=f"requirements:{rel}", priority=3)
 
     for path in sorted(ROOT.rglob("pyproject.toml"), key=lambda x: str(x).lower()):
-        if any(part.lower() in {".venv", "venv", "env", "site-packages", "node_modules", "__pycache__"} for part in path.parts):
+        if any(
+            part.lower()
+            in {".venv", "venv", "env", "site-packages", "node_modules", "__pycache__"}
+            for part in path.parts
+        ):
             continue
         rel = path.relative_to(ROOT)
         for dep in parse_pyproject(path):
             add_dep(dep, source=f"pyproject:{rel}", priority=4)
 
     for path in sorted(ROOT.rglob("environment*.y*ml"), key=lambda x: str(x).lower()):
-        if any(part.lower() in {".venv", "venv", "env", "site-packages", "node_modules", "__pycache__"} for part in path.parts):
+        if any(
+            part.lower()
+            in {".venv", "venv", "env", "site-packages", "node_modules", "__pycache__"}
+            for part in path.parts
+        ):
             continue
         rel = path.relative_to(ROOT)
         for dep in parse_environment_yaml(path):

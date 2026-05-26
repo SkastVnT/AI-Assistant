@@ -11,10 +11,16 @@ stderr_interceptor = None
 
 
 class LogInterceptor(io.TextIOWrapper):
-    def __init__(self, stream,  *args, **kwargs):
+    def __init__(self, stream, *args, **kwargs):
         buffer = stream.buffer
         encoding = stream.encoding
-        super().__init__(buffer, *args, **kwargs, encoding=encoding, line_buffering=stream.line_buffering)
+        super().__init__(
+            buffer,
+            *args,
+            **kwargs,
+            encoding=encoding,
+            line_buffering=stream.line_buffering,
+        )
         self._lock = threading.Lock()
         self._flush_callbacks = []
         self._logs_since_flush = []
@@ -26,7 +32,11 @@ class LogInterceptor(io.TextIOWrapper):
 
             # Simple handling for cr to overwrite the last output if it isnt a full line
             # else logs just get full of progress messages
-            if isinstance(data, str) and data.startswith("\r") and not logs[-1]["m"].endswith("\n"):
+            if (
+                isinstance(data, str)
+                and data.startswith("\r")
+                and not logs[-1]["m"].endswith("\n")
+            ):
                 logs.pop()
             logs.append(entry)
         super().write(data)
@@ -51,7 +61,10 @@ def on_flush(callback):
     if stderr_interceptor is not None:
         stderr_interceptor.on_flush(callback)
 
-def setup_logger(log_level: str = 'INFO', capacity: int = 300, use_stdout: bool = False):
+
+def setup_logger(
+    log_level: str = "INFO", capacity: int = 300, use_stdout: bool = False
+):
     global logs
     if logs:
         return

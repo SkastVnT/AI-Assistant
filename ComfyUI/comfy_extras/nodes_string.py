@@ -18,7 +18,7 @@ class StringConcatenate(io.ComfyNode):
             ],
             outputs=[
                 io.String.Output(),
-            ]
+            ],
         )
 
     @classmethod
@@ -40,7 +40,7 @@ class StringSubstring(io.ComfyNode):
             ],
             outputs=[
                 io.String.Output(),
-            ]
+            ],
         )
 
     @classmethod
@@ -60,7 +60,7 @@ class StringLength(io.ComfyNode):
             ],
             outputs=[
                 io.Int.Output(display_name="length"),
-            ]
+            ],
         )
 
     @classmethod
@@ -77,11 +77,14 @@ class CaseConverter(io.ComfyNode):
             category="utils/string",
             inputs=[
                 io.String.Input("string", multiline=True),
-                io.Combo.Input("mode", options=["UPPERCASE", "lowercase", "Capitalize", "Title Case"]),
+                io.Combo.Input(
+                    "mode",
+                    options=["UPPERCASE", "lowercase", "Capitalize", "Title Case"],
+                ),
             ],
             outputs=[
                 io.String.Output(),
-            ]
+            ],
         )
 
     @classmethod
@@ -113,7 +116,7 @@ class StringTrim(io.ComfyNode):
             ],
             outputs=[
                 io.String.Output(),
-            ]
+            ],
         )
 
     @classmethod
@@ -144,7 +147,7 @@ class StringReplace(io.ComfyNode):
             ],
             outputs=[
                 io.String.Output(),
-            ]
+            ],
         )
 
     @classmethod
@@ -166,7 +169,7 @@ class StringContains(io.ComfyNode):
             ],
             outputs=[
                 io.Boolean.Output(display_name="contains"),
-            ]
+            ],
         )
 
     @classmethod
@@ -194,7 +197,7 @@ class StringCompare(io.ComfyNode):
             ],
             outputs=[
                 io.Boolean.Output(),
-            ]
+            ],
         )
 
     @classmethod
@@ -230,7 +233,7 @@ class RegexMatch(io.ComfyNode):
             ],
             outputs=[
                 io.Boolean.Output(display_name="matches"),
-            ]
+            ],
         )
 
     @classmethod
@@ -264,7 +267,10 @@ class RegexExtract(io.ComfyNode):
             inputs=[
                 io.String.Input("string", multiline=True),
                 io.String.Input("regex_pattern", multiline=True),
-                io.Combo.Input("mode", options=["First Match", "All Matches", "First Group", "All Groups"]),
+                io.Combo.Input(
+                    "mode",
+                    options=["First Match", "All Matches", "First Group", "All Groups"],
+                ),
                 io.Boolean.Input("case_insensitive", default=True),
                 io.Boolean.Input("multiline", default=False),
                 io.Boolean.Input("dotall", default=False),
@@ -272,11 +278,20 @@ class RegexExtract(io.ComfyNode):
             ],
             outputs=[
                 io.String.Output(),
-            ]
+            ],
         )
 
     @classmethod
-    def execute(cls, string, regex_pattern, mode, case_insensitive, multiline, dotall, group_index):
+    def execute(
+        cls,
+        string,
+        regex_pattern,
+        mode,
+        case_insensitive,
+        multiline,
+        dotall,
+        group_index,
+    ):
         join_delimiter = "\n"
 
         flags = 0
@@ -342,16 +357,37 @@ class RegexReplace(io.ComfyNode):
                 io.String.Input("replace", multiline=True),
                 io.Boolean.Input("case_insensitive", default=True, optional=True),
                 io.Boolean.Input("multiline", default=False, optional=True),
-                io.Boolean.Input("dotall", default=False, optional=True, tooltip="When enabled, the dot (.) character will match any character including newline characters. When disabled, dots won't match newlines."),
-                io.Int.Input("count", default=0, min=0, max=100, optional=True, tooltip="Maximum number of replacements to make. Set to 0 to replace all occurrences (default). Set to 1 to replace only the first match, 2 for the first two matches, etc."),
+                io.Boolean.Input(
+                    "dotall",
+                    default=False,
+                    optional=True,
+                    tooltip="When enabled, the dot (.) character will match any character including newline characters. When disabled, dots won't match newlines.",
+                ),
+                io.Int.Input(
+                    "count",
+                    default=0,
+                    min=0,
+                    max=100,
+                    optional=True,
+                    tooltip="Maximum number of replacements to make. Set to 0 to replace all occurrences (default). Set to 1 to replace only the first match, 2 for the first two matches, etc.",
+                ),
             ],
             outputs=[
                 io.String.Output(),
-            ]
+            ],
         )
 
     @classmethod
-    def execute(cls, string, regex_pattern, replace, case_insensitive=True, multiline=False, dotall=False, count=0):
+    def execute(
+        cls,
+        string,
+        regex_pattern,
+        replace,
+        case_insensitive=True,
+        multiline=False,
+        dotall=False,
+        count=0,
+    ):
         flags = 0
 
         if case_insensitive:
@@ -380,6 +416,7 @@ class StringExtension(ComfyExtension):
             RegexExtract,
             RegexReplace,
         ]
+
 
 async def comfy_entrypoint() -> StringExtension:
     return StringExtension()

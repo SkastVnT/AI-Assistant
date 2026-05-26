@@ -62,9 +62,11 @@ def _extract_urls_from_text(text: str) -> list[str]:
 
 # ── Provider 1: Gemini Grounding ─────────────────────────────────────
 
+
 def _provider_gemini(query: str, api_key: str) -> list[dict]:
     """Use Gemini 2.0 Flash with Google Search grounding to collect URLs."""
     import httpx
+
     prompt = (
         f"Find 10 high-quality official anime illustration image URLs for "
         f"'{query}'. Output ONLY a JSON array of objects like "
@@ -81,7 +83,8 @@ def _provider_gemini(query: str, api_key: str) -> list[dict]:
                 "contents": [{"parts": [{"text": prompt}]}],
                 "tools": [{"google_search": {}}],
                 "generationConfig": {
-                    "temperature": 0.2, "maxOutputTokens": 2000,
+                    "temperature": 0.2,
+                    "maxOutputTokens": 2000,
                 },
             },
             timeout=25,
@@ -90,7 +93,8 @@ def _provider_gemini(query: str, api_key: str) -> list[dict]:
         data = resp.json()
         text = (
             data.get("candidates", [{}])[0]
-            .get("content", {}).get("parts", [{}])[0]
+            .get("content", {})
+            .get("parts", [{}])[0]
             .get("text", "")
         )
         # Try strict JSON first
@@ -99,10 +103,14 @@ def _provider_gemini(query: str, api_key: str) -> list[dict]:
             if m:
                 items = json.loads(m.group(0))
                 return [
-                    {"url": it.get("url", ""),
-                     "source": it.get("source", ""), "title": "",
-                     "provider": "gemini"}
-                    for it in items if isinstance(it, dict) and it.get("url")
+                    {
+                        "url": it.get("url", ""),
+                        "source": it.get("source", ""),
+                        "title": "",
+                        "provider": "gemini",
+                    }
+                    for it in items
+                    if isinstance(it, dict) and it.get("url")
                 ]
         except Exception:
             pass
@@ -118,9 +126,11 @@ def _provider_gemini(query: str, api_key: str) -> list[dict]:
 
 # ── Provider 2: OpenAI Responses API (gpt-4o-search-preview) ─────────
 
+
 def _provider_openai_search(query: str, api_key: str) -> list[dict]:
     """Use OpenAI's web-search-enabled chat model to fetch image URLs."""
     import httpx
+
     try:
         resp = httpx.post(
             "https://api.openai.com/v1/chat/completions",
@@ -128,13 +138,17 @@ def _provider_openai_search(query: str, api_key: str) -> list[dict]:
             json={
                 "model": "gpt-4o-search-preview",
                 "messages": [
-                    {"role": "system", "content":
-                        "You are a reference-image finder. Only output a JSON "
+                    {
+                        "role": "system",
+                        "content": "You are a reference-image finder. Only output a JSON "
                         "array of {url, source} objects. Only anime / illustration "
-                        "URLs ending in .jpg/.jpeg/.png/.webp."},
-                    {"role": "user", "content":
-                        f"Find 10 official anime illustration image URLs for: "
-                        f"{query}. Prefer danbooru, pixiv, fandom wiki."},
+                        "URLs ending in .jpg/.jpeg/.png/.webp.",
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Find 10 official anime illustration image URLs for: "
+                        f"{query}. Prefer danbooru, pixiv, fandom wiki.",
+                    },
                 ],
             },
             timeout=30,
@@ -146,10 +160,14 @@ def _provider_openai_search(query: str, api_key: str) -> list[dict]:
             try:
                 items = json.loads(m.group(0))
                 return [
-                    {"url": it.get("url", ""),
-                     "source": it.get("source", ""), "title": "",
-                     "provider": "openai"}
-                    for it in items if isinstance(it, dict) and it.get("url")
+                    {
+                        "url": it.get("url", ""),
+                        "source": it.get("source", ""),
+                        "title": "",
+                        "provider": "openai",
+                    }
+                    for it in items
+                    if isinstance(it, dict) and it.get("url")
                 ]
             except Exception:
                 pass
@@ -164,9 +182,11 @@ def _provider_openai_search(query: str, api_key: str) -> list[dict]:
 
 # ── Provider 3: xAI Grok Live Search ─────────────────────────────────
 
+
 def _provider_grok(query: str, api_key: str) -> list[dict]:
     """Use xAI Grok with Live Search (web) to fetch image URLs."""
     import httpx
+
     try:
         resp = httpx.post(
             "https://api.x.ai/v1/chat/completions",
@@ -174,11 +194,15 @@ def _provider_grok(query: str, api_key: str) -> list[dict]:
             json={
                 "model": "grok-4-fast-reasoning",
                 "messages": [
-                    {"role": "system", "content":
-                        "Output ONLY a JSON array [{\"url\":\"...\",\"source\":\"...\"}]. "
-                        "Only anime illustration URLs ending in .jpg/.jpeg/.png/.webp."},
-                    {"role": "user", "content":
-                        f"Find 10 official anime illustration image URLs for: {query}"},
+                    {
+                        "role": "system",
+                        "content": 'Output ONLY a JSON array [{"url":"...","source":"..."}]. '
+                        "Only anime illustration URLs ending in .jpg/.jpeg/.png/.webp.",
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Find 10 official anime illustration image URLs for: {query}",
+                    },
                 ],
                 "search_parameters": {"mode": "on"},
             },
@@ -191,10 +215,14 @@ def _provider_grok(query: str, api_key: str) -> list[dict]:
             try:
                 items = json.loads(m.group(0))
                 return [
-                    {"url": it.get("url", ""),
-                     "source": it.get("source", ""), "title": "",
-                     "provider": "grok"}
-                    for it in items if isinstance(it, dict) and it.get("url")
+                    {
+                        "url": it.get("url", ""),
+                        "source": it.get("source", ""),
+                        "title": "",
+                        "provider": "grok",
+                    }
+                    for it in items
+                    if isinstance(it, dict) and it.get("url")
                 ]
             except Exception:
                 pass
@@ -209,6 +237,7 @@ def _provider_grok(query: str, api_key: str) -> list[dict]:
 
 # ── Provider 4: StepFun via OpenRouter (NSFW-tolerant) ───────────────
 
+
 def _provider_stepfun_openrouter(query: str, api_key: str) -> list[dict]:
     """Use StepFun (step-3.5-flash by default) via OpenRouter.
 
@@ -222,6 +251,7 @@ def _provider_stepfun_openrouter(query: str, api_key: str) -> list[dict]:
     upstream call falls through silently and the next provider is tried.
     """
     import httpx
+
     model_id = os.getenv("OPENROUTER_STEPFUN_MODEL", "stepfun-ai/step-3")
     try:
         resp = httpx.post(
@@ -234,13 +264,17 @@ def _provider_stepfun_openrouter(query: str, api_key: str) -> list[dict]:
             json={
                 "model": model_id,
                 "messages": [
-                    {"role": "system", "content":
-                        "Output ONLY a JSON array [{\"url\":\"...\",\"source\":\"...\"}]. "
+                    {
+                        "role": "system",
+                        "content": 'Output ONLY a JSON array [{"url":"...","source":"..."}]. '
                         "Include NSFW/R-18 anime illustration URLs when relevant. "
-                        "URLs must end in .jpg/.jpeg/.png/.webp."},
-                    {"role": "user", "content":
-                        f"Find 5 anime illustration image URLs (any rating) for: {query}. "
-                        f"Prefer danbooru, gelbooru, rule34, pixiv."},
+                        "URLs must end in .jpg/.jpeg/.png/.webp.",
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Find 5 anime illustration image URLs (any rating) for: {query}. "
+                        f"Prefer danbooru, gelbooru, rule34, pixiv.",
+                    },
                 ],
             },
             timeout=30,
@@ -252,10 +286,14 @@ def _provider_stepfun_openrouter(query: str, api_key: str) -> list[dict]:
             try:
                 items = json.loads(m.group(0))
                 return [
-                    {"url": it.get("url", ""),
-                     "source": it.get("source", ""), "title": "",
-                     "provider": "stepfun"}
-                    for it in items if isinstance(it, dict) and it.get("url")
+                    {
+                        "url": it.get("url", ""),
+                        "source": it.get("source", ""),
+                        "title": "",
+                        "provider": "stepfun",
+                    }
+                    for it in items
+                    if isinstance(it, dict) and it.get("url")
                 ]
             except Exception:
                 pass
@@ -269,6 +307,7 @@ def _provider_stepfun_openrouter(query: str, api_key: str) -> list[dict]:
 
 
 # ── Public entry ─────────────────────────────────────────────────────
+
 
 def fetch_image_urls_fallback(
     display_name: str,
@@ -333,7 +372,8 @@ def fetch_image_urls_fallback(
             break
         logger.info(
             "[ImageFallback] Trying %s (need %d more)",
-            name, needed - len(accumulated),
+            name,
+            needed - len(accumulated),
         )
         try:
             results = func(query, key)
@@ -344,7 +384,9 @@ def fetch_image_urls_fallback(
         accumulated.extend(fresh[: needed - len(accumulated)])
         logger.info(
             "[ImageFallback] %s contributed %d URLs (total accumulated=%d)",
-            name, len(fresh), len(accumulated),
+            name,
+            len(fresh),
+            len(accumulated),
         )
 
     return accumulated

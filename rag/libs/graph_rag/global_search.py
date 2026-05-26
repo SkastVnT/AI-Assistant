@@ -71,7 +71,9 @@ async def global_search(
     elapsed_ms = (time.perf_counter() - t0) * 1000
     logger.info(
         "global_search: query=%r communities=%d ms=%.1f",
-        query[:50], total_found, elapsed_ms,
+        query[:50],
+        total_found,
+        elapsed_ms,
     )
 
     return CommunitySearchResult(

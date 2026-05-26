@@ -51,7 +51,9 @@ class TestFeatureFlags:
                 },
             }
         }
-        result = get_connection_feature(sockets_metadata, "sid1", "supports_preview_metadata")
+        result = get_connection_feature(
+            sockets_metadata, "sid1", "supports_preview_metadata"
+        )
         assert result is True
 
         result = get_connection_feature(sockets_metadata, "sid1", "custom_feature")
@@ -59,9 +61,7 @@ class TestFeatureFlags:
 
     def test_get_connection_feature_missing_feature(self):
         """Test getting non-existent feature from connection."""
-        sockets_metadata = {
-            "sid1": {"feature_flags": {"existing_feature": True}}
-        }
+        sockets_metadata = {"sid1": {"feature_flags": {"existing_feature": True}}}
         result = get_connection_feature(sockets_metadata, "sid1", "missing_feature")
         assert result is False
 

@@ -17,7 +17,6 @@
 ### last30days
 - [ ] `core/last30days_tool.py` — subprocess wrapper with timeout, input validation, max topic length
 - [ ] `routes/last30days.py` — Flask blueprint registered in `chatbot_main.py`
-- [ ] `fastapi_app/routers/last30days.py` — FastAPI parity router registered in `fastapi_app/__init__.py`
 - [ ] `core/skills/builtins/social_research.yaml` — skill definition loadable by SkillRegistry
 - [ ] `/last30days` command detection works in `routes/stream.py`
 - [ ] Tool button visible in `templates/index.html` with working JS binding
@@ -26,7 +25,6 @@
 ### Hermes
 - [ ] `core/hermes_adapter.py` — HTTP proxy with timeout, auth header, error handling
 - [ ] `routes/hermes.py` — Flask blueprint registered in `chatbot_main.py`
-- [ ] `fastapi_app/routers/hermes.py` — FastAPI parity router registered in `fastapi_app/__init__.py`
 - [ ] `core/config.py` has `HERMES_ENABLED`, `HERMES_API_URL`, `HERMES_API_KEY`, `HERMES_TIMEOUT`
 
 ## Pre-merge — Regression Safety

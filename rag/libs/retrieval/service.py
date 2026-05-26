@@ -218,9 +218,13 @@ async def retrieve(
         results_per_query: list[list[SearchResult]] = []
         for sq in sub_queries:
             sq_results = await _embed_and_search(
-                db, embedding_provider, sq,
-                tenant_id=request.tenant_id, top_k=request.top_k,
-                score_threshold=request.score_threshold, filters=request.filters,
+                db,
+                embedding_provider,
+                sq,
+                tenant_id=request.tenant_id,
+                top_k=request.top_k,
+                score_threshold=request.score_threshold,
+                filters=request.filters,
             )
             results_per_query.append(sq_results)
         all_results = _merge_and_dedupe(results_per_query, request.top_k)
@@ -245,17 +249,25 @@ async def retrieve(
     elif hyde_text:
         # HyDE without hybrid: embed hypothetical document
         all_results = await _embed_and_search(
-            db, embedding_provider, hyde_text,
-            tenant_id=request.tenant_id, top_k=request.top_k,
-            score_threshold=request.score_threshold, filters=request.filters,
+            db,
+            embedding_provider,
+            hyde_text,
+            tenant_id=request.tenant_id,
+            top_k=request.top_k,
+            score_threshold=request.score_threshold,
+            filters=request.filters,
         )
         retrieval_strategy = "hyde_vector"
     else:
         # Baseline dense search
         all_results = await _embed_and_search(
-            db, embedding_provider, search_text,
-            tenant_id=request.tenant_id, top_k=request.top_k,
-            score_threshold=request.score_threshold, filters=request.filters,
+            db,
+            embedding_provider,
+            search_text,
+            tenant_id=request.tenant_id,
+            top_k=request.top_k,
+            score_threshold=request.score_threshold,
+            filters=request.filters,
         )
         retrieval_strategy = "vector_cosine"
 
@@ -287,8 +299,7 @@ async def retrieve(
             "sub_queries": sub_queries,
             "retrieval_strategy": retrieval_strategy,
             "dense_count": (
-                len(hybrid_result.dense_results) if hybrid_result
-                else len(all_results)
+                len(hybrid_result.dense_results) if hybrid_result else len(all_results)
             ),
             "lexical_count": len(hybrid_result.lexical_results) if hybrid_result else 0,
             "fused_count": len(hybrid_result.fused_results) if hybrid_result else 0,

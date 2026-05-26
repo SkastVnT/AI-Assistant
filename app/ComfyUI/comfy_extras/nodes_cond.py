@@ -25,10 +25,11 @@ class CLIPTextEncodeControlnet(io.ComfyNode):
         c = []
         for t in conditioning:
             n = [t[0], t[1].copy()]
-            n[1]['cross_attn_controlnet'] = cond
-            n[1]['pooled_output_controlnet'] = pooled
+            n[1]["cross_attn_controlnet"] = cond
+            n[1]["pooled_output_controlnet"] = pooled
             c.append(n)
         return io.NodeOutput(c)
+
 
 class T5TokenizerOptions(io.ComfyNode):
     @classmethod

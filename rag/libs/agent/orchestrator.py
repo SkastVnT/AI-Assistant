@@ -137,8 +137,11 @@ async def agentic_answer(
 
     logger.info(
         "agentic_answer: task=%s iterations=%d tools=%d reason=%s ms=%.1f",
-        state.task_id, state.iteration, state.total_tool_calls,
-        response.stop_reason, elapsed_ms,
+        state.task_id,
+        state.iteration,
+        state.total_tool_calls,
+        response.stop_reason,
+        elapsed_ms,
     )
     return response
 
@@ -161,17 +164,32 @@ def should_use_agent(query: str, *, auto_route: bool = True) -> bool:
 
     # Multi-part indicators
     multi_part_signals = [
-        " and ", " compare ", " contrast ", " versus ", " vs ",
-        " both ", " each ", " respectively ",
-        " step by step", " first ", " then ",
-        " relationship between", " how does .* affect",
+        " and ",
+        " compare ",
+        " contrast ",
+        " versus ",
+        " vs ",
+        " both ",
+        " each ",
+        " respectively ",
+        " step by step",
+        " first ",
+        " then ",
+        " relationship between",
+        " how does .* affect",
     ]
 
     # Analytical indicators
     analytical_signals = [
-        "analyze", "analyse", "evaluate", "assess",
-        "summarize across", "synthesize", "combine",
-        "what are the implications", "pros and cons",
+        "analyze",
+        "analyse",
+        "evaluate",
+        "assess",
+        "summarize across",
+        "synthesize",
+        "combine",
+        "what are the implications",
+        "pros and cons",
     ]
 
     signal_count = sum(1 for s in multi_part_signals if s in q_lower)

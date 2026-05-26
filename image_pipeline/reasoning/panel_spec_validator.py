@@ -238,10 +238,7 @@ def _validate_panel_into(
 
     # primary_character_key sanity (the schema enforces it must be in
     # character_keys; here we add the registry check + presence reminder).
-    if (
-        panel.primary_character_key is None
-        and panel.character_keys
-    ):
+    if panel.primary_character_key is None and panel.character_keys:
         issues.append(
             ValidationIssue(
                 severity="warning",
@@ -297,7 +294,9 @@ def _validate_panel_into(
                     )
 
     # Overlay plan checks.
-    _validate_overlay_plan(panel.overlay_plan, path=f"{path}.overlay_plan", issues=issues)
+    _validate_overlay_plan(
+        panel.overlay_plan, path=f"{path}.overlay_plan", issues=issues
+    )
 
 
 def _validate_overlay_plan(

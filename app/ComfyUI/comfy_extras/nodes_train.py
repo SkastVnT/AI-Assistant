@@ -26,6 +26,7 @@ class TrainGuider(comfy_extras.nodes_custom_sampler.Guider_Basic):
     """
     CFGGuider with modifications for training specific logic
     """
+
     def outer_sample(
         self,
         noise,
@@ -211,7 +212,9 @@ class TrainSampler(comfy.samplers.Sampler):
         ]
         return torch.tensor(batch_sigmas).to(device)
 
-    def _train_step_bucket_mode(self, model_wrap, cond, extra_args, noisegen, latent_image, pbar):
+    def _train_step_bucket_mode(
+        self, model_wrap, cond, extra_args, noisegen, latent_image, pbar
+    ):
         """Execute one training step in bucket mode."""
         # Sample bucket (weighted by size), then sample batch from bucket
         bucket_idx = torch.multinomial(self.bucket_weights, 1).item()
@@ -225,11 +228,15 @@ class TrainSampler(comfy.samplers.Sampler):
         # Convert to absolute indices for fwd_bwd (cond is flattened, use absolute index)
         absolute_indices = [bucket_offset + idx for idx in relative_indices]
 
-        batch_latent = bucket_latent[relative_indices].to(latent_image)  # (actual_batch_size, C, H, W)
+        batch_latent = bucket_latent[relative_indices].to(
+            latent_image
+        )  # (actual_batch_size, C, H, W)
         batch_noise = noisegen.generate_noise({"samples": batch_latent}).to(
             batch_latent.device
         )
-        batch_sigmas = self._generate_batch_sigmas(model_wrap, actual_batch_size, batch_latent.device)
+        batch_sigmas = self._generate_batch_sigmas(
+            model_wrap, actual_batch_size, batch_latent.device
+        )
 
         loss = self.fwd_bwd(
             model_wrap,
@@ -246,14 +253,18 @@ class TrainSampler(comfy.samplers.Sampler):
             self.loss_callback(loss.item())
         pbar.set_postfix({"loss": f"{loss.item():.4f}", "bucket": bucket_idx})
 
-    def _train_step_standard_mode(self, model_wrap, cond, extra_args, noisegen, latent_image, dataset_size, pbar):
+    def _train_step_standard_mode(
+        self, model_wrap, cond, extra_args, noisegen, latent_image, dataset_size, pbar
+    ):
         """Execute one training step in standard (non-bucket, non-multi-res) mode."""
         indicies = torch.randperm(dataset_size)[: self.batch_size].tolist()
         batch_latent = torch.stack([latent_image[i] for i in indicies])
         batch_noise = noisegen.generate_noise({"samples": batch_latent}).to(
             batch_latent.device
         )
-        batch_sigmas = self._generate_batch_sigmas(model_wrap, min(self.batch_size, dataset_size), batch_latent.device)
+        batch_sigmas = self._generate_batch_sigmas(
+            model_wrap, min(self.batch_size, dataset_size), batch_latent.device
+        )
 
         loss = self.fwd_bwd(
             model_wrap,
@@ -270,19 +281,19 @@ class TrainSampler(comfy.samplers.Sampler):
             self.loss_callback(loss.item())
         pbar.set_postfix({"loss": f"{loss.item():.4f}"})
 
-    def _train_step_multires_mode(self, model_wrap, cond, extra_args, noisegen, latent_image, dataset_size, pbar):
+    def _train_step_multires_mode(
+        self, model_wrap, cond, extra_args, noisegen, latent_image, dataset_size, pbar
+    ):
         """Execute one training step in multi-resolution mode (real_dataset is set)."""
         indicies = torch.randperm(dataset_size)[: self.batch_size].tolist()
         total_loss = 0
         for index in indicies:
             single_latent = self.real_dataset[index].to(latent_image)
-            batch_noise = noisegen.generate_noise(
-                {"samples": single_latent}
-            ).to(single_latent.device)
-            batch_sigmas = (
-                model_wrap.inner_model.model_sampling.percent_to_sigma(
-                    torch.rand((1,)).item()
-                )
+            batch_noise = noisegen.generate_noise({"samples": single_latent}).to(
+                single_latent.device
+            )
+            batch_sigmas = model_wrap.inner_model.model_sampling.percent_to_sigma(
+                torch.rand((1,)).item()
             )
             batch_sigmas = torch.tensor([batch_sigmas]).to(single_latent.device)
             loss = self.fwd_bwd(
@@ -332,11 +343,29 @@ class TrainSampler(comfy.samplers.Sampler):
             )
 
             if self.bucket_latents is not None:
-                self._train_step_bucket_mode(model_wrap, cond, extra_args, noisegen, latent_image, pbar)
+                self._train_step_bucket_mode(
+                    model_wrap, cond, extra_args, noisegen, latent_image, pbar
+                )
             elif self.real_dataset is None:
-                self._train_step_standard_mode(model_wrap, cond, extra_args, noisegen, latent_image, dataset_size, pbar)
+                self._train_step_standard_mode(
+                    model_wrap,
+                    cond,
+                    extra_args,
+                    noisegen,
+                    latent_image,
+                    dataset_size,
+                    pbar,
+                )
             else:
-                self._train_step_multires_mode(model_wrap, cond, extra_args, noisegen, latent_image, dataset_size, pbar)
+                self._train_step_multires_mode(
+                    model_wrap,
+                    cond,
+                    extra_args,
+                    noisegen,
+                    latent_image,
+                    dataset_size,
+                    pbar,
+                )
 
             if (i + 1) % self.grad_acc == 0:
                 self.optimizer.step()
@@ -1055,7 +1084,7 @@ class TrainLoraNode(io.ComfyNode):
             return io.NodeOutput(mp, lora_sd, loss_map, steps + existing_steps)
 
 
-class LoraModelLoader(io.ComfyNode):#
+class LoraModelLoader(io.ComfyNode):  #
     @classmethod
     def define_schema(cls):
         return io.Schema(

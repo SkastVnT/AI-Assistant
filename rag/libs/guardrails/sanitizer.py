@@ -24,21 +24,21 @@ logger = logging.getLogger("rag.guardrails.sanitizer")
 
 # Zero-width and formatting control chars
 _INVISIBLE_CHARS = re.compile(
-    r"[\u200b\u200c\u200d\u200e\u200f"   # zero-width, LTR/RTL marks
-    r"\u2060\u2061\u2062\u2063\u2064"     # word joiner, invisible operators
-    r"\ufeff"                              # BOM / zero-width no-break space
-    r"\u00ad"                              # soft hyphen
-    r"\u034f"                              # combining grapheme joiner
-    r"\u061c"                              # Arabic letter mark
-    r"\u180e"                              # Mongolian vowel separator
-    r"\ufff9\ufffa\ufffb"                 # interlinear annotations
+    r"[\u200b\u200c\u200d\u200e\u200f"  # zero-width, LTR/RTL marks
+    r"\u2060\u2061\u2062\u2063\u2064"  # word joiner, invisible operators
+    r"\ufeff"  # BOM / zero-width no-break space
+    r"\u00ad"  # soft hyphen
+    r"\u034f"  # combining grapheme joiner
+    r"\u061c"  # Arabic letter mark
+    r"\u180e"  # Mongolian vowel separator
+    r"\ufff9\ufffa\ufffb"  # interlinear annotations
     r"]"
 )
 
 # Bidirectional override/embedding chars (used in Trojan Source attacks)
 _BIDI_OVERRIDES = re.compile(
-    r"[\u202a\u202b\u202c\u202d\u202e"   # LRE, RLE, PDF, LRO, RLO
-    r"\u2066\u2067\u2068\u2069"           # LRI, RLI, FSI, PDI
+    r"[\u202a\u202b\u202c\u202d\u202e"  # LRE, RLE, PDF, LRO, RLO
+    r"\u2066\u2067\u2068\u2069"  # LRI, RLI, FSI, PDI
     r"]"
 )
 
@@ -96,6 +96,7 @@ def sanitize_text(
     """
     if settings is None:
         from libs.core.settings import get_settings
+
         settings = get_settings().guardrails
 
     if not settings.sanitize_on_ingest:
@@ -114,39 +115,45 @@ def sanitize_text(
     # ── 1. Null bytes and dangerous control chars ─────────────────────
     matches = list(_DANGEROUS_CONTROL.finditer(cleaned))
     if matches:
-        findings.append(SanitizeFinding(
-            pattern_name="dangerous_control_chars",
-            description="Null bytes or C0 control characters detected",
-            count=len(matches),
-            severity="high",
-            sample_positions=[m.start() for m in matches[:5]],
-        ))
+        findings.append(
+            SanitizeFinding(
+                pattern_name="dangerous_control_chars",
+                description="Null bytes or C0 control characters detected",
+                count=len(matches),
+                severity="high",
+                sample_positions=[m.start() for m in matches[:5]],
+            )
+        )
         total_removed += len(matches)
         cleaned = _DANGEROUS_CONTROL.sub("", cleaned)
 
     # ── 2. ANSI escape sequences ──────────────────────────────────────
     matches = list(_ANSI_ESCAPES.finditer(cleaned))
     if matches:
-        findings.append(SanitizeFinding(
-            pattern_name="ansi_escapes",
-            description="ANSI escape sequences detected (terminal injection risk)",
-            count=len(matches),
-            severity="medium",
-            sample_positions=[m.start() for m in matches[:5]],
-        ))
+        findings.append(
+            SanitizeFinding(
+                pattern_name="ansi_escapes",
+                description="ANSI escape sequences detected (terminal injection risk)",
+                count=len(matches),
+                severity="medium",
+                sample_positions=[m.start() for m in matches[:5]],
+            )
+        )
         total_removed += sum(len(m.group()) for m in matches)
         cleaned = _ANSI_ESCAPES.sub("", cleaned)
 
     # ── 3. Bidirectional overrides (Trojan Source) ────────────────────
     matches = list(_BIDI_OVERRIDES.finditer(cleaned))
     if matches:
-        findings.append(SanitizeFinding(
-            pattern_name="bidi_override",
-            description="Bidirectional text override characters (Trojan Source attack)",
-            count=len(matches),
-            severity="critical",
-            sample_positions=[m.start() for m in matches[:5]],
-        ))
+        findings.append(
+            SanitizeFinding(
+                pattern_name="bidi_override",
+                description="Bidirectional text override characters (Trojan Source attack)",
+                count=len(matches),
+                severity="critical",
+                sample_positions=[m.start() for m in matches[:5]],
+            )
+        )
         total_removed += len(matches)
         cleaned = _BIDI_OVERRIDES.sub("", cleaned)
 
@@ -155,16 +162,18 @@ def sanitize_text(
     if matches:
         invisible_ratio = len(matches) / max(len(cleaned), 1)
         severity = "high" if invisible_ratio > settings.max_hidden_text_ratio else "low"
-        findings.append(SanitizeFinding(
-            pattern_name="invisible_chars",
-            description=(
-                f"Invisible/zero-width characters: {len(matches)} "
-                f"({invisible_ratio:.1%} of text)"
-            ),
-            count=len(matches),
-            severity=severity,
-            sample_positions=[m.start() for m in matches[:5]],
-        ))
+        findings.append(
+            SanitizeFinding(
+                pattern_name="invisible_chars",
+                description=(
+                    f"Invisible/zero-width characters: {len(matches)} "
+                    f"({invisible_ratio:.1%} of text)"
+                ),
+                count=len(matches),
+                severity=severity,
+                sample_positions=[m.start() for m in matches[:5]],
+            )
+        )
         total_removed += len(matches)
         cleaned = _INVISIBLE_CHARS.sub("", cleaned)
 
@@ -176,38 +185,41 @@ def sanitize_text(
         if latin_count > 0 and len(cyrillic_matches) > 0:
             ratio = len(cyrillic_matches) / max(latin_count + len(cyrillic_matches), 1)
             if ratio < 0.5:  # mixed script → suspicious
-                findings.append(SanitizeFinding(
-                    pattern_name="cyrillic_homoglyphs",
-                    description=(
-                        f"Cyrillic homoglyphs mixed with Latin text: "
-                        f"{len(cyrillic_matches)} chars ({ratio:.1%})"
-                    ),
-                    count=len(cyrillic_matches),
-                    severity="high",
-                    sample_positions=[m.start() for m in cyrillic_matches[:5]],
-                ))
+                findings.append(
+                    SanitizeFinding(
+                        pattern_name="cyrillic_homoglyphs",
+                        description=(
+                            f"Cyrillic homoglyphs mixed with Latin text: "
+                            f"{len(cyrillic_matches)} chars ({ratio:.1%})"
+                        ),
+                        count=len(cyrillic_matches),
+                        severity="high",
+                        sample_positions=[m.start() for m in cyrillic_matches[:5]],
+                    )
+                )
 
     # ── 6. Large base64 blobs ─────────────────────────────────────────
     b64_matches = list(_BASE64_BLOB.finditer(cleaned))
     if b64_matches:
-        findings.append(SanitizeFinding(
-            pattern_name="base64_blob",
-            description=(
-                f"Large base64-encoded blobs detected: {len(b64_matches)} "
-                f"(may hide embedded payloads)"
-            ),
-            count=len(b64_matches),
-            severity="medium",
-            sample_positions=[m.start() for m in b64_matches[:3]],
-        ))
+        findings.append(
+            SanitizeFinding(
+                pattern_name="base64_blob",
+                description=(
+                    f"Large base64-encoded blobs detected: {len(b64_matches)} "
+                    f"(may hide embedded payloads)"
+                ),
+                count=len(b64_matches),
+                severity="medium",
+                sample_positions=[m.start() for m in b64_matches[:3]],
+            )
+        )
 
     # ── Decision: reject or pass ──────────────────────────────────────
     should_reject = False
     if settings.reject_on_hidden_text:
         has_critical = any(f.severity == "critical" for f in findings)
         high_invisible = any(
-            f.pattern_name == "invisible_chars" and f.severity == "high"
-            for f in findings
+            f.pattern_name == "invisible_chars" and f.severity == "high" for f in findings
         )
         if has_critical or high_invisible:
             should_reject = True

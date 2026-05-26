@@ -164,18 +164,22 @@ class GuardrailSettings(BaseSettings):
     # Ingestion sanitization
     sanitize_on_ingest: bool = True
     reject_on_hidden_text: bool = True
-    max_hidden_text_ratio: float = 0.1        # reject if >10% hidden
+    max_hidden_text_ratio: float = 0.1  # reject if >10% hidden
     # Prompt injection detection
     detect_prompt_injection: bool = True
-    injection_score_threshold: float = 0.7    # 0.0-1.0; above → block
+    injection_score_threshold: float = 0.7  # 0.0-1.0; above → block
     # Source trust
     classify_source_trust: bool = True
-    default_trust_level: str = "untrusted"    # trusted | untrusted
+    default_trust_level: str = "untrusted"  # trusted | untrusted
     trusted_source_types: list[str] = ["upload"]
     # PII redaction
     redact_pii: bool = True
     pii_patterns: list[str] = [
-        "email", "phone", "ssn", "credit_card", "ip_address",
+        "email",
+        "phone",
+        "ssn",
+        "credit_card",
+        "ip_address",
     ]
     pii_action: str = "redact"  # redact | flag | block
     # Output validation
@@ -234,10 +238,10 @@ class GraphRAGSettings(BaseSettings):
     min_community_size: int = 3
     max_community_summary_tokens: int = 512
     # Retrieval
-    local_search_hops: int = 2            # neighbourhood depth
-    local_max_entities: int = 20          # max entities returned
-    global_max_communities: int = 10      # top-N communities for summaries
-    entity_score_threshold: float = 0.3   # min similarity for entity match
+    local_search_hops: int = 2  # neighbourhood depth
+    local_max_entities: int = 20  # max entities returned
+    global_max_communities: int = 10  # top-N communities for summaries
+    entity_score_threshold: float = 0.3  # min similarity for entity match
     # Routing
     auto_route: bool = True  # auto-decide vector vs graph vs hybrid
 

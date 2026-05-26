@@ -60,7 +60,9 @@ async def handle_recraft_file_request(
     )
     all_bytesio = []
     if response.image is not None:
-        all_bytesio.append(await download_url_as_bytesio(response.image.url, timeout=timeout))
+        all_bytesio.append(
+            await download_url_as_bytesio(response.image.url, timeout=timeout)
+        )
     else:
         for data in response.data:
             all_bytesio.append(await download_url_as_bytesio(data.url, timeout=timeout))
@@ -129,12 +131,18 @@ def recraft_multipart_parser(
     for key, value in data.items():
         current_key = key if parent_key is None else f"{parent_key}[{key}]"
         if isinstance(value, dict):
-            converted.extend(recraft_multipart_parser(value, current_key, formatter, next_check).items())
+            converted.extend(
+                recraft_multipart_parser(
+                    value, current_key, formatter, next_check
+                ).items()
+            )
         elif isinstance(value, list):
             for ind, list_value in enumerate(value):
                 iter_key = f"{current_key}[]"
                 converted.extend(
-                    recraft_multipart_parser(list_value, iter_key, formatter, next_check, is_list=True).items()
+                    recraft_multipart_parser(
+                        list_value, iter_key, formatter, next_check, is_list=True
+                    ).items()
                 )
         else:
             converted.append((current_key, formatter(value)))
@@ -179,9 +187,15 @@ class RecraftColorRGBNode(IO.ComfyNode):
             category="api node/image/Recraft",
             description="Create Recraft Color by choosing specific RGB values.",
             inputs=[
-                IO.Int.Input("r", default=0, min=0, max=255, tooltip="Red value of color."),
-                IO.Int.Input("g", default=0, min=0, max=255, tooltip="Green value of color."),
-                IO.Int.Input("b", default=0, min=0, max=255, tooltip="Blue value of color."),
+                IO.Int.Input(
+                    "r", default=0, min=0, max=255, tooltip="Red value of color."
+                ),
+                IO.Int.Input(
+                    "g", default=0, min=0, max=255, tooltip="Green value of color."
+                ),
+                IO.Int.Input(
+                    "b", default=0, min=0, max=255, tooltip="Blue value of color."
+                ),
                 IO.Custom(RecraftIO.COLOR).Input("recraft_color", optional=True),
             ],
             outputs=[
@@ -190,7 +204,9 @@ class RecraftColorRGBNode(IO.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, r: int, g: int, b: int, recraft_color: RecraftColorChain = None) -> IO.NodeOutput:
+    def execute(
+        cls, r: int, g: int, b: int, recraft_color: RecraftColorChain = None
+    ) -> IO.NodeOutput:
         recraft_color = recraft_color.clone() if recraft_color else RecraftColorChain()
         recraft_color.add(RecraftColor(r, g, b))
         return IO.NodeOutput(recraft_color)
@@ -214,8 +230,14 @@ class RecraftControlsNode(IO.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, colors: RecraftColorChain = None, background_color: RecraftColorChain = None) -> IO.NodeOutput:
-        return IO.NodeOutput(RecraftControls(colors=colors, background_color=background_color))
+    def execute(
+        cls,
+        colors: RecraftColorChain = None,
+        background_color: RecraftColorChain = None,
+    ) -> IO.NodeOutput:
+        return IO.NodeOutput(
+            RecraftControls(colors=colors, background_color=background_color)
+        )
 
 
 class RecraftStyleV3RealisticImageNode(IO.ComfyNode):
@@ -292,7 +314,10 @@ class RecraftStyleV3LogoRasterNode(RecraftStyleV3RealisticImageNode):
             category="api node/image/Recraft",
             description="Select realistic_image style and optional substyle.",
             inputs=[
-                IO.Combo.Input("substyle", options=get_v3_substyles(cls.RECRAFT_STYLE, include_none=False)),
+                IO.Combo.Input(
+                    "substyle",
+                    options=get_v3_substyles(cls.RECRAFT_STYLE, include_none=False),
+                ),
             ],
             outputs=[
                 IO.Custom(RecraftIO.STYLEV3).Output(display_name="recraft_style"),
@@ -309,7 +334,11 @@ class RecraftStyleInfiniteStyleLibrary(IO.ComfyNode):
             category="api node/image/Recraft",
             description="Select style based on preexisting UUID from Recraft's Infinite Style Library.",
             inputs=[
-                IO.String.Input("style_id", default="", tooltip="UUID of style from Infinite Style Library."),
+                IO.String.Input(
+                    "style_id",
+                    default="",
+                    tooltip="UUID of style from Infinite Style Library.",
+                ),
             ],
             outputs=[
                 IO.Custom(RecraftIO.STYLEV3).Output(display_name="recraft_style"),
@@ -332,7 +361,12 @@ class RecraftTextToImageNode(IO.ComfyNode):
             category="api node/image/Recraft",
             description="Generates images synchronously based on prompt and resolution.",
             inputs=[
-                IO.String.Input("prompt", multiline=True, default="", tooltip="Prompt for the image generation."),
+                IO.String.Input(
+                    "prompt",
+                    multiline=True,
+                    default="",
+                    tooltip="Prompt for the image generation.",
+                ),
                 IO.Combo.Input(
                     "size",
                     options=[res.value for res in RecraftImageSize],
@@ -423,7 +457,9 @@ class RecraftTextToImageNode(IO.ComfyNode):
         images = []
         for data in response.data:
             with handle_recraft_image_output():
-                image = bytesio_to_image_tensor(await download_url_as_bytesio(data.url, timeout=1024))
+                image = bytesio_to_image_tensor(
+                    await download_url_as_bytesio(data.url, timeout=1024)
+                )
             if len(image.shape) < 4:
                 image = image.unsqueeze(0)
             images.append(image)
@@ -441,7 +477,12 @@ class RecraftImageToImageNode(IO.ComfyNode):
             description="Modify image based on prompt and strength.",
             inputs=[
                 IO.Image.Input("image"),
-                IO.String.Input("prompt", multiline=True, default="", tooltip="Prompt for the image generation."),
+                IO.String.Input(
+                    "prompt",
+                    multiline=True,
+                    default="",
+                    tooltip="Prompt for the image generation.",
+                ),
                 IO.Int.Input(
                     "n",
                     default=1,
@@ -539,7 +580,9 @@ class RecraftImageToImageNode(IO.ComfyNode):
                 request=request,
             )
             with handle_recraft_image_output():
-                images.append(torch.cat([bytesio_to_image_tensor(x) for x in sub_bytes], dim=0))
+                images.append(
+                    torch.cat([bytesio_to_image_tensor(x) for x in sub_bytes], dim=0)
+                )
             pbar.update(1)
 
         return IO.NodeOutput(torch.cat(images, dim=0))
@@ -556,7 +599,12 @@ class RecraftImageInpaintingNode(IO.ComfyNode):
             inputs=[
                 IO.Image.Input("image"),
                 IO.Mask.Input("mask"),
-                IO.String.Input("prompt", multiline=True, default="", tooltip="Prompt for the image generation."),
+                IO.String.Input(
+                    "prompt",
+                    multiline=True,
+                    default="",
+                    tooltip="Prompt for the image generation.",
+                ),
                 IO.Int.Input(
                     "n",
                     default=1,
@@ -623,7 +671,9 @@ class RecraftImageInpaintingNode(IO.ComfyNode):
         )
 
         # prepare mask tensor
-        mask = resize_mask_to_image(mask, image, allow_gradient=False, add_channel_dim=True)
+        mask = resize_mask_to_image(
+            mask, image, allow_gradient=False, add_channel_dim=True
+        )
 
         images = []
         total = image.shape[0]
@@ -637,7 +687,9 @@ class RecraftImageInpaintingNode(IO.ComfyNode):
                 request=request,
             )
             with handle_recraft_image_output():
-                images.append(torch.cat([bytesio_to_image_tensor(x) for x in sub_bytes], dim=0))
+                images.append(
+                    torch.cat([bytesio_to_image_tensor(x) for x in sub_bytes], dim=0)
+                )
             pbar.update(1)
 
         return IO.NodeOutput(torch.cat(images, dim=0))
@@ -652,15 +704,29 @@ class RecraftTextToVectorNode(IO.ComfyNode):
             category="api node/image/Recraft",
             description="Generates SVG synchronously based on prompt and resolution.",
             inputs=[
-                IO.String.Input("prompt", default="", tooltip="Prompt for the image generation.", multiline=True),
-                IO.Combo.Input("substyle", options=get_v3_substyles(RecraftStyleV3.vector_illustration)),
+                IO.String.Input(
+                    "prompt",
+                    default="",
+                    tooltip="Prompt for the image generation.",
+                    multiline=True,
+                ),
+                IO.Combo.Input(
+                    "substyle",
+                    options=get_v3_substyles(RecraftStyleV3.vector_illustration),
+                ),
                 IO.Combo.Input(
                     "size",
                     options=[res.value for res in RecraftImageSize],
                     default=RecraftImageSize.res_1024x1024,
                     tooltip="The size of the generated image.",
                 ),
-                IO.Int.Input("n", default=1, min=1, max=6, tooltip="The number of images to generate."),
+                IO.Int.Input(
+                    "n",
+                    default=1,
+                    min=1,
+                    max=6,
+                    tooltip="The number of images to generate.",
+                ),
                 IO.Int.Input(
                     "seed",
                     default=0,
@@ -707,7 +773,9 @@ class RecraftTextToVectorNode(IO.ComfyNode):
     ) -> IO.NodeOutput:
         validate_string(prompt, strip_whitespace=False, max_length=1000)
         # create RecraftStyle so strings will be formatted properly (i.e. "None" will become None)
-        recraft_style = RecraftStyle(RecraftStyleV3.vector_illustration, substyle=substyle)
+        recraft_style = RecraftStyle(
+            RecraftStyleV3.vector_illustration, substyle=substyle
+        )
 
         controls_api = None
         if recraft_controls:
@@ -788,8 +856,19 @@ class RecraftReplaceBackgroundNode(IO.ComfyNode):
             description="Replace background on image, based on provided prompt.",
             inputs=[
                 IO.Image.Input("image"),
-                IO.String.Input("prompt", tooltip="Prompt for the image generation.", default="", multiline=True),
-                IO.Int.Input("n", default=1, min=1, max=6, tooltip="The number of images to generate."),
+                IO.String.Input(
+                    "prompt",
+                    tooltip="Prompt for the image generation.",
+                    default="",
+                    multiline=True,
+                ),
+                IO.Int.Input(
+                    "n",
+                    default=1,
+                    min=1,
+                    max=6,
+                    tooltip="The number of images to generate.",
+                ),
                 IO.Int.Input(
                     "seed",
                     default=0,
@@ -856,7 +935,9 @@ class RecraftReplaceBackgroundNode(IO.ComfyNode):
                 path="/proxy/recraft/images/replaceBackground",
                 request=request,
             )
-            images.append(torch.cat([bytesio_to_image_tensor(x) for x in sub_bytes], dim=0))
+            images.append(
+                torch.cat([bytesio_to_image_tensor(x) for x in sub_bytes], dim=0)
+            )
             pbar.update(1)
 
         return IO.NodeOutput(torch.cat(images, dim=0))
@@ -896,7 +977,9 @@ class RecraftRemoveBackgroundNode(IO.ComfyNode):
                 image=image[i],
                 path="/proxy/recraft/images/removeBackground",
             )
-            images.append(torch.cat([bytesio_to_image_tensor(x) for x in sub_bytes], dim=0))
+            images.append(
+                torch.cat([bytesio_to_image_tensor(x) for x in sub_bytes], dim=0)
+            )
             pbar.update(1)
 
         images_tensor = torch.cat(images, dim=0)
@@ -942,7 +1025,9 @@ class RecraftCrispUpscaleNode(IO.ComfyNode):
                 image=image[i],
                 path=cls.RECRAFT_PATH,
             )
-            images.append(torch.cat([bytesio_to_image_tensor(x) for x in sub_bytes], dim=0))
+            images.append(
+                torch.cat([bytesio_to_image_tensor(x) for x in sub_bytes], dim=0)
+            )
             pbar.update(1)
 
         return IO.NodeOutput(torch.cat(images, dim=0))

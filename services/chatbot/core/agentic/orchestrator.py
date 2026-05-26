@@ -26,15 +26,19 @@ Integration:
     when ``agent_mode == "council"``.
   • Does **not** touch Flask or session objects — pure async.
 """
+
 from __future__ import annotations
 
 import logging
 import time
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
+from core.agentic.agents.critic import CriticAgent
+from core.agentic.agents.planner import PlannerAgent
+from core.agentic.agents.researcher import ResearcherAgent
+from core.agentic.agents.synthesizer import SynthesizerAgent
 from core.agentic.config import CouncilConfig
 from core.agentic.contracts import (
-    AgentRole,
     CouncilResult,
     CouncilStep,
     CouncilTrace,
@@ -46,11 +50,6 @@ from core.agentic.contracts import (
 )
 from core.agentic.events import CouncilEventEmitter, EventStage, EventStatus
 from core.agentic.state import AgentRunState, PreContext
-
-from core.agentic.agents.planner import PlannerAgent
-from core.agentic.agents.researcher import ResearcherAgent
-from core.agentic.agents.critic import CriticAgent
-from core.agentic.agents.synthesizer import SynthesizerAgent
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +72,12 @@ class CouncilOrchestrator:
             yield sse("council_step", step.model_dump())
     """
 
-    def __init__(self, config: CouncilConfig | None = None, *, emitter: CouncilEventEmitter | None = None) -> None:
+    def __init__(
+        self,
+        config: CouncilConfig | None = None,
+        *,
+        emitter: CouncilEventEmitter | None = None,
+    ) -> None:
         self.config = config or CouncilConfig()
         self._emitter = emitter
         self._planner = PlannerAgent(self.config)
@@ -92,8 +96,11 @@ class CouncilOrchestrator:
         """Fire a progress event if an emitter is attached (no-op otherwise)."""
         if self._emitter is not None:
             await self._emitter.emit(
-                stage=stage, role=role, status=status,
-                round=round, short_message=short_message,
+                stage=stage,
+                role=role,
+                status=status,
+                round=round,
+                short_message=short_message,
             )
 
     # ── Non-streaming entry point ──────────────────────────────────
@@ -106,9 +113,12 @@ class CouncilOrchestrator:
         logger.info(
             "[Council] run_id=%s | Starting council pipeline | max_rounds=%d | "
             "models: planner=%s researcher=%s critic=%s synthesizer=%s",
-            state.run_id, self.config.max_rounds,
-            self.config.planner_model, self.config.researcher_model,
-            self.config.critic_model, self.config.synthesizer_model,
+            state.run_id,
+            self.config.max_rounds,
+            self.config.planner_model,
+            self.config.researcher_model,
+            self.config.critic_model,
+            self.config.synthesizer_model,
         )
 
         try:
@@ -116,11 +126,17 @@ class CouncilOrchestrator:
         except Exception as exc:
             logger.error(
                 "[Council] run_id=%s | Pipeline failed | reason=%s",
-                state.run_id, exc,
+                state.run_id,
+                exc,
             )
             state.status = RunStatus.failed
-            await self._emit(EventStage.failed, "orchestrator", EventStatus.completed,
-                             max(1, state.current_round), f"Pipeline error: {exc}")
+            await self._emit(
+                EventStage.failed,
+                "orchestrator",
+                EventStatus.completed,
+                max(1, state.current_round),
+                f"Pipeline error: {exc}",
+            )
             decision = FinalDecision(
                 approved=False,
                 iterations_used=max(1, state.current_round),
@@ -141,9 +157,14 @@ class CouncilOrchestrator:
         logger.info(
             "[Council] run_id=%s | Finished | exit=%s approved=%s "
             "quality=%d rounds=%d llm_calls=%d tokens=%d elapsed=%.2fs",
-            state.run_id, decision.exit_reason, decision.approved,
-            decision.final_quality_score, state.current_round,
-            state.total_llm_calls, state.total_tokens, elapsed,
+            state.run_id,
+            decision.exit_reason,
+            decision.approved,
+            decision.final_quality_score,
+            state.current_round,
+            state.total_llm_calls,
+            state.total_tokens,
+            elapsed,
         )
         return self._build_result(state, elapsed, decision)
 
@@ -164,11 +185,17 @@ class CouncilOrchestrator:
         except Exception as exc:
             logger.error(
                 "[Council] run_id=%s | Streaming pipeline failed | reason=%s",
-                state.run_id, exc,
+                state.run_id,
+                exc,
             )
             state.status = RunStatus.failed
-            await self._emit(EventStage.failed, "orchestrator", EventStatus.completed,
-                             max(1, state.current_round), f"Pipeline error: {exc}")
+            await self._emit(
+                EventStage.failed,
+                "orchestrator",
+                EventStatus.completed,
+                max(1, state.current_round),
+                f"Pipeline error: {exc}",
+            )
             decision = FinalDecision(
                 approved=False,
                 iterations_used=max(1, state.current_round),
@@ -210,33 +237,68 @@ class CouncilOrchestrator:
         logger.info("[Council] run_id=%s | round=1 | stage=planning", state.run_id)
 
         state.status = RunStatus.planning
-        await self._emit(EventStage.planning, "planner", EventStatus.started, 1,
-                         "Decomposing task into sub-questions")
+        await self._emit(
+            EventStage.planning,
+            "planner",
+            EventStatus.started,
+            1,
+            "Decomposing task into sub-questions",
+        )
         await self._planner.execute(state)
-        await self._emit(EventStage.planning, "planner", EventStatus.completed, 1,
-                         f"{len(state.latest_plan.tasks) if state.latest_plan else 0} sub-tasks created")
+        await self._emit(
+            EventStage.planning,
+            "planner",
+            EventStatus.completed,
+            1,
+            f"{len(state.latest_plan.tasks) if state.latest_plan else 0} sub-tasks created",
+        )
 
         logger.info("[Council] run_id=%s | round=1 | stage=researching", state.run_id)
         state.status = RunStatus.researching
-        await self._emit(EventStage.researching, "researcher", EventStatus.started, 1,
-                         "Collecting evidence")
+        await self._emit(
+            EventStage.researching,
+            "researcher",
+            EventStatus.started,
+            1,
+            "Collecting evidence",
+        )
         await self._researcher.execute(state)
-        await self._emit(EventStage.researching, "researcher", EventStatus.completed, 1,
-                         f"{len(state.latest_research.evidence) if state.latest_research else 0} evidence items gathered")
+        await self._emit(
+            EventStage.researching,
+            "researcher",
+            EventStatus.completed,
+            1,
+            f"{len(state.latest_research.evidence) if state.latest_research else 0} evidence items gathered",
+        )
 
         logger.info("[Council] run_id=%s | round=1 | stage=synthesizing", state.run_id)
         state.status = RunStatus.synthesizing
-        await self._emit(EventStage.synthesizing, "synthesizer", EventStatus.started, 1,
-                         "Composing initial response")
+        await self._emit(
+            EventStage.synthesizing,
+            "synthesizer",
+            EventStatus.started,
+            1,
+            "Composing initial response",
+        )
         await self._synthesizer.execute(state)
-        await self._emit(EventStage.synthesizing, "synthesizer", EventStatus.completed, 1,
-                         "Initial response ready")
+        await self._emit(
+            EventStage.synthesizing,
+            "synthesizer",
+            EventStatus.completed,
+            1,
+            "Initial response ready",
+        )
 
         # Single-iteration fast path (no critic needed)
         if max_iterations < 1:
             state.status = RunStatus.completed
-            await self._emit(EventStage.completed, "orchestrator", EventStatus.completed, 1,
-                             "Completed on first pass (no critic)")
+            await self._emit(
+                EventStage.completed,
+                "orchestrator",
+                EventStatus.completed,
+                1,
+                "Completed on first pass (no critic)",
+            )
             return FinalDecision(
                 approved=True,
                 iterations_used=1,
@@ -247,15 +309,25 @@ class CouncilOrchestrator:
 
         logger.info("[Council] run_id=%s | round=1 | stage=critiquing", state.run_id)
         state.status = RunStatus.critiquing
-        await self._emit(EventStage.critiquing, "critic", EventStatus.started, 1,
-                         "Reviewing answer quality")
+        await self._emit(
+            EventStage.critiquing,
+            "critic",
+            EventStatus.started,
+            1,
+            "Reviewing answer quality",
+        )
         await self._critic.execute(state)
 
         critique = state.latest_critique
         if critique is None:
             state.status = RunStatus.completed
-            await self._emit(EventStage.completed, "critic", EventStatus.completed, 1,
-                             "Approved on first pass")
+            await self._emit(
+                EventStage.completed,
+                "critic",
+                EventStatus.completed,
+                1,
+                "Approved on first pass",
+            )
             return FinalDecision(
                 approved=True,
                 iterations_used=1,
@@ -264,15 +336,25 @@ class CouncilOrchestrator:
                 exit_reason="first_pass",
             )
 
-        await self._emit(EventStage.critiquing, "critic", EventStatus.completed, 1,
-                         f"Score {critique.quality_score}/10 — verdict: {critique.verdict}")
+        await self._emit(
+            EventStage.critiquing,
+            "critic",
+            EventStatus.completed,
+            1,
+            f"Score {critique.quality_score}/10 — verdict: {critique.verdict}",
+        )
 
         # Check first-pass exit conditions
         decision = self._check_exit(critique, iteration=1, max_iter=max_iterations)
         if decision is not None:
             state.status = RunStatus.completed
-            await self._emit(EventStage.completed, "orchestrator", EventStatus.completed, 1,
-                             f"Finished — {decision.exit_reason}")
+            await self._emit(
+                EventStage.completed,
+                "orchestrator",
+                EventStatus.completed,
+                1,
+                f"Finished — {decision.exit_reason}",
+            )
             return decision
 
         prev_score = critique.quality_score
@@ -292,8 +374,13 @@ class CouncilOrchestrator:
                 feedback[:80] if feedback else "(none)",
             )
 
-            await self._emit(EventStage.retrying, "orchestrator", EventStatus.started, iteration,
-                             f"Retrying {target.value} (round {iteration})")
+            await self._emit(
+                EventStage.retrying,
+                "orchestrator",
+                EventStatus.started,
+                iteration,
+                f"Retrying {target.value} (round {iteration})",
+            )
 
             # Selectively re-run only the stages the Critic requested
             if target in (RetryTarget.researcher, RetryTarget.both):
@@ -304,31 +391,61 @@ class CouncilOrchestrator:
                         + f"\n\n[CRITIC FEEDBACK — iteration {iteration}]: {feedback}"
                     )
                 state.status = RunStatus.researching
-                await self._emit(EventStage.researching, "researcher", EventStatus.started, iteration,
-                                 "Re-collecting evidence based on critic feedback")
+                await self._emit(
+                    EventStage.researching,
+                    "researcher",
+                    EventStatus.started,
+                    iteration,
+                    "Re-collecting evidence based on critic feedback",
+                )
                 await self._researcher.execute(state)
-                await self._emit(EventStage.researching, "researcher", EventStatus.completed, iteration,
-                                 "Evidence updated")
+                await self._emit(
+                    EventStage.researching,
+                    "researcher",
+                    EventStatus.completed,
+                    iteration,
+                    "Evidence updated",
+                )
 
             if target in (RetryTarget.synthesizer, RetryTarget.both):
                 state.status = RunStatus.synthesizing
-                await self._emit(EventStage.synthesizing, "synthesizer", EventStatus.started, iteration,
-                                 "Re-composing response with new evidence")
+                await self._emit(
+                    EventStage.synthesizing,
+                    "synthesizer",
+                    EventStatus.started,
+                    iteration,
+                    "Re-composing response with new evidence",
+                )
                 await self._synthesizer.execute(state)
-                await self._emit(EventStage.synthesizing, "synthesizer", EventStatus.completed, iteration,
-                                 "Response updated")
+                await self._emit(
+                    EventStage.synthesizing,
+                    "synthesizer",
+                    EventStatus.completed,
+                    iteration,
+                    "Response updated",
+                )
 
             # Re-critique
             state.status = RunStatus.critiquing
-            await self._emit(EventStage.critiquing, "critic", EventStatus.started, iteration,
-                             "Re-reviewing answer")
+            await self._emit(
+                EventStage.critiquing,
+                "critic",
+                EventStatus.started,
+                iteration,
+                "Re-reviewing answer",
+            )
             await self._critic.execute(state)
 
             critique = state.latest_critique
             if critique is None:
                 state.status = RunStatus.completed
-                await self._emit(EventStage.completed, "orchestrator", EventStatus.completed, iteration,
-                                 "Approved after retry")
+                await self._emit(
+                    EventStage.completed,
+                    "orchestrator",
+                    EventStatus.completed,
+                    iteration,
+                    "Approved after retry",
+                )
                 return FinalDecision(
                     approved=True,
                     iterations_used=iteration,
@@ -337,22 +454,34 @@ class CouncilOrchestrator:
                     exit_reason="approved",
                 )
 
-            await self._emit(EventStage.critiquing, "critic", EventStatus.completed, iteration,
-                             f"Score {critique.quality_score}/10 — verdict: {critique.verdict}")
+            await self._emit(
+                EventStage.critiquing,
+                "critic",
+                EventStatus.completed,
+                iteration,
+                f"Score {critique.quality_score}/10 — verdict: {critique.verdict}",
+            )
 
             # Circuit breaker: no improvement
-            if prev_score is not None and critique.quality_score <= prev_score + _MIN_SCORE_IMPROVEMENT:
+            if (
+                prev_score is not None
+                and critique.quality_score <= prev_score + _MIN_SCORE_IMPROVEMENT
+            ):
                 logger.info(
                     "[Council] run_id=%s | Circuit breaker | score %d → %d (no improvement)",
-                    state.run_id, prev_score, critique.quality_score,
+                    state.run_id,
+                    prev_score,
+                    critique.quality_score,
                 )
                 state.status = RunStatus.completed
-                await self._emit(EventStage.completed, "orchestrator", EventStatus.completed, iteration,
-                                 "Stopped — no quality improvement (circuit breaker)")
-                warnings = [
-                    f"[{i.severity}] {i.description}"
-                    for i in critique.issues
-                ]
+                await self._emit(
+                    EventStage.completed,
+                    "orchestrator",
+                    EventStatus.completed,
+                    iteration,
+                    "Stopped — no quality improvement (circuit breaker)",
+                )
+                warnings = [f"[{i.severity}] {i.description}" for i in critique.issues]
                 return FinalDecision(
                     approved=False,
                     iterations_used=iteration,
@@ -363,19 +492,31 @@ class CouncilOrchestrator:
                 )
 
             # Normal exit check
-            decision = self._check_exit(critique, iteration=iteration, max_iter=max_iterations)
+            decision = self._check_exit(
+                critique, iteration=iteration, max_iter=max_iterations
+            )
             if decision is not None:
                 state.status = RunStatus.completed
-                await self._emit(EventStage.completed, "orchestrator", EventStatus.completed, iteration,
-                                 f"Finished — {decision.exit_reason}")
+                await self._emit(
+                    EventStage.completed,
+                    "orchestrator",
+                    EventStatus.completed,
+                    iteration,
+                    f"Finished — {decision.exit_reason}",
+                )
                 return decision
 
             prev_score = critique.quality_score
 
         # Budget exhausted
         state.status = RunStatus.completed
-        await self._emit(EventStage.completed, "orchestrator", EventStatus.completed,
-                         max_iterations, "Budget exhausted — returning best answer")
+        await self._emit(
+            EventStage.completed,
+            "orchestrator",
+            EventStatus.completed,
+            max_iterations,
+            "Budget exhausted — returning best answer",
+        )
         warnings = [
             f"[{i.severity}] {i.description}"
             for i in (critique.issues if critique else [])
@@ -425,10 +566,7 @@ class CouncilOrchestrator:
 
         # Budget exhausted *at* the last iteration
         if iteration >= max_iter:
-            warnings = [
-                f"[{i.severity}] {i.description}"
-                for i in issues
-            ]
+            warnings = [f"[{i.severity}] {i.description}" for i in issues]
             return FinalDecision(
                 approved=False,
                 iterations_used=iteration,

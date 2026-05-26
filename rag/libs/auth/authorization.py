@@ -50,8 +50,7 @@ _SENSITIVITY_RANK: dict[str, int] = {
 _ALLOWED_LEVELS: dict[str, list[str]] = {}
 for _ceiling, _ceiling_rank in _SENSITIVITY_RANK.items():
     _ALLOWED_LEVELS[_ceiling] = [
-        level for level, rank in _SENSITIVITY_RANK.items()
-        if rank <= _ceiling_rank
+        level for level, rank in _SENSITIVITY_RANK.items() if rank <= _ceiling_rank
     ]
 
 
@@ -136,8 +135,7 @@ class SensitivityPreFilter:
         else:
             # Requested sensitivity exceeds ceiling → cap down
             logger.warning(
-                "authz: user %s requested sensitivity=%s but ceiling=%s; "
-                "capping to %s",
+                "authz: user %s requested sensitivity=%s but ceiling=%s; capping to %s",
                 auth.user_id,
                 filters.sensitivity_level,
                 ceiling,
@@ -183,8 +181,7 @@ class SensitivityPostFilter:
 
         if dropped:
             logger.info(
-                "authz post-filter: dropped %d chunks exceeding "
-                "sensitivity ceiling=%s for user=%s",
+                "authz post-filter: dropped %d chunks exceeding sensitivity ceiling=%s for user=%s",
                 dropped,
                 auth.max_sensitivity,
                 auth.user_id,

@@ -1,11 +1,11 @@
 import json
 from urllib import request
 
-#This is the ComfyUI api prompt format.
+# This is the ComfyUI api prompt format.
 
-#If you want it for a specific workflow you can "File -> Export (API)" in the interface.
+# If you want it for a specific workflow you can "File -> Export (API)" in the interface.
 
-#this is the one for the default workflow
+# this is the one for the default workflow
 prompt_text = """
 {
     "3": {
@@ -95,6 +95,7 @@ prompt_text = """
 }
 """
 
+
 def queue_prompt(prompt):
     p = {"prompt": prompt}
 
@@ -105,19 +106,17 @@ def queue_prompt(prompt):
     # See: https://docs.comfy.org/tutorials/api-nodes/overview
     # Generate a key here: https://platform.comfy.org/login
 
-    data = json.dumps(p).encode('utf-8')
-    req =  request.Request("http://127.0.0.1:8188/prompt", data=data)
+    data = json.dumps(p).encode("utf-8")
+    req = request.Request("http://127.0.0.1:8188/prompt", data=data)
     request.urlopen(req)
 
 
 prompt = json.loads(prompt_text)
-#set the text prompt for our positive CLIPTextEncode
+# set the text prompt for our positive CLIPTextEncode
 prompt["6"]["inputs"]["text"] = "masterpiece best quality man"
 
-#set the seed for our KSampler node
+# set the seed for our KSampler node
 prompt["3"]["inputs"]["seed"] = 5
 
 
 queue_prompt(prompt)
-
-

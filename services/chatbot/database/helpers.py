@@ -1,30 +1,30 @@
-﻿"""
+"""
 Database Helpers
 
 Helper functions to integrate database repositories with existing app.py code.
 Provides backward-compatible functions that work with both file-based and DB storage.
 """
 
-import os
 import json
 import logging
-from typing import Dict, Any, List, Optional
+import os
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 # Check if MongoDB is enabled
-MONGODB_ENABLED = os.getenv('MONGODB_ENABLED', 'false').lower() == 'true'
+MONGODB_ENABLED = os.getenv("MONGODB_ENABLED", "false").lower() == "true"
 
 # Import database components if available
 try:
-    from .repositories.conversation_repository import ConversationRepository
-    from .repositories.message_repository import MessageRepository
-    from .repositories.memory_repository import MemoryRepository
     from .cache.chatbot_cache import ChatbotCache
+    from .repositories.conversation_repository import ConversationRepository
+    from .repositories.memory_repository import MemoryRepository
+    from .repositories.message_repository import MessageRepository
     from .utils.session import DatabaseSession, get_db_session
-    
+
     DB_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Database modules not available: {e}")
@@ -38,7 +38,7 @@ def get_db():
     return DatabaseSession().get_database()
 
 
-def get_conversation_repo() -> Optional[ConversationRepository]:
+def get_conversation_repo() -> ConversationRepository | None:
     """Get ConversationRepository instance"""
     db = get_db()
     if db is None:
@@ -46,7 +46,7 @@ def get_conversation_repo() -> Optional[ConversationRepository]:
     return ConversationRepository(db)
 
 
-def get_message_repo() -> Optional[MessageRepository]:
+def get_message_repo() -> MessageRepository | None:
     """Get MessageRepository instance"""
     db = get_db()
     if db is None:
@@ -54,7 +54,7 @@ def get_message_repo() -> Optional[MessageRepository]:
     return MessageRepository(db)
 
 
-def get_memory_repo() -> Optional[MemoryRepository]:
+def get_memory_repo() -> MemoryRepository | None:
     """Get MemoryRepository instance"""
     db = get_db()
     if db is None:
@@ -66,17 +66,17 @@ def get_memory_repo() -> Optional[MemoryRepository]:
 # Conversation Functions (backward compatible)
 # ============================================================================
 
+
 def load_conversation(
-    conversation_id: str,
-    fallback_path: Path = None
-) -> Optional[Dict[str, Any]]:
+    conversation_id: str, fallback_path: Path = None
+) -> dict[str, Any] | None:
     """
     Load conversation from database (with file fallback).
-    
+
     Args:
         conversation_id: Conversation ID
         fallback_path: Path to JSON file for fallback
-        
+
     Returns:
         Conversation dict or None
     """
@@ -85,7 +85,7 @@ def load_conversation(
         cached = ChatbotCache.get_conversation(conversation_id)
         if cached:
             return cached
-    
+
     # Try database
     repo = get_conversation_repo()
     if repo:
@@ -97,31 +97,29 @@ def load_conversation(
                 return conv
         except Exception as e:
             logger.error(f"Error loading conversation from DB: {e}")
-    
+
     # File fallback
     if fallback_path and fallback_path.exists():
         try:
-            with open(fallback_path, 'r', encoding='utf-8') as f:
+            with open(fallback_path, encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"Error loading conversation from file: {e}")
-    
+
     return None
 
 
 def save_conversation(
-    conversation_id: str,
-    data: Dict[str, Any],
-    fallback_path: Path = None
+    conversation_id: str, data: dict[str, Any], fallback_path: Path = None
 ) -> bool:
     """
     Save conversation to database (with file fallback).
-    
+
     Args:
         conversation_id: Conversation ID
         data: Conversation data
         fallback_path: Path to JSON file for fallback
-        
+
     Returns:
         True if saved successfully
     """
@@ -133,44 +131,41 @@ def save_conversation(
             if existing:
                 repo.update(conversation_id, data)
             else:
-                data['_id'] = conversation_id
+                data["_id"] = conversation_id
                 repo.create(data)
-            
+
             # Invalidate cache
             ChatbotCache.invalidate_conversation(conversation_id)
             return True
-            
+
         except Exception as e:
             logger.error(f"Error saving conversation to DB: {e}")
-    
+
     # File fallback
     if fallback_path:
         try:
             fallback_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(fallback_path, 'w', encoding='utf-8') as f:
+            with open(fallback_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             return True
         except Exception as e:
             logger.error(f"Error saving conversation to file: {e}")
-    
+
     return False
 
 
 def create_conversation(
-    user_id: str,
-    title: str = 'New Chat',
-    model: str = 'grok',
-    **kwargs
-) -> Optional[Dict[str, Any]]:
+    user_id: str, title: str = "New Chat", model: str = "grok", **kwargs
+) -> dict[str, Any] | None:
     """
     Create a new conversation.
-    
+
     Args:
         user_id: User ID
         title: Conversation title
         model: AI model
         **kwargs: Additional fields
-        
+
     Returns:
         Created conversation or None
     """
@@ -178,36 +173,34 @@ def create_conversation(
     if repo:
         try:
             conv = repo.create_conversation(
-                user_id=user_id,
-                title=title,
-                model=model,
-                **kwargs
+                user_id=user_id, title=title, model=model, **kwargs
             )
             return conv
         except Exception as e:
             logger.error(f"Error creating conversation: {e}")
-    
+
     # Fallback: return in-memory object
     import uuid
+
     return {
-        '_id': str(uuid.uuid4()),
-        'user_id': user_id,
-        'title': title,
-        'model': model,
-        'created_at': datetime.utcnow().isoformat(),
-        'updated_at': datetime.utcnow().isoformat(),
-        **kwargs
+        "_id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "title": title,
+        "model": model,
+        "created_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.utcnow().isoformat(),
+        **kwargs,
     }
 
 
 def delete_conversation(conversation_id: str, fallback_path: Path = None) -> bool:
     """
     Delete a conversation.
-    
+
     Args:
         conversation_id: Conversation ID
         fallback_path: File path for fallback
-        
+
     Returns:
         True if deleted
     """
@@ -219,7 +212,7 @@ def delete_conversation(conversation_id: str, fallback_path: Path = None) -> boo
             return True
         except Exception as e:
             logger.error(f"Error deleting conversation: {e}")
-    
+
     # File fallback
     if fallback_path and fallback_path.exists():
         try:
@@ -227,25 +220,22 @@ def delete_conversation(conversation_id: str, fallback_path: Path = None) -> boo
             return True
         except Exception as e:
             logger.error(f"Error deleting conversation file: {e}")
-    
+
     return False
 
 
 def list_conversations(
-    user_id: str,
-    skip: int = 0,
-    limit: int = 50,
-    include_archived: bool = False
-) -> List[Dict[str, Any]]:
+    user_id: str, skip: int = 0, limit: int = 50, include_archived: bool = False
+) -> list[dict[str, Any]]:
     """
     List conversations for a user.
-    
+
     Args:
         user_id: User ID
         skip: Pagination offset
         limit: Max results
         include_archived: Include archived
-        
+
     Returns:
         List of conversations
     """
@@ -254,7 +244,7 @@ def list_conversations(
         cached = ChatbotCache.get_user_conversations(user_id)
         if cached:
             return cached[:limit]
-    
+
     repo = get_conversation_repo()
     if repo:
         try:
@@ -262,18 +252,18 @@ def list_conversations(
                 user_id=user_id,
                 skip=skip,
                 limit=limit,
-                include_archived=include_archived
+                include_archived=include_archived,
             )
-            
+
             # Cache if first page
             if skip == 0 and not include_archived:
                 ChatbotCache.set_user_conversations(user_id, conversations)
-            
+
             return conversations
-            
+
         except Exception as e:
             logger.error(f"Error listing conversations: {e}")
-    
+
     return []
 
 
@@ -281,21 +271,19 @@ def list_conversations(
 # Message Functions
 # ============================================================================
 
+
 def add_message(
-    conversation_id: str,
-    role: str,
-    content: str,
-    **kwargs
-) -> Optional[Dict[str, Any]]:
+    conversation_id: str, role: str, content: str, **kwargs
+) -> dict[str, Any] | None:
     """
     Add a message to a conversation.
-    
+
     Args:
         conversation_id: Conversation ID
         role: 'user', 'assistant', or 'system'
         content: Message content
         **kwargs: Additional fields (metadata, images, etc.)
-        
+
     Returns:
         Created message or None
     """
@@ -303,39 +291,33 @@ def add_message(
     if repo:
         try:
             message = repo.add_message(
-                conversation_id=conversation_id,
-                role=role,
-                content=content,
-                **kwargs
+                conversation_id=conversation_id, role=role, content=content, **kwargs
             )
-            
+
             # Update conversation
             conv_repo = get_conversation_repo()
             if conv_repo:
                 conv_repo.increment_message_count(conversation_id)
-            
+
             # Invalidate message cache
             ChatbotCache.invalidate_messages(conversation_id)
-            
+
             return message
-            
+
         except Exception as e:
             logger.error(f"Error adding message: {e}")
-    
+
     return None
 
 
-def get_messages(
-    conversation_id: str,
-    limit: int = 100
-) -> List[Dict[str, Any]]:
+def get_messages(conversation_id: str, limit: int = 100) -> list[dict[str, Any]]:
     """
     Get messages for a conversation.
-    
+
     Args:
         conversation_id: Conversation ID
         limit: Max messages
-        
+
     Returns:
         List of messages
     """
@@ -343,37 +325,35 @@ def get_messages(
     cached = ChatbotCache.get_messages(conversation_id)
     if cached:
         return cached[-limit:]
-    
+
     repo = get_message_repo()
     if repo:
         try:
             messages = repo.get_conversation_messages(
-                conversation_id=conversation_id,
-                limit=limit
+                conversation_id=conversation_id, limit=limit
             )
-            
+
             # Cache messages
             ChatbotCache.set_messages(conversation_id, messages)
-            
+
             return messages
-            
+
         except Exception as e:
             logger.error(f"Error getting messages: {e}")
-    
+
     return []
 
 
 def get_conversation_history(
-    conversation_id: str,
-    limit: int = 10
-) -> List[Dict[str, str]]:
+    conversation_id: str, limit: int = 10
+) -> list[dict[str, str]]:
     """
     Get conversation history formatted for AI context.
-    
+
     Args:
         conversation_id: Conversation ID
         limit: Max messages
-        
+
     Returns:
         List of {role, content} dicts
     """
@@ -381,12 +361,11 @@ def get_conversation_history(
     if repo:
         try:
             return repo.get_conversation_history_for_ai(
-                conversation_id=conversation_id,
-                limit=limit
+                conversation_id=conversation_id, limit=limit
             )
         except Exception as e:
             logger.error(f"Error getting history: {e}")
-    
+
     return []
 
 
@@ -394,19 +373,20 @@ def get_conversation_history(
 # Memory Functions
 # ============================================================================
 
+
 def save_memory_to_db(
     user_id: str,
     content: str,
     title: str = None,
-    category: str = 'general',
-    tags: List[str] = None,
+    category: str = "general",
+    tags: list[str] = None,
     importance: float = 0.5,
     conversation_id: str = None,
-    **kwargs
-) -> Optional[Dict[str, Any]]:
+    **kwargs,
+) -> dict[str, Any] | None:
     """
     Save a memory to database.
-    
+
     Args:
         user_id: User ID
         content: Memory content
@@ -416,7 +396,7 @@ def save_memory_to_db(
         importance: Importance score
         conversation_id: Related conversation
         **kwargs: Additional fields
-        
+
     Returns:
         Created memory or None
     """
@@ -431,33 +411,31 @@ def save_memory_to_db(
                 tags=tags,
                 importance=importance,
                 conversation_id=conversation_id,
-                **kwargs
+                **kwargs,
             )
-            
+
             # Invalidate user memory cache
             ChatbotCache.invalidate_user_memories(user_id)
-            
+
             return memory
-            
+
         except Exception as e:
             logger.error(f"Error saving memory: {e}")
-    
+
     return None
 
 
 def get_memories(
-    user_id: str,
-    category: str = None,
-    limit: int = 100
-) -> List[Dict[str, Any]]:
+    user_id: str, category: str = None, limit: int = 100
+) -> list[dict[str, Any]]:
     """
     Get memories for a user.
-    
+
     Args:
         user_id: User ID
         category: Filter by category
         limit: Max results
-        
+
     Returns:
         List of memories
     """
@@ -466,66 +444,56 @@ def get_memories(
         cached = ChatbotCache.get_user_memories(user_id)
         if cached:
             return cached[:limit]
-    
+
     repo = get_memory_repo()
     if repo:
         try:
             memories = repo.get_user_memories(
-                user_id=user_id,
-                category=category,
-                limit=limit
+                user_id=user_id, category=category, limit=limit
             )
-            
+
             # Cache if no category filter
             if not category:
                 ChatbotCache.set_user_memories(user_id, memories)
-            
+
             return memories
-            
+
         except Exception as e:
             logger.error(f"Error getting memories: {e}")
-    
+
     return []
 
 
-def search_memories(
-    user_id: str,
-    query: str,
-    limit: int = 10
-) -> List[Dict[str, Any]]:
+def search_memories(user_id: str, query: str, limit: int = 10) -> list[dict[str, Any]]:
     """
     Search memories by content.
-    
+
     Args:
         user_id: User ID
         query: Search query
         limit: Max results
-        
+
     Returns:
         Matching memories
     """
     repo = get_memory_repo()
     if repo:
         try:
-            return repo.search_memories(
-                user_id=user_id,
-                query=query,
-                limit=limit
-            )
+            return repo.search_memories(user_id=user_id, query=query, limit=limit)
         except Exception as e:
             logger.error(f"Error searching memories: {e}")
-    
+
     return []
 
 
 def delete_memory(memory_id: str, user_id: str = None) -> bool:
     """
     Delete a memory.
-    
+
     Args:
         memory_id: Memory ID
         user_id: User ID (for cache invalidation)
-        
+
     Returns:
         True if deleted
     """
@@ -533,15 +501,15 @@ def delete_memory(memory_id: str, user_id: str = None) -> bool:
     if repo:
         try:
             result = repo.delete(memory_id)
-            
+
             if user_id:
                 ChatbotCache.invalidate_user_memories(user_id)
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Error deleting memory: {e}")
-    
+
     return False
 
 
@@ -549,40 +517,41 @@ def delete_memory(memory_id: str, user_id: str = None) -> bool:
 # Utility Functions
 # ============================================================================
 
-def check_database_health() -> Dict[str, Any]:
+
+def check_database_health() -> dict[str, Any]:
     """
     Check database health status.
-    
+
     Returns:
         Health status dict
     """
     if not DB_AVAILABLE:
-        return {'status': 'unavailable', 'reason': 'modules_not_loaded'}
-    
+        return {"status": "unavailable", "reason": "modules_not_loaded"}
+
     session = DatabaseSession()
     return session.health_check()
 
 
-def get_cache_stats() -> Dict[str, Any]:
+def get_cache_stats() -> dict[str, Any]:
     """
     Get cache statistics.
-    
+
     Returns:
         Cache stats dict
     """
     if not DB_AVAILABLE:
-        return {'status': 'unavailable'}
-    
+        return {"status": "unavailable"}
+
     return ChatbotCache.get_stats()
 
 
 def clear_user_cache(user_id: str) -> int:
     """
     Clear all cache for a user.
-    
+
     Args:
         user_id: User ID
-        
+
     Returns:
         Number of cleared entries
     """

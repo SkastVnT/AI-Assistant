@@ -98,10 +98,7 @@ def reciprocal_rank(returned: list[uuid.UUID], relevant: set[uuid.UUID]) -> floa
 def ndcg_at_k(returned: list[uuid.UUID], relevant: set[uuid.UUID], k: int) -> float:
     """NDCG@K: normalized discounted cumulative gain."""
     top = returned[:k]
-    dcg = sum(
-        (1.0 if rid in relevant else 0.0) / math.log2(i + 2)
-        for i, rid in enumerate(top)
-    )
+    dcg = sum((1.0 if rid in relevant else 0.0) / math.log2(i + 2) for i, rid in enumerate(top))
     ideal_hits = min(len(relevant), k)
     idcg = sum(1.0 / math.log2(i + 2) for i in range(ideal_hits))
     if idcg == 0:
@@ -387,9 +384,7 @@ async def run_evaluation(k: int = 5) -> dict[str, EvalMetrics]:
 
         # Hybrid RRF
         t0 = time.perf_counter()
-        fused = reciprocal_rank_fusion(
-            [dense, lexical], k=60, weights=[1.0, 1.0], top_k=20
-        )
+        fused = reciprocal_rank_fusion([dense, lexical], k=60, weights=[1.0, 1.0], top_k=20)
         fused_ms = int((time.perf_counter() - t0) * 1000)
         strategies["hybrid_rrf"].append(
             StrategyResult(
@@ -426,8 +421,7 @@ def print_metrics_table(metrics: dict[str, EvalMetrics], k: int = 5) -> str:
     r_label = f"R@{k}"
     n_label = f"NDCG@{k}"
     header = (
-        f"{'Strategy':<25} {p_label:<8} {r_label:<8} "
-        f"{'MRR':<8} {n_label:<9} {'Latency(ms)':<12}"
+        f"{'Strategy':<25} {p_label:<8} {r_label:<8} {'MRR':<8} {n_label:<9} {'Latency(ms)':<12}"
     )
     sep = "-" * len(header)
     lines = [sep, header, sep]

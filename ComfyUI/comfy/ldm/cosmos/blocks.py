@@ -30,7 +30,9 @@ def get_normalization(name: str, channels: int, weight_args={}, operations=None)
     if name == "I":
         return nn.Identity()
     elif name == "R":
-        return operations.RMSNorm(channels, elementwise_affine=True, eps=1e-6, **weight_args)
+        return operations.RMSNorm(
+            channels, elementwise_affine=True, eps=1e-6, **weight_args
+        )
     else:
         raise ValueError(f"Normalization {name} not found")
 
@@ -103,21 +105,29 @@ class Attention(nn.Module):
         if self.qkv_norm_mode == "per_head":
             norm_dim = dim_head
         else:
-            raise ValueError(f"Normalization mode {self.qkv_norm_mode} not found, only support 'per_head'")
+            raise ValueError(
+                f"Normalization mode {self.qkv_norm_mode} not found, only support 'per_head'"
+            )
 
         self.backend = backend
 
         self.to_q = nn.Sequential(
             operations.Linear(query_dim, inner_dim, bias=qkv_bias, **weight_args),
-            get_normalization(qkv_norm[0], norm_dim, weight_args=weight_args, operations=operations),
+            get_normalization(
+                qkv_norm[0], norm_dim, weight_args=weight_args, operations=operations
+            ),
         )
         self.to_k = nn.Sequential(
             operations.Linear(context_dim, inner_dim, bias=qkv_bias, **weight_args),
-            get_normalization(qkv_norm[1], norm_dim, weight_args=weight_args, operations=operations),
+            get_normalization(
+                qkv_norm[1], norm_dim, weight_args=weight_args, operations=operations
+            ),
         )
         self.to_v = nn.Sequential(
             operations.Linear(context_dim, inner_dim, bias=qkv_bias, **weight_args),
-            get_normalization(qkv_norm[2], norm_dim, weight_args=weight_args, operations=operations),
+            get_normalization(
+                qkv_norm[2], norm_dim, weight_args=weight_args, operations=operations
+            ),
         )
 
         self.to_out = nn.Sequential(
@@ -129,7 +139,6 @@ class Attention(nn.Module):
         self, x, context=None, mask=None, rope_emb=None, **kwargs
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         del kwargs
-
 
         """
         self.to_q, self.to_k, self.to_v are nn.Sequential with projection + normalization layers.
@@ -147,11 +156,15 @@ class Attention(nn.Module):
             k = self.to_k[0](context)
             v = self.to_v[0](context)
             q, k, v = map(
-                lambda t: rearrange(t, "s b (n c) -> b n s c", n=self.heads, c=self.dim_head),
+                lambda t: rearrange(
+                    t, "s b (n c) -> b n s c", n=self.heads, c=self.dim_head
+                ),
                 (q, k, v),
             )
         else:
-            raise ValueError(f"Normalization mode {self.qkv_norm_mode} not found, only support 'per_head'")
+            raise ValueError(
+                f"Normalization mode {self.qkv_norm_mode} not found, only support 'per_head'"
+            )
 
         q = self.to_q[1](q)
         k = self.to_k[1](k)
@@ -185,7 +198,16 @@ class Attention(nn.Module):
             context (Optional[Tensor]): The key tensor of shape [B, Mk, K] or use x as context [self attention] if None
         """
         q, k, v = self.cal_qkv(x, context, mask, rope_emb=rope_emb, **kwargs)
-        out = optimized_attention(q, k, v, self.heads, skip_reshape=True, mask=mask, skip_output_reshape=True, transformer_options=transformer_options)
+        out = optimized_attention(
+            q,
+            k,
+            v,
+            self.heads,
+            skip_reshape=True,
+            mask=mask,
+            skip_output_reshape=True,
+            transformer_options=transformer_options,
+        )
         del q, k, v
         out = rearrange(out, " b n s c -> s b (n c)")
         return self.to_out(out)
@@ -232,7 +254,9 @@ class FeedForward(nn.Module):
         self.activation = activation
         self.is_gated = is_gated
         if is_gated:
-            self.linear_gate = operations.Linear(d_model, d_ff, bias=False, **weight_args)
+            self.linear_gate = operations.Linear(
+                d_model, d_ff, bias=False, **weight_args
+            )
 
     def forward(self, x: torch.Tensor):
         g = self.activation(self.layer1(x))
@@ -245,7 +269,15 @@ class FeedForward(nn.Module):
 
 
 class GPT2FeedForward(FeedForward):
-    def __init__(self, d_model: int, d_ff: int, dropout: float = 0.1, bias: bool = False, weight_args={}, operations=None):
+    def __init__(
+        self,
+        d_model: int,
+        d_ff: int,
+        dropout: float = 0.1,
+        bias: bool = False,
+        weight_args={},
+        operations=None,
+    ):
         super().__init__(
             d_model=d_model,
             d_ff=d_ff,
@@ -278,7 +310,9 @@ class Timesteps(nn.Module):
 
     def forward(self, timesteps):
         half_dim = self.num_channels // 2
-        exponent = -math.log(10000) * torch.arange(half_dim, dtype=torch.float32, device=timesteps.device)
+        exponent = -math.log(10000) * torch.arange(
+            half_dim, dtype=torch.float32, device=timesteps.device
+        )
         exponent = exponent / (half_dim - 0.0)
 
         emb = torch.exp(exponent)
@@ -292,18 +326,31 @@ class Timesteps(nn.Module):
 
 
 class TimestepEmbedding(nn.Module):
-    def __init__(self, in_features: int, out_features: int, use_adaln_lora: bool = False, weight_args={}, operations=None):
+    def __init__(
+        self,
+        in_features: int,
+        out_features: int,
+        use_adaln_lora: bool = False,
+        weight_args={},
+        operations=None,
+    ):
         super().__init__()
         logging.debug(
             f"Using AdaLN LoRA Flag:  {use_adaln_lora}. We enable bias if no AdaLN LoRA for backward compatibility."
         )
-        self.linear_1 = operations.Linear(in_features, out_features, bias=not use_adaln_lora, **weight_args)
+        self.linear_1 = operations.Linear(
+            in_features, out_features, bias=not use_adaln_lora, **weight_args
+        )
         self.activation = nn.SiLU()
         self.use_adaln_lora = use_adaln_lora
         if use_adaln_lora:
-            self.linear_2 = operations.Linear(out_features, 3 * out_features, bias=False, **weight_args)
+            self.linear_2 = operations.Linear(
+                out_features, 3 * out_features, bias=False, **weight_args
+            )
         else:
-            self.linear_2 = operations.Linear(out_features, out_features, bias=True, **weight_args)
+            self.linear_2 = operations.Linear(
+                out_features, out_features, bias=True, **weight_args
+            )
 
     def forward(self, sample: torch.Tensor) -> torch.Tensor:
         emb = self.linear_1(sample)
@@ -342,8 +389,12 @@ class FourierFeatures(nn.Module):
 
     def __init__(self, num_channels, bandwidth=1, normalize=False):
         super().__init__()
-        self.register_buffer("freqs", 2 * np.pi * bandwidth * torch.randn(num_channels), persistent=True)
-        self.register_buffer("phases", 2 * np.pi * torch.rand(num_channels), persistent=True)
+        self.register_buffer(
+            "freqs", 2 * np.pi * bandwidth * torch.randn(num_channels), persistent=True
+        )
+        self.register_buffer(
+            "phases", 2 * np.pi * torch.rand(num_channels), persistent=True
+        )
         self.gain = np.sqrt(2) if normalize else 1
 
     def forward(self, x, gain: float = 1.0):
@@ -358,7 +409,11 @@ class FourierFeatures(nn.Module):
             torch.Tensor: The transformed tensor, with Fourier features applied.
         """
         in_dtype = x.dtype
-        x = x.to(torch.float32).ger(self.freqs.to(torch.float32)).add(self.phases.to(torch.float32))
+        x = (
+            x.to(torch.float32)
+            .ger(self.freqs.to(torch.float32))
+            .add(self.phases.to(torch.float32))
+        )
         x = x.cos().mul(self.gain * gain).to(in_dtype)
         return x
 
@@ -400,7 +455,13 @@ class PatchEmbed(nn.Module):
                 n=spatial_patch_size,
             ),
             operations.Linear(
-                in_channels * spatial_patch_size * spatial_patch_size * temporal_patch_size, out_channels, bias=bias, **weight_args
+                in_channels
+                * spatial_patch_size
+                * spatial_patch_size
+                * temporal_patch_size,
+                out_channels,
+                bias=bias,
+                **weight_args,
             ),
         )
         self.out = nn.Identity()
@@ -445,9 +506,17 @@ class FinalLayer(nn.Module):
         operations=None,
     ):
         super().__init__()
-        self.norm_final = operations.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6, **weight_args)
+        self.norm_final = operations.LayerNorm(
+            hidden_size, elementwise_affine=False, eps=1e-6, **weight_args
+        )
         self.linear = operations.Linear(
-            hidden_size, spatial_patch_size * spatial_patch_size * temporal_patch_size * out_channels, bias=False, **weight_args
+            hidden_size,
+            spatial_patch_size
+            * spatial_patch_size
+            * temporal_patch_size
+            * out_channels,
+            bias=False,
+            **weight_args,
         )
         self.hidden_size = hidden_size
         self.n_adaln_chunks = 2
@@ -455,12 +524,25 @@ class FinalLayer(nn.Module):
         if use_adaln_lora:
             self.adaLN_modulation = nn.Sequential(
                 nn.SiLU(),
-                operations.Linear(hidden_size, adaln_lora_dim, bias=False, **weight_args),
-                operations.Linear(adaln_lora_dim, self.n_adaln_chunks * hidden_size, bias=False, **weight_args),
+                operations.Linear(
+                    hidden_size, adaln_lora_dim, bias=False, **weight_args
+                ),
+                operations.Linear(
+                    adaln_lora_dim,
+                    self.n_adaln_chunks * hidden_size,
+                    bias=False,
+                    **weight_args,
+                ),
             )
         else:
             self.adaLN_modulation = nn.Sequential(
-                nn.SiLU(), operations.Linear(hidden_size, self.n_adaln_chunks * hidden_size, bias=False, **weight_args)
+                nn.SiLU(),
+                operations.Linear(
+                    hidden_size,
+                    self.n_adaln_chunks * hidden_size,
+                    bias=False,
+                    **weight_args,
+                ),
             )
 
     def forward(
@@ -471,15 +553,19 @@ class FinalLayer(nn.Module):
     ):
         if self.use_adaln_lora:
             assert adaln_lora_B_3D is not None
-            shift_B_D, scale_B_D = (self.adaLN_modulation(emb_B_D) + adaln_lora_B_3D[:, : 2 * self.hidden_size]).chunk(
-                2, dim=1
-            )
+            shift_B_D, scale_B_D = (
+                self.adaLN_modulation(emb_B_D)
+                + adaln_lora_B_3D[:, : 2 * self.hidden_size]
+            ).chunk(2, dim=1)
         else:
             shift_B_D, scale_B_D = self.adaLN_modulation(emb_B_D).chunk(2, dim=1)
 
         B = emb_B_D.shape[0]
         T = x_BT_HW_D.shape[0] // B
-        shift_BT_D, scale_BT_D = repeat(shift_B_D, "b d -> (b t) d", t=T), repeat(scale_B_D, "b d -> (b t) d", t=T)
+        shift_BT_D, scale_BT_D = (
+            repeat(shift_B_D, "b d -> (b t) d", t=T),
+            repeat(scale_B_D, "b d -> (b t) d", t=T),
+        )
         x_BT_HW_D = modulate(self.norm_final(x_BT_HW_D), shift_BT_D, scale_BT_D)
 
         x_BT_HW_D = self.linear(x_BT_HW_D)
@@ -620,7 +706,7 @@ class DITBuildingBlock(nn.Module):
         use_adaln_lora: bool = False,
         adaln_lora_dim: int = 256,
         weight_args={},
-        operations=None
+        operations=None,
     ) -> None:
         block_type = block_type.lower()
 
@@ -639,10 +725,24 @@ class DITBuildingBlock(nn.Module):
             )
         elif block_type in ["full_attn", "fa"]:
             self.block = VideoAttn(
-                x_dim, None, num_heads, bias=bias, qkv_norm_mode=qkv_norm_mode, x_format=self.x_format, weight_args=weight_args, operations=operations
+                x_dim,
+                None,
+                num_heads,
+                bias=bias,
+                qkv_norm_mode=qkv_norm_mode,
+                x_format=self.x_format,
+                weight_args=weight_args,
+                operations=operations,
             )
         elif block_type in ["mlp", "ff"]:
-            self.block = GPT2FeedForward(x_dim, int(x_dim * mlp_ratio), dropout=mlp_dropout, bias=bias, weight_args=weight_args, operations=operations)
+            self.block = GPT2FeedForward(
+                x_dim,
+                int(x_dim * mlp_ratio),
+                dropout=mlp_dropout,
+                bias=bias,
+                weight_args=weight_args,
+                operations=operations,
+            )
         else:
             raise ValueError(f"Unknown block type: {block_type}")
 
@@ -655,10 +755,20 @@ class DITBuildingBlock(nn.Module):
             self.adaLN_modulation = nn.Sequential(
                 nn.SiLU(),
                 operations.Linear(x_dim, adaln_lora_dim, bias=False, **weight_args),
-                operations.Linear(adaln_lora_dim, self.n_adaln_chunks * x_dim, bias=False, **weight_args),
+                operations.Linear(
+                    adaln_lora_dim,
+                    self.n_adaln_chunks * x_dim,
+                    bias=False,
+                    **weight_args,
+                ),
             )
         else:
-            self.adaLN_modulation = nn.Sequential(nn.SiLU(), operations.Linear(x_dim, self.n_adaln_chunks * x_dim, bias=False, **weight_args))
+            self.adaLN_modulation = nn.Sequential(
+                nn.SiLU(),
+                operations.Linear(
+                    x_dim, self.n_adaln_chunks * x_dim, bias=False, **weight_args
+                ),
+            )
 
     def forward(
         self,
@@ -685,11 +795,13 @@ class DITBuildingBlock(nn.Module):
             Tensor: The output tensor after processing through the configured block and adaptive normalization.
         """
         if self.use_adaln_lora:
-            shift_B_D, scale_B_D, gate_B_D = (self.adaLN_modulation(emb_B_D) + adaln_lora_B_3D).chunk(
+            shift_B_D, scale_B_D, gate_B_D = (
+                self.adaLN_modulation(emb_B_D) + adaln_lora_B_3D
+            ).chunk(self.n_adaln_chunks, dim=1)
+        else:
+            shift_B_D, scale_B_D, gate_B_D = self.adaLN_modulation(emb_B_D).chunk(
                 self.n_adaln_chunks, dim=1
             )
-        else:
-            shift_B_D, scale_B_D, gate_B_D = self.adaLN_modulation(emb_B_D).chunk(self.n_adaln_chunks, dim=1)
 
         shift_1_1_1_B_D, scale_1_1_1_B_D, gate_1_1_1_B_D = (
             shift_B_D.unsqueeze(0).unsqueeze(0).unsqueeze(0),
@@ -761,7 +873,7 @@ class GeneralDITTransformerBlock(nn.Module):
         use_adaln_lora: bool = False,
         adaln_lora_dim: int = 256,
         weight_args={},
-        operations=None
+        operations=None,
     ):
         super().__init__()
         self.blocks = nn.ModuleList()

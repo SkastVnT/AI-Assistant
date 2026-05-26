@@ -11,6 +11,7 @@ Public surface:
   • :func:`run_xai_native_stream` — SSE streaming entry point
   • :func:`is_xai_native_enabled` — feature flag check
 """
+
 from core.agentic.xai_native.entrypoint import (
     is_xai_native_enabled,
     run_xai_native,

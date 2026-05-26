@@ -48,15 +48,16 @@ logger = logging.getLogger(__name__)
 # ── Cleanup tuning defaults ───────────────────────────────────────
 
 _DEFAULT_DENOISE = 0.45
-_LOW_DENOISE = 0.30          # "composition already good"
-_HIGH_DENOISE = 0.60         # "major anatomy issue"
-_DENOISE_FLOOR = 0.15        # never go below — would be a no-op
-_DENOISE_CEILING = 0.75      # never go above — would destroy composition
+_LOW_DENOISE = 0.30  # "composition already good"
+_HIGH_DENOISE = 0.60  # "major anatomy issue"
+_DENOISE_FLOOR = 0.15  # never go below — would be a no-op
+_DENOISE_CEILING = 0.75  # never go above — would destroy composition
 
 _LINEART_STRENGTH_BOOST = 0.15  # extra strength on anatomy fix
 
 
 # ── Critique-aware adjustments ────────────────────────────────────
+
 
 def compute_cleanup_adjustments(
     critique: Optional[CritiqueReport],
@@ -99,10 +100,9 @@ def compute_cleanup_adjustments(
         reasons.append("anatomy issues → higher denoise + lineart boost")
 
     # ── Busy background: add simplification negative ─────────────
-    has_busy_bg = (
-        critique.background_score <= 4
-        or any("busy" in i.lower() or "cluttered" in i.lower()
-               for i in critique.background_issues)
+    has_busy_bg = critique.background_score <= 4 or any(
+        "busy" in i.lower() or "cluttered" in i.lower()
+        for i in critique.background_issues
     )
     if has_busy_bg:
         result["negative_extra"] = (
@@ -116,7 +116,9 @@ def compute_cleanup_adjustments(
         result["denoise"] = max(result["denoise"], _DEFAULT_DENOISE)
         reasons.append("face issues → maintain moderate denoise")
 
-    result["reason"] = "; ".join(reasons) if reasons else "no critique adjustments needed"
+    result["reason"] = (
+        "; ".join(reasons) if reasons else "no critique adjustments needed"
+    )
 
     # Clamp
     result["denoise"] = max(_DENOISE_FLOOR, min(_DENOISE_CEILING, result["denoise"]))
@@ -127,6 +129,7 @@ def compute_cleanup_adjustments(
 # ═══════════════════════════════════════════════════════════════════
 # CleanupPassAgent
 # ═══════════════════════════════════════════════════════════════════
+
 
 class CleanupPassAgent:
     """Fix drift and simplify before the beauty pass.
@@ -175,16 +178,20 @@ class CleanupPassAgent:
 
         # Compute critique-aware adjustments
         adjustments = compute_cleanup_adjustments(
-            critique, base_denoise=cleanup_pc.denoise,
+            critique,
+            base_denoise=cleanup_pc.denoise,
         )
         logger.info(
             "[CleanupPass] Adjustments: %s (denoise=%.2f)",
-            adjustments["reason"], adjustments["denoise"],
+            adjustments["reason"],
+            adjustments["denoise"],
         )
 
         # Build adjusted PassConfig
         adjusted_pc = self._apply_adjustments(
-            cleanup_pc, adjustments, job.structure_layers,
+            cleanup_pc,
+            adjustments,
+            job.structure_layers,
         )
 
         # Determine clip_skip
@@ -208,7 +215,8 @@ class CleanupPassAgent:
         if not result.success:
             logger.error(
                 "[CleanupPass] Failed: %s (validation: %s)",
-                result.error, result.validation_error,
+                result.error,
+                result.validation_error,
             )
             job.error = f"Cleanup pass failed: {result.error}"
             job.status = AnimePipelineStatus.FAILED
@@ -221,7 +229,8 @@ class CleanupPassAgent:
 
         image_b64 = result.images_b64[0]
         job.add_intermediate(
-            "cleanup_pass", image_b64,
+            "cleanup_pass",
+            image_b64,
             seed=seed,
             checkpoint=adjusted_pc.checkpoint,
             denoise=adjustments["denoise"],
@@ -232,7 +241,9 @@ class CleanupPassAgent:
         job.mark_stage("cleanup_pass", latency)
         logger.info(
             "[CleanupPass] Done in %.0fms, checkpoint=%s, denoise=%.2f, %d controls",
-            latency, adjusted_pc.checkpoint, adjustments["denoise"],
+            latency,
+            adjusted_pc.checkpoint,
+            adjustments["denoise"],
             len(adjusted_pc.control_inputs),
         )
         return job
@@ -254,13 +265,19 @@ class CleanupPassAgent:
         Useful for testing, debugging, or external submission.
         """
         adjustments = compute_cleanup_adjustments(
-            critique, base_denoise=pc.denoise,
+            critique,
+            base_denoise=pc.denoise,
         )
         adjusted_pc = self._apply_adjustments(
-            pc, adjustments, structure_layers or [],
+            pc,
+            adjustments,
+            structure_layers or [],
         )
         return self._builder.build_cleanup(
-            adjusted_pc, source_image_b64, seed, clip_skip=clip_skip,
+            adjusted_pc,
+            source_image_b64,
+            seed,
+            clip_skip=clip_skip,
         )
 
     # ── Internals ─────────────────────────────────────────────────────
@@ -276,20 +293,22 @@ class CleanupPassAgent:
         control_inputs: list[ControlInput] = []
         lineart_delta = adjustments.get("lineart_strength_delta", 0.0)
 
-        for layer in structure_layers[:self._config.max_simultaneous_layers]:
+        for layer in structure_layers[: self._config.max_simultaneous_layers]:
             if not layer.controlnet_model or not layer.image_b64:
                 continue
             strength = layer.strength
             if "lineart" in layer.layer_type.value and lineart_delta > 0:
                 strength = min(1.0, strength + lineart_delta)
-            control_inputs.append(ControlInput(
-                layer_type=layer.layer_type.value,
-                controlnet_model=layer.controlnet_model,
-                strength=strength,
-                start_percent=layer.start_percent,
-                end_percent=layer.end_percent,
-                image_b64=layer.image_b64,
-            ))
+            control_inputs.append(
+                ControlInput(
+                    layer_type=layer.layer_type.value,
+                    controlnet_model=layer.controlnet_model,
+                    strength=strength,
+                    start_percent=layer.start_percent,
+                    end_percent=layer.end_percent,
+                    image_b64=layer.image_b64,
+                )
+            )
 
         # Also include any controls already in the PassConfig
         for ci in pc.control_inputs:
@@ -298,14 +317,16 @@ class CleanupPassAgent:
                 strength = ci.strength
                 if "lineart" in ci.layer_type and lineart_delta > 0:
                     strength = min(1.0, strength + lineart_delta)
-                control_inputs.append(ControlInput(
-                    layer_type=ci.layer_type,
-                    controlnet_model=ci.controlnet_model,
-                    strength=strength,
-                    start_percent=ci.start_percent,
-                    end_percent=ci.end_percent,
-                    image_b64=ci.image_b64,
-                ))
+                control_inputs.append(
+                    ControlInput(
+                        layer_type=ci.layer_type,
+                        controlnet_model=ci.controlnet_model,
+                        strength=strength,
+                        start_percent=ci.start_percent,
+                        end_percent=ci.end_percent,
+                        image_b64=ci.image_b64,
+                    )
+                )
 
         # Append background-simplification negative if needed
         negative = pc.negative_prompt

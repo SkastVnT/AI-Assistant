@@ -17,10 +17,10 @@ logger = logging.getLogger("rag.agent.memory")
 class EvidenceItem:
     """A single piece of evidence collected by the agent."""
 
-    source: str          # Tool that produced it (e.g. "retriever")
-    query: str           # Query that led to this evidence
-    content: str         # The actual evidence text
-    turn_index: int      # Which turn collected it
+    source: str  # Tool that produced it (e.g. "retriever")
+    query: str  # Query that led to this evidence
+    content: str  # The actual evidence text
+    turn_index: int  # Which turn collected it
     metadata: dict = field(default_factory=dict)
 
 
@@ -57,13 +57,15 @@ class ShortTermMemory:
             self._evidence.pop(0)
             logger.debug("memory: evicted oldest evidence (cap=%d)", self._max_evidence)
 
-        self._evidence.append(EvidenceItem(
-            source=source,
-            query=query,
-            content=content,
-            turn_index=turn_index,
-            metadata=metadata or {},
-        ))
+        self._evidence.append(
+            EvidenceItem(
+                source=source,
+                query=query,
+                content=content,
+                turn_index=turn_index,
+                metadata=metadata or {},
+            )
+        )
 
     @property
     def evidence(self) -> list[EvidenceItem]:

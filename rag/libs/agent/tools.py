@@ -159,9 +159,7 @@ class RetrieverTool:
                 source = chunk.get("filename", "unknown")
                 text = chunk.get("content", "")[:500]
                 score = chunk.get("score", 0.0)
-                chunks_text.append(
-                    f"[Source {i}] ({source}, score={score:.2f})\n{text}"
-                )
+                chunks_text.append(f"[Source {i}] ({source}, score={score:.2f})\n{text}")
             output = "\n\n".join(chunks_text) if chunks_text else "No results found."
             return ToolResult(
                 call_id=call.call_id,

@@ -251,9 +251,7 @@ class TestHybridPipeline:
             new_callable=AsyncMock,
             return_value=dense_results,
         ):
-            result = await pipeline.execute(
-                db, provider, "test query", tenant_id=TENANT_ID
-            )
+            result = await pipeline.execute(db, provider, "test query", tenant_id=TENANT_ID)
 
         assert result.strategy == "dense_only"
         assert len(result.dense_results) == 2
@@ -289,9 +287,7 @@ class TestHybridPipeline:
                 return_value=lex_results,
             ),
         ):
-            result = await pipeline.execute(
-                db, provider, "test", tenant_id=TENANT_ID
-            )
+            result = await pipeline.execute(db, provider, "test", tenant_id=TENANT_ID)
 
         assert result.strategy == "hybrid_rrf"
         assert len(result.lexical_results) == 2
@@ -330,9 +326,7 @@ class TestHybridPipeline:
                 return_value=lex_results,
             ),
         ):
-            result = await pipeline.execute(
-                db, provider, "test", tenant_id=TENANT_ID
-            )
+            result = await pipeline.execute(db, provider, "test", tenant_id=TENANT_ID)
 
         assert "rerank" in result.strategy
         assert len(result.reranked_results) > 0
@@ -399,13 +393,9 @@ class TestRetrieveWithHybrid:
         mock_pipeline = AsyncMock()
         mock_pipeline.execute = AsyncMock(return_value=fake_hybrid_result)
 
-        request = RetrievalRequest(
-            tenant_id=TENANT_ID, user_id=None, query="test"
-        )
+        request = RetrievalRequest(tenant_id=TENANT_ID, user_id=None, query="test")
 
-        result = await retrieve(
-            db, provider, request, hybrid_pipeline=mock_pipeline
-        )
+        result = await retrieve(db, provider, request, hybrid_pipeline=mock_pipeline)
 
         assert result.retrieval_strategy == "hybrid_rrf"
         assert result.dense_count == 2
@@ -419,9 +409,7 @@ class TestRetrieveWithHybrid:
         db.add = MagicMock()
         db.flush = AsyncMock()
 
-        request = RetrievalRequest(
-            tenant_id=TENANT_ID, user_id=None, query="test"
-        )
+        request = RetrievalRequest(tenant_id=TENANT_ID, user_id=None, query="test")
 
         with patch(
             "libs.retrieval.service.vector_search_from_embedding",

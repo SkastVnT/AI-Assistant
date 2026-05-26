@@ -2,6 +2,7 @@ from comfy_api.latest import ComfyExtension, io
 from typing_extensions import override
 # If you write a node that is so useless that it breaks ComfyUI it will be featured in this exclusive list
 
+
 # "native" block swap nodes are placebo at best and break the ComfyUI memory management system.
 # They are also considered harmful because instead of users reporting issues with the built in
 # memory management they install these stupid nodes and complain even harder. Now it completely
@@ -31,9 +32,8 @@ class wanBlockSwap(io.ComfyNode):
 class NopExtension(ComfyExtension):
     @override
     async def get_node_list(self) -> list[type[io.ComfyNode]]:
-        return [
-            wanBlockSwap
-        ]
+        return [wanBlockSwap]
+
 
 async def comfy_entrypoint() -> NopExtension:
     return NopExtension()

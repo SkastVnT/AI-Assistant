@@ -25,6 +25,7 @@ Behaviour:
 The module is OPT-IN and PURE — no I/O, no global state — so it is
 safe to call from inpaint passes, layer painters, and tests.
 """
+
 from __future__ import annotations
 
 import re
@@ -55,15 +56,20 @@ _KLEE_LORA: dict[str, Any] = {
     "strength_clip": 0.90,
 }
 
-_KLEE_TOKENS: frozenset[str] = frozenset({
-    "klee", "klee (genshin impact)", "klee_(genshin_impact)",
-})
+_KLEE_TOKENS: frozenset[str] = frozenset(
+    {
+        "klee",
+        "klee (genshin impact)",
+        "klee_(genshin_impact)",
+    }
+)
 
 
 # ── Intent detection ────────────────────────────────────────────────
 
 _EYE_TAPED_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
-    re.compile(p, re.IGNORECASE) for p in (
+    re.compile(p, re.IGNORECASE)
+    for p in (
         # English
         r"\beye(?:s)?\s*tap(?:e|ed|ing)\b",
         r"\btap(?:e|ed|ing)\s+eye(?:s)?\b",
@@ -99,6 +105,7 @@ def detect_eye_taped_intent(user_prompt: Optional[str]) -> bool:
 
 
 # ── LoRA stack builder ──────────────────────────────────────────────
+
 
 def _is_klee(character_name: str = "", character_tag: str = "") -> bool:
     haystack = f"{character_name} {character_tag}".strip().lower()

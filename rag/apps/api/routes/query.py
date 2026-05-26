@@ -68,13 +68,9 @@ async def query_rag(
     if body.filters:
         search_filters = SearchFilters(
             sensitivity_level=(
-                body.filters.sensitivity_levels[0]
-                if body.filters.sensitivity_levels
-                else None
+                body.filters.sensitivity_levels[0] if body.filters.sensitivity_levels else None
             ),
-            language=(
-                body.filters.languages[0] if body.filters.languages else None
-            ),
+            language=(body.filters.languages[0] if body.filters.languages else None),
             tags=body.filters.tags,
         )
 
@@ -115,9 +111,7 @@ async def query_rag(
         query_text=body.query,
         retrieval_strategy="vector_cosine",
         top_k=body.top_k,
-        retrieved_chunks=[
-            {"chunk_id": str(s.chunk_id), "score": s.score} for s in sources
-        ],
+        retrieved_chunks=[{"chunk_id": str(s.chunk_id), "score": s.score} for s in sources],
         answer_text=answer,
         latency_ms=total_ms,
         retrieval_latency_ms=retrieval_ms,
@@ -125,9 +119,7 @@ async def query_rag(
     )
     db.add(trace)
 
-    return QueryResponse(
-        answer=answer, sources=sources, query=body.query, trace_id=trace.id
-    )
+    return QueryResponse(answer=answer, sources=sources, query=body.query, trace_id=trace.id)
 
 
 @router.post("/retrieve", response_model=RetrieveResponse)
@@ -153,15 +145,9 @@ async def retrieve_chunks(
     if body.filters:
         search_filters = SearchFilters(
             sensitivity_level=(
-                body.filters.sensitivity_levels[0]
-                if body.filters.sensitivity_levels
-                else None
+                body.filters.sensitivity_levels[0] if body.filters.sensitivity_levels else None
             ),
-            language=(
-                body.filters.languages[0]
-                if body.filters.languages
-                else None
-            ),
+            language=(body.filters.languages[0] if body.filters.languages else None),
             source_ids=body.filters.source_ids,
         )
 
@@ -190,13 +176,15 @@ async def retrieve_chunks(
                 hybrid_settings.reranker_type,
                 hybrid_settings.reranker_model,
             )
-        hybrid = HybridRetrievalPipeline(
-            settings=hybrid_settings, reranker=reranker
-        )
+        hybrid = HybridRetrievalPipeline(settings=hybrid_settings, reranker=reranker)
 
     result = await retrieve(
-        db, embedder, req,
-        llm=llm, transform_pipeline=pipeline, hybrid_pipeline=hybrid,
+        db,
+        embedder,
+        req,
+        llm=llm,
+        transform_pipeline=pipeline,
+        hybrid_pipeline=hybrid,
     )
 
     return RetrieveResponse(
@@ -246,14 +234,8 @@ def _build_search_filters(filters) -> SearchFilters | None:
     if filters is None:
         return None
     return SearchFilters(
-        sensitivity_level=(
-            filters.sensitivity_levels[0]
-            if filters.sensitivity_levels
-            else None
-        ),
-        language=(
-            filters.languages[0] if filters.languages else None
-        ),
+        sensitivity_level=(filters.sensitivity_levels[0] if filters.sensitivity_levels else None),
+        language=(filters.languages[0] if filters.languages else None),
         source_ids=getattr(filters, "source_ids", None),
     )
 

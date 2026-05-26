@@ -1,5 +1,6 @@
 import torch
 
+
 class NestedTensor:
     def __init__(self, tensors):
         self.tensors = list(tensors)

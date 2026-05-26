@@ -42,6 +42,7 @@ _MIN_HINT_B64_LENGTH = 200
 
 # ── Quality check ─────────────────────────────────────────────────
 
+
 def validate_hint_image(image_b64: str, layer_type: str) -> bool:
     """Check if a preprocessor hint image is usable.
 
@@ -51,14 +52,16 @@ def validate_hint_image(image_b64: str, layer_type: str) -> bool:
     """
     if not image_b64:
         logger.warning(
-            "[StructureLock] %s: preprocessor returned no image", layer_type,
+            "[StructureLock] %s: preprocessor returned no image",
+            layer_type,
         )
         return False
     if len(image_b64) < _MIN_HINT_B64_LENGTH:
         logger.warning(
             "[StructureLock] %s: preprocessor output too small (%d chars), "
             "likely empty or broken — skipping",
-            layer_type, len(image_b64),
+            layer_type,
+            len(image_b64),
         )
         return False
     return True
@@ -67,6 +70,7 @@ def validate_hint_image(image_b64: str, layer_type: str) -> bool:
 # ═══════════════════════════════════════════════════════════════════
 # StructureLockAgent
 # ═══════════════════════════════════════════════════════════════════
+
 
 class StructureLockAgent:
     """Extract control layers (lineart, depth, canny) from composition image.
@@ -122,19 +126,22 @@ class StructureLockAgent:
                     continue
 
                 # Store extracted layer on job
-                job.structure_layers.append(StructureLayer(
-                    layer_type=StructureLayerType(lc.layer_type),
-                    image_b64=layer_b64,
-                    preprocessor=lc.preprocessor,
-                    controlnet_model=lc.controlnet_model,
-                    strength=lc.strength,
-                    start_percent=lc.start_percent,
-                    end_percent=lc.end_percent,
-                ))
+                job.structure_layers.append(
+                    StructureLayer(
+                        layer_type=StructureLayerType(lc.layer_type),
+                        image_b64=layer_b64,
+                        preprocessor=lc.preprocessor,
+                        controlnet_model=lc.controlnet_model,
+                        strength=lc.strength,
+                        start_percent=lc.start_percent,
+                        end_percent=lc.end_percent,
+                    )
+                )
 
                 # Save as debug artifact
                 job.add_intermediate(
-                    f"structure_{lc.layer_type}", layer_b64,
+                    f"structure_{lc.layer_type}",
+                    layer_b64,
                     preprocessor=lc.preprocessor,
                 )
                 logger.info("[StructureLock] Extracted %s layer", lc.layer_type)
@@ -149,7 +156,8 @@ class StructureLockAgent:
             except Exception as e:
                 logger.warning(
                     "[StructureLock] Failed to extract %s: %s",
-                    lc.layer_type, e,
+                    lc.layer_type,
+                    e,
                 )
                 if not lc.optional:
                     raise
@@ -158,7 +166,8 @@ class StructureLockAgent:
         job.mark_stage("structure_lock", latency)
         logger.info(
             "[StructureLock] Done in %.0fms, %d layers extracted",
-            latency, len(job.structure_layers),
+            latency,
+            len(job.structure_layers),
         )
         return job
 
@@ -180,13 +189,16 @@ class StructureLockAgent:
         Returns:
             Dict mapping ``layer_type`` → ComfyUI workflow dict.
         """
-        layers = control_configs if control_configs is not None else self._resolve_layers()
+        layers = (
+            control_configs if control_configs is not None else self._resolve_layers()
+        )
         result: dict[str, dict] = {}
         for lc in layers:
             if not lc.enabled:
                 continue
             result[lc.layer_type] = self._builder.build_structure_lock_layer(
-                input_image_b64, lc,
+                input_image_b64,
+                lc,
             )
         return result
 
@@ -207,7 +219,8 @@ class StructureLockAgent:
             layers = layers[:max_layers]
             logger.info(
                 "[StructureLock] Limiting to %d layers (dropped: %s)",
-                max_layers, [lc.layer_type for lc in dropped],
+                max_layers,
+                [lc.layer_type for lc in dropped],
             )
 
         return layers
@@ -234,7 +247,8 @@ class StructureLockAgent:
         Returns the extracted hint image as base64, or None on failure.
         """
         workflow = self._builder.build_structure_lock_layer(
-            source_b64, layer_config,
+            source_b64,
+            layer_config,
         )
         result = self._client.submit_workflow(
             workflow,
@@ -245,7 +259,8 @@ class StructureLockAgent:
         if not result.success:
             logger.warning(
                 "[StructureLock] %s preprocessor failed: %s",
-                layer_config.layer_type, result.error,
+                layer_config.layer_type,
+                result.error,
             )
             return None
 

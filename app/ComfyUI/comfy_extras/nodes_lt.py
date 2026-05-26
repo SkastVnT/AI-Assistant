@@ -9,8 +9,12 @@ import numpy as np
 import av
 from io import BytesIO
 from typing_extensions import override
-from comfy.ldm.lightricks.symmetric_patchifier import SymmetricPatchifier, latent_to_pixel_coords
+from comfy.ldm.lightricks.symmetric_patchifier import (
+    SymmetricPatchifier,
+    latent_to_pixel_coords,
+)
 from comfy_api.latest import ComfyExtension, io
+
 
 class EmptyLTXVLatentVideo(io.ComfyNode):
     @classmethod
@@ -19,9 +23,15 @@ class EmptyLTXVLatentVideo(io.ComfyNode):
             node_id="EmptyLTXVLatentVideo",
             category="latent/video/ltxv",
             inputs=[
-                io.Int.Input("width", default=768, min=64, max=nodes.MAX_RESOLUTION, step=32),
-                io.Int.Input("height", default=512, min=64, max=nodes.MAX_RESOLUTION, step=32),
-                io.Int.Input("length", default=97, min=1, max=nodes.MAX_RESOLUTION, step=8),
+                io.Int.Input(
+                    "width", default=768, min=64, max=nodes.MAX_RESOLUTION, step=32
+                ),
+                io.Int.Input(
+                    "height", default=512, min=64, max=nodes.MAX_RESOLUTION, step=32
+                ),
+                io.Int.Input(
+                    "length", default=97, min=1, max=nodes.MAX_RESOLUTION, step=8
+                ),
                 io.Int.Input("batch_size", default=1, min=1, max=4096),
             ],
             outputs=[
@@ -31,10 +41,14 @@ class EmptyLTXVLatentVideo(io.ComfyNode):
 
     @classmethod
     def execute(cls, width, height, length, batch_size=1) -> io.NodeOutput:
-        latent = torch.zeros([batch_size, 128, ((length - 1) // 8) + 1, height // 32, width // 32], device=comfy.model_management.intermediate_device())
+        latent = torch.zeros(
+            [batch_size, 128, ((length - 1) // 8) + 1, height // 32, width // 32],
+            device=comfy.model_management.intermediate_device(),
+        )
         return io.NodeOutput({"samples": latent})
 
     generate = execute  # TODO: remove
+
 
 class LTXVImgToVideo(io.ComfyNode):
     @classmethod
@@ -47,9 +61,15 @@ class LTXVImgToVideo(io.ComfyNode):
                 io.Conditioning.Input("negative"),
                 io.Vae.Input("vae"),
                 io.Image.Input("image"),
-                io.Int.Input("width", default=768, min=64, max=nodes.MAX_RESOLUTION, step=32),
-                io.Int.Input("height", default=512, min=64, max=nodes.MAX_RESOLUTION, step=32),
-                io.Int.Input("length", default=97, min=9, max=nodes.MAX_RESOLUTION, step=8),
+                io.Int.Input(
+                    "width", default=768, min=64, max=nodes.MAX_RESOLUTION, step=32
+                ),
+                io.Int.Input(
+                    "height", default=512, min=64, max=nodes.MAX_RESOLUTION, step=32
+                ),
+                io.Int.Input(
+                    "length", default=97, min=9, max=nodes.MAX_RESOLUTION, step=8
+                ),
                 io.Int.Input("batch_size", default=1, min=1, max=4096),
                 io.Float.Input("strength", default=1.0, min=0.0, max=1.0),
             ],
@@ -61,22 +81,33 @@ class LTXVImgToVideo(io.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, positive, negative, image, vae, width, height, length, batch_size, strength) -> io.NodeOutput:
-        pixels = comfy.utils.common_upscale(image.movedim(-1, 1), width, height, "bilinear", "center").movedim(1, -1)
+    def execute(
+        cls, positive, negative, image, vae, width, height, length, batch_size, strength
+    ) -> io.NodeOutput:
+        pixels = comfy.utils.common_upscale(
+            image.movedim(-1, 1), width, height, "bilinear", "center"
+        ).movedim(1, -1)
         encode_pixels = pixels[:, :, :, :3]
         t = vae.encode(encode_pixels)
 
-        latent = torch.zeros([batch_size, 128, ((length - 1) // 8) + 1, height // 32, width // 32], device=comfy.model_management.intermediate_device())
-        latent[:, :, :t.shape[2]] = t
+        latent = torch.zeros(
+            [batch_size, 128, ((length - 1) // 8) + 1, height // 32, width // 32],
+            device=comfy.model_management.intermediate_device(),
+        )
+        latent[:, :, : t.shape[2]] = t
 
         conditioning_latent_frames_mask = torch.ones(
             (batch_size, 1, latent.shape[2], 1, 1),
             dtype=torch.float32,
             device=latent.device,
         )
-        conditioning_latent_frames_mask[:, :, :t.shape[2]] = 1.0 - strength
+        conditioning_latent_frames_mask[:, :, : t.shape[2]] = 1.0 - strength
 
-        return io.NodeOutput(positive, negative, {"samples": latent, "noise_mask": conditioning_latent_frames_mask})
+        return io.NodeOutput(
+            positive,
+            negative,
+            {"samples": latent, "noise_mask": conditioning_latent_frames_mask},
+        )
 
     generate = execute  # TODO: remove
 
@@ -102,12 +133,14 @@ def get_noise_mask(latent):
         noise_mask = noise_mask.clone()
     return noise_mask
 
+
 def get_keyframe_idxs(cond):
     keyframe_idxs = conditioning_get_any_value(cond, "keyframe_idxs", None)
     if keyframe_idxs is None:
         return None, 0
     num_keyframes = torch.unique(keyframe_idxs[:, 0]).shape[0]
     return keyframe_idxs, num_keyframes
+
 
 class LTXVAddGuide(io.ComfyNode):
     NUM_PREFIX_FRAMES = 2
@@ -126,7 +159,7 @@ class LTXVAddGuide(io.ComfyNode):
                 io.Image.Input(
                     "image",
                     tooltip="Image or video to condition the latent video on. Must be 8*n + 1 frames. "
-                            "If the video is not 8*n + 1 frames, it will be cropped to the nearest 8*n + 1 frames.",
+                    "If the video is not 8*n + 1 frames, it will be cropped to the nearest 8*n + 1 frames.",
                 ),
                 io.Int.Input(
                     "frame_idx",
@@ -134,9 +167,9 @@ class LTXVAddGuide(io.ComfyNode):
                     min=-9999,
                     max=9999,
                     tooltip="Frame index to start the conditioning at. "
-                            "For single-frame images or videos with 1-8 frames, any frame_idx value is acceptable. "
-                            "For videos with 9+ frames, frame_idx must be divisible by 8, otherwise it will be rounded "
-                            "down to the nearest multiple of 8. Negative values are counted from the end of the video.",
+                    "For single-frame images or videos with 1-8 frames, any frame_idx value is acceptable. "
+                    "For videos with 9+ frames, frame_idx must be divisible by 8, otherwise it will be rounded "
+                    "down to the nearest multiple of 8. Negative values are counted from the end of the video.",
                 ),
                 io.Float.Input("strength", default=1.0, min=0.0, max=1.0, step=0.01),
             ],
@@ -150,20 +183,36 @@ class LTXVAddGuide(io.ComfyNode):
     @classmethod
     def encode(cls, vae, latent_width, latent_height, images, scale_factors):
         time_scale_factor, width_scale_factor, height_scale_factor = scale_factors
-        images = images[:(images.shape[0] - 1) // time_scale_factor * time_scale_factor + 1]
-        pixels = comfy.utils.common_upscale(images.movedim(-1, 1), latent_width * width_scale_factor, latent_height * height_scale_factor, "bilinear", crop="disabled").movedim(1, -1)
+        images = images[
+            : (images.shape[0] - 1) // time_scale_factor * time_scale_factor + 1
+        ]
+        pixels = comfy.utils.common_upscale(
+            images.movedim(-1, 1),
+            latent_width * width_scale_factor,
+            latent_height * height_scale_factor,
+            "bilinear",
+            crop="disabled",
+        ).movedim(1, -1)
         encode_pixels = pixels[:, :, :, :3]
         t = vae.encode(encode_pixels)
         return encode_pixels, t
 
     @classmethod
-    def get_latent_index(cls, cond, latent_length, guide_length, frame_idx, scale_factors):
+    def get_latent_index(
+        cls, cond, latent_length, guide_length, frame_idx, scale_factors
+    ):
         time_scale_factor, _, _ = scale_factors
         _, num_keyframes = get_keyframe_idxs(cond)
         latent_count = latent_length - num_keyframes
-        frame_idx = frame_idx if frame_idx >= 0 else max((latent_count - 1) * time_scale_factor + 1 + frame_idx, 0)
+        frame_idx = (
+            frame_idx
+            if frame_idx >= 0
+            else max((latent_count - 1) * time_scale_factor + 1 + frame_idx, 0)
+        )
         if guide_length > 1 and frame_idx != 0:
-            frame_idx = (frame_idx - 1) // time_scale_factor * time_scale_factor + 1 # frame index - 1 must be divisible by 8 or frame_idx == 0
+            frame_idx = (
+                (frame_idx - 1) // time_scale_factor * time_scale_factor + 1
+            )  # frame index - 1 must be divisible by 8 or frame_idx == 0
 
         latent_idx = (frame_idx + time_scale_factor - 1) // time_scale_factor
 
@@ -173,16 +222,30 @@ class LTXVAddGuide(io.ComfyNode):
     def add_keyframe_index(cls, cond, frame_idx, guiding_latent, scale_factors):
         keyframe_idxs, _ = get_keyframe_idxs(cond)
         _, latent_coords = cls.PATCHIFIER.patchify(guiding_latent)
-        pixel_coords = latent_to_pixel_coords(latent_coords, scale_factors, causal_fix=frame_idx == 0)  # we need the causal fix only if we're placing the new latents at index 0
+        pixel_coords = latent_to_pixel_coords(
+            latent_coords, scale_factors, causal_fix=frame_idx == 0
+        )  # we need the causal fix only if we're placing the new latents at index 0
         pixel_coords[:, 0] += frame_idx
         if keyframe_idxs is None:
             keyframe_idxs = pixel_coords
         else:
             keyframe_idxs = torch.cat([keyframe_idxs, pixel_coords], dim=2)
-        return node_helpers.conditioning_set_values(cond, {"keyframe_idxs": keyframe_idxs})
+        return node_helpers.conditioning_set_values(
+            cond, {"keyframe_idxs": keyframe_idxs}
+        )
 
     @classmethod
-    def append_keyframe(cls, positive, negative, frame_idx, latent_image, noise_mask, guiding_latent, strength, scale_factors):
+    def append_keyframe(
+        cls,
+        positive,
+        negative,
+        frame_idx,
+        latent_image,
+        noise_mask,
+        guiding_latent,
+        strength,
+        scale_factors,
+    ):
         _, latent_idx = cls.get_latent_index(
             cond=positive,
             latent_length=latent_image.shape[2],
@@ -190,13 +253,23 @@ class LTXVAddGuide(io.ComfyNode):
             frame_idx=frame_idx,
             scale_factors=scale_factors,
         )
-        noise_mask[:, :, latent_idx:latent_idx + guiding_latent.shape[2]] = 1.0
+        noise_mask[:, :, latent_idx : latent_idx + guiding_latent.shape[2]] = 1.0
 
-        positive = cls.add_keyframe_index(positive, frame_idx, guiding_latent, scale_factors)
-        negative = cls.add_keyframe_index(negative, frame_idx, guiding_latent, scale_factors)
+        positive = cls.add_keyframe_index(
+            positive, frame_idx, guiding_latent, scale_factors
+        )
+        negative = cls.add_keyframe_index(
+            negative, frame_idx, guiding_latent, scale_factors
+        )
 
         mask = torch.full(
-            (noise_mask.shape[0], 1, guiding_latent.shape[2], noise_mask.shape[3], noise_mask.shape[4]),
+            (
+                noise_mask.shape[0],
+                1,
+                guiding_latent.shape[2],
+                noise_mask.shape[3],
+                noise_mask.shape[4],
+            ),
             1.0 - strength,
             dtype=noise_mask.dtype,
             device=noise_mask.device,
@@ -207,9 +280,13 @@ class LTXVAddGuide(io.ComfyNode):
         return positive, negative, latent_image, noise_mask
 
     @classmethod
-    def replace_latent_frames(cls, latent_image, noise_mask, guiding_latent, latent_idx, strength):
+    def replace_latent_frames(
+        cls, latent_image, noise_mask, guiding_latent, latent_idx, strength
+    ):
         cond_length = guiding_latent.shape[2]
-        assert latent_image.shape[2] >= latent_idx + cond_length, "Conditioning frames exceed the length of the latent sequence."
+        assert latent_image.shape[2] >= latent_idx + cond_length, (
+            "Conditioning frames exceed the length of the latent sequence."
+        )
 
         mask = torch.full(
             (noise_mask.shape[0], 1, cond_length, 1, 1),
@@ -227,7 +304,9 @@ class LTXVAddGuide(io.ComfyNode):
         return latent_image, noise_mask
 
     @classmethod
-    def execute(cls, positive, negative, vae, latent, image, frame_idx, strength) -> io.NodeOutput:
+    def execute(
+        cls, positive, negative, vae, latent, image, frame_idx, strength
+    ) -> io.NodeOutput:
         scale_factors = vae.downscale_index_formula
         latent_image = latent["samples"]
         noise_mask = get_noise_mask(latent)
@@ -235,8 +314,12 @@ class LTXVAddGuide(io.ComfyNode):
         _, _, latent_length, latent_height, latent_width = latent_image.shape
         image, t = cls.encode(vae, latent_width, latent_height, image, scale_factors)
 
-        frame_idx, latent_idx = cls.get_latent_index(positive, latent_length, len(image), frame_idx, scale_factors)
-        assert latent_idx + t.shape[2] <= latent_length, "Conditioning frames exceed the length of the latent sequence."
+        frame_idx, latent_idx = cls.get_latent_index(
+            positive, latent_length, len(image), frame_idx, scale_factors
+        )
+        assert latent_idx + t.shape[2] <= latent_length, (
+            "Conditioning frames exceed the length of the latent sequence."
+        )
 
         num_prefix_frames = min(cls.NUM_PREFIX_FRAMES, t.shape[2])
 
@@ -255,7 +338,9 @@ class LTXVAddGuide(io.ComfyNode):
 
         t = t[:, :, num_prefix_frames:]
         if t.shape[2] == 0:
-            return io.NodeOutput(positive, negative, {"samples": latent_image, "noise_mask": noise_mask})
+            return io.NodeOutput(
+                positive, negative, {"samples": latent_image, "noise_mask": noise_mask}
+            )
 
         latent_image, noise_mask = cls.replace_latent_frames(
             latent_image,
@@ -265,7 +350,9 @@ class LTXVAddGuide(io.ComfyNode):
             strength,
         )
 
-        return io.NodeOutput(positive, negative, {"samples": latent_image, "noise_mask": noise_mask})
+        return io.NodeOutput(
+            positive, negative, {"samples": latent_image, "noise_mask": noise_mask}
+        )
 
     generate = execute  # TODO: remove
 
@@ -295,15 +382,25 @@ class LTXVCropGuides(io.ComfyNode):
 
         _, num_keyframes = get_keyframe_idxs(positive)
         if num_keyframes == 0:
-            return io.NodeOutput(positive, negative, {"samples": latent_image, "noise_mask": noise_mask},)
+            return io.NodeOutput(
+                positive,
+                negative,
+                {"samples": latent_image, "noise_mask": noise_mask},
+            )
 
         latent_image = latent_image[:, :, :-num_keyframes]
         noise_mask = noise_mask[:, :, :-num_keyframes]
 
-        positive = node_helpers.conditioning_set_values(positive, {"keyframe_idxs": None})
-        negative = node_helpers.conditioning_set_values(negative, {"keyframe_idxs": None})
+        positive = node_helpers.conditioning_set_values(
+            positive, {"keyframe_idxs": None}
+        )
+        negative = node_helpers.conditioning_set_values(
+            negative, {"keyframe_idxs": None}
+        )
 
-        return io.NodeOutput(positive, negative, {"samples": latent_image, "noise_mask": noise_mask})
+        return io.NodeOutput(
+            positive, negative, {"samples": latent_image, "noise_mask": noise_mask}
+        )
 
     crop = execute  # TODO: remove
 
@@ -317,7 +414,9 @@ class LTXVConditioning(io.ComfyNode):
             inputs=[
                 io.Conditioning.Input("positive"),
                 io.Conditioning.Input("negative"),
-                io.Float.Input("frame_rate", default=25.0, min=0.0, max=1000.0, step=0.01),
+                io.Float.Input(
+                    "frame_rate", default=25.0, min=0.0, max=1000.0, step=0.01
+                ),
             ],
             outputs=[
                 io.Conditioning.Output(display_name="positive"),
@@ -327,8 +426,12 @@ class LTXVConditioning(io.ComfyNode):
 
     @classmethod
     def execute(cls, positive, negative, frame_rate) -> io.NodeOutput:
-        positive = node_helpers.conditioning_set_values(positive, {"frame_rate": frame_rate})
-        negative = node_helpers.conditioning_set_values(negative, {"frame_rate": frame_rate})
+        positive = node_helpers.conditioning_set_values(
+            positive, {"frame_rate": frame_rate}
+        )
+        negative = node_helpers.conditioning_set_values(
+            negative, {"frame_rate": frame_rate}
+        )
         return io.NodeOutput(positive, negative)
 
 
@@ -340,8 +443,12 @@ class ModelSamplingLTXV(io.ComfyNode):
             category="advanced/model",
             inputs=[
                 io.Model.Input("model"),
-                io.Float.Input("max_shift", default=2.05, min=0.0, max=100.0, step=0.01),
-                io.Float.Input("base_shift", default=0.95, min=0.0, max=100.0, step=0.01),
+                io.Float.Input(
+                    "max_shift", default=2.05, min=0.0, max=100.0, step=0.01
+                ),
+                io.Float.Input(
+                    "base_shift", default=0.95, min=0.0, max=100.0, step=0.01
+                ),
                 io.Latent.Input("latent", optional=True),
             ],
             outputs=[
@@ -385,8 +492,12 @@ class LTXVScheduler(io.ComfyNode):
             category="sampling/custom_sampling/schedulers",
             inputs=[
                 io.Int.Input("steps", default=20, min=1, max=10000),
-                io.Float.Input("max_shift", default=2.05, min=0.0, max=100.0, step=0.01),
-                io.Float.Input("base_shift", default=0.95, min=0.0, max=100.0, step=0.01),
+                io.Float.Input(
+                    "max_shift", default=2.05, min=0.0, max=100.0, step=0.01
+                ),
+                io.Float.Input(
+                    "base_shift", default=0.95, min=0.0, max=100.0, step=0.01
+                ),
                 io.Boolean.Input(
                     id="stretch",
                     default=True,
@@ -408,7 +519,9 @@ class LTXVScheduler(io.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, steps, max_shift, base_shift, stretch, terminal, latent=None) -> io.NodeOutput:
+    def execute(
+        cls, steps, max_shift, base_shift, stretch, terminal, latent=None
+    ) -> io.NodeOutput:
         if latent is None:
             tokens = 4096
         else:
@@ -439,6 +552,7 @@ class LTXVScheduler(io.ComfyNode):
             sigmas[non_zero_mask] = stretched
 
         return io.NodeOutput(sigmas)
+
 
 def encode_single_frame(output_file, image_array: np.ndarray, crf):
     container = av.open(output_file, "w", format="mp4")
@@ -471,7 +585,12 @@ def preprocess(image: torch.Tensor, crf=29):
     if crf == 0:
         return image
 
-    image_array = (image[:(image.shape[0] // 2) * 2, :(image.shape[1] // 2) * 2] * 255.0).byte().cpu().numpy()
+    image_array = (
+        (image[: (image.shape[0] // 2) * 2, : (image.shape[1] // 2) * 2] * 255.0)
+        .byte()
+        .cpu()
+        .numpy()
+    )
     with BytesIO() as output_file:
         encode_single_frame(output_file, image_array, crf)
         video_bytes = output_file.getvalue()
@@ -490,7 +609,11 @@ class LTXVPreprocess(io.ComfyNode):
             inputs=[
                 io.Image.Input("image"),
                 io.Int.Input(
-                    id="img_compression", default=35, min=0, max=100, tooltip="Amount of compression to apply on image."
+                    id="img_compression",
+                    default=35,
+                    min=0,
+                    max=100,
+                    tooltip="Amount of compression to apply on image.",
                 ),
             ],
             outputs=[
@@ -506,6 +629,7 @@ class LTXVPreprocess(io.ComfyNode):
         return io.NodeOutput(torch.stack(output_images))
 
     preprocess = execute  # TODO: remove
+
 
 class LtxvExtension(ComfyExtension):
     @override

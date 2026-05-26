@@ -7,6 +7,7 @@ adapter does NOT proxy chat traffic; it only exposes status/URL information
 so the chatbot UI can deep-link into the running picker. Contract mirrors
 ``hermes_adapter`` for consistency.
 """
+
 from __future__ import annotations
 
 import logging
@@ -40,7 +41,7 @@ def is_enabled() -> bool:
 
 def _parse_host_port(url: str, default_port: int) -> tuple[str, int]:
     parsed = urlparse(url)
-    return (parsed.hostname or '127.0.0.1'), (parsed.port or default_port)
+    return (parsed.hostname or "127.0.0.1"), (parsed.port or default_port)
 
 
 def _port_is_open(host: str, port: int, timeout: float = 1.0) -> bool:
@@ -78,7 +79,9 @@ def get_status() -> dict:
     }
 
     if not CHARACTER_SELECT_ENABLED:
-        payload["error"] = "Character Select disabled. Set CHARACTER_SELECT_ENABLED=true to enable."
+        payload["error"] = (
+            "Character Select disabled. Set CHARACTER_SELECT_ENABLED=true to enable."
+        )
         payload["elapsed_s"] = round(time.monotonic() - started, 4)
         return payload
 

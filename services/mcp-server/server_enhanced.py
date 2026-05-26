@@ -1,4 +1,4 @@
-﻿"""
+"""
 AI-Assistant MCP Server - Enhanced Version
 ===========================================
 Model Context Protocol server vá»›i advanced features.
@@ -12,20 +12,17 @@ NEW FEATURES:
 - Metrics tracking
 """
 
-import os
 import ast
-import math
-import json
-import sqlite3
 import logging
-import hashlib
+import math
 import operator as _op
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+import os
+import time
+from collections import defaultdict
 from datetime import datetime
 from functools import wraps
-from collections import defaultdict
-import time
+from pathlib import Path
+from typing import Any
 
 try:
     from mcp.server.fastmcp import FastMCP
@@ -38,113 +35,119 @@ except ImportError:
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('mcp_server.log'),
-        logging.StreamHandler()
-    ]
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("mcp_server.log"), logging.StreamHandler()],
 )
-logger = logging.getLogger('MCP-Server')
+logger = logging.getLogger("MCP-Server")
 
 # ==================== CONFIGURATION ====================
 
+
 class Config:
     """Server configuration"""
+
     CACHE_ENABLED = True
     CACHE_TTL = 300  # 5 minutes
     MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
     MAX_RESULTS = 100
     RATE_LIMIT_REQUESTS = 100  # requests
     RATE_LIMIT_WINDOW = 60  # seconds
-    
+
+
 config = Config()
 
 # ==================== CACHE SYSTEM ====================
 
+
 class SimpleCache:
     """Simple in-memory cache vá»›i TTL"""
-    
+
     def __init__(self):
         self.cache = {}
         self.timestamps = {}
-    
-    def get(self, key: str) -> Optional[Any]:
+
+    def get(self, key: str) -> Any | None:
         """Get tá»« cache náº¿u cÃ²n valid"""
         if key not in self.cache:
             return None
-        
+
         # Check TTL
         if time.time() - self.timestamps[key] > config.CACHE_TTL:
             del self.cache[key]
             del self.timestamps[key]
             return None
-        
+
         logger.debug(f"Cache HIT: {key}")
         return self.cache[key]
-    
+
     def set(self, key: str, value: Any):
         """Set value vÃ o cache"""
         self.cache[key] = value
         self.timestamps[key] = time.time()
         logger.debug(f"Cache SET: {key}")
-    
+
     def clear(self):
         """Clear toÃ n bá»™ cache"""
         self.cache.clear()
         self.timestamps.clear()
         logger.info("Cache cleared")
 
+
 cache = SimpleCache()
 
 # ==================== RATE LIMITER ====================
 
+
 class RateLimiter:
     """Simple rate limiter"""
-    
+
     def __init__(self):
         self.requests = defaultdict(list)
-    
+
     def is_allowed(self, key: str = "default") -> bool:
         """Check náº¿u request Ä‘Æ°á»£c phÃ©p"""
         now = time.time()
-        
+
         # Remove old requests
         self.requests[key] = [
-            req_time for req_time in self.requests[key]
+            req_time
+            for req_time in self.requests[key]
             if now - req_time < config.RATE_LIMIT_WINDOW
         ]
-        
+
         # Check limit
         if len(self.requests[key]) >= config.RATE_LIMIT_REQUESTS:
             logger.warning(f"Rate limit exceeded for {key}")
             return False
-        
+
         self.requests[key].append(now)
         return True
+
 
 rate_limiter = RateLimiter()
 
 # ==================== METRICS ====================
 
+
 class Metrics:
     """Track server metrics"""
-    
+
     def __init__(self):
         self.tool_calls = defaultdict(int)
         self.errors = defaultdict(int)
         self.total_requests = 0
         self.start_time = time.time()
-    
+
     def record_call(self, tool_name: str):
         """Record tool call"""
         self.tool_calls[tool_name] += 1
         self.total_requests += 1
-    
+
     def record_error(self, error_type: str):
         """Record error"""
         self.errors[error_type] += 1
-    
-    def get_stats(self) -> Dict[str, Any]:
+
+    def get_stats(self) -> dict[str, Any]:
         """Get statistics"""
         uptime = time.time() - self.start_time
         return {
@@ -152,52 +155,64 @@ class Metrics:
             "total_requests": self.total_requests,
             "tool_calls": dict(self.tool_calls),
             "errors": dict(self.errors),
-            "requests_per_minute": round(self.total_requests / (uptime / 60), 2) if uptime > 0 else 0
+            "requests_per_minute": round(self.total_requests / (uptime / 60), 2)
+            if uptime > 0
+            else 0,
         }
+
 
 metrics = Metrics()
 
 # ==================== DECORATORS ====================
 
+
 def validate_path(func):
     """Decorator Ä‘á»ƒ validate file paths"""
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         # Check cho path parameter
-        path = kwargs.get('file_path') or kwargs.get('dir_path')
+        path = kwargs.get("file_path") or kwargs.get("dir_path")
         if path:
             # Security: Prevent path traversal
-            if '..' in path or path.startswith('/'):
+            if ".." in path or path.startswith("/"):
                 logger.error(f"Invalid path detected: {path}")
                 return {"error": "Invalid path: Path traversal not allowed"}
         return func(*args, **kwargs)
+
     return wrapper
+
 
 def with_cache(cache_key_func):
     """Decorator Ä‘á»ƒ cache káº¿t quáº£"""
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             if not config.CACHE_ENABLED:
                 return func(*args, **kwargs)
-            
+
             # Generate cache key
             cache_key = cache_key_func(*args, **kwargs)
-            
+
             # Try cache
             cached = cache.get(cache_key)
             if cached is not None:
                 return cached
-            
+
             # Execute and cache
             result = func(*args, **kwargs)
             cache.set(cache_key, result)
             return result
+
         return wrapper
+
     return decorator
+
 
 def with_metrics(tool_name: str):
     """Decorator Ä‘á»ƒ track metrics"""
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -207,17 +222,23 @@ def with_metrics(tool_name: str):
             except Exception as e:
                 metrics.record_error(type(e).__name__)
                 raise
+
         return wrapper
+
     return decorator
+
 
 def with_rate_limit(func):
     """Decorator Ä‘á»ƒ rate limiting"""
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         if not rate_limiter.is_allowed():
             return {"error": "Rate limit exceeded. Please try again later."}
         return func(*args, **kwargs)
+
     return wrapper
+
 
 # ==================== MAIN SERVER ====================
 
@@ -232,10 +253,16 @@ LOGS_DIR = RESOURCES_DIR / "logs"
 
 # Module-level safe math evaluator setup
 _MATH_ALLOWED = {k: v for k, v in math.__dict__.items() if not k.startswith("__")}
-_MATH_ALLOWED.update({"abs": abs, "round": round, "min": min, "max": max, "sum": sum, "pow": pow})
+_MATH_ALLOWED.update(
+    {"abs": abs, "round": round, "min": min, "max": max, "sum": sum, "pow": pow}
+)
 _MATH_BINOPS = {
-    ast.Add: _op.add, ast.Sub: _op.sub, ast.Mult: _op.mul,
-    ast.Div: _op.truediv, ast.Pow: _op.pow, ast.Mod: _op.mod,
+    ast.Add: _op.add,
+    ast.Sub: _op.sub,
+    ast.Mult: _op.mul,
+    ast.Div: _op.truediv,
+    ast.Pow: _op.pow,
+    ast.Mod: _op.mod,
     ast.FloorDiv: _op.floordiv,
 }
 _MATH_UNOPS = {ast.UAdd: _op.pos, ast.USub: _op.neg}
@@ -243,6 +270,7 @@ _MATH_UNOPS = {ast.UAdd: _op.pos, ast.USub: _op.neg}
 
 def _safe_math_eval(expression: str):
     """Evaluate a mathematical expression safely using AST parsing."""
+
     def _eval_node(node):
         if isinstance(node, ast.Constant):
             if isinstance(node.value, (int, float, complex)):
@@ -255,85 +283,106 @@ def _safe_math_eval(expression: str):
         if isinstance(node, ast.BinOp):
             if type(node.op) not in _MATH_BINOPS:
                 raise ValueError(f"Operator not allowed: {type(node.op).__name__}")
-            return _MATH_BINOPS[type(node.op)](_eval_node(node.left), _eval_node(node.right))
+            return _MATH_BINOPS[type(node.op)](
+                _eval_node(node.left), _eval_node(node.right)
+            )
         if isinstance(node, ast.UnaryOp):
             if type(node.op) not in _MATH_UNOPS:
                 raise ValueError(f"Operator not allowed: {type(node.op).__name__}")
             return _MATH_UNOPS[type(node.op)](_eval_node(node.operand))
         if isinstance(node, ast.Call):
-            if not isinstance(node.func, ast.Name) or node.func.id not in _MATH_ALLOWED or not callable(_MATH_ALLOWED[node.func.id]):
+            if (
+                not isinstance(node.func, ast.Name)
+                or node.func.id not in _MATH_ALLOWED
+                or not callable(_MATH_ALLOWED[node.func.id])
+            ):
                 raise ValueError(f"Function not allowed: {ast.dump(node.func)}")
             func = _MATH_ALLOWED[node.func.id]
             args = [_eval_node(a) for a in node.args]
             kwargs = {kw.arg: _eval_node(kw.value) for kw in node.keywords}
             return func(*args, **kwargs)
         raise ValueError(f"Unsupported expression: {type(node).__name__}")
-    return _eval_node(ast.parse(expression, mode='eval').body)
+
+    return _eval_node(ast.parse(expression, mode="eval").body)
+
 
 # ==================== ENHANCED TOOLS ====================
+
 
 @mcp.tool()
 @with_rate_limit
 @with_metrics("search_files")
-@with_cache(lambda query, file_type="all", max_results=10: f"search:{query}:{file_type}:{max_results}")
-def search_files(query: str, file_type: str = "all", max_results: int = 10) -> Dict[str, Any]:
+@with_cache(
+    lambda query, file_type="all", max_results=10: (
+        f"search:{query}:{file_type}:{max_results}"
+    )
+)
+def search_files(
+    query: str, file_type: str = "all", max_results: int = 10
+) -> dict[str, Any]:
     """
     TÃ¬m kiáº¿m files trong workspace theo query (WITH CACHING).
-    
+
     Args:
         query: Tá»« khÃ³a tÃ¬m kiáº¿m
         file_type: Loáº¡i file (all, py, md, json, txt)
         max_results: Sá»‘ káº¿t quáº£ tá»‘i Ä‘a
-        
+
     Returns:
         Dict chá»©a danh sÃ¡ch files tÃ¬m tháº¥y
     """
     try:
         logger.info(f"Searching files: query={query}, type={file_type}")
-        
+
         results = []
         extensions = {
             "all": ["*"],
             "py": [".py"],
             "md": [".md"],
             "json": [".json"],
-            "txt": [".txt"]
+            "txt": [".txt"],
         }
-        
+
         exts = extensions.get(file_type, ["*"])
         max_results = min(max_results, config.MAX_RESULTS)
-        
+
         for root, dirs, files in os.walk(BASE_DIR):
             # Skip venv, __pycache__, node_modules
-            dirs[:] = [d for d in dirs if d not in ['.venv', 'venv', '__pycache__', 'node_modules', '.git']]
-            
+            dirs[:] = [
+                d
+                for d in dirs
+                if d not in [".venv", "venv", "__pycache__", "node_modules", ".git"]
+            ]
+
             for file in files:
                 if any(ext == "*" or file.endswith(ext) for ext in exts):
                     if query.lower() in file.lower():
                         full_path = os.path.join(root, file)
                         rel_path = os.path.relpath(full_path, BASE_DIR)
-                        results.append({
-                            "filename": file,
-                            "path": rel_path,
-                            "full_path": full_path,
-                            "size": os.path.getsize(full_path)
-                        })
-                        
+                        results.append(
+                            {
+                                "filename": file,
+                                "path": rel_path,
+                                "full_path": full_path,
+                                "size": os.path.getsize(full_path),
+                            }
+                        )
+
                         if len(results) >= max_results:
                             break
-            
+
             if len(results) >= max_results:
                 break
-        
+
         logger.info(f"Found {len(results)} files")
         return {
             "query": query,
             "file_type": file_type,
             "total_found": len(results),
             "results": results,
-            "cached": False
+            "cached": False,
         }
-    
+
     except Exception as e:
         logger.error(f"Error in search_files: {str(e)}")
         return {"error": f"Search failed: {str(e)}"}
@@ -343,53 +392,57 @@ def search_files(query: str, file_type: str = "all", max_results: int = 10) -> D
 @with_rate_limit
 @with_metrics("read_file_content")
 @validate_path
-def read_file_content(file_path: str, max_lines: int = 100) -> Dict[str, Any]:
+def read_file_content(file_path: str, max_lines: int = 100) -> dict[str, Any]:
     """
     Äá»c ná»™i dung file (WITH VALIDATION).
-    
+
     Args:
         file_path: ÄÆ°á»ng dáº«n tÆ°Æ¡ng Ä‘á»‘i tá»« project root
         max_lines: Sá»‘ dÃ²ng tá»‘i Ä‘a Ä‘á»c
-        
+
     Returns:
         Dict chá»©a ná»™i dung file
     """
     try:
         logger.info(f"Reading file: {file_path}")
-        
+
         full_path = BASE_DIR / file_path
-        
+
         if not full_path.exists():
             return {"error": f"File khÃ´ng tá»“n táº¡i: {file_path}"}
-        
+
         if not full_path.is_file():
             return {"error": f"ÄÆ°á»ng dáº«n khÃ´ng pháº£i lÃ  file: {file_path}"}
-        
+
         # Check file size
         file_size = os.path.getsize(full_path)
         if file_size > config.MAX_FILE_SIZE:
-            return {"error": f"File quÃ¡ lá»›n: {file_size} bytes (max: {config.MAX_FILE_SIZE})"}
-        
+            return {
+                "error": f"File quÃ¡ lá»›n: {file_size} bytes (max: {config.MAX_FILE_SIZE})"
+            }
+
         # Äá»c file
-        with open(full_path, 'r', encoding='utf-8') as f:
+        with open(full_path, encoding="utf-8") as f:
             lines = f.readlines()
-        
+
         total_lines = len(lines)
         content_lines = lines[:max_lines]
-        
+
         logger.info(f"Read {len(content_lines)}/{total_lines} lines")
-        
+
         return {
             "file_path": file_path,
             "total_lines": total_lines,
             "lines_read": len(content_lines),
             "truncated": total_lines > max_lines,
             "content": "".join(content_lines),
-            "size_bytes": file_size
+            "size_bytes": file_size,
         }
-    
+
     except UnicodeDecodeError:
-        return {"error": "File khÃ´ng pháº£i text file hoáº·c encoding khÃ´ng há»£p lá»‡"}
+        return {
+            "error": "File khÃ´ng pháº£i text file hoáº·c encoding khÃ´ng há»£p lá»‡"
+        }
     except Exception as e:
         logger.error(f"Error reading file: {str(e)}")
         return {"error": f"Lá»—i Ä‘á»c file: {str(e)}"}
@@ -399,56 +452,58 @@ def read_file_content(file_path: str, max_lines: int = 100) -> Dict[str, Any]:
 @with_rate_limit
 @with_metrics("list_directory")
 @validate_path
-def list_directory(dir_path: str = ".", include_hidden: bool = False) -> Dict[str, Any]:
+def list_directory(dir_path: str = ".", include_hidden: bool = False) -> dict[str, Any]:
     """
     Liá»‡t kÃª ná»™i dung thÆ° má»¥c (WITH VALIDATION).
-    
+
     Args:
         dir_path: ÄÆ°á»ng dáº«n thÆ° má»¥c (tÆ°Æ¡ng Ä‘á»‘i tá»« project root)
         include_hidden: CÃ³ hiá»ƒn thá»‹ file/folder áº©n khÃ´ng
-        
+
     Returns:
         Dict chá»©a danh sÃ¡ch files vÃ  folders
     """
     try:
         logger.info(f"Listing directory: {dir_path}")
-        
+
         full_path = BASE_DIR / dir_path
-        
+
         if not full_path.exists():
             return {"error": f"ThÆ° má»¥c khÃ´ng tá»“n táº¡i: {dir_path}"}
-        
+
         if not full_path.is_dir():
             return {"error": f"ÄÆ°á»ng dáº«n khÃ´ng pháº£i lÃ  thÆ° má»¥c: {dir_path}"}
-        
+
         files = []
         folders = []
-        
+
         for item in os.listdir(full_path):
-            if not include_hidden and item.startswith('.'):
+            if not include_hidden and item.startswith("."):
                 continue
-            
+
             item_path = full_path / item
             item_info = {
                 "name": item,
                 "size": os.path.getsize(item_path) if item_path.is_file() else None,
-                "modified": datetime.fromtimestamp(os.path.getmtime(item_path)).isoformat()
+                "modified": datetime.fromtimestamp(
+                    os.path.getmtime(item_path)
+                ).isoformat(),
             }
-            
+
             if item_path.is_file():
                 files.append(item_info)
             else:
                 folders.append(item_info)
-        
+
         logger.info(f"Listed {len(files)} files, {len(folders)} folders")
-        
+
         return {
             "directory": dir_path,
             "total_items": len(files) + len(folders),
             "folders": sorted(folders, key=lambda x: x["name"]),
-            "files": sorted(files, key=lambda x: x["name"])
+            "files": sorted(files, key=lambda x: x["name"]),
         }
-    
+
     except Exception as e:
         logger.error(f"Error listing directory: {str(e)}")
         return {"error": f"Lá»—i liá»‡t kÃª thÆ° má»¥c: {str(e)}"}
@@ -456,25 +511,25 @@ def list_directory(dir_path: str = ".", include_hidden: bool = False) -> Dict[st
 
 @mcp.tool()
 @with_cache(lambda: "project_info")
-def get_project_info() -> Dict[str, Any]:
+def get_project_info() -> dict[str, Any]:
     """
     Láº¥y thÃ´ng tin tá»•ng quan vá» project (CACHED).
-    
+
     Returns:
         Dict chá»©a thÃ´ng tin project
     """
     try:
         logger.info("Getting project info")
-        
+
         services = []
         services_dir = BASE_DIR / "services"
-        
+
         if services_dir.exists():
             for item in os.listdir(services_dir):
                 item_path = services_dir / item
-                if item_path.is_dir() and not item.startswith('.'):
+                if item_path.is_dir() and not item.startswith("."):
                     services.append(item)
-        
+
         return {
             "project_name": "AI-Assistant",
             "base_directory": str(BASE_DIR),
@@ -486,12 +541,12 @@ def get_project_info() -> Dict[str, Any]:
                 "tests": (BASE_DIR / "tests").exists(),
                 "docs": (BASE_DIR / "docs").exists(),
                 "resources": (BASE_DIR / "resources").exists(),
-                "local_data": (BASE_DIR / "local_data").exists()
+                "local_data": (BASE_DIR / "local_data").exists(),
             },
             "description": "Multi-service AI application vá»›i chatbot, document intelligence, image processing, vÃ  nhiá»u tÃ­nh nÄƒng khÃ¡c.",
-            "cached": False
+            "cached": False,
         }
-    
+
     except Exception as e:
         logger.error(f"Error getting project info: {str(e)}")
         return {"error": f"Lá»—i láº¥y thÃ´ng tin project: {str(e)}"}
@@ -499,59 +554,63 @@ def get_project_info() -> Dict[str, Any]:
 
 @mcp.tool()
 @with_metrics("search_logs")
-def search_logs(service: str = "all", level: str = "all", last_n_lines: int = 50) -> Dict[str, Any]:
+def search_logs(
+    service: str = "all", level: str = "all", last_n_lines: int = 50
+) -> dict[str, Any]:
     """
     TÃ¬m kiáº¿m vÃ  Ä‘á»c logs tá»« cÃ¡c services (WITH ERROR HANDLING).
-    
+
     Args:
         service: TÃªn service (all, chatbot, text2sql, etc.)
         level: Log level (all, error, warning, info)
         last_n_lines: Sá»‘ dÃ²ng cuá»‘i cÃ¹ng Ä‘á»c tá»« log
-        
+
     Returns:
         Dict chá»©a log entries
     """
     try:
         logger.info(f"Searching logs: service={service}, level={level}")
-        
+
         logs_found = []
-        
+
         if not LOGS_DIR.exists():
             return {"error": "ThÆ° má»¥c logs khÃ´ng tá»“n táº¡i"}
-        
+
         # TÃ¬m log files
         for log_file in LOGS_DIR.glob("*.log"):
             if service != "all" and service.lower() not in log_file.name.lower():
                 continue
-            
+
             try:
-                with open(log_file, 'r', encoding='utf-8') as f:
+                with open(log_file, encoding="utf-8") as f:
                     lines = f.readlines()
             except:
                 continue
-            
+
             recent_lines = lines[-last_n_lines:] if len(lines) > last_n_lines else lines
-            
+
             # Filter by level
             if level != "all":
                 recent_lines = [line for line in recent_lines if level.upper() in line]
-            
-            logs_found.append({
-                "service": log_file.stem,
-                "file": log_file.name,
-                "total_lines": len(lines),
-                "entries": recent_lines
-            })
-        
+
+            logs_found.append(
+                {
+                    "service": log_file.stem,
+                    "file": log_file.name,
+                    "total_lines": len(lines),
+                    "entries": recent_lines,
+                }
+            )
+
         logger.info(f"Found logs from {len(logs_found)} services")
-        
+
         return {
             "service_filter": service,
             "level_filter": level,
             "logs_found": len(logs_found),
-            "data": logs_found
+            "data": logs_found,
         }
-    
+
     except Exception as e:
         logger.error(f"Error searching logs: {str(e)}")
         return {"error": f"Lá»—i Ä‘á»c logs: {str(e)}"}
@@ -559,13 +618,13 @@ def search_logs(service: str = "all", level: str = "all", last_n_lines: int = 50
 
 @mcp.tool()
 @with_metrics("calculate")
-def calculate(expression: str) -> Dict[str, Any]:
+def calculate(expression: str) -> dict[str, Any]:
     """
     Thá»±c hiá»‡n phÃ©p tÃ­nh toÃ¡n há»c (SAFE EVAL).
-    
+
     Args:
         expression: Biá»ƒu thá»©c toÃ¡n há»c
-        
+
     Returns:
         Dict chứa kết quả tính toán
     """
@@ -575,29 +634,27 @@ def calculate(expression: str) -> Dict[str, Any]:
         result = _safe_math_eval(expression)
 
         logger.info(f"Result: {result}")
-        
+
         return {
             "expression": expression,
             "result": result,
-            "type": type(result).__name__
+            "type": type(result).__name__,
         }
-    
+
     except Exception as e:
         logger.error(f"Calculation error: {str(e)}")
-        return {
-            "expression": expression,
-            "error": f"Lỗi tính toán: {str(e)}"
-        }
+        return {"expression": expression, "error": f"Lỗi tính toán: {str(e)}"}
 
 
 # ==================== NEW TOOLS ====================
 
+
 @mcp.tool()
 @with_metrics("get_health")
-def get_health() -> Dict[str, Any]:
+def get_health() -> dict[str, Any]:
     """
     Health check endpoint - kiá»ƒm tra tráº¡ng thÃ¡i server.
-    
+
     Returns:
         Dict chá»©a health status
     """
@@ -606,38 +663,30 @@ def get_health() -> Dict[str, Any]:
             "status": "healthy",
             "timestamp": datetime.now().isoformat(),
             "metrics": metrics.get_stats(),
-            "cache": {
-                "enabled": config.CACHE_ENABLED,
-                "items": len(cache.cache)
-            }
+            "cache": {"enabled": config.CACHE_ENABLED, "items": len(cache.cache)},
         }
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e)
-        }
+        return {"status": "unhealthy", "error": str(e)}
 
 
 @mcp.tool()
-def clear_cache() -> Dict[str, Any]:
+def clear_cache() -> dict[str, Any]:
     """
     Clear toÃ n bá»™ cache.
-    
+
     Returns:
         Dict confirmation
     """
     try:
         cache.clear()
         logger.info("Cache cleared by user request")
-        return {
-            "status": "success",
-            "message": "Cache Ä‘Ã£ Ä‘Æ°á»£c xÃ³a"
-        }
+        return {"status": "success", "message": "Cache Ä‘Ã£ Ä‘Æ°á»£c xÃ³a"}
     except Exception as e:
         return {"error": str(e)}
 
 
 # ==================== RESOURCES (unchanged) ====================
+
 
 @mcp.resource("config://model")
 def get_model_config() -> str:
@@ -645,7 +694,7 @@ def get_model_config() -> str:
     try:
         config_file = BASE_DIR / "config" / "model_config.py"
         if config_file.exists():
-            with open(config_file, 'r', encoding='utf-8') as f:
+            with open(config_file, encoding="utf-8") as f:
                 return f.read()
         return "Model config file not found"
     except Exception as e:
@@ -658,7 +707,7 @@ def get_logging_config() -> str:
     try:
         config_file = BASE_DIR / "config" / "logging_config.py"
         if config_file.exists():
-            with open(config_file, 'r', encoding='utf-8') as f:
+            with open(config_file, encoding="utf-8") as f:
                 return f.read()
         return "Logging config file not found"
     except Exception as e:
@@ -671,7 +720,7 @@ def get_readme() -> str:
     try:
         readme_file = BASE_DIR / "README.md"
         if readme_file.exists():
-            with open(readme_file, 'r', encoding='utf-8') as f:
+            with open(readme_file, encoding="utf-8") as f:
                 return f.read()
         return "README.md not found"
     except Exception as e:
@@ -684,7 +733,7 @@ def get_structure_doc() -> str:
     try:
         structure_file = BASE_DIR / "docs" / "STRUCTURE.md"
         if structure_file.exists():
-            with open(structure_file, 'r', encoding='utf-8') as f:
+            with open(structure_file, encoding="utf-8") as f:
                 return f.read()
         return "STRUCTURE.md not found"
     except Exception as e:
@@ -692,6 +741,7 @@ def get_structure_doc() -> str:
 
 
 # ==================== PROMPTS (unchanged) ====================
+
 
 @mcp.prompt()
 def code_review_prompt(file_path: str) -> str:
@@ -742,30 +792,33 @@ Giáº£i thÃ­ch:
 
 # ==================== MAIN ====================
 
+
 def main():
     """Khá»Ÿi Ä‘á»™ng MCP server"""
-    print("="*60)
+    print("=" * 60)
     print("ðŸš€ AI-Assistant MCP Server - Enhanced Version")
-    print("="*60)
+    print("=" * 60)
     print(f"ðŸ“ Base Directory: {BASE_DIR}")
     print(f"ðŸ”§ Tools available: {len(mcp._tools)}")
     print(f"ðŸ“¦ Resources available: {len(mcp._resources)}")
     print(f"ðŸ’¬ Prompts available: {len(mcp._prompts)}")
-    print(f"")
+    print("")
     print("âœ¨ NEW FEATURES:")
-    print(f"  âœ… Error handling & validation")
-    print(f"  âœ… Logging system (mcp_server.log)")
+    print("  âœ… Error handling & validation")
+    print("  âœ… Logging system (mcp_server.log)")
     print(f"  âœ… Caching (TTL: {config.CACHE_TTL}s)")
-    print(f"  âœ… Rate limiting ({config.RATE_LIMIT_REQUESTS} req/{config.RATE_LIMIT_WINDOW}s)")
-    print(f"  âœ… Metrics tracking")
-    print(f"  âœ… Health checks")
-    print(f"")
-    print("="*60)
+    print(
+        f"  âœ… Rate limiting ({config.RATE_LIMIT_REQUESTS} req/{config.RATE_LIMIT_WINDOW}s)"
+    )
+    print("  âœ… Metrics tracking")
+    print("  âœ… Health checks")
+    print("")
+    print("=" * 60)
     print("âœ… Server is ready!")
-    print("="*60)
-    
+    print("=" * 60)
+
     logger.info("MCP Server started successfully")
-    
+
     # Run server
     try:
         mcp.run()

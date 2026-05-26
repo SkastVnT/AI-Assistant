@@ -9,6 +9,7 @@ def get_embedding_provider() -> EmbeddingProvider:
     match settings.embedding.provider:
         case "openai":
             from libs.core.providers.openai_provider import OpenAIEmbeddingProvider
+
             return OpenAIEmbeddingProvider()
         case _:
             raise ValueError(f"Unknown embedding provider: {settings.embedding.provider}")
@@ -19,6 +20,7 @@ def get_llm_provider() -> LLMProvider:
     match settings.llm.provider:
         case "openai":
             from libs.core.providers.openai_provider import OpenAILLMProvider
+
             return OpenAILLMProvider()
         case _:
             raise ValueError(f"Unknown LLM provider: {settings.llm.provider}")

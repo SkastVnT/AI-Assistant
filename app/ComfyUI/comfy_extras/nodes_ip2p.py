@@ -31,7 +31,7 @@ class InstructPixToPixConditioning(io.ComfyNode):
         if pixels.shape[1] != x or pixels.shape[2] != y:
             x_offset = (pixels.shape[1] % 8) // 2
             y_offset = (pixels.shape[2] % 8) // 2
-            pixels = pixels[:,x_offset:x + x_offset, y_offset:y + y_offset,:]
+            pixels = pixels[:, x_offset : x + x_offset, y_offset : y + y_offset, :]
 
         concat_latent = vae.encode(pixels)
 
@@ -60,4 +60,3 @@ class InstructPix2PixExtension(ComfyExtension):
 
 async def comfy_entrypoint() -> InstructPix2PixExtension:
     return InstructPix2PixExtension()
-

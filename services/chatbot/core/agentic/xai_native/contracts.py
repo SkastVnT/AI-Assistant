@@ -4,6 +4,7 @@ xAI Native Multi-Agent — Typed contracts
 Data structures for the xAI Responses API integration.
 Pure data — no I/O, no business logic.
 """
+
 from __future__ import annotations
 
 from enum import Enum
@@ -11,8 +12,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-
 # ── Enums ──────────────────────────────────────────────────────────────
+
 
 class ReasoningEffort(str, Enum):
     """Maps to xAI ``reasoning.effort`` / agent_count configuration.
@@ -20,6 +21,7 @@ class ReasoningEffort(str, Enum):
     low/medium  → 4 agents
     high        → 16 agents
     """
+
     low = "low"
     medium = "medium"
     high = "high"
@@ -27,6 +29,7 @@ class ReasoningEffort(str, Enum):
 
 class XaiNativeStatus(str, Enum):
     """Lifecycle status of a native xAI call."""
+
     pending = "pending"
     in_progress = "in_progress"
     completed = "completed"
@@ -35,8 +38,10 @@ class XaiNativeStatus(str, Enum):
 
 # ── Configuration ──────────────────────────────────────────────────────
 
+
 class XaiNativeConfig(BaseModel):
     """Runtime configuration for a single xAI native research call."""
+
     model: str = Field(
         "grok-4.20-multi-agent",
         description="xAI model to use (must support Responses API)",
@@ -46,10 +51,12 @@ class XaiNativeConfig(BaseModel):
         description="Reasoning effort: low/medium → 4 agents, high → 16 agents",
     )
     enable_web_search: bool = Field(
-        True, description="Enable server-side web_search tool",
+        True,
+        description="Enable server-side web_search tool",
     )
     enable_x_search: bool = Field(
-        False, description="Enable server-side x_search (Twitter/X) tool",
+        False,
+        description="Enable server-side x_search (Twitter/X) tool",
     )
     timeout_seconds: int = Field(
         300,
@@ -61,8 +68,10 @@ class XaiNativeConfig(BaseModel):
 
 # ── Response models ────────────────────────────────────────────────────
 
+
 class XaiUsage(BaseModel):
     """Token usage from xAI Responses API."""
+
     input_tokens: int = 0
     output_tokens: int = 0
     total_tokens: int = 0
@@ -73,6 +82,7 @@ class XaiUsage(BaseModel):
 
 class XaiAnnotation(BaseModel):
     """A citation/annotation from xAI's response."""
+
     type: str = ""
     url: str | None = None
     title: str | None = None
@@ -82,6 +92,7 @@ class XaiAnnotation(BaseModel):
 
 class XaiNativeResult(BaseModel):
     """Normalized result from a single xAI Responses API call."""
+
     response_id: str = ""
     status: XaiNativeStatus = XaiNativeStatus.completed
     content: str = ""

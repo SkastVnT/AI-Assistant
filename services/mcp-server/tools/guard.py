@@ -1,4 +1,5 @@
 """Guardrails for MCP tool access."""
+
 from __future__ import annotations
 
 import re
@@ -67,7 +68,11 @@ def is_blocked_workspace_path(path: Path) -> bool:
 
 
 def validate_workspace_path(path: str) -> Path:
-    full = (PROJECT_ROOT / path).resolve() if not Path(path).is_absolute() else Path(path).resolve()
+    full = (
+        (PROJECT_ROOT / path).resolve()
+        if not Path(path).is_absolute()
+        else Path(path).resolve()
+    )
     if PROJECT_ROOT not in full.parents and full != PROJECT_ROOT:
         raise PermissionError("Path outside workspace is not allowed")
     if is_blocked_workspace_path(full):

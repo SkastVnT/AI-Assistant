@@ -30,6 +30,15 @@ _MAX_IMAGE_BYTES = 20 * 1024 * 1024  # 20 MB
 
 def _import_vg():
     from src.video_generation import (
+        cancel_video,
+        download_video,
+        generate_video,
+        get_job_status,
+        list_jobs,
+        poll_video,
+    )
+
+    return (
         generate_video,
         poll_video,
         cancel_video,
@@ -37,7 +46,6 @@ def _import_vg():
         get_job_status,
         list_jobs,
     )
-    return generate_video, poll_video, cancel_video, download_video, get_job_status, list_jobs
 
 
 # ── Generate ────────────────────────────────────────────────────────────────
@@ -89,10 +97,16 @@ def generate():
                 return jsonify({"error": f"max {_MAX_IMAGES} images allowed"}), 400
             for f in uploaded:
                 if f.content_type not in _ALLOWED_IMAGE_TYPES:
-                    return jsonify({"error": f"unsupported image type: {f.content_type}"}), 400
+                    return (
+                        jsonify({"error": f"unsupported image type: {f.content_type}"}),
+                        400,
+                    )
                 data_bytes = f.read(_MAX_IMAGE_BYTES + 1)
                 if len(data_bytes) > _MAX_IMAGE_BYTES:
-                    return jsonify({"error": f"{f.filename} too large (max 20 MB)"}), 400
+                    return (
+                        jsonify({"error": f"{f.filename} too large (max 20 MB)"}),
+                        400,
+                    )
                 suffix = Path(f.filename or "img").suffix or ".jpg"
                 fd, tmp = tempfile.mkstemp(prefix="vg_upload_", suffix=suffix)
                 os.close(fd)
@@ -122,8 +136,8 @@ def generate():
         return jsonify({"error": str(e)}), 503
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
-    except Exception as e:
-        logger.exception(f"[VideoGen] unexpected error in generate")
+    except Exception:
+        logger.exception("[VideoGen] unexpected error in generate")
         return jsonify({"error": "Video generation failed"}), 500
     finally:
         for p in temp_paths:
@@ -216,6 +230,7 @@ def download(job_id: str):
     # Check local cache first to avoid re-download
     try:
         from src.video_generation import VIDEO_STORAGE_DIR
+
         local = VIDEO_STORAGE_DIR / f"{job_id}.mp4"
         if not local.exists():
             download_video(job_id)

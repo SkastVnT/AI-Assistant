@@ -28,10 +28,12 @@ Scope notes:
     (core/chatbot.py vs core/chatbot_v2.py). That is a deliberate, larger
     refactor tracked separately. See the LEGACY V1 marker in core/chatbot.py.
 """
+
 from __future__ import annotations
 
 import re
-from typing import Any, Iterable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
 
 from core.asset_memory import build_asset_context_block
 
@@ -98,7 +100,9 @@ def extract_generated_images(data: Mapping[str, Any] | None) -> list:
     return []
 
 
-def apply_image_context(message: str, generated_images: Sequence[Any]) -> tuple[str, int]:
+def apply_image_context(
+    message: str, generated_images: Sequence[Any]
+) -> tuple[str, int]:
     """Append the structured asset context block (if any) to the message.
 
     Returns (message_with_context, injected_count). ``injected_count`` is the
@@ -117,6 +121,7 @@ def apply_image_context(message: str, generated_images: Sequence[Any]) -> tuple[
     # without the queue subsystem present.
     try:
         from core.image_pipeline_link import enrich_records_with_live_state
+
         records_for_block = enrich_records_with_live_state(generated_images)
     except Exception:
         records_for_block = generated_images

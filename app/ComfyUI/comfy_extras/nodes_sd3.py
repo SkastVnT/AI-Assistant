@@ -16,9 +16,18 @@ class TripleCLIPLoader(io.ComfyNode):
             category="advanced/loaders",
             description="[Recipes]\n\nsd3: clip-l, clip-g, t5",
             inputs=[
-                io.Combo.Input("clip_name1", options=folder_paths.get_filename_list("text_encoders")),
-                io.Combo.Input("clip_name2", options=folder_paths.get_filename_list("text_encoders")),
-                io.Combo.Input("clip_name3", options=folder_paths.get_filename_list("text_encoders")),
+                io.Combo.Input(
+                    "clip_name1",
+                    options=folder_paths.get_filename_list("text_encoders"),
+                ),
+                io.Combo.Input(
+                    "clip_name2",
+                    options=folder_paths.get_filename_list("text_encoders"),
+                ),
+                io.Combo.Input(
+                    "clip_name3",
+                    options=folder_paths.get_filename_list("text_encoders"),
+                ),
             ],
             outputs=[
                 io.Clip.Output(),
@@ -30,7 +39,10 @@ class TripleCLIPLoader(io.ComfyNode):
         clip_path1 = folder_paths.get_full_path_or_raise("text_encoders", clip_name1)
         clip_path2 = folder_paths.get_full_path_or_raise("text_encoders", clip_name2)
         clip_path3 = folder_paths.get_full_path_or_raise("text_encoders", clip_name3)
-        clip = comfy.sd.load_clip(ckpt_paths=[clip_path1, clip_path2, clip_path3], embedding_directory=folder_paths.get_folder_paths("embeddings"))
+        clip = comfy.sd.load_clip(
+            ckpt_paths=[clip_path1, clip_path2, clip_path3],
+            embedding_directory=folder_paths.get_folder_paths("embeddings"),
+        )
         return io.NodeOutput(clip)
 
     load_clip = execute  # TODO: remove
@@ -43,8 +55,12 @@ class EmptySD3LatentImage(io.ComfyNode):
             node_id="EmptySD3LatentImage",
             category="latent/sd3",
             inputs=[
-                io.Int.Input("width", default=1024, min=16, max=nodes.MAX_RESOLUTION, step=16),
-                io.Int.Input("height", default=1024, min=16, max=nodes.MAX_RESOLUTION, step=16),
+                io.Int.Input(
+                    "width", default=1024, min=16, max=nodes.MAX_RESOLUTION, step=16
+                ),
+                io.Int.Input(
+                    "height", default=1024, min=16, max=nodes.MAX_RESOLUTION, step=16
+                ),
                 io.Int.Input("batch_size", default=1, min=1, max=4096),
             ],
             outputs=[
@@ -54,8 +70,11 @@ class EmptySD3LatentImage(io.ComfyNode):
 
     @classmethod
     def execute(cls, width, height, batch_size=1) -> io.NodeOutput:
-        latent = torch.zeros([batch_size, 16, height // 8, width // 8], device=comfy.model_management.intermediate_device())
-        return io.NodeOutput({"samples":latent})
+        latent = torch.zeros(
+            [batch_size, 16, height // 8, width // 8],
+            device=comfy.model_management.intermediate_device(),
+        )
+        return io.NodeOutput({"samples": latent})
 
     generate = execute  # TODO: remove
 
@@ -92,7 +111,7 @@ class CLIPTextEncodeSD3(io.ComfyNode):
             tokens["l"] = clip.tokenize(clip_l)["l"]
 
         if len(t5xxl) == 0 and no_padding:
-            tokens["t5xxl"] =  []
+            tokens["t5xxl"] = []
         else:
             tokens["t5xxl"] = clip.tokenize(t5xxl)["t5xxl"]
         if len(tokens["l"]) != len(tokens["g"]):
@@ -120,8 +139,12 @@ class ControlNetApplySD3(io.ComfyNode):
                 io.Vae.Input("vae"),
                 io.Image.Input("image"),
                 io.Float.Input("strength", default=1.0, min=0.0, max=10.0, step=0.01),
-                io.Float.Input("start_percent", default=0.0, min=0.0, max=1.0, step=0.001),
-                io.Float.Input("end_percent", default=1.0, min=0.0, max=1.0, step=0.001),
+                io.Float.Input(
+                    "start_percent", default=0.0, min=0.0, max=1.0, step=0.001
+                ),
+                io.Float.Input(
+                    "end_percent", default=1.0, min=0.0, max=1.0, step=0.001
+                ),
             ],
             outputs=[
                 io.Conditioning.Output(display_name="positive"),
@@ -131,7 +154,17 @@ class ControlNetApplySD3(io.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, positive, negative, control_net, image, strength, start_percent, end_percent, vae=None) -> io.NodeOutput:
+    def execute(
+        cls,
+        positive,
+        negative,
+        control_net,
+        image,
+        strength,
+        start_percent,
+        end_percent,
+        vae=None,
+    ) -> io.NodeOutput:
         if strength == 0:
             return io.NodeOutput(positive, negative)
 
@@ -144,17 +177,22 @@ class ControlNetApplySD3(io.ComfyNode):
             for t in conditioning:
                 d = t[1].copy()
 
-                prev_cnet = d.get('control', None)
+                prev_cnet = d.get("control", None)
                 if prev_cnet in cnets:
                     c_net = cnets[prev_cnet]
                 else:
-                    c_net = control_net.copy().set_cond_hint(control_hint, strength, (start_percent, end_percent),
-                                                             vae=vae, extra_concat=[])
+                    c_net = control_net.copy().set_cond_hint(
+                        control_hint,
+                        strength,
+                        (start_percent, end_percent),
+                        vae=vae,
+                        extra_concat=[],
+                    )
                     c_net.set_previous_controlnet(prev_cnet)
                     cnets[prev_cnet] = c_net
 
-                d['control'] = c_net
-                d['control_apply_to_uncond'] = False
+                d["control"] = c_net
+                d["control_apply_to_uncond"] = False
                 n = [t[0], d]
                 c.append(n)
             out.append(c)
@@ -164,11 +202,11 @@ class ControlNetApplySD3(io.ComfyNode):
 
 
 class SkipLayerGuidanceSD3(io.ComfyNode):
-    '''
+    """
     Enhance guidance towards detailed dtructure by having another set of CFG negative with skipped layers.
     Inspired by Perturbed Attention Guidance (https://arxiv.org/abs/2403.17377)
     Experimental implementation by Dango233@StabilityAI.
-    '''
+    """
 
     @classmethod
     def define_schema(cls):
@@ -180,8 +218,12 @@ class SkipLayerGuidanceSD3(io.ComfyNode):
                 io.Model.Input("model"),
                 io.String.Input("layers", default="7, 8, 9", multiline=False),
                 io.Float.Input("scale", default=3.0, min=0.0, max=10.0, step=0.1),
-                io.Float.Input("start_percent", default=0.01, min=0.0, max=1.0, step=0.001),
-                io.Float.Input("end_percent", default=0.15, min=0.0, max=1.0, step=0.001),
+                io.Float.Input(
+                    "start_percent", default=0.01, min=0.0, max=1.0, step=0.001
+                ),
+                io.Float.Input(
+                    "end_percent", default=0.15, min=0.0, max=1.0, step=0.001
+                ),
             ],
             outputs=[
                 io.Model.Output(),
@@ -191,7 +233,13 @@ class SkipLayerGuidanceSD3(io.ComfyNode):
 
     @classmethod
     def execute(cls, model, layers, scale, start_percent, end_percent) -> io.NodeOutput:
-        return SkipLayerGuidanceDiT().execute(model=model, scale=scale, start_percent=start_percent, end_percent=end_percent, double_layers=layers)
+        return SkipLayerGuidanceDiT().execute(
+            model=model,
+            scale=scale,
+            start_percent=start_percent,
+            end_percent=end_percent,
+            double_layers=layers,
+        )
 
     skip_guidance_sd3 = execute  # TODO: remove
 

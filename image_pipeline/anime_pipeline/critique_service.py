@@ -96,9 +96,14 @@ class CritiqueService:
         if not report:
             logger.warning("[CritiqueService] All models failed, returning default")
             report = CritiqueReport(
-                anatomy_score=5, face_score=5, hands_score=5,
-                composition_score=5, color_score=5, style_score=5,
-                background_score=5, model_used="fallback",
+                anatomy_score=5,
+                face_score=5,
+                hands_score=5,
+                composition_score=5,
+                color_score=5,
+                style_score=5,
+                background_score=5,
+                model_used="fallback",
             )
 
         report.latency_ms = (time.time() - t0) * 1000
@@ -107,7 +112,10 @@ class CritiqueService:
     # ── Private dispatch ──────────────────────────────────────────────
 
     def _call_model(
-        self, model_name: str, image_b64: str, context: str,
+        self,
+        model_name: str,
+        image_b64: str,
+        context: str,
     ) -> Optional[CritiqueReport]:
         # NSFW-friendly providers come first in the dispatch table.
         # Grok (xAI) and StepFun do not apply Gemini/OpenAI-style image
@@ -115,14 +123,18 @@ class CritiqueService:
         name = model_name.lower()
         if name.startswith("grok"):
             return self._openai_compat(
-                model_name, image_b64, context,
+                model_name,
+                image_b64,
+                context,
                 base_url="https://api.x.ai/v1/chat/completions",
                 api_key=os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY"),
                 key_label="GROK_API_KEY",
             )
         if name.startswith("step-") or name.startswith("stepfun"):
             return self._openai_compat(
-                model_name, image_b64, context,
+                model_name,
+                image_b64,
+                context,
                 base_url="https://api.stepfun.com/v1/chat/completions",
                 api_key=os.getenv("STEPFUN_API_KEY"),
                 key_label="STEPFUN_API_KEY",
@@ -131,7 +143,9 @@ class CritiqueService:
             return self._gemini(model_name, image_b64, context)
         if name.startswith("gpt"):
             return self._openai_compat(
-                model_name, image_b64, context,
+                model_name,
+                image_b64,
+                context,
                 base_url="https://api.openai.com/v1/chat/completions",
                 api_key=os.getenv("OPENAI_API_KEY"),
                 key_label="OPENAI_API_KEY",
@@ -139,7 +153,10 @@ class CritiqueService:
         return None
 
     def _gemini(
-        self, model_name: str, image_b64: str, context: str,
+        self,
+        model_name: str,
+        image_b64: str,
+        context: str,
     ) -> Optional[CritiqueReport]:
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         if not api_key:
@@ -150,9 +167,13 @@ class CritiqueService:
             {"text": _CRITIQUE_SYSTEM_PROMPT + "\n\n" + context},
             {"inline_data": {"mime_type": "image/png", "data": raw_img}},
         ]
-        payload = {"contents": [{"parts": parts}], "generationConfig": {
-            "temperature": 0.1, "maxOutputTokens": 800,
-        }}
+        payload = {
+            "contents": [{"parts": parts}],
+            "generationConfig": {
+                "temperature": 0.1,
+                "maxOutputTokens": 800,
+            },
+        }
 
         with httpx.Client(timeout=30) as client:
             resp = client.post(

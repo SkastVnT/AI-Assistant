@@ -1,16 +1,15 @@
-﻿"""
+"""
 fal.ai provider â€” fastest inference engine for diffusion models.
 Supports FLUX.2, FLUX.1-Kontext, Seedream, Nano-Banana, and more.
 """
 
 from __future__ import annotations
 
+import logging
 import os
 import time
-import base64
-import logging
+
 import httpx
-from typing import Optional
 
 # Default fal.ai client timeout (seconds). Override with FAL_TIMEOUT env var.
 # Large models (FLUX.2-pro, Recraft-v4) occasionally take 150-180s end-to-end
@@ -28,9 +27,13 @@ def _fal_timeout() -> float:
     except ValueError:
         return _FAL_TIMEOUT_DEFAULT
 
+
 from .base import (
-    BaseImageProvider, ImageRequest, ImageResult,
-    ImageMode, ProviderTier,
+    BaseImageProvider,
+    ImageMode,
+    ImageRequest,
+    ImageResult,
+    ProviderTier,
 )
 
 logger = logging.getLogger(__name__)
@@ -38,35 +41,35 @@ logger = logging.getLogger(__name__)
 # fal.ai model catalog â€” map friendly names to endpoints
 FAL_MODELS = {
     # FLUX.2 family (latest, best)
-    "flux2-dev":        "fal-ai/flux-2-dev",
-    "flux2-pro":        "fal-ai/flux-2-pro",
-    "flux2-klein-4b":   "fal-ai/flux-2-klein-4b",     # sub-second, $0.003/img
-    "flux2-klein-9b":   "fal-ai/flux-2-klein-9b",
+    "flux2-dev": "fal-ai/flux-2-dev",
+    "flux2-pro": "fal-ai/flux-2-pro",
+    "flux2-klein-4b": "fal-ai/flux-2-klein-4b",  # sub-second, $0.003/img
+    "flux2-klein-9b": "fal-ai/flux-2-klein-9b",
     # FLUX.1 family
-    "flux1-dev":        "fal-ai/flux/dev",
-    "flux1-schnell":    "fal-ai/flux/schnell",
-    "flux1-kontext":    "fal-ai/flux-kontext/dev",      # img2img editing
+    "flux1-dev": "fal-ai/flux/dev",
+    "flux1-schnell": "fal-ai/flux/schnell",
+    "flux1-kontext": "fal-ai/flux-kontext/dev",  # img2img editing
     # Other top models
-    "seedream5":        "fal-ai/seedream-5-lite",       # ByteDance, reasoning
-    "nano-banana":      "fal-ai/nano-banana",           # Google Pro alias
-    "nano-banana-pro":  "fal-ai/nano-banana",           # Google Pro
-    "nano-banana-2":    "fal-ai/nano-banana-2",         # Google, fast
-    "recraft-v4":       "fal-ai/recraft-v4",            # Design taste
+    "seedream5": "fal-ai/seedream-5-lite",  # ByteDance, reasoning
+    "nano-banana": "fal-ai/nano-banana",  # Google Pro alias
+    "nano-banana-pro": "fal-ai/nano-banana",  # Google Pro
+    "nano-banana-2": "fal-ai/nano-banana-2",  # Google, fast
+    "recraft-v4": "fal-ai/recraft-v4",  # Design taste
 }
 
 FAL_COST = {
-    "flux2-dev":        0.025,
-    "flux2-pro":        0.055,
-    "flux2-klein-4b":   0.003,
-    "flux2-klein-9b":   0.012,
-    "flux1-dev":        0.025,
-    "flux1-schnell":    0.003,
-    "flux1-kontext":    0.025,
-    "seedream5":        0.020,
-    "nano-banana":      0.011,
-    "nano-banana-pro":  0.011,
-    "nano-banana-2":    0.005,
-    "recraft-v4":       0.020,
+    "flux2-dev": 0.025,
+    "flux2-pro": 0.055,
+    "flux2-klein-4b": 0.003,
+    "flux2-klein-9b": 0.012,
+    "flux1-dev": 0.025,
+    "flux1-schnell": 0.003,
+    "flux1-kontext": 0.025,
+    "seedream5": 0.020,
+    "nano-banana": 0.011,
+    "nano-banana-pro": 0.011,
+    "nano-banana-2": 0.005,
+    "recraft-v4": 0.020,
 }
 
 
@@ -104,12 +107,12 @@ class FalProvider(BaseImageProvider):
 
         try:
             payload = self._build_payload(req, model_key)
-            
+
             # Submit to queue
             submit_resp = self._http.post(f"/{endpoint}", json=payload)
             submit_resp.raise_for_status()
             submit_data = submit_resp.json()
-            
+
             # fal returns status_url / response_url directly — prefer those
             if "request_id" in submit_data:
                 result_data = self._poll_result(
@@ -132,12 +135,21 @@ class FalProvider(BaseImageProvider):
                 prompt_used=req.prompt,
                 latency_ms=latency,
                 cost_usd=FAL_COST.get(model_key, 0.025) * max(1, len(images_url)),
-                metadata={"fal_endpoint": endpoint, "raw_response_keys": list(result_data.keys())},
+                metadata={
+                    "fal_endpoint": endpoint,
+                    "raw_response_keys": list(result_data.keys()),
+                },
             )
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"[fal] HTTP {e.response.status_code}: {e.response.text[:500]}")
-            return ImageResult(success=False, error=f"fal API error: {e.response.status_code}", provider=self.name)
+            logger.error(
+                f"[fal] HTTP {e.response.status_code}: {e.response.text[:500]}"
+            )
+            return ImageResult(
+                success=False,
+                error=f"fal API error: {e.response.status_code}",
+                provider=self.name,
+            )
         except Exception as e:
             logger.error(f"[fal] Error: {e}", exc_info=True)
             return ImageResult(success=False, error=str(e), provider=self.name)
@@ -159,7 +171,10 @@ class FalProvider(BaseImageProvider):
             payload["num_images"] = req.num_images
 
         # img2img via Kontext or others
-        if req.mode in (ImageMode.IMAGE_TO_IMAGE, ImageMode.INPAINT) and req.source_image_b64:
+        if (
+            req.mode in (ImageMode.IMAGE_TO_IMAGE, ImageMode.INPAINT)
+            and req.source_image_b64
+        ):
             if "kontext" in model_key:
                 payload["image_url"] = f"data:image/png;base64,{req.source_image_b64}"
             else:
@@ -185,17 +200,22 @@ class FalProvider(BaseImageProvider):
         endpoint: str,
         request_id: str,
         max_wait: int = 120,
-        status_url: Optional[str] = None,
-        response_url: Optional[str] = None,
+        status_url: str | None = None,
+        response_url: str | None = None,
     ) -> dict:
         """Poll fal queue until result is ready.
-        
+
         Uses status_url/response_url from submit response when available
         (new fal API), falls back to constructed URLs (legacy).
         """
         # Prefer URLs given by fal directly; fall back to constructed paths
-        _status_url = status_url or f"https://queue.fal.run/{endpoint}/requests/{request_id}/status"
-        _result_url = response_url or f"https://queue.fal.run/{endpoint}/requests/{request_id}"
+        _status_url = (
+            status_url
+            or f"https://queue.fal.run/{endpoint}/requests/{request_id}/status"
+        )
+        _result_url = (
+            response_url or f"https://queue.fal.run/{endpoint}/requests/{request_id}"
+        )
 
         deadline = time.time() + max_wait
         while time.time() < deadline:

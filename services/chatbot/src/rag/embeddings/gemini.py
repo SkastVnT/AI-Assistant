@@ -1,4 +1,5 @@
 """Backward-compat alias — use ``gemini_provider.GeminiProvider`` for new code."""
+
 from .gemini_provider import GeminiProvider
 
 

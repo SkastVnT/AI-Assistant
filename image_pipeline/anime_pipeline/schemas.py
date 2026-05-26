@@ -22,12 +22,22 @@ logger = logging.getLogger(__name__)
 # ``AnimePipelineJob.latest_render_image`` to skip these when picking a
 # fallback source image. Keep in sync with ``add_intermediate`` callers
 # in ``agents/structure_lock.py`` and friends.
-_NON_RENDER_STAGES_EXACT: frozenset[str] = frozenset({
-    "lineart", "lineart_anime", "depth", "canny",
-    "pre_upscale", "upscale_hint",
-})
+_NON_RENDER_STAGES_EXACT: frozenset[str] = frozenset(
+    {
+        "lineart",
+        "lineart_anime",
+        "depth",
+        "canny",
+        "pre_upscale",
+        "upscale_hint",
+    }
+)
 _NON_RENDER_STAGE_PREFIXES: tuple[str, ...] = (
-    "structure_", "mask_", "hint_", "control_", "preprocess_",
+    "structure_",
+    "mask_",
+    "hint_",
+    "control_",
+    "preprocess_",
 )
 
 
@@ -35,47 +45,52 @@ _NON_RENDER_STAGE_PREFIXES: tuple[str, ...] = (
 # Enums
 # ═════════════════════════════════════════════════════════════════════
 
+
 class AnimePipelineStatus(str, enum.Enum):
     """Lifecycle of an AnimePipelineJob."""
-    PENDING            = "pending"
-    VISION_ANALYZING   = "vision_analyzing"
-    PLANNING           = "planning"
-    COMPOSING          = "composing"
-    STRUCTURE_LOCKING  = "structure_locking"
-    CLEANUP            = "cleanup"
-    BEAUTY_RENDERING   = "beauty_rendering"
-    CRITIQUING         = "critiquing"
-    REFINING           = "refining"
-    UPSCALING          = "upscaling"
-    COMPLETED          = "completed"
-    FAILED             = "failed"
+
+    PENDING = "pending"
+    VISION_ANALYZING = "vision_analyzing"
+    PLANNING = "planning"
+    COMPOSING = "composing"
+    STRUCTURE_LOCKING = "structure_locking"
+    CLEANUP = "cleanup"
+    BEAUTY_RENDERING = "beauty_rendering"
+    CRITIQUING = "critiquing"
+    REFINING = "refining"
+    UPSCALING = "upscaling"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 
 class StructureLayerType(str, enum.Enum):
     """Control layer types for structure locking."""
+
     LINEART_ANIME = "lineart_anime"
-    LINEART       = "lineart"
-    DEPTH         = "depth"
-    CANNY         = "canny"
+    LINEART = "lineart"
+    DEPTH = "depth"
+    CANNY = "canny"
 
 
 class CritiqueDimension(str, enum.Enum):
     """Evaluation dimensions for critique scoring."""
-    ANATOMY              = "anatomy"
-    FACE                 = "face"
-    HANDS                = "hands"
-    COMPOSITION          = "composition"
-    COLOR                = "color"
-    STYLE                = "style"
-    BACKGROUND           = "background"
+
+    ANATOMY = "anatomy"
+    FACE = "face"
+    HANDS = "hands"
+    COMPOSITION = "composition"
+    COLOR = "color"
+    STYLE = "style"
+    BACKGROUND = "background"
     INSTRUCTION_ADHERENCE = "instruction_adherence"
-    DETAIL_HANDLING       = "detail_handling"
-    IDENTITY_CONSISTENCY  = "identity_consistency"
+    DETAIL_HANDLING = "detail_handling"
+    IDENTITY_CONSISTENCY = "identity_consistency"
 
 
 # ═════════════════════════════════════════════════════════════════════
 # Vision Analysis (structured JSON, no hidden reasoning)
 # ═════════════════════════════════════════════════════════════════════
+
 
 @dataclass
 class VisionAnalysis:
@@ -84,6 +99,7 @@ class VisionAnalysis:
     All fields are explicit and JSON-serializable.
     No hidden chain-of-thought or reasoning text.
     """
+
     caption_short: str = ""
     caption_detailed: str = ""
     subjects: list[str] = field(default_factory=list)
@@ -137,16 +153,18 @@ class VisionAnalysis:
 # Control Input — a single ControlNet / preprocessor reference
 # ═════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class ControlInput:
     """A single ControlNet input for a rendering pass."""
-    layer_type: str = ""                # lineart_anime | depth | canny
+
+    layer_type: str = ""  # lineart_anime | depth | canny
     controlnet_model: str = ""
     strength: float = 0.8
     start_percent: float = 0.0
     end_percent: float = 0.8
-    preprocessor: str = ""              # required for structure extraction
-    image_b64: str = ""                 # populated after structure lock
+    preprocessor: str = ""  # required for structure extraction
+    image_b64: str = ""  # populated after structure lock
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -164,15 +182,17 @@ class ControlInput:
 # PassConfig — per-pass rendering parameters
 # ═════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class PassConfig:
     """Configuration for a single rendering pass in the pipeline.
 
     Used by the workflow builder to generate ComfyUI workflow JSON.
     """
-    pass_name: str = ""                 # composition | cleanup | beauty | upscale
-    model_slot: str = ""                # base | cleanup | final — maps to config model
-    checkpoint: str = ""                # resolved checkpoint filename
+
+    pass_name: str = ""  # composition | cleanup | beauty | upscale
+    model_slot: str = ""  # base | cleanup | final — maps to config model
+    checkpoint: str = ""  # resolved checkpoint filename
     width: int = 832
     height: int = 1216
     sampler: str = "euler_ancestral"
@@ -180,13 +200,13 @@ class PassConfig:
     steps: int = 28
     cfg: float = 5.0
     denoise: float = 1.0
-    seed: int = -1                      # -1 = random
+    seed: int = -1  # -1 = random
     positive_prompt: str = ""
     negative_prompt: str = ""
     control_inputs: list[ControlInput] = field(default_factory=list)
-    prompt_strategy: str = "broad"      # broad | correction | detail
-    expected_output: str = ""           # human-readable note
-    source_image_b64: str = ""          # for img2img passes
+    prompt_strategy: str = "broad"  # broad | correction | detail
+    expected_output: str = ""  # human-readable note
+    source_image_b64: str = ""  # for img2img passes
     lora_models: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -213,6 +233,7 @@ class PassConfig:
 # LayerPlan — structured generation plan
 # ═════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class LayerPlan:
     """Structured generation plan produced by the layer planner.
@@ -220,13 +241,16 @@ class LayerPlan:
     This is a deterministic JSON object, not chain-of-thought prose.
     Contains the full scene description and ordered pass list.
     """
+
     scene_summary: str = ""
     subject_list: list[str] = field(default_factory=list)
-    camera: str = "medium_shot"         # close_up | medium_shot | full_body | wide
+    camera: str = "medium_shot"  # close_up | medium_shot | full_body | wide
     pose: str = ""
     palette: list[str] = field(default_factory=list)
     lighting: str = "soft"
-    style_tags: list[str] = field(default_factory=lambda: ["anime", "vibrant_colors", "colorful"])
+    style_tags: list[str] = field(
+        default_factory=lambda: ["anime", "vibrant_colors", "colorful"]
+    )
     background_plan: str = ""
     negative_constraints: list[str] = field(default_factory=list)
     passes: list[PassConfig] = field(default_factory=list)
@@ -319,22 +343,25 @@ class LayerPlan:
 # CritiqueReport — structured per-dimension scoring
 # ═════════════════════════════════════════════════════════════════════
 
+
 class RefineActionType(str, enum.Enum):
     """Atomic actions the refine loop can apply."""
-    ADJUST_DENOISE       = "adjust_denoise"
-    ADJUST_CONTROL       = "adjust_control"
-    PATCH_POSITIVE       = "patch_positive"
-    PATCH_NEGATIVE       = "patch_negative"
-    SWITCH_PRESET        = "switch_preset"
+
+    ADJUST_DENOISE = "adjust_denoise"
+    ADJUST_CONTROL = "adjust_control"
+    PATCH_POSITIVE = "patch_positive"
+    PATCH_NEGATIVE = "patch_negative"
+    SWITCH_PRESET = "switch_preset"
 
 
 @dataclass
 class RefineAction:
     """A single deterministic adjustment for a refine round."""
+
     action_type: RefineActionType = RefineActionType.ADJUST_DENOISE
-    target: str = ""                    # e.g. "denoise", "lineart_anime", "positive"
-    value: Any = None                   # e.g. 0.05 (delta), "fix hands" (tag), "subtle"
-    reason: str = ""                    # human-readable explanation
+    target: str = ""  # e.g. "denoise", "lineart_anime", "positive"
+    value: Any = None  # e.g. 0.05 (delta), "fix hands" (tag), "subtle"
+    reason: str = ""  # human-readable explanation
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -348,9 +375,10 @@ class RefineAction:
 @dataclass
 class RefineDecision:
     """Outcome of decide_refine_action(): should we refine, and how."""
+
     should_refine: bool = False
     actions: list[RefineAction] = field(default_factory=list)
-    reason: str = ""                    # summary of why we refine or stop
+    reason: str = ""  # summary of why we refine or stop
     worst_dimensions: list[str] = field(default_factory=list)  # sorted worst→best
 
     def to_dict(self) -> dict[str, Any]:
@@ -377,6 +405,7 @@ class CritiqueReport:
 
     Legacy names (face_score, hands_score, etc.) kept for backward compat.
     """
+
     # Issue lists (per-dimension)
     anatomy_issues: list[str] = field(default_factory=list)
     face_issues: list[str] = field(default_factory=list)
@@ -397,19 +426,19 @@ class CritiqueReport:
 
     # ── Numeric scores (0-10) ─ 10 dimensions ───────────────────
     anatomy_score: int = 0
-    face_score: int = 0               # face symmetry
+    face_score: int = 0  # face symmetry
     eye_consistency_score: int = 0
     # Vision-based reference comparison: 0-100% match of generated eyes vs reference.
     # 0.0 means "not measured" (no reference images). Gate: must be >=95 to pass.
     eye_reference_match_pct: float = 0.0
-    hands_score: int = 0              # hand quality
-    clothing_score: int = 0           # clothing consistency
+    hands_score: int = 0  # hand quality
+    clothing_score: int = 0  # clothing consistency
     composition_score: int = 0
-    color_score: int = 0              # color drift
-    style_score: int = 0              # style drift
-    background_score: int = 0         # background clutter
-    accessories_score: int = 0        # missing accessories
-    pose_score: int = 0               # pose drift
+    color_score: int = 0  # color drift
+    style_score: int = 0  # style drift
+    background_score: int = 0  # background clutter
+    accessories_score: int = 0  # missing accessories
+    pose_score: int = 0  # pose drift
 
     @property
     def overall_score(self) -> float:
@@ -425,17 +454,17 @@ class CritiqueReport:
         quality signal for anime outputs.
         """
         scores_weights: list[tuple[int, float]] = [
-            (self.anatomy_score,          1.0),
-            (self.face_score,             1.5),   # face weighted higher
-            (self.eye_consistency_score,   1.2),   # eyes are critical
-            (self.hands_score,            1.0),
-            (self.clothing_score,         0.8),
-            (self.composition_score,      1.0),
-            (self.color_score,            0.8),
-            (self.style_score,            1.0),
-            (self.background_score,       0.7),
-            (self.accessories_score,      0.5),
-            (self.pose_score,             0.9),
+            (self.anatomy_score, 1.0),
+            (self.face_score, 1.5),  # face weighted higher
+            (self.eye_consistency_score, 1.2),  # eyes are critical
+            (self.hands_score, 1.0),
+            (self.clothing_score, 0.8),
+            (self.composition_score, 1.0),
+            (self.color_score, 0.8),
+            (self.style_score, 1.0),
+            (self.background_score, 0.7),
+            (self.accessories_score, 0.5),
+            (self.pose_score, 0.9),
         ]
         # Skip dimensions with score == 0 (not set by LLM)
         active = [(s, w) for s, w in scores_weights if s > 0]
@@ -470,11 +499,17 @@ class CritiqueReport:
     def all_issues(self) -> list[str]:
         """Flatten all issue lists."""
         return (
-            self.anatomy_issues + self.face_issues + self.eye_issues +
-            self.hand_issues + self.clothing_issues +
-            self.composition_issues + self.color_issues + self.style_drift +
-            self.background_issues + self.accessories_issues +
-            self.pose_issues
+            self.anatomy_issues
+            + self.face_issues
+            + self.eye_issues
+            + self.hand_issues
+            + self.clothing_issues
+            + self.composition_issues
+            + self.color_issues
+            + self.style_drift
+            + self.background_issues
+            + self.accessories_issues
+            + self.pose_issues
         )
 
     @property
@@ -545,9 +580,11 @@ CritiqueResult = CritiqueReport
 # Structure Layer
 # ═════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class StructureLayer:
     """A control layer extracted from the composition image."""
+
     layer_type: StructureLayerType = StructureLayerType.LINEART_ANIME
     image_b64: str = ""
     preprocessor: str = ""
@@ -561,9 +598,11 @@ class StructureLayer:
 # Intermediate Image
 # ═════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class IntermediateImage:
     """An intermediate image produced during pipeline execution."""
+
     stage: str = ""
     image_b64: str = ""
     file_path: str = ""
@@ -576,12 +615,14 @@ class IntermediateImage:
 # AnimePipelineJob — Master container
 # ═════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class AnimePipelineJob:
     """Master data container for the anime multi-pass pipeline.
 
     Travels through all stages, accumulating results.
     """
+
     # Identity
     job_id: str = field(default_factory=lambda: uuid.uuid4().hex[:16])
     session_id: str = ""
@@ -684,7 +725,9 @@ class AnimePipelineJob:
             "alias_source": self.alias_source,
             "solo_intent": self.solo_intent,
             "collision_blocks": list(self.collision_blocks),
-            "vision_analysis": self.vision_analysis.to_dict() if self.vision_analysis else None,
+            "vision_analysis": self.vision_analysis.to_dict()
+            if self.vision_analysis
+            else None,
             "layer_plan": self.layer_plan.to_dict() if self.layer_plan else None,
             "critique_results": [c.to_dict() for c in self.critique_results],
             "stages_executed": self.stages_executed,
@@ -702,15 +745,15 @@ class AnimePipelineJob:
         self.stages_executed.append(stage)
         self.stage_timings_ms[stage] = latency_ms
 
-    def add_intermediate(
-        self, stage: str, image_b64: str, **metadata: Any
-    ) -> None:
+    def add_intermediate(self, stage: str, image_b64: str, **metadata: Any) -> None:
         """Store an intermediate image and track model if given."""
-        self.intermediates.append(IntermediateImage(
-            stage=stage,
-            image_b64=image_b64,
-            metadata=metadata,
-        ))
+        self.intermediates.append(
+            IntermediateImage(
+                stage=stage,
+                image_b64=image_b64,
+                metadata=metadata,
+            )
+        )
         model = metadata.get("model") or metadata.get("checkpoint")
         if model and model not in self.models_used:
             self.models_used.append(model)
@@ -741,6 +784,7 @@ class AnimePipelineJob:
 # Final Ranking — candidate scoring and selection
 # ═════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class RankCandidate:
     """A single candidate image for final ranking.
@@ -748,12 +792,13 @@ class RankCandidate:
     Scored on four axes: face quality, clarity, style consistency,
     and artifact count.  ``composite_score`` is the weighted aggregate.
     """
+
     image_b64: str = ""
-    stage: str = ""                     # e.g. "beauty_pass", "upscale"
+    stage: str = ""  # e.g. "beauty_pass", "upscale"
     critique: Optional[CritiqueReport] = None
-    face_quality: float = 0.0           # 0-10
-    clarity: float = 0.0                # 0-10
-    style_consistency: float = 0.0      # 0-10
+    face_quality: float = 0.0  # 0-10
+    clarity: float = 0.0  # 0-10
+    style_consistency: float = 0.0  # 0-10
     artifact_count: int = 0
     composite_score: float = 0.0
 
@@ -776,6 +821,7 @@ class RankResult:
     ``winner`` is the highest-scoring candidate.
     ``runner_ups`` contains remaining candidates sorted by score descending.
     """
+
     winner: Optional[RankCandidate] = None
     runner_ups: list[RankCandidate] = field(default_factory=list)
     total_candidates: int = 0

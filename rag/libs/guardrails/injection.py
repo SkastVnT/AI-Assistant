@@ -30,94 +30,143 @@ logger = logging.getLogger("rag.guardrails.injection")
 
 _INJECTION_PATTERNS: list[tuple[re.Pattern[str], float, str]] = [
     # Direct instruction overrides
-    (re.compile(
-        r"ignore\s+(all\s+)?(previous|prior|above|earlier)\s+"
-        r"(instructions?|prompts?|rules?|context)",
-        re.IGNORECASE,
-    ), 0.6, "instruction_override"),
-
-    (re.compile(
-        r"disregard\s+(all\s+)?(previous|prior|above)\s+"
-        r"(instructions?|prompts?|context)",
-        re.IGNORECASE,
-    ), 0.6, "instruction_override"),
-
-    (re.compile(
-        r"forget\s+(everything|all)\s+(above|before|previous)",
-        re.IGNORECASE,
-    ), 0.5, "instruction_override"),
-
+    (
+        re.compile(
+            r"ignore\s+(all\s+)?(previous|prior|above|earlier)\s+"
+            r"(instructions?|prompts?|rules?|context)",
+            re.IGNORECASE,
+        ),
+        0.6,
+        "instruction_override",
+    ),
+    (
+        re.compile(
+            r"disregard\s+(all\s+)?(previous|prior|above)\s+"
+            r"(instructions?|prompts?|context)",
+            re.IGNORECASE,
+        ),
+        0.6,
+        "instruction_override",
+    ),
+    (
+        re.compile(
+            r"forget\s+(everything|all)\s+(above|before|previous)",
+            re.IGNORECASE,
+        ),
+        0.5,
+        "instruction_override",
+    ),
     # New persona / role injection
-    (re.compile(
-        r"you\s+are\s+(now|actually|really)\s+",
-        re.IGNORECASE,
-    ), 0.4, "role_injection"),
-
-    (re.compile(
-        r"(pretend|act|behave)\s+(as\s+if\s+)?you\s+(are|were)\s+",
-        re.IGNORECASE,
-    ), 0.3, "role_injection"),
-
-    (re.compile(
-        r"switch\s+to\s+(a\s+)?(new|different)\s+(mode|role|persona)",
-        re.IGNORECASE,
-    ), 0.4, "role_injection"),
-
+    (
+        re.compile(
+            r"you\s+are\s+(now|actually|really)\s+",
+            re.IGNORECASE,
+        ),
+        0.4,
+        "role_injection",
+    ),
+    (
+        re.compile(
+            r"(pretend|act|behave)\s+(as\s+if\s+)?you\s+(are|were)\s+",
+            re.IGNORECASE,
+        ),
+        0.3,
+        "role_injection",
+    ),
+    (
+        re.compile(
+            r"switch\s+to\s+(a\s+)?(new|different)\s+(mode|role|persona)",
+            re.IGNORECASE,
+        ),
+        0.4,
+        "role_injection",
+    ),
     # System prompt extraction
-    (re.compile(
-        r"(repeat|show|reveal|print|output|display)\s+"
-        r"(your\s+)?(system\s+)?(prompt|instructions?|rules?|context)",
-        re.IGNORECASE,
-    ), 0.5, "prompt_extraction"),
-
-    (re.compile(
-        r"what\s+(are|is)\s+your\s+(system\s+)?(prompt|instructions?|rules?)",
-        re.IGNORECASE,
-    ), 0.4, "prompt_extraction"),
-
+    (
+        re.compile(
+            r"(repeat|show|reveal|print|output|display)\s+"
+            r"(your\s+)?(system\s+)?(prompt|instructions?|rules?|context)",
+            re.IGNORECASE,
+        ),
+        0.5,
+        "prompt_extraction",
+    ),
+    (
+        re.compile(
+            r"what\s+(are|is)\s+your\s+(system\s+)?(prompt|instructions?|rules?)",
+            re.IGNORECASE,
+        ),
+        0.4,
+        "prompt_extraction",
+    ),
     # Delimiter abuse (trying to inject system/assistant messages)
-    (re.compile(
-        r"<\|?(system|im_start|im_sep|im_end|endoftext)\|?>",
-        re.IGNORECASE,
-    ), 0.7, "delimiter_abuse"),
-
-    (re.compile(
-        r"\[INST\]|\[/INST\]|<<SYS>>|<</SYS>>",
-        re.IGNORECASE,
-    ), 0.7, "delimiter_abuse"),
-
-    (re.compile(
-        r"```\s*(system|assistant|user)\s*\n",
-        re.IGNORECASE,
-    ), 0.4, "delimiter_abuse"),
-
+    (
+        re.compile(
+            r"<\|?(system|im_start|im_sep|im_end|endoftext)\|?>",
+            re.IGNORECASE,
+        ),
+        0.7,
+        "delimiter_abuse",
+    ),
+    (
+        re.compile(
+            r"\[INST\]|\[/INST\]|<<SYS>>|<</SYS>>",
+            re.IGNORECASE,
+        ),
+        0.7,
+        "delimiter_abuse",
+    ),
+    (
+        re.compile(
+            r"```\s*(system|assistant|user)\s*\n",
+            re.IGNORECASE,
+        ),
+        0.4,
+        "delimiter_abuse",
+    ),
     # Output manipulation
-    (re.compile(
-        r"(always|must|should)\s+respond\s+with",
-        re.IGNORECASE,
-    ), 0.3, "output_manipulation"),
-
-    (re.compile(
-        r"your\s+(answer|response|output)\s+(must|should|will)\s+be",
-        re.IGNORECASE,
-    ), 0.3, "output_manipulation"),
-
+    (
+        re.compile(
+            r"(always|must|should)\s+respond\s+with",
+            re.IGNORECASE,
+        ),
+        0.3,
+        "output_manipulation",
+    ),
+    (
+        re.compile(
+            r"your\s+(answer|response|output)\s+(must|should|will)\s+be",
+            re.IGNORECASE,
+        ),
+        0.3,
+        "output_manipulation",
+    ),
     # Data exfiltration attempts
-    (re.compile(
-        r"(send|post|fetch|curl|wget|http)\s+.*(api|url|endpoint|webhook)",
-        re.IGNORECASE,
-    ), 0.5, "data_exfiltration"),
-
+    (
+        re.compile(
+            r"(send|post|fetch|curl|wget|http)\s+.*(api|url|endpoint|webhook)",
+            re.IGNORECASE,
+        ),
+        0.5,
+        "data_exfiltration",
+    ),
     # Markdown/HTML injection (attempting to render executable content)
-    (re.compile(
-        r"<script[\s>]|javascript:|on(load|error|click)\s*=",
-        re.IGNORECASE,
-    ), 0.6, "html_injection"),
-
-    (re.compile(
-        r"\!\[.*\]\(https?://[^\)]*\)",
-        re.IGNORECASE,
-    ), 0.2, "markdown_image_injection"),
+    (
+        re.compile(
+            r"<script[\s>]|javascript:|on(load|error|click)\s*=",
+            re.IGNORECASE,
+        ),
+        0.6,
+        "html_injection",
+    ),
+    (
+        re.compile(
+            r"\!\[.*\]\(https?://[^\)]*\)",
+            re.IGNORECASE,
+        ),
+        0.2,
+        "markdown_image_injection",
+    ),
 ]
 
 
@@ -155,6 +204,7 @@ def scan_prompt_injection(
     """
     if settings is None:
         from libs.core.settings import get_settings
+
         settings = get_settings().guardrails
 
     if not settings.detect_prompt_injection:
@@ -166,12 +216,14 @@ def scan_prompt_injection(
     for pattern, weight, name in _INJECTION_PATTERNS:
         match = pattern.search(text)
         if match:
-            findings.append(InjectionFinding(
-                pattern_name=name,
-                description=f"Matched: {match.group()[:80]}",
-                weight=weight,
-                match_text=match.group()[:120],
-            ))
+            findings.append(
+                InjectionFinding(
+                    pattern_name=name,
+                    description=f"Matched: {match.group()[:80]}",
+                    weight=weight,
+                    match_text=match.group()[:120],
+                )
+            )
             total_weight += weight
 
     score = min(total_weight, 1.0)

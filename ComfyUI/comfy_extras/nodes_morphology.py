@@ -3,7 +3,15 @@ import comfy.model_management
 from typing_extensions import override
 from comfy_api.latest import ComfyExtension, io
 
-from kornia.morphology import dilation, erosion, opening, closing, gradient, top_hat, bottom_hat
+from kornia.morphology import (
+    dilation,
+    erosion,
+    opening,
+    closing,
+    gradient,
+    top_hat,
+    bottom_hat,
+)
 import kornia.color
 
 
@@ -18,7 +26,15 @@ class Morphology(io.ComfyNode):
                 io.Image.Input("image"),
                 io.Combo.Input(
                     "operation",
-                    options=["erode", "dilate", "open", "close", "gradient", "bottom_hat", "top_hat"],
+                    options=[
+                        "erode",
+                        "dilate",
+                        "open",
+                        "close",
+                        "gradient",
+                        "bottom_hat",
+                        "top_hat",
+                    ],
                 ),
                 io.Int.Input("kernel_size", default=3, min=3, max=999, step=1),
             ],
@@ -47,7 +63,9 @@ class Morphology(io.ComfyNode):
         elif operation == "bottom_hat":
             output = bottom_hat(image_k, kernel)
         else:
-            raise ValueError(f"Invalid operation {operation} for morphology. Must be one of 'erode', 'dilate', 'open', 'close', 'gradient', 'tophat', 'bottomhat'")
+            raise ValueError(
+                f"Invalid operation {operation} for morphology. Must be one of 'erode', 'dilate', 'open', 'close', 'gradient', 'tophat', 'bottomhat'"
+            )
         img_out = output.to(comfy.model_management.intermediate_device()).movedim(1, -1)
         return io.NodeOutput(img_out)
 
@@ -71,7 +89,12 @@ class ImageRGBToYUV(io.ComfyNode):
     @classmethod
     def execute(cls, image) -> io.NodeOutput:
         out = kornia.color.rgb_to_ycbcr(image.movedim(-1, 1)).movedim(1, -1)
-        return io.NodeOutput(out[..., 0:1].expand_as(image), out[..., 1:2].expand_as(image), out[..., 2:3].expand_as(image))
+        return io.NodeOutput(
+            out[..., 0:1].expand_as(image),
+            out[..., 1:2].expand_as(image),
+            out[..., 2:3].expand_as(image),
+        )
+
 
 class ImageYUVToRGB(io.ComfyNode):
     @classmethod
@@ -91,7 +114,14 @@ class ImageYUVToRGB(io.ComfyNode):
 
     @classmethod
     def execute(cls, Y, U, V) -> io.NodeOutput:
-        image = torch.cat([torch.mean(Y, dim=-1, keepdim=True), torch.mean(U, dim=-1, keepdim=True), torch.mean(V, dim=-1, keepdim=True)], dim=-1)
+        image = torch.cat(
+            [
+                torch.mean(Y, dim=-1, keepdim=True),
+                torch.mean(U, dim=-1, keepdim=True),
+                torch.mean(V, dim=-1, keepdim=True),
+            ],
+            dim=-1,
+        )
         out = kornia.color.ycbcr_to_rgb(image.movedim(-1, 1)).movedim(1, -1)
         return io.NodeOutput(out)
 
@@ -108,4 +138,3 @@ class MorphologyExtension(ComfyExtension):
 
 async def comfy_entrypoint() -> MorphologyExtension:
     return MorphologyExtension()
-

@@ -20,11 +20,11 @@ dataclass values; no persistence; keys expire automatically via max-size LRU.
 
 from __future__ import annotations
 
-import time
 import logging
+import time
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .schemas import SceneSpec
@@ -39,18 +39,19 @@ _MAX_SESSIONS = 512
 # Data carrier
 # ─────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class ImageSessionMemory:
     """State snapshot for one user session."""
 
-    session_id:             str
-    last_prompt:            str            = ""
-    last_scene_spec:        Optional["SceneSpec"] = None
-    last_provider:          str            = ""
-    last_image_reference:   str            = ""
-    last_seed:              Optional[int]  = None
-    edit_lineage_count:     int            = 0
-    updated_at:             float          = field(default_factory=time.time)
+    session_id: str
+    last_prompt: str = ""
+    last_scene_spec: SceneSpec | None = None
+    last_provider: str = ""
+    last_image_reference: str = ""
+    last_seed: int | None = None
+    edit_lineage_count: int = 0
+    updated_at: float = field(default_factory=time.time)
 
     @property
     def has_previous_image(self) -> bool:
@@ -66,6 +67,7 @@ class ImageSessionMemory:
 # Store
 # ─────────────────────────────────────────────────────────────────────
 
+
 class SessionMemoryStore:
     """
     Thread-unsafe in-memory store with LRU eviction.
@@ -80,11 +82,11 @@ class SessionMemoryStore:
 
     # ── Read ─────────────────────────────────────────────────────────
 
-    def get(self, session_id: str) -> Optional[ImageSessionMemory]:
+    def get(self, session_id: str) -> ImageSessionMemory | None:
         """Return the memory for session_id, or None if not found."""
         mem = self._store.get(session_id)
         if mem:
-            self._store.move_to_end(session_id)   # mark recently-used
+            self._store.move_to_end(session_id)  # mark recently-used
         return mem
 
     def get_or_create(self, session_id: str) -> ImageSessionMemory:
@@ -99,7 +101,7 @@ class SessionMemoryStore:
         mem = self._store.get(session_id)
         return mem.has_previous_image if mem else False
 
-    def last_scene(self, session_id: str) -> Optional["SceneSpec"]:
+    def last_scene(self, session_id: str) -> SceneSpec | None:
         mem = self._store.get(session_id)
         return mem.last_scene_spec if mem else None
 
@@ -107,12 +109,12 @@ class SessionMemoryStore:
 
     def update(
         self,
-        session_id:  str,
-        prompt:      str,
-        scene:       Optional["SceneSpec"],
-        result,                              # core.image_gen.providers.base.ImageResult
+        session_id: str,
+        prompt: str,
+        scene: SceneSpec | None,
+        result,  # core.image_gen.providers.base.ImageResult
         *,
-        is_edit:     bool = False,
+        is_edit: bool = False,
     ) -> None:
         """
         Persist the outcome of one image generation turn.
@@ -122,13 +124,16 @@ class SessionMemoryStore:
         otherwise it resets to 0 (fresh generation).
         """
         mem = self.get_or_create(session_id)
-        mem.last_prompt      = prompt
-        mem.last_scene_spec  = scene
-        mem.last_provider    = getattr(result, "provider", "") or ""
-        mem.last_seed        = getattr(result, "metadata", {}).get("seed") if \
-                               hasattr(result, "metadata") else None
+        mem.last_prompt = prompt
+        mem.last_scene_spec = scene
+        mem.last_provider = getattr(result, "provider", "") or ""
+        mem.last_seed = (
+            getattr(result, "metadata", {}).get("seed")
+            if hasattr(result, "metadata")
+            else None
+        )
         mem.edit_lineage_count = (mem.edit_lineage_count + 1) if is_edit else 0
-        mem.updated_at       = time.time()
+        mem.updated_at = time.time()
 
         # Build a compact image reference
         images_url = getattr(result, "images_url", []) or []
@@ -165,7 +170,7 @@ class SessionMemoryStore:
 # Module-level singleton (same access pattern as core/image_gen/session.py)
 # ─────────────────────────────────────────────────────────────────────
 
-_store: Optional[SessionMemoryStore] = None
+_store: SessionMemoryStore | None = None
 
 
 def get_session_memory_store() -> SessionMemoryStore:

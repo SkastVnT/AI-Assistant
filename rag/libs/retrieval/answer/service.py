@@ -94,17 +94,19 @@ def _prepare_evidence(
     """Build evidence block dicts from retrieval chunks."""
     blocks: list[dict] = []
     for i, chunk in enumerate(retrieval.chunks, 1):
-        blocks.append({
-            "source_index": i,
-            "filename": chunk.filename,
-            "content": chunk.content,
-            "score": chunk.score,
-            "chunk_id": chunk.chunk_id,
-            "document_id": chunk.document_id,
-            "version_id": chunk.version_id,
-            "page_number": chunk.page_number,
-            "heading_path": chunk.heading_path,
-        })
+        blocks.append(
+            {
+                "source_index": i,
+                "filename": chunk.filename,
+                "content": chunk.content,
+                "score": chunk.score,
+                "chunk_id": chunk.chunk_id,
+                "document_id": chunk.document_id,
+                "version_id": chunk.version_id,
+                "page_number": chunk.page_number,
+                "heading_path": chunk.heading_path,
+            }
+        )
     return blocks
 
 
@@ -131,17 +133,19 @@ def extract_citations(
         seen.add(idx)
         e = evidence_by_idx[idx]
         snippet = e["content"][:300]
-        citations.append(Citation(
-            source_index=idx,
-            chunk_id=e["chunk_id"],
-            document_id=e["document_id"],
-            version_id=e["version_id"],
-            filename=e["filename"],
-            content_snippet=snippet,
-            score=e["score"],
-            page_number=e.get("page_number"),
-            heading_path=e.get("heading_path"),
-        ))
+        citations.append(
+            Citation(
+                source_index=idx,
+                chunk_id=e["chunk_id"],
+                document_id=e["document_id"],
+                version_id=e["version_id"],
+                filename=e["filename"],
+                content_snippet=snippet,
+                score=e["score"],
+                page_number=e.get("page_number"),
+                heading_path=e.get("heading_path"),
+            )
+        )
 
     return citations
 
@@ -150,7 +154,8 @@ def extract_citations(
 
 
 def _max_tokens_for_mode(
-    mode: str, settings: AnswerGenerationSettings,
+    mode: str,
+    settings: AnswerGenerationSettings,
 ) -> int:
     return {
         "concise": settings.max_tokens_concise,
@@ -177,7 +182,8 @@ async def _generate_with_timeout(
     )
     if timeout_ms > 0:
         return await asyncio.wait_for(
-            coro, timeout=timeout_ms / 1000,
+            coro,
+            timeout=timeout_ms / 1000,
         )
     return await coro
 
@@ -237,15 +243,21 @@ async def generate_grounded_answer(
     retrieval_ms = retrieval.retrieval_ms
     if collector:
         collector.add_span(
-            "retrieval", duration_ms=retrieval_ms,
+            "retrieval",
+            duration_ms=retrieval_ms,
             strategy=retrieval.retrieval_strategy,
             embedding_model=retrieval.embedding_model,
-            top_k=top_k, returned=len(retrieval.chunks),
+            top_k=top_k,
+            returned=len(retrieval.chunks),
             transform_ms=retrieval.transform_ms,
-            dense_ms=retrieval.dense_ms, dense_count=retrieval.dense_count,
-            lexical_ms=retrieval.lexical_ms, lexical_count=retrieval.lexical_count,
-            fusion_ms=retrieval.fusion_ms, fused_count=retrieval.fused_count,
-            rerank_ms=retrieval.rerank_ms, reranked_count=retrieval.reranked_count,
+            dense_ms=retrieval.dense_ms,
+            dense_count=retrieval.dense_count,
+            lexical_ms=retrieval.lexical_ms,
+            lexical_count=retrieval.lexical_count,
+            fusion_ms=retrieval.fusion_ms,
+            fused_count=retrieval.fused_count,
+            rerank_ms=retrieval.rerank_ms,
+            reranked_count=retrieval.reranked_count,
         )
 
     # ── Step 3: Build grounded prompt ──────────────────────────────────
@@ -274,8 +286,7 @@ async def generate_grounded_answer(
     max_tokens = _max_tokens_for_mode(mode, settings)
 
     logger.info(
-        "answer_prompt mode=%s evidence_chunks=%d max_tokens=%d "
-        "retrieval_ms=%d tenant=%s",
+        "answer_prompt mode=%s evidence_chunks=%d max_tokens=%d retrieval_ms=%d tenant=%s",
         mode,
         len(evidence_blocks),
         max_tokens,
@@ -303,9 +314,11 @@ async def generate_grounded_answer(
     generation_ms = int((time.perf_counter() - t_gen) * 1000)
     if collector:
         collector.add_span(
-            "generation", duration_ms=generation_ms,
+            "generation",
+            duration_ms=generation_ms,
             model=getattr(llm, "model", None),
-            mode=mode, max_tokens=max_tokens,
+            mode=mode,
+            max_tokens=max_tokens,
             temperature=settings.temperature,
         )
     total_ms = int((time.perf_counter() - t_start) * 1000)

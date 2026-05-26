@@ -7,13 +7,14 @@ from comfy_execution.graph_utils import GraphBuilder
 from comfy.comfy_types.node_typing import ComfyNodeABC
 from comfy.comfy_types import IO
 
+
 class TestLazyMixImages:
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "image1": ("IMAGE",{"lazy": True}),
-                "image2": ("IMAGE",{"lazy": True}),
+                "image1": ("IMAGE", {"lazy": True}),
+                "image2": ("IMAGE", {"lazy": True}),
                 "mask": ("MASK",),
             },
         }
@@ -49,8 +50,9 @@ class TestLazyMixImages:
         if mask.shape[3] < image1.shape[3]:
             mask = mask.repeat(1, 1, 1, image1.shape[3])
 
-        result = image1 * (1. - mask) + image2 * mask,
+        result = (image1 * (1.0 - mask) + image2 * mask,)
         return (result[0],)
+
 
 class TestVariadicAverage:
     @classmethod
@@ -68,8 +70,8 @@ class TestVariadicAverage:
 
     def variadic_average(self, input1, **kwargs):
         inputs = [input1]
-        while 'input' + str(len(inputs) + 1) in kwargs:
-            inputs.append(kwargs['input' + str(len(inputs) + 1)])
+        while "input" + str(len(inputs) + 1) in kwargs:
+            inputs.append(kwargs["input" + str(len(inputs) + 1)])
         return (torch.stack(inputs).mean(dim=0),)
 
 
@@ -100,6 +102,7 @@ class TestCustomIsChanged:
         else:
             return False
 
+
 class TestIsChangedWithConstants:
     @classmethod
     def INPUT_TYPES(cls):
@@ -124,6 +127,7 @@ class TestIsChangedWithConstants:
             return value
         else:
             return image.mean().item() * value
+
 
 class TestCustomValidation1:
     @classmethod
@@ -158,6 +162,7 @@ class TestCustomValidation1:
 
         return True
 
+
 class TestCustomValidation2:
     @classmethod
     def INPUT_TYPES(cls):
@@ -189,14 +194,15 @@ class TestCustomValidation2:
             if not isinstance(input2, (torch.Tensor, float)):
                 return f"Invalid type of input2: {type(input2)}"
 
-        if 'input1' in input_types:
-            if input_types['input1'] not in ["IMAGE", "FLOAT"]:
+        if "input1" in input_types:
+            if input_types["input1"] not in ["IMAGE", "FLOAT"]:
                 return f"Invalid type of input1: {input_types['input1']}"
-        if 'input2' in input_types:
-            if input_types['input2'] not in ["IMAGE", "FLOAT"]:
+        if "input2" in input_types:
+            if input_types["input2"] not in ["IMAGE", "FLOAT"]:
                 return f"Invalid type of input2: {input_types['input2']}"
 
         return True
+
 
 @VariantSupport()
 class TestCustomValidation3:
@@ -220,6 +226,7 @@ class TestCustomValidation3:
         else:
             result = input1 * input2
         return (result,)
+
 
 class TestCustomValidation4:
     @classmethod
@@ -251,6 +258,7 @@ class TestCustomValidation4:
 
         return True
 
+
 class TestCustomValidation5:
     @classmethod
     def INPUT_TYPES(cls):
@@ -272,9 +280,10 @@ class TestCustomValidation5:
 
     @classmethod
     def VALIDATE_INPUTS(cls, **kwargs):
-        if kwargs['input2'] == 7.0:
+        if kwargs["input2"] == 7.0:
             return "7s are not allowed. I've never liked 7s."
         return True
+
 
 class TestDynamicDependencyCycle:
     @classmethod
@@ -295,7 +304,9 @@ class TestDynamicDependencyCycle:
         g = GraphBuilder()
         mask = g.node("StubMask", value=0.5, height=512, width=512, batch_size=1)
         mix1 = g.node("TestLazyMixImages", image1=input1, mask=mask.out(0))
-        mix2 = g.node("TestLazyMixImages", image1=mix1.out(0), image2=input2, mask=mask.out(0))
+        mix2 = g.node(
+            "TestLazyMixImages", image1=mix1.out(0), image2=input2, mask=mask.out(0)
+        )
 
         # Create the cyle
         mix1.set_input("image2", mix2.out(0))
@@ -304,6 +315,7 @@ class TestDynamicDependencyCycle:
             "result": (mix2.out(0),),
             "expand": g.finalize(),
         }
+
 
 class TestMixedExpansionReturns:
     @classmethod
@@ -314,7 +326,7 @@ class TestMixedExpansionReturns:
             },
         }
 
-    RETURN_TYPES = ("IMAGE","IMAGE")
+    RETURN_TYPES = ("IMAGE", "IMAGE")
     FUNCTION = "mixed_expansion_returns"
 
     CATEGORY = "Testing/Nodes"
@@ -330,13 +342,23 @@ class TestMixedExpansionReturns:
         else:
             g = GraphBuilder()
             mask = g.node("StubMask", value=0.3, height=512, width=512, batch_size=1)
-            black = g.node("StubImage", content="BLACK", height=512, width=512, batch_size=1)
-            white = g.node("StubImage", content="WHITE", height=512, width=512, batch_size=1)
-            mix = g.node("TestLazyMixImages", image1=black.out(0), image2=white.out(0), mask=mask.out(0))
+            black = g.node(
+                "StubImage", content="BLACK", height=512, width=512, batch_size=1
+            )
+            white = g.node(
+                "StubImage", content="WHITE", height=512, width=512, batch_size=1
+            )
+            mix = g.node(
+                "TestLazyMixImages",
+                image1=black.out(0),
+                image2=white.out(0),
+                mask=mask.out(0),
+            )
             return {
                 "result": (mix.out(0), white_image),
                 "expand": g.finalize(),
             }
+
 
 class TestSamplingInExpansion:
     @classmethod
@@ -346,11 +368,23 @@ class TestSamplingInExpansion:
                 "model": ("MODEL",),
                 "clip": ("CLIP",),
                 "vae": ("VAE",),
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF}),
                 "steps": ("INT", {"default": 20, "min": 1, "max": 100}),
                 "cfg": ("FLOAT", {"default": 7.0, "min": 0.0, "max": 30.0}),
-                "prompt": ("STRING", {"multiline": True, "default": "a beautiful landscape with mountains and trees"}),
-                "negative_prompt": ("STRING", {"multiline": True, "default": "blurry, bad quality, worst quality"}),
+                "prompt": (
+                    "STRING",
+                    {
+                        "multiline": True,
+                        "default": "a beautiful landscape with mountains and trees",
+                    },
+                ),
+                "negative_prompt": (
+                    "STRING",
+                    {
+                        "multiline": True,
+                        "default": "blurry, bad quality, worst quality",
+                    },
+                ),
             },
         }
 
@@ -359,32 +393,32 @@ class TestSamplingInExpansion:
 
     CATEGORY = "Testing/Nodes"
 
-    def sampling_in_expansion(self, model, clip, vae, seed, steps, cfg, prompt, negative_prompt):
+    def sampling_in_expansion(
+        self, model, clip, vae, seed, steps, cfg, prompt, negative_prompt
+    ):
         g = GraphBuilder()
 
         # Create a basic image generation workflow using the input model, clip and vae
         # 1. Setup text prompts using the provided CLIP model
-        positive_prompt = g.node("CLIPTextEncode",
-                               text=prompt,
-                               clip=clip)
-        negative_prompt = g.node("CLIPTextEncode",
-                                text=negative_prompt,
-                                clip=clip)
+        positive_prompt = g.node("CLIPTextEncode", text=prompt, clip=clip)
+        negative_prompt = g.node("CLIPTextEncode", text=negative_prompt, clip=clip)
 
         # 2. Create empty latent with specified size
         empty_latent = g.node("EmptyLatentImage", width=512, height=512, batch_size=1)
 
         # 3. Setup sampler and generate image latent
-        sampler = g.node("KSampler",
-                        model=model,
-                        positive=positive_prompt.out(0),
-                        negative=negative_prompt.out(0),
-                        latent_image=empty_latent.out(0),
-                        seed=seed,
-                        steps=steps,
-                        cfg=cfg,
-                        sampler_name="euler_ancestral",
-                        scheduler="normal")
+        sampler = g.node(
+            "KSampler",
+            model=model,
+            positive=positive_prompt.out(0),
+            negative=negative_prompt.out(0),
+            latent_image=empty_latent.out(0),
+            seed=seed,
+            steps=steps,
+            cfg=cfg,
+            sampler_name="euler_ancestral",
+            scheduler="normal",
+        )
 
         # 4. Decode latent to image using VAE
         output = g.node("VAEDecode", samples=sampler.out(0), vae=vae)
@@ -394,18 +428,29 @@ class TestSamplingInExpansion:
             "expand": g.finalize(),
         }
 
+
 class TestSleep(ComfyNodeABC):
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
                 "value": (IO.ANY, {}),
-                "seconds": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 9999.0, "step": 0.01, "tooltip": "The amount of seconds to sleep."}),
+                "seconds": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 9999.0,
+                        "step": 0.01,
+                        "tooltip": "The amount of seconds to sleep.",
+                    },
+                ),
             },
             "hidden": {
                 "unique_id": "UNIQUE_ID",
             },
         }
+
     RETURN_TYPES = (IO.ANY,)
     FUNCTION = "sleep"
 
@@ -422,22 +467,33 @@ class TestSleep(ComfyNodeABC):
             await asyncio.sleep(0.01)
         return (value,)
 
+
 class TestParallelSleep(ComfyNodeABC):
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "image1": ("IMAGE", ),
-                "image2": ("IMAGE", ),
-                "image3": ("IMAGE", ),
-                "sleep1": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 10.0, "step": 0.01}),
-                "sleep2": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 10.0, "step": 0.01}),
-                "sleep3": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 10.0, "step": 0.01}),
+                "image1": ("IMAGE",),
+                "image2": ("IMAGE",),
+                "image3": ("IMAGE",),
+                "sleep1": (
+                    "FLOAT",
+                    {"default": 0.5, "min": 0.0, "max": 10.0, "step": 0.01},
+                ),
+                "sleep2": (
+                    "FLOAT",
+                    {"default": 0.5, "min": 0.0, "max": 10.0, "step": 0.01},
+                ),
+                "sleep3": (
+                    "FLOAT",
+                    {"default": 0.5, "min": 0.0, "max": 10.0, "step": 0.01},
+                ),
             },
             "hidden": {
                 "unique_id": "UNIQUE_ID",
             },
         }
+
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "parallel_sleep"
     CATEGORY = "_for_testing"
@@ -453,15 +509,18 @@ class TestParallelSleep(ComfyNodeABC):
         sleep_node3 = g.node("TestSleep", value=image3, seconds=sleep3)
 
         # Blend the results using TestVariadicAverage
-        blend = g.node("TestVariadicAverage",
-                       input1=sleep_node1.out(0),
-                       input2=sleep_node2.out(0),
-                       input3=sleep_node3.out(0))
+        blend = g.node(
+            "TestVariadicAverage",
+            input1=sleep_node1.out(0),
+            input2=sleep_node2.out(0),
+            input3=sleep_node3.out(0),
+        )
 
         return {
             "result": (blend.out(0),),
             "expand": g.finalize(),
         }
+
 
 class TestOutputNodeWithSocketOutput:
     @classmethod
@@ -472,6 +531,7 @@ class TestOutputNodeWithSocketOutput:
                 "value": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0}),
             },
         }
+
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "process"
     CATEGORY = "_for_testing"
@@ -481,6 +541,7 @@ class TestOutputNodeWithSocketOutput:
         # Apply value scaling and return both as output and socket
         result = image * value
         return (result,)
+
 
 TEST_NODE_CLASS_MAPPINGS = {
     "TestLazyMixImages": TestLazyMixImages,

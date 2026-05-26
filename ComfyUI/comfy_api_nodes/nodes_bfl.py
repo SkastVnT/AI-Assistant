@@ -36,7 +36,6 @@ def convert_mask_to_image(mask: Input.Image):
 
 
 class FluxProUltraImageNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls) -> IO.Schema:
         return IO.Schema(
@@ -127,8 +126,14 @@ class FluxProUltraImageNode(IO.ComfyNode):
                 seed=seed,
                 aspect_ratio=aspect_ratio,
                 raw=raw,
-                image_prompt=(image_prompt if image_prompt is None else tensor_to_base64_string(image_prompt)),
-                image_prompt_strength=(None if image_prompt is None else round(image_prompt_strength, 2)),
+                image_prompt=(
+                    image_prompt
+                    if image_prompt is None
+                    else tensor_to_base64_string(image_prompt)
+                ),
+                image_prompt_strength=(
+                    None if image_prompt is None else round(image_prompt_strength, 2)
+                ),
             ),
         )
         response = await poll_op(
@@ -146,11 +151,12 @@ class FluxProUltraImageNode(IO.ComfyNode):
             ],
             queued_statuses=[],
         )
-        return IO.NodeOutput(await download_url_to_image_tensor(response.result["sample"]))
+        return IO.NodeOutput(
+            await download_url_to_image_tensor(response.result["sample"])
+        )
 
 
 class FluxKontextProImageNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls) -> IO.Schema:
         return IO.Schema(
@@ -241,7 +247,11 @@ class FluxKontextProImageNode(IO.ComfyNode):
                 steps=steps,
                 seed=seed,
                 aspect_ratio=aspect_ratio,
-                input_image=(input_image if input_image is None else tensor_to_base64_string(input_image)),
+                input_image=(
+                    input_image
+                    if input_image is None
+                    else tensor_to_base64_string(input_image)
+                ),
             ),
         )
         response = await poll_op(
@@ -259,11 +269,12 @@ class FluxKontextProImageNode(IO.ComfyNode):
             ],
             queued_statuses=[],
         )
-        return IO.NodeOutput(await download_url_to_image_tensor(response.result["sample"]))
+        return IO.NodeOutput(
+            await download_url_to_image_tensor(response.result["sample"])
+        )
 
 
 class FluxKontextMaxImageNode(FluxKontextProImageNode):
-
     DESCRIPTION = "Edits images using Flux.1 Kontext [max] via api based on prompt and aspect ratio."
     BFL_PATH = "/proxy/bfl/flux-kontext-max/generate"
     NODE_ID = "FluxKontextMaxImageNode"
@@ -271,7 +282,6 @@ class FluxKontextMaxImageNode(FluxKontextProImageNode):
 
 
 class FluxProExpandNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls) -> IO.Schema:
         return IO.Schema(
@@ -400,11 +410,12 @@ class FluxProExpandNode(IO.ComfyNode):
             ],
             queued_statuses=[],
         )
-        return IO.NodeOutput(await download_url_to_image_tensor(response.result["sample"]))
+        return IO.NodeOutput(
+            await download_url_to_image_tensor(response.result["sample"])
+        )
 
 
 class FluxProFillNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls) -> IO.Schema:
         return IO.Schema(
@@ -484,7 +495,9 @@ class FluxProFillNode(IO.ComfyNode):
                 steps=steps,
                 guidance=guidance,
                 seed=seed,
-                image=tensor_to_base64_string(image[:, :, :, :3]),  # make sure image will have alpha channel removed
+                image=tensor_to_base64_string(
+                    image[:, :, :, :3]
+                ),  # make sure image will have alpha channel removed
                 mask=mask,
             ),
         )
@@ -503,11 +516,12 @@ class FluxProFillNode(IO.ComfyNode):
             ],
             queued_statuses=[],
         )
-        return IO.NodeOutput(await download_url_to_image_tensor(response.result["sample"]))
+        return IO.NodeOutput(
+            await download_url_to_image_tensor(response.result["sample"])
+        )
 
 
 class Flux2ProImageNode(IO.ComfyNode):
-
     NODE_ID = "Flux2ProImageNode"
     DISPLAY_NAME = "Flux.2 [pro] Image"
     API_ENDPOINT = "/proxy/bfl/flux-2-pro/generate"
@@ -554,7 +568,11 @@ class Flux2ProImageNode(IO.ComfyNode):
                     tooltip="Whether to perform upsampling on the prompt. "
                     "If active, automatically modifies the prompt for more creative generation.",
                 ),
-                IO.Image.Input("images", optional=True, tooltip="Up to 9 images to be used as references."),
+                IO.Image.Input(
+                    "images",
+                    optional=True,
+                    tooltip="Up to 9 images to be used as references.",
+                ),
             ],
             outputs=[IO.Image.Output()],
             hidden=[
@@ -580,8 +598,12 @@ class Flux2ProImageNode(IO.ComfyNode):
             if get_number_of_images(images) > 9:
                 raise ValueError("The current maximum number of supported images is 9.")
             for image_index in range(images.shape[0]):
-                key_name = f"input_image_{image_index + 1}" if image_index else "input_image"
-                reference_images[key_name] = tensor_to_base64_string(images[image_index], total_pixels=2048 * 2048)
+                key_name = (
+                    f"input_image_{image_index + 1}" if image_index else "input_image"
+                )
+                reference_images[key_name] = tensor_to_base64_string(
+                    images[image_index], total_pixels=2048 * 2048
+                )
         initial_response = await sync_op(
             cls,
             ApiEndpoint(path=cls.API_ENDPOINT, method="POST"),
@@ -597,7 +619,9 @@ class Flux2ProImageNode(IO.ComfyNode):
         )
 
         def price_extractor(_r: BaseModel) -> float | None:
-            return None if initial_response.cost is None else initial_response.cost / 100
+            return (
+                None if initial_response.cost is None else initial_response.cost / 100
+            )
 
         response = await poll_op(
             cls,
@@ -615,11 +639,12 @@ class Flux2ProImageNode(IO.ComfyNode):
             ],
             queued_statuses=[],
         )
-        return IO.NodeOutput(await download_url_to_image_tensor(response.result["sample"]))
+        return IO.NodeOutput(
+            await download_url_to_image_tensor(response.result["sample"])
+        )
 
 
 class Flux2MaxImageNode(Flux2ProImageNode):
-
     NODE_ID = "Flux2MaxImageNode"
     DISPLAY_NAME = "Flux.2 [max] Image"
     API_ENDPOINT = "/proxy/bfl/flux-2-max/generate"

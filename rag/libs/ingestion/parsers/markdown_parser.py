@@ -13,9 +13,7 @@ from libs.ingestion.parsers.base import (
 # Regex patterns for Markdown constructs
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.+)$", re.MULTILINE)
 _FENCED_CODE_RE = re.compile(r"^```(\w*)\n(.*?)^```", re.MULTILINE | re.DOTALL)
-_TABLE_RE = re.compile(
-    r"^(\|.+\|)\n(\|[-:| ]+\|)\n((?:\|.+\|\n?)+)", re.MULTILINE
-)
+_TABLE_RE = re.compile(r"^(\|.+\|)\n(\|[-:| ]+\|)\n((?:\|.+\|\n?)+)", re.MULTILINE)
 _BLOCKQUOTE_RE = re.compile(r"^(?:>\s?.+\n?)+", re.MULTILINE)
 _LIST_ITEM_RE = re.compile(r"^[ \t]*[-*+][ \t]+.+(?:\n(?![ \t]*[-*+][ \t]).+)*", re.MULTILINE)
 _ORDERED_LIST_RE = re.compile(r"^[ \t]*\d+\.[ \t]+.+(?:\n(?![ \t]*\d+\.[ \t]).+)*", re.MULTILINE)
@@ -52,18 +50,14 @@ class MarkdownParser:
         for m in _TABLE_RE.finditer(text):
             if not self._is_consumed(m.start(), consumed):
                 table_text = m.group(0).strip()
-                elements.append(
-                    ContentElement(type=ElementType.TABLE, content=table_text)
-                )
+                elements.append(ContentElement(type=ElementType.TABLE, content=table_text))
                 consumed.append((m.start(), m.end()))
 
         # 3) Blockquotes
         for m in _BLOCKQUOTE_RE.finditer(text):
             if not self._is_consumed(m.start(), consumed):
                 quote = re.sub(r"^>\s?", "", m.group(0), flags=re.MULTILINE).strip()
-                elements.append(
-                    ContentElement(type=ElementType.BLOCKQUOTE, content=quote)
-                )
+                elements.append(ContentElement(type=ElementType.BLOCKQUOTE, content=quote))
                 consumed.append((m.start(), m.end()))
 
         # 4) Headings
@@ -135,15 +129,11 @@ class MarkdownParser:
             for para in re.split(r"\n{2,}", gap):
                 para = para.strip()
                 if para and not re.match(r"^#{1,6}\s", para):
-                    elements.append(
-                        ContentElement(type=ElementType.PARAGRAPH, content=para)
-                    )
+                    elements.append(ContentElement(type=ElementType.PARAGRAPH, content=para))
             prev_end = max(prev_end, end)
         # Trailing text
         gap = text[prev_end:]
         for para in re.split(r"\n{2,}", gap):
             para = para.strip()
             if para and not re.match(r"^#{1,6}\s", para):
-                elements.append(
-                    ContentElement(type=ElementType.PARAGRAPH, content=para)
-                )
+                elements.append(ContentElement(type=ElementType.PARAGRAPH, content=para))

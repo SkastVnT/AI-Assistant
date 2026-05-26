@@ -42,6 +42,7 @@ def classify_source_trust(
     """
     if settings is None:
         from libs.core.settings import get_settings
+
         settings = get_settings().guardrails
 
     chunk_id = chunk.get("chunk_id", UUID(int=0))

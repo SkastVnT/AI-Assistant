@@ -28,7 +28,7 @@ def mock_user_directory(tmp_path):
 @pytest.fixture
 def user_manager_multi_user(mock_user_directory):
     """Create UserManager in multi-user mode."""
-    with patch('app.user_manager.args') as mock_args:
+    with patch("app.user_manager.args") as mock_args:
         mock_args.multi_user = True
         um = UserManager()
         # Add test users
@@ -70,17 +70,17 @@ class TestSystemUserEndpointBlocking:
 
         client = await aiohttp_client(app_multi_user)
 
-        with patch('app.user_manager.args') as mock_args:
+        with patch("app.user_manager.args") as mock_args:
             mock_args.multi_user = True
             # Attempt to access System User's data via HTTP
             resp = await client.get(
-                "/userdata?dir=.",
-                headers={"comfy-user": "__system"}
+                "/userdata?dir=.", headers={"comfy-user": "__system"}
             )
 
         # Should be blocked (403 Forbidden or similar error)
-        assert resp.status in [400, 403, 500], \
+        assert resp.status in [400, 403, 500], (
             f"System User access should be blocked, got {resp.status}"
+        )
 
     @pytest.mark.asyncio
     async def test_userdata_post_blocks_system_user(
@@ -91,16 +91,17 @@ class TestSystemUserEndpointBlocking:
         """
         client = await aiohttp_client(app_multi_user)
 
-        with patch('app.user_manager.args') as mock_args:
+        with patch("app.user_manager.args") as mock_args:
             mock_args.multi_user = True
             resp = await client.post(
                 "/userdata/test.txt",
                 headers={"comfy-user": "__system"},
-                data=b"malicious content"
+                data=b"malicious content",
             )
 
-        assert resp.status in [400, 403, 500], \
+        assert resp.status in [400, 403, 500], (
             f"System User write should be blocked, got {resp.status}"
+        )
 
         # Verify no file was created
         assert not (mock_user_directory / "__system" / "test.txt").exists()
@@ -120,15 +121,15 @@ class TestSystemUserEndpointBlocking:
 
         client = await aiohttp_client(app_multi_user)
 
-        with patch('app.user_manager.args') as mock_args:
+        with patch("app.user_manager.args") as mock_args:
             mock_args.multi_user = True
             resp = await client.delete(
-                "/userdata/secret.txt",
-                headers={"comfy-user": "__system"}
+                "/userdata/secret.txt", headers={"comfy-user": "__system"}
             )
 
-        assert resp.status in [400, 403, 500], \
+        assert resp.status in [400, 403, 500], (
             f"System User delete should be blocked, got {resp.status}"
+        )
 
         # Verify file still exists
         assert secret_file.exists()
@@ -142,15 +143,13 @@ class TestSystemUserEndpointBlocking:
         """
         client = await aiohttp_client(app_multi_user)
 
-        with patch('app.user_manager.args') as mock_args:
+        with patch("app.user_manager.args") as mock_args:
             mock_args.multi_user = True
-            resp = await client.get(
-                "/v2/userdata",
-                headers={"comfy-user": "__system"}
-            )
+            resp = await client.get("/v2/userdata", headers={"comfy-user": "__system"})
 
-        assert resp.status in [400, 403, 500], \
+        assert resp.status in [400, 403, 500], (
             f"System User v2 access should be blocked, got {resp.status}"
+        )
 
     @pytest.mark.asyncio
     async def test_move_userdata_blocks_system_user(
@@ -165,15 +164,15 @@ class TestSystemUserEndpointBlocking:
 
         client = await aiohttp_client(app_multi_user)
 
-        with patch('app.user_manager.args') as mock_args:
+        with patch("app.user_manager.args") as mock_args:
             mock_args.multi_user = True
             resp = await client.post(
-                "/userdata/source.txt/move/dest.txt",
-                headers={"comfy-user": "__system"}
+                "/userdata/source.txt/move/dest.txt", headers={"comfy-user": "__system"}
             )
 
-        assert resp.status in [400, 403, 500], \
+        assert resp.status in [400, 403, 500], (
             f"System User move should be blocked, got {resp.status}"
+        )
 
         # Verify source file still exists (move was blocked)
         assert (system_user_dir / "source.txt").exists()
@@ -193,13 +192,11 @@ class TestSystemUserCreationBlocking:
         """POST /users with System User name should return 400 Bad Request."""
         client = await aiohttp_client(app_multi_user)
 
-        resp = await client.post(
-            "/users",
-            json={"username": "__system"}
-        )
+        resp = await client.post("/users", json={"username": "__system"})
 
-        assert resp.status == 400, \
+        assert resp.status == 400, (
             f"System User creation should return 400, got {resp.status}"
+        )
 
     @pytest.mark.asyncio
     async def test_post_users_blocks_system_user_prefix_variations(
@@ -212,8 +209,9 @@ class TestSystemUserCreationBlocking:
 
         for name in system_user_names:
             resp = await client.post("/users", json={"username": name})
-            assert resp.status == 400, \
+            assert resp.status == 400, (
                 f"System User name '{name}' should return 400, got {resp.status}"
+            )
 
 
 class TestPublicUserStillWorks:
@@ -240,11 +238,10 @@ class TestPublicUserStillWorks:
 
         client = await aiohttp_client(app_multi_user)
 
-        with patch('app.user_manager.args') as mock_args:
+        with patch("app.user_manager.args") as mock_args:
             mock_args.multi_user = True
             resp = await client.get(
-                "/userdata?dir=workflows",
-                headers={"comfy-user": "default"}
+                "/userdata?dir=workflows", headers={"comfy-user": "default"}
             )
 
         assert resp.status == 200
@@ -264,12 +261,12 @@ class TestPublicUserStillWorks:
 
         client = await aiohttp_client(app_multi_user)
 
-        with patch('app.user_manager.args') as mock_args:
+        with patch("app.user_manager.args") as mock_args:
             mock_args.multi_user = True
             resp = await client.post(
                 "/userdata/newfile.txt",
                 headers={"comfy-user": "default"},
-                data=b"user content"
+                data=b"user content",
             )
 
         assert resp.status == 200
@@ -318,11 +315,10 @@ class TestCustomNodeScenario:
         client = await aiohttp_client(app_multi_user)
 
         # Attacker tries to access via HTTP
-        with patch('app.user_manager.args') as mock_args:
+        with patch("app.user_manager.args") as mock_args:
             mock_args.multi_user = True
             resp = await client.get(
-                "/userdata/secret.json",
-                headers={"comfy-user": "__mynode_config"}
+                "/userdata/secret.json", headers={"comfy-user": "__mynode_config"}
             )
 
         # Should be blocked
@@ -360,6 +356,7 @@ class TestStructuralSecurity:
         2. Use get_public_user_directory() - automatically blocks System Users
         3. If None, return error
         """
+
         def new_endpoint_handler(user_id: str) -> str | None:
             """Example of how new endpoints should be implemented."""
             user_path = folder_paths.get_public_user_directory(user_id)

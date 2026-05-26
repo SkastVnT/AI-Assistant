@@ -199,15 +199,17 @@ class TestCitationExtraction:
         assert citations[0].heading_path == "Section 2"
 
     def test_content_snippet_truncated(self):
-        evidence = [{
-            "source_index": 1,
-            "filename": "big.md",
-            "content": "x" * 500,
-            "score": 0.9,
-            "chunk_id": uuid.uuid4(),
-            "document_id": DOC_ID,
-            "version_id": VER_ID,
-        }]
+        evidence = [
+            {
+                "source_index": 1,
+                "filename": "big.md",
+                "content": "x" * 500,
+                "score": 0.9,
+                "chunk_id": uuid.uuid4(),
+                "document_id": DOC_ID,
+                "version_id": VER_ID,
+            }
+        ]
         answer = "Fact [Source 1]."
         citations = extract_citations(answer, evidence)
         assert len(citations[0].content_snippet) == 300
@@ -220,10 +222,12 @@ class TestCitationExtraction:
 
 class TestPrepareEvidence:
     def test_builds_blocks_from_chunks(self):
-        resp = _retrieval_response([
-            _chunk("Revenue info", score=0.95, filename="fin.md"),
-            _chunk("Engineering info", score=0.8, filename="eng.md"),
-        ])
+        resp = _retrieval_response(
+            [
+                _chunk("Revenue info", score=0.95, filename="fin.md"),
+                _chunk("Engineering info", score=0.8, filename="eng.md"),
+            ]
+        )
         blocks = _prepare_evidence(resp)
         assert len(blocks) == 2
         assert blocks[0]["source_index"] == 1
@@ -267,7 +271,9 @@ class TestGenerateGroundedAnswer:
             return_value=fake_retrieval,
         ):
             result = await generate_grounded_answer(
-                db, embedder, llm,
+                db,
+                embedder,
+                llm,
                 query="Q3 revenue?",
                 tenant_id=TENANT_ID,
                 mode="standard",
@@ -301,8 +307,12 @@ class TestGenerateGroundedAnswer:
             return_value=fake_retrieval,
         ):
             result = await generate_grounded_answer(
-                db, embedder, llm,
-                query="test", tenant_id=TENANT_ID, mode="concise",
+                db,
+                embedder,
+                llm,
+                query="test",
+                tenant_id=TENANT_ID,
+                mode="concise",
             )
 
         assert result.mode == "concise"
@@ -333,8 +343,11 @@ class TestGenerateGroundedAnswer:
             return_value=fake_retrieval,
         ):
             result = await generate_grounded_answer(
-                db, embedder, llm,
-                query="unknown?", tenant_id=TENANT_ID,
+                db,
+                embedder,
+                llm,
+                query="unknown?",
+                tenant_id=TENANT_ID,
             )
 
         assert result.evidence_used == 0
@@ -373,8 +386,11 @@ class TestGenerateGroundedAnswer:
             ans_settings.timeout_ms = 50  # 50ms timeout
             mock_settings.return_value.answer_generation = ans_settings
             result = await generate_grounded_answer(
-                db, embedder, llm,
-                query="test", tenant_id=TENANT_ID,
+                db,
+                embedder,
+                llm,
+                query="test",
+                tenant_id=TENANT_ID,
             )
 
         assert "unable to generate" in result.answer.lower()
@@ -398,8 +414,12 @@ class TestGenerateGroundedAnswer:
             return_value=fake_retrieval,
         ):
             result = await generate_grounded_answer(
-                db, embedder, llm,
-                query="test", tenant_id=TENANT_ID, mode="invalid_mode",
+                db,
+                embedder,
+                llm,
+                query="test",
+                tenant_id=TENANT_ID,
+                mode="invalid_mode",
             )
 
         assert result.mode == "standard"
@@ -423,8 +443,11 @@ class TestGenerateGroundedAnswer:
 
         fake_retrieval = _retrieval_response([_chunk()])
         fake_retrieval = RetrievalResponse(
-            query="test", chunks=[_chunk()], total_found=1,
-            trace_id=trace_id, retrieval_ms=10,
+            query="test",
+            chunks=[_chunk()],
+            total_found=1,
+            trace_id=trace_id,
+            retrieval_ms=10,
         )
 
         with patch(
@@ -433,8 +456,11 @@ class TestGenerateGroundedAnswer:
             return_value=fake_retrieval,
         ):
             await generate_grounded_answer(
-                db, embedder, llm,
-                query="test", tenant_id=TENANT_ID,
+                db,
+                embedder,
+                llm,
+                query="test",
+                tenant_id=TENANT_ID,
             )
 
         assert fake_trace.answer_text == "Answer [Source 1]."

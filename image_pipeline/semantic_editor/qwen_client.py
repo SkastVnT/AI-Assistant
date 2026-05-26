@@ -40,35 +40,39 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_VPS_URL = "http://localhost:8000"
 _DEFAULT_MODEL = "qwen-image-edit"
-_TIMEOUT_SECONDS = 180          # vLLM can be slow on first request
+_TIMEOUT_SECONDS = 180  # vLLM can be slow on first request
 _MAX_RETRIES = 2
-_RETRY_BACKOFF = 2.0            # seconds
+_RETRY_BACKOFF = 2.0  # seconds
 
 
 # ── Data types ───────────────────────────────────────────────────────
 
+
 @dataclass
 class EditResponse:
     """Result from a single Qwen edit call."""
-    success:      bool
-    image_b64:    Optional[str] = None     # Raw base64 (no data-uri prefix)
-    latency_ms:   float         = 0.0
-    model:        str           = _DEFAULT_MODEL
-    provider:     str           = "vps"
-    error:        Optional[str] = None
-    raw_text:     str           = ""       # Full assistant reply (may contain text + image)
-    usage:        dict          = field(default_factory=dict)  # token counts
+
+    success: bool
+    image_b64: Optional[str] = None  # Raw base64 (no data-uri prefix)
+    latency_ms: float = 0.0
+    model: str = _DEFAULT_MODEL
+    provider: str = "vps"
+    error: Optional[str] = None
+    raw_text: str = ""  # Full assistant reply (may contain text + image)
+    usage: dict = field(default_factory=dict)  # token counts
 
 
 @dataclass
 class ConversationTurn:
     """One turn of multi-turn editing context."""
-    role:       str                     # "user" | "assistant"
-    text:       str           = ""
-    image_b64:  Optional[str] = None    # Image sent or received in this turn
+
+    role: str  # "user" | "assistant"
+    text: str = ""
+    image_b64: Optional[str] = None  # Image sent or received in this turn
 
 
 # ── Client ───────────────────────────────────────────────────────────
+
 
 class QwenClient:
     """
@@ -263,7 +267,7 @@ class QwenClient:
             user_content.append(self._image_content(source_image_b64))
 
         # Reference images (face, outfit, style, etc.)
-        for ref_b64 in reference_images_b64[:4]:   # Qwen supports up to ~4
+        for ref_b64 in reference_images_b64[:4]:  # Qwen supports up to ~4
             user_content.append(self._image_content(ref_b64))
 
         # Text instruction last
@@ -307,25 +311,30 @@ class QwenClient:
                     last_error = f"HTTP {resp.status}: {body[:300]}"
                     logger.warning(
                         "[QwenClient] attempt %d/%d failed: %s",
-                        attempt + 1, self._max_retries + 1, last_error,
+                        attempt + 1,
+                        self._max_retries + 1,
+                        last_error,
                     )
 
             except asyncio.TimeoutError:
                 last_error = f"Timeout after {self._timeout}s"
                 logger.warning(
                     "[QwenClient] attempt %d/%d timeout",
-                    attempt + 1, self._max_retries + 1,
+                    attempt + 1,
+                    self._max_retries + 1,
                 )
             except aiohttp.ClientError as e:
                 last_error = f"Connection error: {e}"
                 logger.warning(
                     "[QwenClient] attempt %d/%d connection error: %s",
-                    attempt + 1, self._max_retries + 1, e,
+                    attempt + 1,
+                    self._max_retries + 1,
+                    e,
                 )
 
             # Backoff before retry (skip on last attempt)
             if attempt < self._max_retries:
-                await asyncio.sleep(_RETRY_BACKOFF * (2 ** attempt))
+                await asyncio.sleep(_RETRY_BACKOFF * (2**attempt))
 
         return EditResponse(
             success=False,
@@ -425,7 +434,10 @@ class QwenClient:
             # Base64 can contain A-Z, a-z, 0-9, +, /, =
             b64_chars = []
             for ch in text[idx:]:
-                if ch in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r":
+                if (
+                    ch
+                    in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r"
+                ):
                     b64_chars.append(ch)
                 else:
                     break

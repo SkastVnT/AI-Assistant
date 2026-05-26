@@ -15,6 +15,7 @@ Run from the repo root:
     python scripts/validate_lora_registry.py --category character
     python scripts/validate_lora_registry.py --verbose
 """
+
 from __future__ import annotations
 
 import argparse
@@ -58,10 +59,18 @@ def _iter_entries(registry: dict, categories: Iterable[str] | None):
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--category", action="append", default=None,
-                        help="restrict to one or more categories (repeatable)")
-    parser.add_argument("--verbose", "-v", action="store_true",
-                        help="print every entry, not just missing ones")
+    parser.add_argument(
+        "--category",
+        action="append",
+        default=None,
+        help="restrict to one or more categories (repeatable)",
+    )
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="print every entry, not just missing ones",
+    )
     args = parser.parse_args()
 
     if not REGISTRY_PATH.exists():

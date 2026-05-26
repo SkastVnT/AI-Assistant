@@ -1,4 +1,5 @@
 """Simplified tests for WebSocket feature flags functionality."""
+
 from comfy_api import feature_flags
 
 
@@ -31,33 +32,32 @@ class TestWebSocketFeatureFlags:
     def test_multiple_clients_different_features(self):
         """Test handling multiple clients with different feature support."""
         sockets_metadata = {
-            "modern_client": {
-                "feature_flags": {"supports_preview_metadata": True}
-            },
-            "legacy_client": {
-                "feature_flags": {}
-            }
+            "modern_client": {"feature_flags": {"supports_preview_metadata": True}},
+            "legacy_client": {"feature_flags": {}},
         }
 
         # Check modern client
-        assert feature_flags.supports_feature(
-            sockets_metadata, "modern_client", "supports_preview_metadata"
-        ) is True
+        assert (
+            feature_flags.supports_feature(
+                sockets_metadata, "modern_client", "supports_preview_metadata"
+            )
+            is True
+        )
 
         # Check legacy client
-        assert feature_flags.supports_feature(
-            sockets_metadata, "legacy_client", "supports_preview_metadata"
-        ) is False
+        assert (
+            feature_flags.supports_feature(
+                sockets_metadata, "legacy_client", "supports_preview_metadata"
+            )
+            is False
+        )
 
     def test_feature_negotiation_message_format(self):
         """Test the format of feature negotiation messages."""
         # Client message format
         client_message = {
             "type": "feature_flags",
-            "data": {
-                "supports_preview_metadata": True,
-                "api_version": "1.0.0"
-            }
+            "data": {"supports_preview_metadata": True, "api_version": "1.0.0"},
         }
 
         # Verify structure
@@ -66,10 +66,7 @@ class TestWebSocketFeatureFlags:
 
         # Server response format (what would be sent)
         server_features = feature_flags.get_server_features()
-        server_message = {
-            "type": "feature_flags",
-            "data": server_features
-        }
+        server_message = {"type": "feature_flags", "data": server_features}
 
         # Verify structure
         assert server_message["type"] == "feature_flags"

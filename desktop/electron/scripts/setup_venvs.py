@@ -14,6 +14,7 @@ Responsibilities
 
 Designed to be idempotent: re-running cleans the venv dir and rebuilds.
 """
+
 from __future__ import annotations
 
 import os
@@ -54,9 +55,19 @@ def build_venv(venv_dir: Path, wheel_dir: Path, requirements: Path, fh) -> None:
 
     log("upgrading pip in " + venv_dir.name, fh)
     subprocess.check_call(
-        [str(py), "-m", "pip", "install", "--no-index",
-         "--find-links", str(wheel_dir), "--upgrade", "pip"],
-        stdout=fh, stderr=subprocess.STDOUT,
+        [
+            str(py),
+            "-m",
+            "pip",
+            "install",
+            "--no-index",
+            "--find-links",
+            str(wheel_dir),
+            "--upgrade",
+            "pip",
+        ],
+        stdout=fh,
+        stderr=subprocess.STDOUT,
     )
 
     if not requirements.exists():
@@ -70,24 +81,49 @@ def build_venv(venv_dir: Path, wheel_dir: Path, requirements: Path, fh) -> None:
     # legit-but-conflicting pinned trees (e.g. paddlepaddle vs google-* protobuf).
     log("installing requirements offline from " + str(wheel_dir), fh)
     subprocess.check_call(
-        [str(py), "-m", "pip", "install", "--no-index", "--no-deps",
-         "--find-links", str(wheel_dir), "-r", str(requirements)],
-        stdout=fh, stderr=subprocess.STDOUT,
+        [
+            str(py),
+            "-m",
+            "pip",
+            "install",
+            "--no-index",
+            "--no-deps",
+            "--find-links",
+            str(wheel_dir),
+            "-r",
+            str(requirements),
+        ],
+        stdout=fh,
+        stderr=subprocess.STDOUT,
     )
 
     # For venv-image: requirements-image.txt does NOT pin the CUDA-built
     # torch trio (they live in payload/wheels/image as separate +cu128 wheels).
     # Install them explicitly here so ComfyUI gets a working CUDA torch.
     if venv_dir.name == "venv-image":
-        torch_whls = sorted(wheel_dir.glob("torch-*+cu*.whl")) \
-                   + sorted(wheel_dir.glob("torchvision-*+cu*.whl")) \
-                   + sorted(wheel_dir.glob("torchaudio-*+cu*.whl"))
+        torch_whls = (
+            sorted(wheel_dir.glob("torch-*+cu*.whl"))
+            + sorted(wheel_dir.glob("torchvision-*+cu*.whl"))
+            + sorted(wheel_dir.glob("torchaudio-*+cu*.whl"))
+        )
         if torch_whls:
-            log("installing CUDA torch wheels: " + ", ".join(w.name for w in torch_whls), fh)
+            log(
+                "installing CUDA torch wheels: "
+                + ", ".join(w.name for w in torch_whls),
+                fh,
+            )
             subprocess.check_call(
-                [str(py), "-m", "pip", "install", "--no-index", "--no-deps",
-                 *[str(w) for w in torch_whls]],
-                stdout=fh, stderr=subprocess.STDOUT,
+                [
+                    str(py),
+                    "-m",
+                    "pip",
+                    "install",
+                    "--no-index",
+                    "--no-deps",
+                    *[str(w) for w in torch_whls],
+                ],
+                stdout=fh,
+                stderr=subprocess.STDOUT,
             )
         else:
             log("WARN: no torch +cu*.whl found in " + str(wheel_dir), fh)

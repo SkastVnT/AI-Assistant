@@ -59,9 +59,11 @@ def _is_job_cancel_requested(job_id: str) -> bool:
         return False
     try:
         from core.job_queue import get_queue  # type: ignore[import-not-found]
+
         return bool(get_queue().is_cancel_requested(job_id))
     except Exception:
         return False
+
 
 # ── Processing order — regions are inpainted in this sequence ──────
 # Face first (highest visual impact), cleanup last.
@@ -69,23 +71,52 @@ def _is_job_cancel_requested(job_id: str) -> bool:
 
 REGION_PROCESSING_ORDER: list[str] = [
     # Tier 1: Core anatomy
-    "face", "full_eyes", "eyes", "mouth", "hand",
+    "face",
+    "full_eyes",
+    "eyes",
+    "mouth",
+    "hand",
     # Tier 1b (spec §6a): fine-grained face sub-regions — run AFTER face so
     # the layer painter has face bbox context to sub-mask from.
-    "eyebrows", "nose", "lips", "iris", "pupil", "sclera",
+    "eyebrows",
+    "nose",
+    "lips",
+    "iris",
+    "pupil",
+    "sclera",
     # Tier 1c: hand sub-region
     "fingernails",
     # Tier 2: Body detail
-    "animal_ear", "hair", "neck", "torso", "navel", "armpit",
-    "female_body", "person_female", "thigh", "leg", "feet",
+    "animal_ear",
+    "hair",
+    "neck",
+    "torso",
+    "navel",
+    "armpit",
+    "female_body",
+    "person_female",
+    "thigh",
+    "leg",
+    "feet",
     # Tier 3: Clothing and accessories
-    "clothes", "underwear", "thighhigh", "swimsuit", "leotard",
+    "clothes",
+    "underwear",
+    "thighhigh",
+    "swimsuit",
+    "leotard",
     # Tier 4: Cleanup
-    "text_watermark", "censor_bar",
+    "text_watermark",
+    "censor_bar",
     # Tier 5: NSFW-specific
-    "breasts", "nipples", "genital", "pubic_area",
+    "breasts",
+    "nipples",
+    "genital",
+    "pubic_area",
     # Tier 6: Disabled by default (broad/multi-class, user can enable)
-    "nsfw_allinone", "multiclass", "face_bbox", "hand_bbox",
+    "nsfw_allinone",
+    "multiclass",
+    "face_bbox",
+    "hand_bbox",
 ]
 
 # ── Region-specific LoRA stacks ────────────────────────────────────
@@ -93,120 +124,259 @@ REGION_PROCESSING_ORDER: list[str] = [
 _REGION_LORA_MAP: dict[str, list[dict[str, Any]]] = {
     # Tier 1: Core anatomy
     "face": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.65, "strength_clip": 0.55},  # was 0.55
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.65,
+            "strength_clip": 0.55,
+        },  # was 0.55
     ],
     "full_eyes": [
-        {"name": "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors", "strength_model": 0.70, "strength_clip": 0.60},
-        {"name": "eye_check_by_hand.safetensors", "strength_model": 0.50, "strength_clip": 0.40},
+        {
+            "name": "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors",
+            "strength_model": 0.70,
+            "strength_clip": 0.60,
+        },
+        {
+            "name": "eye_check_by_hand.safetensors",
+            "strength_model": 0.50,
+            "strength_clip": 0.40,
+        },
     ],
     "eyes": [
-        {"name": "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors", "strength_model": 0.65, "strength_clip": 0.55},
-        {"name": "eye_check_by_hand.safetensors", "strength_model": 0.50, "strength_clip": 0.40},
+        {
+            "name": "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors",
+            "strength_model": 0.65,
+            "strength_clip": 0.55,
+        },
+        {
+            "name": "eye_check_by_hand.safetensors",
+            "strength_model": 0.50,
+            "strength_clip": 0.40,
+        },
     ],
     "mouth": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.45, "strength_clip": 0.35},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.45,
+            "strength_clip": 0.35,
+        },
     ],
     "hand": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.50, "strength_clip": 0.40},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.50,
+            "strength_clip": 0.40,
+        },
     ],
     # Tier 2: Body detail
     "animal_ear": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.40, "strength_clip": 0.30},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.40,
+            "strength_clip": 0.30,
+        },
     ],
     "hair": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.45, "strength_clip": 0.35},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.45,
+            "strength_clip": 0.35,
+        },
     ],
     "torso": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.35, "strength_clip": 0.25},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.35,
+            "strength_clip": 0.25,
+        },
     ],
     "armpit": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.30, "strength_clip": 0.20},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.30,
+            "strength_clip": 0.20,
+        },
     ],
     "female_body": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.35, "strength_clip": 0.25},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.35,
+            "strength_clip": 0.25,
+        },
     ],
     "person_female": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.30, "strength_clip": 0.20},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.30,
+            "strength_clip": 0.20,
+        },
     ],
     "feet": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.40, "strength_clip": 0.30},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.40,
+            "strength_clip": 0.30,
+        },
     ],
     # Tier 3: Clothing
     "clothes": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.40, "strength_clip": 0.30},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.40,
+            "strength_clip": 0.30,
+        },
     ],
     "underwear": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.35, "strength_clip": 0.25},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.35,
+            "strength_clip": 0.25,
+        },
     ],
     "thighhigh": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.35, "strength_clip": 0.25},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.35,
+            "strength_clip": 0.25,
+        },
     ],
     "swimsuit": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.35, "strength_clip": 0.25},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.35,
+            "strength_clip": 0.25,
+        },
     ],
     "leotard": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.35, "strength_clip": 0.25},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.35,
+            "strength_clip": 0.25,
+        },
     ],
     # Tier 4: Cleanup (no LoRAs — denoise handles removal)
     "text_watermark": [],
     "censor_bar": [],
     # Tier 5: NSFW
     "breasts": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.40, "strength_clip": 0.30},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.40,
+            "strength_clip": 0.30,
+        },
     ],
     "nipples": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.35, "strength_clip": 0.25},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.35,
+            "strength_clip": 0.25,
+        },
     ],
     "genital": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.35, "strength_clip": 0.25},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.35,
+            "strength_clip": 0.25,
+        },
     ],
     "pubic_area": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.30, "strength_clip": 0.20},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.30,
+            "strength_clip": 0.20,
+        },
     ],
     # Tier 6: Disabled multi-class
     "nsfw_allinone": [],
     "multiclass": [],
     "face_bbox": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.55, "strength_clip": 0.45},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.55,
+            "strength_clip": 0.45,
+        },
     ],
     "hand_bbox": [],
-
     # ── Spec §6a: fine-grained sub-regions ──────────────────────────
     # These share YOLO detectors with their parent region but are
     # applied by the layer painter with tighter sub-masks (PIL) so the
     # prompt/LoRA strength can target a smaller area.
     "eyebrows": [
-        {"name": "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors", "strength_model": 0.35, "strength_clip": 0.30},
+        {
+            "name": "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors",
+            "strength_model": 0.35,
+            "strength_clip": 0.30,
+        },
     ],
     "nose": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.35, "strength_clip": 0.25},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.35,
+            "strength_clip": 0.25,
+        },
     ],
     "lips": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.40, "strength_clip": 0.30},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.40,
+            "strength_clip": 0.30,
+        },
     ],
     "iris": [
-        {"name": "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors", "strength_model": 0.70, "strength_clip": 0.60},
+        {
+            "name": "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors",
+            "strength_model": 0.70,
+            "strength_clip": 0.60,
+        },
     ],
     "pupil": [
-        {"name": "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors", "strength_model": 0.60, "strength_clip": 0.50},
+        {
+            "name": "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors",
+            "strength_model": 0.60,
+            "strength_clip": 0.50,
+        },
     ],
     "sclera": [
-        {"name": "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors", "strength_model": 0.45, "strength_clip": 0.35},
+        {
+            "name": "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors",
+            "strength_model": 0.45,
+            "strength_clip": 0.35,
+        },
     ],
     "fingernails": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.35, "strength_clip": 0.25},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.35,
+            "strength_clip": 0.25,
+        },
     ],
     "navel": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.30, "strength_clip": 0.20},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.30,
+            "strength_clip": 0.20,
+        },
     ],
     "neck": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.30, "strength_clip": 0.20},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.30,
+            "strength_clip": 0.20,
+        },
     ],
     "thigh": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.30, "strength_clip": 0.20},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.30,
+            "strength_clip": 0.20,
+        },
     ],
     "leg": [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.30, "strength_clip": 0.20},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.30,
+            "strength_clip": 0.20,
+        },
     ],
 }
 
@@ -218,17 +388,17 @@ _REGION_LORA_MAP: dict[str, list[dict[str, Any]]] = {
 
 # Subfolder name → list of region_type keys it should be merged into
 _EFFECT_SUBDIR_REGION_MAP: dict[str, tuple[str, ...]] = {
-    "eyes":       ("full_eyes", "eyes", "iris", "pupil", "sclera"),
-    "mouth":      ("mouth", "lips"),
+    "eyes": ("full_eyes", "eyes", "iris", "pupil", "sclera"),
+    "mouth": ("mouth", "lips"),
     "expression": ("face", "mouth"),
-    "drunk":      ("face",),
-    "sleep":      ("face", "full_eyes", "eyes"),
-    "drool":      ("mouth", "lips"),
-    "legs":       ("leg", "thigh", "feet"),
-    "pose":       (),  # poses are control-layer concepts, not region LoRAs
-    "outfit":     ("clothes",),
-    "style":      (),  # styles are global, not region-specific
-    "nsfw":       ("breasts", "nipples", "genital", "pubic_area", "underwear"),
+    "drunk": ("face",),
+    "sleep": ("face", "full_eyes", "eyes"),
+    "drool": ("mouth", "lips"),
+    "legs": ("leg", "thigh", "feet"),
+    "pose": (),  # poses are control-layer concepts, not region LoRAs
+    "outfit": ("clothes",),
+    "style": (),  # styles are global, not region-specific
+    "nsfw": ("breasts", "nipples", "genital", "pubic_area", "underwear"),
 }
 
 # Default supplemental strengths — kept lower than hand-curated entries so
@@ -291,7 +461,9 @@ except Exception as _exc:  # pragma: no cover - defensive
 
 # ── Quality tags per region ────────────────────────────────────────
 
-_QUALITY_PREFIX = "masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest"
+_QUALITY_PREFIX = (
+    "masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest"
+)
 
 _REGION_POSITIVE: dict[str, str] = {
     # Tier 1: Core anatomy
@@ -425,28 +597,21 @@ _REGION_POSITIVE: dict[str, str] = {
         "proper anatomy, smooth skin"
     ),
     "pubic_area": (
-        f"{_QUALITY_PREFIX}, "
-        "detailed skin texture, natural body, proper anatomy"
+        f"{_QUALITY_PREFIX}, detailed skin texture, natural body, proper anatomy"
     ),
     # Tier 6: Multi-class (broad prompts)
     "nsfw_allinone": (
-        f"{_QUALITY_PREFIX}, "
-        "detailed anatomy, natural skin, proper proportions"
+        f"{_QUALITY_PREFIX}, detailed anatomy, natural skin, proper proportions"
     ),
-    "multiclass": (
-        f"{_QUALITY_PREFIX}, "
-        "detailed anatomy, proper proportions"
-    ),
+    "multiclass": (f"{_QUALITY_PREFIX}, detailed anatomy, proper proportions"),
     "face_bbox": (
         f"{_QUALITY_PREFIX}, "
         "beautiful detailed face, perfect features, "
         "detailed skin texture, vivid expression"
     ),
     "hand_bbox": (
-        f"{_QUALITY_PREFIX}, "
-        "detailed hands, correct fingers, well-drawn hands"
+        f"{_QUALITY_PREFIX}, detailed hands, correct fingers, well-drawn hands"
     ),
-
     # ── Spec §6a: fine-grained sub-regions ──────────────────────────
     "eyebrows": (
         f"{_QUALITY_PREFIX}, "
@@ -533,125 +698,61 @@ _REGION_NEGATIVE: dict[str, str] = {
         "too many fingers, six fingers, four fingers"
     ),
     # Tier 2: Body detail
-    "animal_ear": (
-        "blurry ears, deformed ears, flat ears, "
-        "bad fur, missing ears"
-    ),
+    "animal_ear": ("blurry ears, deformed ears, flat ears, bad fur, missing ears"),
     "hair": (
-        "blurry hair, flat hair, bad hair texture, "
-        "messy unnatural hair, bald patches"
+        "blurry hair, flat hair, bad hair texture, messy unnatural hair, bald patches"
     ),
-    "torso": (
-        "bad anatomy, deformed body, blurry torso, "
-        "extra limbs"
-    ),
-    "armpit": (
-        "blurry skin, deformed arm, bad anatomy"
-    ),
+    "torso": ("bad anatomy, deformed body, blurry torso, extra limbs"),
+    "armpit": ("blurry skin, deformed arm, bad anatomy"),
     "female_body": (
-        "bad anatomy, deformed body, extra limbs, "
-        "missing limbs, unnatural proportions"
+        "bad anatomy, deformed body, extra limbs, missing limbs, unnatural proportions"
     ),
-    "person_female": (
-        "bad anatomy, deformed, extra limbs"
-    ),
-    "feet": (
-        "extra toes, missing toes, deformed feet, "
-        "bad feet anatomy, six toes"
-    ),
+    "person_female": ("bad anatomy, deformed, extra limbs"),
+    "feet": ("extra toes, missing toes, deformed feet, bad feet anatomy, six toes"),
     # Tier 3: Clothing
-    "clothes": (
-        "blurry clothing, deformed fabric, flat texture, "
-        "bad clothing design"
-    ),
-    "underwear": (
-        "blurry fabric, deformed underwear, bad texture"
-    ),
-    "thighhigh": (
-        "blurry stockings, deformed fabric, bad texture"
-    ),
-    "swimsuit": (
-        "blurry fabric, deformed swimsuit, bad texture"
-    ),
-    "leotard": (
-        "blurry fabric, deformed leotard, bad texture"
-    ),
+    "clothes": ("blurry clothing, deformed fabric, flat texture, bad clothing design"),
+    "underwear": ("blurry fabric, deformed underwear, bad texture"),
+    "thighhigh": ("blurry stockings, deformed fabric, bad texture"),
+    "swimsuit": ("blurry fabric, deformed swimsuit, bad texture"),
+    "leotard": ("blurry fabric, deformed leotard, bad texture"),
     # Tier 4: Cleanup
     "text_watermark": (
         "text, watermark, speech bubble, logo, signature, "
         "username, copyright, url, timestamp"
     ),
     "censor_bar": (
-        "censored, mosaic, bar, black bar, white bar, "
-        "pixelated, blurred region"
+        "censored, mosaic, bar, black bar, white bar, pixelated, blurred region"
     ),
     # Tier 5: NSFW
-    "breasts": (
-        "deformed breasts, bad anatomy, asymmetrical, unnatural"
-    ),
-    "nipples": (
-        "deformed nipples, bad anatomy, unnatural"
-    ),
-    "genital": (
-        "deformed anatomy, bad anatomy, unnatural"
-    ),
-    "pubic_area": (
-        "deformed, unnatural, bad anatomy"
-    ),
+    "breasts": ("deformed breasts, bad anatomy, asymmetrical, unnatural"),
+    "nipples": ("deformed nipples, bad anatomy, unnatural"),
+    "genital": ("deformed anatomy, bad anatomy, unnatural"),
+    "pubic_area": ("deformed, unnatural, bad anatomy"),
     # Tier 6: Multi-class
-    "nsfw_allinone": (
-        "deformed anatomy, bad anatomy"
-    ),
-    "multiclass": (
-        "deformed, bad anatomy"
-    ),
-    "face_bbox": (
-        "blurry face, deformed face, ugly face"
-    ),
-    "hand_bbox": (
-        "bad hands, extra fingers, deformed hands"
-    ),
-
+    "nsfw_allinone": ("deformed anatomy, bad anatomy"),
+    "multiclass": ("deformed, bad anatomy"),
+    "face_bbox": ("blurry face, deformed face, ugly face"),
+    "hand_bbox": ("bad hands, extra fingers, deformed hands"),
     # ── Spec §6a: fine-grained sub-regions ──────────────────────────
     "eyebrows": (
         "deformed eyebrows, missing eyebrows, asymmetrical brows, "
         "unibrow, bushy mess, wrong brow color"
     ),
-    "nose": (
-        "deformed nose, missing nose, crooked nose, oversized nose"
-    ),
+    "nose": ("deformed nose, missing nose, crooked nose, oversized nose"),
     "lips": (
-        "deformed lips, asymmetric lips, bad lip shading, cracked lips, "
-        "off-color lips"
+        "deformed lips, asymmetric lips, bad lip shading, cracked lips, off-color lips"
     ),
     "iris": (
         "mismatched iris color, blurry iris, flat iris, "
         "featureless iris, wrong eye color"
     ),
-    "pupil": (
-        "uneven pupil size, off-center pupil, deformed pupil, "
-        "square pupil"
-    ),
-    "sclera": (
-        "red sclera, bloodshot, yellow sclera, dirty eye white, "
-        "veiny sclera"
-    ),
-    "fingernails": (
-        "bad nails, missing nails, deformed fingernails, "
-        "dirty nails"
-    ),
-    "navel": (
-        "deformed navel, missing navel, extra navel"
-    ),
-    "neck": (
-        "deformed neck, long neck, too-short neck, bad collarbone"
-    ),
-    "thigh": (
-        "deformed thighs, bad thigh anatomy, asymmetric thighs"
-    ),
-    "leg": (
-        "deformed legs, extra legs, missing leg, bad leg anatomy"
-    ),
+    "pupil": ("uneven pupil size, off-center pupil, deformed pupil, square pupil"),
+    "sclera": ("red sclera, bloodshot, yellow sclera, dirty eye white, veiny sclera"),
+    "fingernails": ("bad nails, missing nails, deformed fingernails, dirty nails"),
+    "navel": ("deformed navel, missing navel, extra navel"),
+    "neck": ("deformed neck, long neck, too-short neck, bad collarbone"),
+    "thigh": ("deformed thighs, bad thigh anatomy, asymmetric thighs"),
+    "leg": ("deformed legs, extra legs, missing leg, bad leg anatomy"),
 }
 
 
@@ -707,14 +808,14 @@ class DetectionInpaintAgent:
         # job.metadata['eye_taped'] (UI toggle) but otherwise sniff the
         # user prompt directly.
         meta_override = (
-            (job.metadata or {}).get("eye_taped")
-            if hasattr(job, "metadata") else None
+            (job.metadata or {}).get("eye_taped") if hasattr(job, "metadata") else None
         )
         if isinstance(meta_override, bool):
             self._eye_taped_active = meta_override
         else:
             try:
                 from ..eye_taped_lora import detect_eye_taped_intent
+
                 self._eye_taped_active = detect_eye_taped_intent(
                     getattr(job, "user_prompt", "")
                 )
@@ -737,7 +838,9 @@ class DetectionInpaintAgent:
         base_negative = self._config.negative_base
 
         # Get checkpoint (same as beauty pass)
-        checkpoint = self._config.final_model.checkpoint or self._config.beauty_model.checkpoint
+        checkpoint = (
+            self._config.final_model.checkpoint or self._config.beauty_model.checkpoint
+        )
         clip_skip = self._config.final_model.clip_skip or 2
 
         # Run detection
@@ -780,7 +883,9 @@ class DetectionInpaintAgent:
             if _is_job_cancel_requested(getattr(job, "job_id", "")):
                 logger.info(
                     "[DetectionInpaint] job=%s cancel requested — stopping region loop at %s (passes_run=%d)",
-                    getattr(job, "job_id", "?"), region_type, passes_run,
+                    getattr(job, "job_id", "?"),
+                    region_type,
+                    passes_run,
                 )
                 break
             regions = detection.get(region_type)
@@ -813,8 +918,14 @@ class DetectionInpaintAgent:
             # Also include default LoRAs from config at reduced strength
             for lora in self._config.default_loras:
                 reduced = dict(lora)
-                reduced["strength_model"] = float(reduced.get("strength_model", reduced.get("strength", 0.5))) * 0.7
-                reduced["strength_clip"] = float(reduced.get("strength_clip", reduced.get("strength", 0.5))) * 0.7
+                reduced["strength_model"] = (
+                    float(reduced.get("strength_model", reduced.get("strength", 0.5)))
+                    * 0.7
+                )
+                reduced["strength_clip"] = (
+                    float(reduced.get("strength_clip", reduced.get("strength", 0.5)))
+                    * 0.7
+                )
                 region_loras.append(reduced)
 
             # Eye-taped LoRA stack (Layer 4 sub-effect, opt-in via prompt
@@ -827,18 +938,25 @@ class DetectionInpaintAgent:
                         EYE_TAPED_POSITIVE,
                         EYE_TAPED_NEGATIVE,
                     )
-                    region_loras.extend(build_eye_taped_lora_stack(
-                        character_name=getattr(job, "character_name", ""),
-                        character_tag=getattr(job, "character_tag", ""),
-                    ))
+
+                    region_loras.extend(
+                        build_eye_taped_lora_stack(
+                            character_name=getattr(job, "character_name", ""),
+                            character_tag=getattr(job, "character_tag", ""),
+                        )
+                    )
                     region_positive = self._merge_prompt(
-                        region_positive, EYE_TAPED_POSITIVE,
+                        region_positive,
+                        EYE_TAPED_POSITIVE,
                     )
                     region_negative = self._merge_prompt(
-                        region_negative, EYE_TAPED_NEGATIVE,
+                        region_negative,
+                        EYE_TAPED_NEGATIVE,
                     )
 
-            region_loras = self._filter_existing_loras(region_loras, region_type=region_type)
+            region_loras = self._filter_existing_loras(
+                region_loras, region_type=region_type
+            )
 
             # Build PassConfig for this region
             seed = random.randint(1, 2**31 - 1)
@@ -846,7 +964,7 @@ class DetectionInpaintAgent:
                 pass_name=f"detail_{region_type}",
                 model_slot="final",
                 checkpoint=checkpoint,
-                width=0,   # not used for inpaint (inherits from source)
+                width=0,  # not used for inpaint (inherits from source)
                 height=0,
                 sampler=self._config.final_model.sampler,
                 scheduler=self._config.final_model.scheduler,
@@ -863,14 +981,22 @@ class DetectionInpaintAgent:
             try:
                 if len(regions) == 1:
                     workflow = self._builder.build_detection_inpaint(
-                        pc, current_image_b64, regions[0].mask_b64, seed,
-                        clip_skip=clip_skip, region_label=region_type,
+                        pc,
+                        current_image_b64,
+                        regions[0].mask_b64,
+                        seed,
+                        clip_skip=clip_skip,
+                        region_label=region_type,
                     )
                 else:
                     masks = [r.mask_b64 for r in regions]
                     workflow = self._builder.build_multi_region_inpaint(
-                        pc, current_image_b64, masks, seed,
-                        clip_skip=clip_skip, region_label=region_type,
+                        pc,
+                        current_image_b64,
+                        masks,
+                        seed,
+                        clip_skip=clip_skip,
+                        region_label=region_type,
                     )
 
                 result = self._client.submit_workflow(
@@ -881,26 +1007,31 @@ class DetectionInpaintAgent:
 
                 if result.success and result.images_b64:
                     current_image_b64 = result.images_b64[0]
-                    job.intermediates.append(IntermediateImage(
-                        stage=f"detail_{region_type}",
-                        image_b64=current_image_b64,
-                        metadata={
-                            "region_type": region_type,
-                            "regions_count": len(regions),
-                            "denoise": layer_cfg.denoise,
-                            "seed": seed,
-                            "detections": [r.to_dict() for r in regions],
-                        },
-                    ))
+                    job.intermediates.append(
+                        IntermediateImage(
+                            stage=f"detail_{region_type}",
+                            image_b64=current_image_b64,
+                            metadata={
+                                "region_type": region_type,
+                                "regions_count": len(regions),
+                                "denoise": layer_cfg.denoise,
+                                "seed": seed,
+                                "detections": [r.to_dict() for r in regions],
+                            },
+                        )
+                    )
                     passes_run += 1
                     logger.info(
                         "[DetectionInpaint] %s pass completed (%d regions, %.0fms)",
-                        region_type, len(regions), result.duration_ms,
+                        region_type,
+                        len(regions),
+                        result.duration_ms,
                     )
                 else:
                     logger.warning(
                         "[DetectionInpaint] %s pass failed: %s",
-                        region_type, result.error or "no output",
+                        region_type,
+                        result.error or "no output",
                     )
 
             except Exception as e:
@@ -919,7 +1050,8 @@ class DetectionInpaintAgent:
         job.stage_timings_ms["detection_inpaint"] = (time.time() - t0) * 1000
         logger.info(
             "[DetectionInpaint] Completed %d passes (%d regions) in %.0fms",
-            passes_run, total_region_count,
+            passes_run,
+            total_region_count,
             job.stage_timings_ms["detection_inpaint"],
         )
 
@@ -935,11 +1067,19 @@ class DetectionInpaintAgent:
         result into a black-and-white edge map.
         """
         _NON_RENDER_PREFIXES = (
-            "structure_", "mask_", "hint_", "control_", "preprocess_",
+            "structure_",
+            "mask_",
+            "hint_",
+            "control_",
+            "preprocess_",
         )
         _NON_RENDER_EXACT = {
-            "lineart", "lineart_anime", "depth", "canny",
-            "pre_upscale", "upscale_hint",
+            "lineart",
+            "lineart_anime",
+            "depth",
+            "canny",
+            "pre_upscale",
+            "upscale_hint",
         }
         for img in reversed(job.intermediates):
             if not img.image_b64:
@@ -1014,13 +1154,15 @@ class DetectionInpaintAgent:
         if dropped_disk:
             logger.warning(
                 "[DetectionInpaint] Dropping missing LoRA(s) for region %r: %s",
-                region_type or "?", dropped_disk,
+                region_type or "?",
+                dropped_disk,
             )
         if dropped_comfy:
             logger.warning(
                 "[DetectionInpaint] Dropping LoRA(s) unknown to ComfyUI for region %r "
                 "(restart ComfyUI to refresh its LoraLoader cache): %s",
-                region_type or "?", dropped_comfy,
+                region_type or "?",
+                dropped_comfy,
             )
         return kept
 
@@ -1089,7 +1231,9 @@ class DetectionInpaintAgent:
             return
 
         base_positive = self._get_base_positive(job)
-        checkpoint = self._config.final_model.checkpoint or self._config.beauty_model.checkpoint
+        checkpoint = (
+            self._config.final_model.checkpoint or self._config.beauty_model.checkpoint
+        )
         clip_skip = self._config.final_model.clip_skip or 2
         base_negative = self._config.negative_base
 
@@ -1105,9 +1249,7 @@ class DetectionInpaintAgent:
             eye_extra = f", {character_eye_description}"
         issue_tags = ""
         if eye_issues:
-            issue_tags = ", " + ", ".join(
-                f"fix: {iss}" for iss in eye_issues[:3]
-            )
+            issue_tags = ", " + ", ".join(f"fix: {iss}" for iss in eye_issues[:3])
 
         eye_negative_extra = ""
         if eye_issues:
@@ -1121,7 +1263,8 @@ class DetectionInpaintAgent:
             if _is_job_cancel_requested(getattr(job, "job_id", "")):
                 logger.info(
                     "[DetectionInpaint] job=%s cancel requested — skipping eye_emergency_%s",
-                    getattr(job, "job_id", "?"), region_type,
+                    getattr(job, "job_id", "?"),
+                    region_type,
                 )
                 break
             regions = detection.get(region_type)
@@ -1138,7 +1281,9 @@ class DetectionInpaintAgent:
                 _REGION_POSITIVE.get(region_type, ""),
                 layer_cfg.prompt_suffix,
                 "ultra detailed eyes, perfect iris, perfect pupil symmetry,"
-                " sharp catchlight, vivid eye color, matching eye colors" + eye_extra + issue_tags,
+                " sharp catchlight, vivid eye color, matching eye colors"
+                + eye_extra
+                + issue_tags,
             )
             region_negative = self._merge_prompt(
                 base_negative,
@@ -1163,8 +1308,9 @@ class DetectionInpaintAgent:
                 sampler=self._config.final_model.sampler,
                 scheduler=self._config.final_model.scheduler,
                 steps=max(20, min(30, self._config.final_model.steps)),
-                cfg=self._config.final_model.cfg + 0.5,    # slightly higher cfg for eye detail
-                denoise=denoise_override,                    # boosted
+                cfg=self._config.final_model.cfg
+                + 0.5,  # slightly higher cfg for eye detail
+                denoise=denoise_override,  # boosted
                 seed=seed,
                 positive_prompt=region_positive,
                 negative_prompt=region_negative,
@@ -1174,14 +1320,22 @@ class DetectionInpaintAgent:
             try:
                 if len(regions) == 1:
                     workflow = self._builder.build_detection_inpaint(
-                        pc, current_image_b64, regions[0].mask_b64, seed,
-                        clip_skip=clip_skip, region_label=region_type,
+                        pc,
+                        current_image_b64,
+                        regions[0].mask_b64,
+                        seed,
+                        clip_skip=clip_skip,
+                        region_label=region_type,
                     )
                 else:
                     masks = [r.mask_b64 for r in regions]
                     workflow = self._builder.build_multi_region_inpaint(
-                        pc, current_image_b64, masks, seed,
-                        clip_skip=clip_skip, region_label=region_type,
+                        pc,
+                        current_image_b64,
+                        masks,
+                        seed,
+                        clip_skip=clip_skip,
+                        region_label=region_type,
                     )
 
                 result = self._client.submit_workflow(
@@ -1192,29 +1346,36 @@ class DetectionInpaintAgent:
 
                 if result.success and result.images_b64:
                     current_image_b64 = result.images_b64[0]
-                    job.intermediates.append(IntermediateImage(
-                        stage=f"detail_{region_type}_emergency",
-                        image_b64=current_image_b64,
-                        metadata={
-                            "region_type": region_type,
-                            "denoise": denoise_override,
-                            "eye_emergency": True,
-                            "seed": seed,
-                            "regions_count": len(regions),
-                        },
-                    ))
+                    job.intermediates.append(
+                        IntermediateImage(
+                            stage=f"detail_{region_type}_emergency",
+                            image_b64=current_image_b64,
+                            metadata={
+                                "region_type": region_type,
+                                "denoise": denoise_override,
+                                "eye_emergency": True,
+                                "seed": seed,
+                                "regions_count": len(regions),
+                            },
+                        )
+                    )
                     passes_run += 1
                     logger.info(
                         "[DetectionInpaint] Eye emergency %s done (denoise=%.2f, %.0fms)",
-                        region_type, denoise_override, result.duration_ms,
+                        region_type,
+                        denoise_override,
+                        result.duration_ms,
                     )
                 else:
                     logger.warning(
                         "[DetectionInpaint] Eye emergency %s failed: %s",
-                        region_type, result.error or "no output",
+                        region_type,
+                        result.error or "no output",
                     )
             except Exception as exc:
-                logger.warning("[DetectionInpaint] Eye emergency %s error: %s", region_type, exc)
+                logger.warning(
+                    "[DetectionInpaint] Eye emergency %s error: %s", region_type, exc
+                )
 
         if passes_run > 0:
             job.final_image_b64 = current_image_b64
@@ -1222,5 +1383,6 @@ class DetectionInpaintAgent:
         latency = (time.time() - t0) * 1000
         logger.info(
             "[DetectionInpaint] Eye focus completed %d passes in %.0fms",
-            passes_run, latency,
+            passes_run,
+            latency,
         )

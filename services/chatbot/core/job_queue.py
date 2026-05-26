@@ -12,6 +12,7 @@ Persistence: jobs are kept in memory with a bounded history (default 200).
 For durable manifests use the existing ``ResultStore`` which writes to
 ``storage/metadata/<job_id>.json``.
 """
+
 from __future__ import annotations
 
 import logging
@@ -19,8 +20,7 @@ import os
 import threading
 import time
 from collections import OrderedDict
-from dataclasses import dataclass, field, fields, asdict
-from typing import Optional
+from dataclasses import asdict, dataclass, field, fields
 
 logger = logging.getLogger(__name__)
 
@@ -39,19 +39,19 @@ class JobRecord:
     job_id: str
     state: str = "queued"
     created_at: float = field(default_factory=time.time)
-    started_at: Optional[float] = None
-    completed_at: Optional[float] = None
+    started_at: float | None = None
+    completed_at: float | None = None
     prompt: str = ""
-    character_key: Optional[str] = None
-    character_display: Optional[str] = None
-    series_key: Optional[str] = None
-    preset: Optional[str] = None
-    model_slot: Optional[str] = None
-    progress_stage: Optional[str] = None
+    character_key: str | None = None
+    character_display: str | None = None
+    series_key: str | None = None
+    preset: str | None = None
+    model_slot: str | None = None
+    progress_stage: str | None = None
     progress_pct: float = 0.0
-    error: Optional[str] = None
-    final_image_path: Optional[str] = None
-    manifest_path: Optional[str] = None
+    error: str | None = None
+    final_image_path: str | None = None
+    manifest_path: str | None = None
     cancel_requested: bool = False
     extra: dict = field(default_factory=dict)
 
@@ -62,7 +62,7 @@ class JobRecord:
 class JobQueue:
     """Thread-safe in-memory job tracker."""
 
-    _instance: Optional["JobQueue"] = None
+    _instance: JobQueue | None = None
     _instance_lock = threading.Lock()
 
     def __init__(self, history_limit: int = DEFAULT_HISTORY_LIMIT) -> None:
@@ -73,7 +73,7 @@ class JobQueue:
         self._restore_from_db()
 
     @classmethod
-    def get_instance(cls) -> "JobQueue":
+    def get_instance(cls) -> JobQueue:
         with cls._instance_lock:
             if cls._instance is None:
                 cls._instance = cls()
@@ -85,12 +85,12 @@ class JobQueue:
         self,
         job_id: str,
         prompt: str = "",
-        character_key: Optional[str] = None,
-        character_display: Optional[str] = None,
-        series_key: Optional[str] = None,
-        preset: Optional[str] = None,
-        model_slot: Optional[str] = None,
-        extra: Optional[dict] = None,
+        character_key: str | None = None,
+        character_display: str | None = None,
+        series_key: str | None = None,
+        preset: str | None = None,
+        model_slot: str | None = None,
+        extra: dict | None = None,
     ) -> JobRecord:
         with self._lock:
             rec = JobRecord(
@@ -107,23 +107,30 @@ class JobQueue:
             self._jobs[job_id] = rec
             self._jobs.move_to_end(job_id)
             self._evict_locked()
-            logger.info("job_queue: create %s preset=%s char=%s", job_id, preset, character_key)
+            logger.info(
+                "job_queue: create %s preset=%s char=%s", job_id, preset, character_key
+            )
             self._persist(rec)
             return rec
 
-    def transition(self, job_id: str, new_state: str, **fields) -> Optional[JobRecord]:
+    def transition(self, job_id: str, new_state: str, **fields) -> JobRecord | None:
         if new_state not in JOB_STATES:
             raise ValueError(f"invalid job state: {new_state}")
         with self._lock:
             rec = self._jobs.get(job_id)
             if rec is None:
-                logger.warning("job_queue: transition unknown job %s -> %s", job_id, new_state)
+                logger.warning(
+                    "job_queue: transition unknown job %s -> %s", job_id, new_state
+                )
                 return None
             rec.state = new_state
             now = time.time()
             if new_state == "running" and rec.started_at is None:
                 rec.started_at = now
-            if new_state in ("completed", "failed", "cancelled") and rec.completed_at is None:
+            if (
+                new_state in ("completed", "failed", "cancelled")
+                and rec.completed_at is None
+            ):
                 rec.completed_at = now
             for k, v in fields.items():
                 if hasattr(rec, k):
@@ -133,8 +140,9 @@ class JobQueue:
             self._persist(rec)
             return rec
 
-    def update_progress(self, job_id: str, stage: Optional[str] = None,
-                        pct: Optional[float] = None) -> Optional[JobRecord]:
+    def update_progress(
+        self, job_id: str, stage: str | None = None, pct: float | None = None
+    ) -> JobRecord | None:
         with self._lock:
             rec = self._jobs.get(job_id)
             if rec is None:
@@ -175,8 +183,11 @@ class JobQueue:
                 rec.cancel_requested = True
                 accepted.append(jid)
         if accepted:
-            logger.info("job_queue: cancel-all requested for %d job(s): %s",
-                        len(accepted), accepted)
+            logger.info(
+                "job_queue: cancel-all requested for %d job(s): %s",
+                len(accepted),
+                accepted,
+            )
         return accepted
 
     def is_cancel_requested(self, job_id: str) -> bool:
@@ -186,11 +197,11 @@ class JobQueue:
 
     # --- queries -------------------------------------------------------
 
-    def get(self, job_id: str) -> Optional[JobRecord]:
+    def get(self, job_id: str) -> JobRecord | None:
         with self._lock:
             return self._jobs.get(job_id)
 
-    def list(self, state: Optional[str] = None, limit: int = 50) -> list[JobRecord]:
+    def list(self, state: str | None = None, limit: int = 50) -> list[JobRecord]:
         with self._lock:
             items = list(self._jobs.values())
         items.reverse()  # newest first
@@ -199,20 +210,28 @@ class JobQueue:
         return items[:limit]
 
     def stats(self) -> dict:
-        counts = {s: 0 for s in JOB_STATES}
+        counts = dict.fromkeys(JOB_STATES, 0)
         with self._lock:
             for rec in self._jobs.values():
                 counts[rec.state] = counts.get(rec.state, 0) + 1
             total = len(self._jobs)
-        return {"total": total, "by_state": counts, "history_limit": self._history_limit}
+        return {
+            "total": total,
+            "by_state": counts,
+            "history_limit": self._history_limit,
+        }
 
     def _persist(self, rec: JobRecord) -> None:
         if self._mongo_collection is None:
             return
         try:
-            self._mongo_collection.update_one({"job_id": rec.job_id}, {"$set": rec.to_dict()}, upsert=True)
+            self._mongo_collection.update_one(
+                {"job_id": rec.job_id}, {"$set": rec.to_dict()}, upsert=True
+            )
         except Exception as exc:
-            logger.warning("job_queue: mongo persist failed for %s: %s", rec.job_id, exc)
+            logger.warning(
+                "job_queue: mongo persist failed for %s: %s", rec.job_id, exc
+            )
 
     def _try_init_mongo(self):
         if MongoClient is None:
@@ -271,7 +290,11 @@ class JobQueue:
                 try:
                     rec = JobRecord(**payload)
                 except TypeError as exc:
-                    logger.debug("job_queue: skip malformed doc %s: %s", payload.get("job_id"), exc)
+                    logger.debug(
+                        "job_queue: skip malformed doc %s: %s",
+                        payload.get("job_id"),
+                        exc,
+                    )
                     continue
                 # Jobs that were running when the process died can never
                 # complete — surface as failed so the UI clears spinners.
@@ -285,8 +308,11 @@ class JobQueue:
                 self._jobs[rec.job_id] = rec
                 restored += 1
         if restored:
-            logger.info("job_queue: restored %d job(s) from mongo (%d recovered to failed)",
-                        restored, recovered)
+            logger.info(
+                "job_queue: restored %d job(s) from mongo (%d recovered to failed)",
+                restored,
+                recovered,
+            )
 
     # --- internal ------------------------------------------------------
 

@@ -79,8 +79,10 @@ async def local_search(
     if not entity_scores:
         logger.info("local_search: no entities found above threshold for query")
         return GraphNeighbourhood(
-            seed_entities=[], neighbour_entities=[],
-            relationships=[], source_chunks=[],
+            seed_entities=[],
+            neighbour_entities=[],
+            relationships=[],
+            source_chunks=[],
         )
 
     seed_ids = [e.id for e, _ in entity_scores if e.id]

@@ -9,7 +9,6 @@ _ROOT = Path(__file__).resolve().parents[4]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-import pytest
 
 from image_pipeline.reasoning.capability_router import (
     CapabilityRequest,
@@ -97,13 +96,17 @@ class TestComicSequence:
 
     def test_panel_labels(self):
         d = classify(
-            CapabilityRequest(text="panel 1 she enters. panel 2 she sits. panel 3 she sleeps.")
+            CapabilityRequest(
+                text="panel 1 she enters. panel 2 she sits. panel 3 she sleeps."
+            )
         )
         assert d.kind is RequestKind.COMIC_SEQUENCE
         assert d.panel_count_hint == 3
 
     def test_ten_panel_comic(self):
-        d = classify(CapabilityRequest(text="please make a 10-panel comic about a ninja cat"))
+        d = classify(
+            CapabilityRequest(text="please make a 10-panel comic about a ninja cat")
+        )
         assert d.kind is RequestKind.COMIC_SEQUENCE
         assert d.panel_count_hint == 10
 

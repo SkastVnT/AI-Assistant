@@ -15,13 +15,14 @@ Run:
     cd services/chatbot
     python -m pytest tests/test_smoke_orchestration.py -v -s --tb=short
 """
+
 from __future__ import annotations
 
 import os
 import sys
 import unittest
 from dataclasses import replace as dc_replace
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 # ── Project path ──────────────────────────────────────────────────────
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -33,27 +34,25 @@ if _ROOT not in sys.path:
 os.environ.setdefault("FAL_API_KEY", "test-key")
 os.environ.setdefault("TOGETHER_API_KEY", "test-key")
 
-from app.services.image_orchestrator.schemas import (
-    ImageIntent,
-    PlanClassification,
-    SceneSpec,
-    EditOperation,
-    ImageGenerationResult,
-)
+from app.services.image_orchestrator.prompt_builder import PromptBuilder
 from app.services.image_orchestrator.scene_planner import (
     ScenePlanner,
     merge_scene_delta,
 )
-from app.services.image_orchestrator.prompt_builder import PromptBuilder
+from app.services.image_orchestrator.schemas import (
+    EditOperation,
+    ImageIntent,
+    PlanClassification,
+    SceneSpec,
+)
 from app.services.image_orchestrator.session_memory import (
-    ImageSessionMemory,
     SessionMemoryStore,
 )
-
 
 # ─────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────
+
 
 def _base_scene() -> SceneSpec:
     return SceneSpec(
@@ -72,22 +71,30 @@ def _base_scene() -> SceneSpec:
 
 class _FakeImageResult:
     """Mimics core.image_gen.providers.base.ImageResult."""
-    def __init__(self, *, url="https://example.com/img.png", provider="fal",
-                 model="test-model", success=True):
-        self.success      = success
-        self.images_url   = [url]
-        self.images_b64   = []
-        self.provider     = provider
-        self.model        = model
-        self.cost_usd     = 0.01
-        self.prompt_used  = "test prompt"
-        self.metadata     = {"seed": 42}
-        self.error        = ""
+
+    def __init__(
+        self,
+        *,
+        url="https://example.com/img.png",
+        provider="fal",
+        model="test-model",
+        success=True,
+    ):
+        self.success = success
+        self.images_url = [url]
+        self.images_b64 = []
+        self.provider = provider
+        self.model = model
+        self.cost_usd = 0.01
+        self.prompt_used = "test prompt"
+        self.metadata = {"seed": 42}
+        self.error = ""
 
 
 # =====================================================================
 # 1. ScenePlanner smoke tests
 # =====================================================================
+
 
 class TestScenePlannerSmoke(unittest.TestCase):
     """Quick-fire tests for ScenePlanner classify_and_plan()."""
@@ -168,7 +175,8 @@ class TestScenePlannerSmoke(unittest.TestCase):
     def test_vi_edit_remove_hat(self):
         base = dc_replace(
             _base_scene(),
-            subject_attributes=list(_base_scene().subject_attributes) + ["wearing a hat"],
+            subject_attributes=list(_base_scene().subject_attributes)
+            + ["wearing a hat"],
         )
         r = self.planner.classify_and_plan(
             "bỏ cái mũ đi",
@@ -206,6 +214,7 @@ class TestScenePlannerSmoke(unittest.TestCase):
 # 2. PromptBuilder smoke tests
 # =====================================================================
 
+
 class TestPromptBuilderSmoke(unittest.TestCase):
     """Validate prompt construction from SceneSpec."""
 
@@ -214,20 +223,22 @@ class TestPromptBuilderSmoke(unittest.TestCase):
 
     def test_build_basic_prompt(self):
         scene = _base_scene()
-        prompt = self.builder.build(scene, language="vi",
-                                    original_message="vẽ cô gái anime")
+        prompt = self.builder.build(
+            scene, language="vi", original_message="vẽ cô gái anime"
+        )
         self.assertIsInstance(prompt, str)
-        self.assertGreater(len(prompt), 20,
-                           "Prompt should be non-trivial")
+        self.assertGreater(len(prompt), 20, "Prompt should be non-trivial")
 
     def test_build_contains_subject(self):
         scene = _base_scene()
-        prompt = self.builder.build(scene, language="vi",
-                                    original_message="vẽ cô gái anime")
+        prompt = self.builder.build(
+            scene, language="vi", original_message="vẽ cô gái anime"
+        )
         # Subject should appear in the final prompt
         self.assertTrue(
-            "anime" in prompt.lower() or "girl" in prompt.lower() or
-            "pink" in prompt.lower(),
+            "anime" in prompt.lower()
+            or "girl" in prompt.lower()
+            or "pink" in prompt.lower(),
             f"Subject keywords missing from prompt: {prompt[:100]}",
         )
 
@@ -235,8 +246,7 @@ class TestPromptBuilderSmoke(unittest.TestCase):
         scene = _base_scene()
         neg = self.builder.build_negative(scene)
         self.assertIsInstance(neg, str)
-        self.assertGreater(len(neg), 5,
-                           "Negative prompt should have content")
+        self.assertGreater(len(neg), 5, "Negative prompt should have content")
 
     def test_build_with_text_in_image(self):
         scene = dc_replace(_base_scene(), wants_text_in_image=True)
@@ -254,8 +264,9 @@ class TestPromptBuilderSmoke(unittest.TestCase):
             subject_attributes=["white hair", "blue eyes", "glasses"],
             strength=0.65,
         )
-        prompt = self.builder.build(scene, language="vi",
-                                    original_message="đổi tóc trắng")
+        prompt = self.builder.build(
+            scene, language="vi", original_message="đổi tóc trắng"
+        )
         self.assertIsInstance(prompt, str)
         self.assertGreater(len(prompt), 10)
 
@@ -263,6 +274,7 @@ class TestPromptBuilderSmoke(unittest.TestCase):
 # =====================================================================
 # 3. Provider selection / routing (mocked)
 # =====================================================================
+
 
 class TestProviderRouterSmoke(unittest.TestCase):
     """Validate ProviderRouter.route() dispatches correctly."""
@@ -326,13 +338,15 @@ class TestProviderRouterSmoke(unittest.TestCase):
             call_kwargs[1].get("mode") if len(call_kwargs) > 1 else None
         )
         if mode_arg:
-            self.assertEqual(mode_arg, "i2i",
-                             f"Expected i2i mode for edit, got: {mode_arg}")
+            self.assertEqual(
+                mode_arg, "i2i", f"Expected i2i mode for edit, got: {mode_arg}"
+            )
 
 
 # =====================================================================
 # 4. SessionMemoryStore smoke tests
 # =====================================================================
+
 
 class TestSessionMemorySmoke(unittest.TestCase):
     """CRUD, LRU eviction, lineage tracking."""
@@ -382,12 +396,10 @@ class TestSessionMemorySmoke(unittest.TestCase):
             self.store.update(f"s{i}", "p", _base_scene(), fake)
 
         # s0 should be evicted (max_sessions=4)
-        self.assertIsNone(self.store.get("s0"),
-                          "s0 should be evicted")
+        self.assertIsNone(self.store.get("s0"), "s0 should be evicted")
         # s1..s4 should exist
         for i in range(1, 5):
-            self.assertIsNotNone(self.store.get(f"s{i}"),
-                                 f"s{i} should still exist")
+            self.assertIsNotNone(self.store.get(f"s{i}"), f"s{i} should still exist")
 
     def test_clear_session(self):
         self.store.get_or_create("s1")
@@ -396,6 +408,7 @@ class TestSessionMemorySmoke(unittest.TestCase):
 
     def test_b64_reference_stored(self):
         """When only b64 data is available, a snippet is stored."""
+
         class B64Result:
             success = True
             images_url = []
@@ -417,6 +430,7 @@ class TestSessionMemorySmoke(unittest.TestCase):
 # 5. merge_scene_delta smoke tests
 # =====================================================================
 
+
 class TestMergeSceneDeltaSmoke(unittest.TestCase):
     """Verify merge_scene_delta preserves base and applies edits."""
 
@@ -432,8 +446,11 @@ class TestMergeSceneDeltaSmoke(unittest.TestCase):
 
     def test_applies_background_change(self):
         base = _base_scene()
-        ops = [EditOperation(operation="change", target="background",
-                             new_value="cyberpunk city")]
+        ops = [
+            EditOperation(
+                operation="change", target="background", new_value="cyberpunk city"
+            )
+        ]
         merged = merge_scene_delta(base, "đổi background cyberpunk", ops)
         self.assertIn("cyberpunk", merged.background.lower())
 
@@ -476,21 +493,26 @@ class TestMergeSceneDeltaSmoke(unittest.TestCase):
         ]
         merged = merge_scene_delta(base, "đổi tóc trắng và thêm kính", ops)
         combined = f"{merged.subject} {' '.join(merged.subject_attributes)}".lower()
-        self.assertTrue("white" in combined or "trắng" in combined,
-                        f"White hair not found: {combined}")
+        self.assertTrue(
+            "white" in combined or "trắng" in combined,
+            f"White hair not found: {combined}",
+        )
 
     def test_keep_character_flag(self):
         """'giữ nhân vật cũ' should preserve base attributes."""
         base = _base_scene()
         ops = [EditOperation(operation="keep", target="character")]
         merged = merge_scene_delta(
-            base, "giữ nhân vật cũ nhưng đổi background", ops,
+            base,
+            "giữ nhân vật cũ nhưng đổi background",
+            ops,
         )
         # Base attributes should survive the merge (hair color, etc.)
         combined = f"{merged.subject} {' '.join(merged.subject_attributes)}".lower()
         self.assertTrue(
-            "pink" in combined or "hair" in combined or
-            len(merged.subject_attributes) > 0,
+            "pink" in combined
+            or "hair" in combined
+            or len(merged.subject_attributes) > 0,
             f"Expected base attributes preserved: subject={merged.subject!r}, "
             f"attrs={merged.subject_attributes}",
         )

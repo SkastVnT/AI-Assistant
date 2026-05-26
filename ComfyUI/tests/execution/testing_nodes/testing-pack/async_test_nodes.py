@@ -256,7 +256,10 @@ class TestAsyncBatchProcessing(ComfyNodeABC):
         return {
             "required": {
                 "images": ("IMAGE",),
-                "process_time_per_item": ("FLOAT", {"default": 0.1, "min": 0.01, "max": 1.0}),
+                "process_time_per_item": (
+                    "FLOAT",
+                    {"default": 0.1, "min": 0.01, "max": 1.0},
+                ),
             },
             "hidden": {
                 "unique_id": "UNIQUE_ID",
@@ -278,7 +281,7 @@ class TestAsyncBatchProcessing(ComfyNodeABC):
             await asyncio.sleep(process_time_per_item)
 
             # Simple processing: invert the image
-            processed_image = 1.0 - images[i:i+1]
+            processed_image = 1.0 - images[i : i + 1]
             processed.append(processed_image)
 
             pbar.update(1)

@@ -123,16 +123,37 @@ async def extract_entities_and_relationships(
 # Response parsing
 # ═══════════════════════════════════════════════════════════════════════
 
-VALID_ENTITY_TYPES = frozenset({
-    "PERSON", "ORGANIZATION", "LOCATION", "CONCEPT",
-    "TECHNOLOGY", "EVENT", "DOCUMENT", "PRODUCT", "OTHER",
-})
+VALID_ENTITY_TYPES = frozenset(
+    {
+        "PERSON",
+        "ORGANIZATION",
+        "LOCATION",
+        "CONCEPT",
+        "TECHNOLOGY",
+        "EVENT",
+        "DOCUMENT",
+        "PRODUCT",
+        "OTHER",
+    }
+)
 
-VALID_RELATIONSHIP_TYPES = frozenset({
-    "USES", "PART_OF", "RELATED_TO", "CREATED_BY", "LOCATED_IN",
-    "WORKS_FOR", "MANAGES", "DEPENDS_ON", "CONTAINS", "IMPLEMENTS",
-    "DERIVED_FROM", "INTERACTS_WITH", "OTHER",
-})
+VALID_RELATIONSHIP_TYPES = frozenset(
+    {
+        "USES",
+        "PART_OF",
+        "RELATED_TO",
+        "CREATED_BY",
+        "LOCATED_IN",
+        "WORKS_FOR",
+        "MANAGES",
+        "DEPENDS_ON",
+        "CONTAINS",
+        "IMPLEMENTS",
+        "DERIVED_FROM",
+        "INTERACTS_WITH",
+        "OTHER",
+    }
+)
 
 
 def _parse_extraction_response(
@@ -182,12 +203,14 @@ def _parse_extraction_response(
         seen_names.add(key)
         if etype not in VALID_ENTITY_TYPES:
             etype = "OTHER"
-        entities.append(Entity(
-            name=name,
-            entity_type=etype,
-            description=str(item.get("description", "")),
-            source_chunk_ids=source_ref,
-        ))
+        entities.append(
+            Entity(
+                name=name,
+                entity_type=etype,
+                description=str(item.get("description", "")),
+                source_chunk_ids=source_ref,
+            )
+        )
 
     # Parse relationships
     raw_rels = data.get("relationships", [])
@@ -203,21 +226,27 @@ def _parse_extraction_response(
             continue
         if source not in entity_names or target not in entity_names:
             logger.debug(
-                "skip_relationship: %s -> %s (entity not found)", source, target,
+                "skip_relationship: %s -> %s (entity not found)",
+                source,
+                target,
             )
             continue
         if rtype not in VALID_RELATIONSHIP_TYPES:
             rtype = "OTHER"
-        relationships.append(Relationship(
-            source_entity=source,
-            target_entity=target,
-            relationship_type=rtype,
-            description=str(item.get("description", "")),
-            source_chunk_ids=source_ref,
-        ))
+        relationships.append(
+            Relationship(
+                source_entity=source,
+                target_entity=target,
+                relationship_type=rtype,
+                description=str(item.get("description", "")),
+                source_chunk_ids=source_ref,
+            )
+        )
 
     logger.info(
         "extracted chunk=%s entities=%d relationships=%d",
-        chunk_id, len(entities), len(relationships),
+        chunk_id,
+        len(entities),
+        len(relationships),
     )
     return entities, relationships

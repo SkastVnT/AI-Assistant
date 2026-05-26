@@ -16,6 +16,7 @@ Steps
 3. Patch `app/config/.env` with install-location keys.
 4. Log everything to `<payload>\\logs\\setup_lite.log`.
 """
+
 from __future__ import annotations
 
 import os
@@ -28,7 +29,11 @@ from datetime import datetime
 
 
 PYTORCH_CUDA_INDEX = "https://download.pytorch.org/whl/cu128"
-TORCH_PACKAGES = ["torch==2.11.0+cu128", "torchvision==0.26.0+cu128", "torchaudio==2.11.0+cu128"]
+TORCH_PACKAGES = [
+    "torch==2.11.0+cu128",
+    "torchvision==0.26.0+cu128",
+    "torchaudio==2.11.0+cu128",
+]
 
 
 def log(msg: str, fh) -> None:
@@ -43,7 +48,9 @@ def run(cmd: list[str], fh) -> None:
     subprocess.check_call(cmd, stdout=fh, stderr=subprocess.STDOUT)
 
 
-def build_venv_online(venv_dir: Path, requirements: Path, fh, *, with_cuda_torch: bool) -> None:
+def build_venv_online(
+    venv_dir: Path, requirements: Path, fh, *, with_cuda_torch: bool
+) -> None:
     if venv_dir.exists():
         log("removing existing venv: " + str(venv_dir), fh)
         shutil.rmtree(venv_dir, ignore_errors=True)
@@ -62,7 +69,9 @@ def build_venv_online(venv_dir: Path, requirements: Path, fh, *, with_cuda_torch
         raise RuntimeError("venv python missing: " + str(py))
 
     # Upgrade pip / wheel / setuptools online.
-    run([str(py), "-m", "pip", "install", "--upgrade", "pip", "wheel", "setuptools"], fh)
+    run(
+        [str(py), "-m", "pip", "install", "--upgrade", "pip", "wheel", "setuptools"], fh
+    )
 
     if requirements.exists():
         log("installing requirements ONLINE from " + str(requirements), fh)
@@ -79,13 +88,24 @@ def build_venv_online(venv_dir: Path, requirements: Path, fh, *, with_cuda_torch
     if with_cuda_torch:
         log("installing CUDA torch trio from " + PYTORCH_CUDA_INDEX, fh)
         run(
-            [str(py), "-m", "pip", "install", "--no-deps",
-             "--index-url", PYTORCH_CUDA_INDEX, *TORCH_PACKAGES],
+            [
+                str(py),
+                "-m",
+                "pip",
+                "install",
+                "--no-deps",
+                "--index-url",
+                PYTORCH_CUDA_INDEX,
+                *TORCH_PACKAGES,
+            ],
             fh,
         )
 
-    check = "import flask, requests; print('core ok')" if venv_dir.name == "venv-core" \
-            else "import sys; print('image ok python', sys.version)"
+    check = (
+        "import flask, requests; print('core ok')"
+        if venv_dir.name == "venv-core"
+        else "import sys; print('image ok python', sys.version)"
+    )
     log("verifying critical imports for " + venv_dir.name, fh)
     run([str(py), "-c", check], fh)
 

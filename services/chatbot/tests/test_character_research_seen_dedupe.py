@@ -11,16 +11,12 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import json
-import os
-from pathlib import Path
 from unittest import mock
 
 import pytest
 
 # Module under test
 from image_pipeline.anime_pipeline import character_research as cr
-
 
 # ── Fixtures ────────────────────────────────────────────────────────
 
@@ -52,10 +48,13 @@ def _png_bytes(seed: int = 0) -> bytes:
 
 def test_seen_registry_roundtrip(tmp_storage):
     tag = "tag_x"
-    cr._save_seen_registry(tag, {
-        "url_hashes": {"abc123de": "web_abc123de.png"},
-        "byte_hashes": {"f" * 64: "web_abc123de.png"},
-    })
+    cr._save_seen_registry(
+        tag,
+        {
+            "url_hashes": {"abc123de": "web_abc123de.png"},
+            "byte_hashes": {"f" * 64: "web_abc123de.png"},
+        },
+    )
     reg = cr._load_seen_registry(tag)
     assert reg["url_hashes"]["abc123de"] == "web_abc123de.png"
     assert reg["byte_hashes"]["f" * 64] == "web_abc123de.png"
@@ -86,8 +85,7 @@ def test_url_hash_stable():
 
 
 def test_is_url_seen():
-    reg = {"url_hashes": {cr._url_hash("https://x/y.png"): "y.png"},
-           "byte_hashes": {}}
+    reg = {"url_hashes": {cr._url_hash("https://x/y.png"): "y.png"}, "byte_hashes": {}}
     assert cr._is_url_seen("https://x/y.png", reg) is True
     assert cr._is_url_seen("https://x/z.png", reg) is False
 
@@ -108,10 +106,13 @@ def test_downloader_skips_seen_url(tmp_storage):
     tag = "url_only_seen"
     url = "https://cdn.example/x.png"
     body = _png_bytes(3)
-    cr._save_seen_registry(tag, {
-        "url_hashes": {cr._url_hash(url): "web_old.png"},
-        "byte_hashes": {},  # bytes have NOT been seen
-    })
+    cr._save_seen_registry(
+        tag,
+        {
+            "url_hashes": {cr._url_hash(url): "web_old.png"},
+            "byte_hashes": {},  # bytes have NOT been seen
+        },
+    )
     image_results = [{"url": url, "width": 1024, "height": 1024}]
 
     fake_resp = mock.Mock()
@@ -131,10 +132,13 @@ def test_downloader_rejects_byte_duplicate(tmp_storage):
     tag = "byte_dup"
     body = _png_bytes(7)
     bh = hashlib.sha256(body).hexdigest()
-    cr._save_seen_registry(tag, {
-        "url_hashes": {},
-        "byte_hashes": {bh: "web_existing.png"},
-    })
+    cr._save_seen_registry(
+        tag,
+        {
+            "url_hashes": {},
+            "byte_hashes": {bh: "web_existing.png"},
+        },
+    )
 
     fake_resp = mock.Mock()
     fake_resp.status_code = 200
@@ -143,17 +147,18 @@ def test_downloader_rejects_byte_duplicate(tmp_storage):
 
     with mock.patch("httpx.get", return_value=fake_resp):
         out = cr._download_reference_images(
-            [{"url": "https://new.example/x.png",
-              "width": 1024, "height": 1024}],
-            tag, max_images=5,
+            [{"url": "https://new.example/x.png", "width": 1024, "height": 1024}],
+            tag,
+            max_images=5,
         )
 
     # File must NOT be re-saved despite a fresh URL
     assert out == []
     saved = list((tmp_storage / "character_refs" / tag).glob("*.png"))
     # Only no new file beyond what was pre-existing (none were written)
-    assert all(p.name != f"web_{cr._url_hash('https://new.example/x.png')}.png"
-               for p in saved)
+    assert all(
+        p.name != f"web_{cr._url_hash('https://new.example/x.png')}.png" for p in saved
+    )
     # Registry now records the URL→existing-file mapping
     reg = cr._load_seen_registry(tag)
     assert cr._url_hash("https://new.example/x.png") in reg["url_hashes"]
@@ -170,9 +175,9 @@ def test_downloader_persists_fresh_download(tmp_storage):
 
     with mock.patch("httpx.get", return_value=fake_resp):
         out = cr._download_reference_images(
-            [{"url": "https://fresh.example/a.png",
-              "width": 1024, "height": 1024}],
-            tag, max_images=5,
+            [{"url": "https://fresh.example/a.png", "width": 1024, "height": 1024}],
+            tag,
+            max_images=5,
         )
 
     assert len(out) == 1
@@ -213,9 +218,9 @@ def test_reuse_env_flag_uses_cached_first(tmp_storage, monkeypatch):
     # Even with fresh image_results, opt-in should return cached
     with mock.patch("httpx.get") as mock_get:
         out = cr._download_reference_images(
-            [{"url": "https://new.example/x.png",
-              "width": 1024, "height": 1024}],
-            tag, max_images=5,
+            [{"url": "https://new.example/x.png", "width": 1024, "height": 1024}],
+            tag,
+            max_images=5,
         )
 
     mock_get.assert_not_called()
@@ -235,38 +240,59 @@ def test_image_search_relevance_filter_drops_off_character_hits(tmp_storage):
     captured: list[dict] = []
 
     class _FakeResp:
-        def raise_for_status(self): pass
+        def raise_for_status(self):
+            pass
+
         def json(self):
-            return {"images_results": [
-                # Off-character: no Hu Tao mention anywhere
-                {"original": "https://x/aquarian.png",
-                 "title": "Aquarian 3.0 Reference Sheet",
-                 "source": "pinterest", "link": "https://x/aquarian.png",
-                 "original_width": 2000, "original_height": 1000},
-                # Off-character: generic Genshin wallpaper
-                {"original": "https://x/group.png",
-                 "title": "Genshin Impact group wallpaper",
-                 "source": "wallhaven", "link": "https://x/group.png",
-                 "original_width": 1920, "original_height": 1080},
-                # Relevant: title mentions Hu Tao
-                {"original": "https://x/hutao.png",
-                 "title": "Hu Tao official illustration",
-                 "source": "hoyoverse", "link": "https://x/hutao.png",
-                 "original_width": 1500, "original_height": 2000},
-            ]}
+            return {
+                "images_results": [
+                    # Off-character: no Hu Tao mention anywhere
+                    {
+                        "original": "https://x/aquarian.png",
+                        "title": "Aquarian 3.0 Reference Sheet",
+                        "source": "pinterest",
+                        "link": "https://x/aquarian.png",
+                        "original_width": 2000,
+                        "original_height": 1000,
+                    },
+                    # Off-character: generic Genshin wallpaper
+                    {
+                        "original": "https://x/group.png",
+                        "title": "Genshin Impact group wallpaper",
+                        "source": "wallhaven",
+                        "link": "https://x/group.png",
+                        "original_width": 1920,
+                        "original_height": 1080,
+                    },
+                    # Relevant: title mentions Hu Tao
+                    {
+                        "original": "https://x/hutao.png",
+                        "title": "Hu Tao official illustration",
+                        "source": "hoyoverse",
+                        "link": "https://x/hutao.png",
+                        "original_width": 1500,
+                        "original_height": 2000,
+                    },
+                ]
+            }
 
     def _fake_get(url, params=None, **kw):
         captured.append(params)
         return _FakeResp()
 
     import httpx
+
     with mock.patch.object(cr, "_get_serpapi_key", return_value="fake_key"):
         with mock.patch.object(httpx, "get", side_effect=_fake_get):
             results = cr._image_search_character(
-                "Hu Tao", "Genshin Impact", "hu_tao_(genshin_impact)",
+                "Hu Tao",
+                "Genshin Impact",
+                "hu_tao_(genshin_impact)",
             )
 
     urls = [r["url"] for r in results]
     assert "https://x/hutao.png" in urls, "relevant Hu Tao hit was dropped"
     assert "https://x/aquarian.png" not in urls, "off-character Aquarian leaked through"
-    assert "https://x/group.png" not in urls, "off-character group wallpaper leaked through"
+    assert "https://x/group.png" not in urls, (
+        "off-character group wallpaper leaked through"
+    )

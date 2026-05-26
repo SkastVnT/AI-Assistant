@@ -121,12 +121,38 @@ _QUOTED_RE = re.compile(r"""(?:"([^"]{1,120})"|'([^']{1,120})'|“([^”]{1,120}
 
 # Overlay-kind keywords. Order matters: longest/most-specific first.
 _OVERLAY_KEYWORDS: tuple[tuple[OverlayKind, re.Pattern[str]], ...] = (
-    (OverlayKind.SPEECH_BUBBLE, re.compile(r"\b(?:speech\s*bubble|dialogue\s*bubble|word\s*balloon)\b", re.I)),
-    (OverlayKind.THOUGHT_BUBBLE, re.compile(r"\b(?:thought\s*bubble|thinking\s*cloud)\b", re.I)),
-    (OverlayKind.PHONE_UI, re.compile(r"\b(?:phone\s*(?:screen|ui)|notification|text\s+message\s+on\s+(?:the\s+)?phone)\b", re.I)),
-    (OverlayKind.ID_CARD, re.compile(r"\b(?:id\s*card|driver'?s?\s*license|business\s*card|name\s*tag)\b", re.I)),
-    (OverlayKind.TITLE_BAR, re.compile(r"\b(?:title\s*bar|header\s*bar|title\s+at\s+the\s+top)\b", re.I)),
-    (OverlayKind.PANEL_LABEL, re.compile(r"\b(?:panel\s*label|panel\s*title|caption\s+for\s+(?:the\s+)?panel)\b", re.I)),
+    (
+        OverlayKind.SPEECH_BUBBLE,
+        re.compile(r"\b(?:speech\s*bubble|dialogue\s*bubble|word\s*balloon)\b", re.I),
+    ),
+    (
+        OverlayKind.THOUGHT_BUBBLE,
+        re.compile(r"\b(?:thought\s*bubble|thinking\s*cloud)\b", re.I),
+    ),
+    (
+        OverlayKind.PHONE_UI,
+        re.compile(
+            r"\b(?:phone\s*(?:screen|ui)|notification|text\s+message\s+on\s+(?:the\s+)?phone)\b",
+            re.I,
+        ),
+    ),
+    (
+        OverlayKind.ID_CARD,
+        re.compile(
+            r"\b(?:id\s*card|driver'?s?\s*license|business\s*card|name\s*tag)\b", re.I
+        ),
+    ),
+    (
+        OverlayKind.TITLE_BAR,
+        re.compile(r"\b(?:title\s*bar|header\s*bar|title\s+at\s+the\s+top)\b", re.I),
+    ),
+    (
+        OverlayKind.PANEL_LABEL,
+        re.compile(
+            r"\b(?:panel\s*label|panel\s*title|caption\s+for\s+(?:the\s+)?panel)\b",
+            re.I,
+        ),
+    ),
     (OverlayKind.CAPTION, re.compile(r"\b(?:caption|subtitle|text\s*overlay)\b", re.I)),
     (OverlayKind.SFX, re.compile(r"\b(?:sound\s*effect|sfx|onomatopoeia)\b", re.I)),
     (OverlayKind.WATERMARK, re.compile(r"\bwatermark\b", re.I)),
@@ -134,9 +160,29 @@ _OVERLAY_KEYWORDS: tuple[tuple[OverlayKind, re.Pattern[str]], ...] = (
 
 # Region keywords used to flag regional patch needs.
 _REGION_TOKENS: tuple[str, ...] = (
-    "face", "eyes", "eye", "iris", "pupil", "mouth", "lips", "nose", "ear",
-    "hair", "hand", "hands", "finger", "background", "foreground", "logo",
-    "text", "skin", "outfit", "clothing", "shirt", "dress", "shoes",
+    "face",
+    "eyes",
+    "eye",
+    "iris",
+    "pupil",
+    "mouth",
+    "lips",
+    "nose",
+    "ear",
+    "hair",
+    "hand",
+    "hands",
+    "finger",
+    "background",
+    "foreground",
+    "logo",
+    "text",
+    "skin",
+    "outfit",
+    "clothing",
+    "shirt",
+    "dress",
+    "shoes",
 )
 _REGION_RE = re.compile(
     r"\b(" + "|".join(re.escape(t) for t in _REGION_TOKENS) + r")\b",
@@ -177,7 +223,9 @@ def revise(
     for q in quoted:
         # Replace the quoted occurrence with a placeholder so filler regexes
         # don't touch the quoted body.
-        working = working.replace(f'"{q}"', " ").replace(f"'{q}'", " ").replace(f"“{q}”", " ")
+        working = (
+            working.replace(f'"{q}"', " ").replace(f"'{q}'", " ").replace(f"“{q}”", " ")
+        )
 
     # 2. Extract structured slots from the *raw* working text (case-insensitive).
     must_keep = _dedupe_preserve_order(
@@ -191,7 +239,9 @@ def revise(
     # 3. Detect overlay needs.
     detected_overlay_kinds: list[OverlayKind] = []
     for kind, pat in _OVERLAY_KEYWORDS:
-        if pat.search(working) or (kind in (OverlayKind.CAPTION, OverlayKind.TITLE_BAR) and quoted):
+        if pat.search(working) or (
+            kind in (OverlayKind.CAPTION, OverlayKind.TITLE_BAR) and quoted
+        ):
             if kind not in detected_overlay_kinds:
                 detected_overlay_kinds.append(kind)
     # Quoted text without any specific overlay keyword still implies a caption.

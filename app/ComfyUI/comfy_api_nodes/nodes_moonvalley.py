@@ -99,8 +99,12 @@ def _validate_video_dimensions(width: int, height: int) -> None:
     }
 
     if (width, height) not in supported_resolutions:
-        supported_list = ", ".join([f"{w}x{h}" for w, h in sorted(supported_resolutions)])
-        raise ValueError(f"Resolution {width}x{height} not supported. Supported: {supported_list}")
+        supported_list = ", ".join(
+            [f"{w}x{h}" for w, h in sorted(supported_resolutions)]
+        )
+        raise ValueError(
+            f"Resolution {width}x{height} not supported. Supported: {supported_list}"
+        )
 
 
 def _validate_and_trim_duration(video: Input.Video) -> Input.Video:
@@ -146,19 +150,20 @@ def parse_control_parameter(value):
     return control_map.get(value, control_map["Motion Transfer"])
 
 
-async def get_response(cls: type[IO.ComfyNode], task_id: str) -> MoonvalleyPromptResponse:
+async def get_response(
+    cls: type[IO.ComfyNode], task_id: str
+) -> MoonvalleyPromptResponse:
     return await poll_op(
         cls,
         ApiEndpoint(path=f"{API_PROMPTS_ENDPOINT}/{task_id}"),
         response_model=MoonvalleyPromptResponse,
-        status_extractor=lambda r: (r.status if r and r.status else None),
+        status_extractor=lambda r: r.status if r and r.status else None,
         poll_interval=16.0,
         max_poll_attempts=240,
     )
 
 
 class MoonvalleyImg2VideoNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls) -> IO.Schema:
         return IO.Schema(
@@ -246,9 +251,21 @@ class MoonvalleyImg2VideoNode(IO.ComfyNode):
         seed: int,
         steps: int,
     ) -> IO.NodeOutput:
-        validate_image_dimensions(image, min_width=300, min_height=300, max_height=MAX_HEIGHT, max_width=MAX_WIDTH)
-        validate_string(prompt, min_length=1, max_length=MOONVALLEY_MAREY_MAX_PROMPT_LENGTH)
-        validate_string(negative_prompt, field_name="negative_prompt", max_length=MOONVALLEY_MAREY_MAX_PROMPT_LENGTH)
+        validate_image_dimensions(
+            image,
+            min_width=300,
+            min_height=300,
+            max_height=MAX_HEIGHT,
+            max_width=MAX_WIDTH,
+        )
+        validate_string(
+            prompt, min_length=1, max_length=MOONVALLEY_MAREY_MAX_PROMPT_LENGTH
+        )
+        validate_string(
+            negative_prompt,
+            field_name="negative_prompt",
+            max_length=MOONVALLEY_MAREY_MAX_PROMPT_LENGTH,
+        )
         width_height = parse_width_height_from_res(resolution)
 
         inference_params = MoonvalleyTextToVideoInferenceParams(
@@ -263,13 +280,19 @@ class MoonvalleyImg2VideoNode(IO.ComfyNode):
 
         # Get MIME type from tensor - assuming PNG format for image tensors
         mime_type = "image/png"
-        image_url = (await upload_images_to_comfyapi(cls, image, max_images=1, mime_type=mime_type))[0]
+        image_url = (
+            await upload_images_to_comfyapi(
+                cls, image, max_images=1, mime_type=mime_type
+            )
+        )[0]
         task_creation_response = await sync_op(
             cls,
             endpoint=ApiEndpoint(path=API_IMG2VIDEO_ENDPOINT, method="POST"),
             response_model=MoonvalleyPromptResponse,
             data=MoonvalleyTextToVideoRequest(
-                image_url=image_url, prompt_text=prompt, inference_params=inference_params
+                image_url=image_url,
+                prompt_text=prompt,
+                inference_params=inference_params,
             ),
         )
         validate_task_creation_response(task_creation_response)
@@ -279,7 +302,6 @@ class MoonvalleyImg2VideoNode(IO.ComfyNode):
 
 
 class MoonvalleyVideo2VideoNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls) -> IO.Schema:
         return IO.Schema(
@@ -367,8 +389,14 @@ class MoonvalleyVideo2VideoNode(IO.ComfyNode):
     ) -> IO.NodeOutput:
         validated_video = validate_video_to_video_input(video)
         video_url = await upload_video_to_comfyapi(cls, validated_video)
-        validate_string(prompt, min_length=1, max_length=MOONVALLEY_MAREY_MAX_PROMPT_LENGTH)
-        validate_string(negative_prompt, field_name="negative_prompt", max_length=MOONVALLEY_MAREY_MAX_PROMPT_LENGTH)
+        validate_string(
+            prompt, min_length=1, max_length=MOONVALLEY_MAREY_MAX_PROMPT_LENGTH
+        )
+        validate_string(
+            negative_prompt,
+            field_name="negative_prompt",
+            max_length=MOONVALLEY_MAREY_MAX_PROMPT_LENGTH,
+        )
 
         # Only include motion_intensity for Motion Transfer
         control_params = {}
@@ -396,11 +424,12 @@ class MoonvalleyVideo2VideoNode(IO.ComfyNode):
         )
         validate_task_creation_response(task_creation_response)
         final_response = await get_response(cls, task_creation_response.id)
-        return IO.NodeOutput(await download_url_to_video_output(final_response.output_url))
+        return IO.NodeOutput(
+            await download_url_to_video_output(final_response.output_url)
+        )
 
 
 class MoonvalleyTxt2VideoNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls) -> IO.Schema:
         return IO.Schema(
@@ -483,8 +512,14 @@ class MoonvalleyTxt2VideoNode(IO.ComfyNode):
         seed: int,
         steps: int,
     ) -> IO.NodeOutput:
-        validate_string(prompt, min_length=1, max_length=MOONVALLEY_MAREY_MAX_PROMPT_LENGTH)
-        validate_string(negative_prompt, field_name="negative_prompt", max_length=MOONVALLEY_MAREY_MAX_PROMPT_LENGTH)
+        validate_string(
+            prompt, min_length=1, max_length=MOONVALLEY_MAREY_MAX_PROMPT_LENGTH
+        )
+        validate_string(
+            negative_prompt,
+            field_name="negative_prompt",
+            max_length=MOONVALLEY_MAREY_MAX_PROMPT_LENGTH,
+        )
         width_height = parse_width_height_from_res(resolution)
 
         inference_params = MoonvalleyTextToVideoInferenceParams(
@@ -501,11 +536,15 @@ class MoonvalleyTxt2VideoNode(IO.ComfyNode):
             cls,
             endpoint=ApiEndpoint(path=API_TXT2VIDEO_ENDPOINT, method="POST"),
             response_model=MoonvalleyPromptResponse,
-            data=MoonvalleyTextToVideoRequest(prompt_text=prompt, inference_params=inference_params),
+            data=MoonvalleyTextToVideoRequest(
+                prompt_text=prompt, inference_params=inference_params
+            ),
         )
         validate_task_creation_response(task_creation_response)
         final_response = await get_response(cls, task_creation_response.id)
-        return IO.NodeOutput(await download_url_to_video_output(final_response.output_url))
+        return IO.NodeOutput(
+            await download_url_to_video_output(final_response.output_url)
+        )
 
 
 class MoonvalleyExtension(ComfyExtension):

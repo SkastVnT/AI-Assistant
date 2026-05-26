@@ -31,18 +31,18 @@ import base64
 import logging
 import time
 import uuid
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from typing import Any, Iterable, Mapping
+from typing import Any
 
 from flask import Blueprint, jsonify, request
 
+from core import mongo_store
 from core.config import (
     REASONING_PIPELINE_COMFY_URL,
     REASONING_PIPELINE_MAX_CORRECTION_PASSES,
     REASONING_PIPELINE_MAX_PANELS,
 )
-from core import mongo_store
-
 from image_pipeline.reasoning import (
     ComicSequenceSpec,
     OutputLayout,
@@ -140,18 +140,24 @@ class _ComfyClientAdapter:
         duration_ms = (time.monotonic() - started) * 1000.0
         if not outputs:
             return _ComfyJobResult(
-                success=False, images_b64=(), duration_ms=duration_ms,
+                success=False,
+                images_b64=(),
+                duration_ms=duration_ms,
                 error=f"timeout waiting for prompt {prompt_id}",
             )
         if isinstance(outputs, dict) and outputs.get("error"):
             return _ComfyJobResult(
-                success=False, images_b64=(), duration_ms=duration_ms,
+                success=False,
+                images_b64=(),
+                duration_ms=duration_ms,
                 error=str(outputs["error"]),
             )
         img_bytes = self._client._get_image(outputs)  # noqa: SLF001
         if not img_bytes:
             return _ComfyJobResult(
-                success=False, images_b64=(), duration_ms=duration_ms,
+                success=False,
+                images_b64=(),
+                duration_ms=duration_ms,
                 error=f"no image in outputs for prompt {prompt_id}",
             )
         return _ComfyJobResult(
@@ -360,6 +366,7 @@ def _assess_preflight(
         from core.character_understanding import (  # noqa: PLC0415
             extract_prompt_entities,
         )
+
         entities = extract_prompt_entities(prompt_text or "")
     except Exception:  # noqa: BLE001
         entities = {
@@ -385,10 +392,9 @@ def _assess_preflight(
     # echo the canonical identity.
     if has_character_hint:
         out["character_mode"] = "manual_pin"
-        out["canonical_id"] = (
-            (character_hint or {}).get("key")
-            or (character_hint or {}).get("canonical_id")
-        )
+        out["canonical_id"] = (character_hint or {}).get("key") or (
+            character_hint or {}
+        ).get("canonical_id")
         out["safe_to_attach_lora"] = True
         out["needs_review"] = False
         out["risk_level"] = "low"
@@ -411,9 +417,9 @@ def _assess_preflight(
     if out["signals"]["style_hint"] and out["signals"]["candidate_name_slug"]:
         out["risk_level"] = "high"
         out["blocking_reason"] = "style_misparsed_as_character"
-        out["suggested_next_action"] = (
-            _PREFLIGHT_NEXT_ACTION["style_misparsed_as_character"]
-        )
+        out["suggested_next_action"] = _PREFLIGHT_NEXT_ACTION[
+            "style_misparsed_as_character"
+        ]
         out["needs_review"] = True
         out["character_mode"] = "style_collision"
         return out
@@ -452,9 +458,8 @@ def _assess_preflight(
     if mode == "unresolved_unknown":
         traits_count = 0
         if understanding.unknown_profile is not None:
-            traits_count = (
-                len(understanding.unknown_profile.visual_traits)
-                + len(understanding.unknown_profile.outfit_traits)
+            traits_count = len(understanding.unknown_profile.visual_traits) + len(
+                understanding.unknown_profile.outfit_traits
             )
         if traits_count == 0:
             out["risk_level"] = "high"
@@ -465,22 +470,22 @@ def _assess_preflight(
                 and not out["signals"]["series_hint"]
             ):
                 out["blocking_reason"] = "collision_no_series"
-                out["suggested_next_action"] = (
-                    _PREFLIGHT_NEXT_ACTION["collision_no_series"]
-                )
+                out["suggested_next_action"] = _PREFLIGHT_NEXT_ACTION[
+                    "collision_no_series"
+                ]
             else:
                 out["blocking_reason"] = "unresolved_unknown_no_traits"
-                out["suggested_next_action"] = (
-                    _PREFLIGHT_NEXT_ACTION["unresolved_unknown_no_traits"]
-                )
+                out["suggested_next_action"] = _PREFLIGHT_NEXT_ACTION[
+                    "unresolved_unknown_no_traits"
+                ]
             return out
         # Unknown with series_hint AND traits → medium.
         if out["signals"]["series_hint"]:
             out["risk_level"] = "medium"
             out["blocking_reason"] = "unknown_with_series_and_traits"
-            out["suggested_next_action"] = (
-                _PREFLIGHT_NEXT_ACTION["unknown_with_series_and_traits"]
-            )
+            out["suggested_next_action"] = _PREFLIGHT_NEXT_ACTION[
+                "unknown_with_series_and_traits"
+            ]
             return out
         # Otherwise unknown but with traits — still medium, ask for ref.
         out["risk_level"] = "medium"
@@ -504,9 +509,9 @@ def _assess_preflight(
     if mode == "resolved_known" and not out["safe_to_attach_lora"]:
         out["risk_level"] = "high"
         out["blocking_reason"] = "asks_for_known_identity_unsafe"
-        out["suggested_next_action"] = (
-            _PREFLIGHT_NEXT_ACTION["asks_for_known_identity_unsafe"]
-        )
+        out["suggested_next_action"] = _PREFLIGHT_NEXT_ACTION[
+            "asks_for_known_identity_unsafe"
+        ]
         return out
 
     # Low-data profile.
@@ -516,9 +521,7 @@ def _assess_preflight(
             return out
         out["risk_level"] = "medium"
         out["blocking_reason"] = "low_data_no_reference"
-        out["suggested_next_action"] = (
-            _PREFLIGHT_NEXT_ACTION["low_data_no_reference"]
-        )
+        out["suggested_next_action"] = _PREFLIGHT_NEXT_ACTION["low_data_no_reference"]
         return out
 
     return out
@@ -582,12 +585,14 @@ def _build_job_doc(
 @reasoning_image_gen_bp.get("/status")
 def status() -> Any:
     """Lightweight introspection — confirms flag is on and dependencies load."""
-    return jsonify({
-        "enabled": True,
-        "comfy_url": REASONING_PIPELINE_COMFY_URL,
-        "max_panels": REASONING_PIPELINE_MAX_PANELS,
-        "max_correction_passes": REASONING_PIPELINE_MAX_CORRECTION_PASSES,
-    })
+    return jsonify(
+        {
+            "enabled": True,
+            "comfy_url": REASONING_PIPELINE_COMFY_URL,
+            "max_panels": REASONING_PIPELINE_MAX_PANELS,
+            "max_correction_passes": REASONING_PIPELINE_MAX_CORRECTION_PASSES,
+        }
+    )
 
 
 def run_pipeline_for_prompt(
@@ -642,8 +647,7 @@ def run_pipeline_for_prompt(
         return {
             "success": False,
             "error": (
-                f"panel count {len(panels)} exceeds max "
-                f"{REASONING_PIPELINE_MAX_PANELS}"
+                f"panel count {len(panels)} exceeds max {REASONING_PIPELINE_MAX_PANELS}"
             ),
             "status_code": 422,
         }
@@ -767,7 +771,9 @@ def generate() -> Any:
     # debugging and frontend transparency.
     understanding_payload: dict | None = None
     try:
-        from core.character_understanding import resolve_character_intent  # noqa: PLC0415
+        from core.character_understanding import (
+            resolve_character_intent,  # noqa: PLC0415
+        )
 
         understanding = resolve_character_intent(
             prompt_text,
@@ -786,13 +792,17 @@ def generate() -> Any:
             ),
             "provisional_id": (
                 understanding.unknown_profile.provisional_id
-                if understanding.unknown_profile else None
+                if understanding.unknown_profile
+                else None
             ),
             "data_status": (
                 understanding.unknown_profile.data_status
                 if understanding.unknown_profile
-                else ("known" if understanding.resolved and not understanding.ambiguous
-                      else ("ambiguous" if understanding.ambiguous else "unresolved"))
+                else (
+                    "known"
+                    if understanding.resolved and not understanding.ambiguous
+                    else ("ambiguous" if understanding.ambiguous else "unresolved")
+                )
             ),
             "needs_review": (
                 understanding.unknown_profile.needs_review
@@ -811,7 +821,8 @@ def generate() -> Any:
             ],
             "unknown_profile": (
                 understanding.unknown_profile.to_dict()
-                if understanding.unknown_profile is not None else None
+                if understanding.unknown_profile is not None
+                else None
             ),
             "character_identity_block": understanding.character_identity_block,
         }
@@ -857,20 +868,23 @@ def generate() -> Any:
         from core.image_gen.cost_estimator import (  # noqa: PLC0415
             estimate_image_request_cost,
         )
+
         body["cost"] = estimate_image_request_cost(payload, preflight)
         # Persist preflight-only outcome (no-op when Mongo is disabled).
         try:
-            mongo_store.save_generation_job(_build_job_doc(
-                job_id=job_id,
-                prompt_text=prompt_text,
-                payload=payload,
-                preflight=preflight,
-                understanding_payload=understanding_payload,
-                cost=body["cost"],
-                status="preflight_only",
-                conversation_id=conversation_id,
-                message_id=message_id,
-            ))
+            mongo_store.save_generation_job(
+                _build_job_doc(
+                    job_id=job_id,
+                    prompt_text=prompt_text,
+                    payload=payload,
+                    preflight=preflight,
+                    understanding_payload=understanding_payload,
+                    cost=body["cost"],
+                    status="preflight_only",
+                    conversation_id=conversation_id,
+                    message_id=message_id,
+                )
+            )
         except Exception as _me:  # noqa: BLE001
             logger.warning("[%s] mongo save (preflight_only) failed: %s", job_id, _me)
         body["job_id"] = job_id
@@ -888,19 +902,23 @@ def generate() -> Any:
         if references_meta is not None:
             body["references"] = references_meta
         try:
-            mongo_store.save_generation_job(_build_job_doc(
-                job_id=job_id,
-                prompt_text=prompt_text,
-                payload=payload,
-                preflight=preflight,
-                understanding_payload=understanding_payload,
-                cost=None,
-                status="blocked_by_preflight",
-                conversation_id=conversation_id,
-                message_id=message_id,
-            ))
+            mongo_store.save_generation_job(
+                _build_job_doc(
+                    job_id=job_id,
+                    prompt_text=prompt_text,
+                    payload=payload,
+                    preflight=preflight,
+                    understanding_payload=understanding_payload,
+                    cost=None,
+                    status="blocked_by_preflight",
+                    conversation_id=conversation_id,
+                    message_id=message_id,
+                )
+            )
         except Exception as _me:  # noqa: BLE001
-            logger.warning("[%s] mongo save (preflight_blocked) failed: %s", job_id, _me)
+            logger.warning(
+                "[%s] mongo save (preflight_blocked) failed: %s", job_id, _me
+            )
         body["job_id"] = job_id
         return jsonify(body), 200
 
@@ -910,7 +928,10 @@ def generate() -> Any:
     # early with ``needs_confirmation`` so the user can opt-in. Old
     # payloads (no budget fields) keep current behavior; the metadata is
     # still attached for observability when generation runs.
-    from core.image_gen.cost_estimator import estimate_image_request_cost  # noqa: PLC0415
+    from core.image_gen.cost_estimator import (
+        estimate_image_request_cost,  # noqa: PLC0415
+    )
+
     cost = estimate_image_request_cost(payload, preflight)
     if cost["should_require_confirmation"]:
         body = {
@@ -925,19 +946,23 @@ def generate() -> Any:
         if references_meta is not None:
             body["references"] = references_meta
         try:
-            mongo_store.save_generation_job(_build_job_doc(
-                job_id=job_id,
-                prompt_text=prompt_text,
-                payload=payload,
-                preflight=preflight,
-                understanding_payload=understanding_payload,
-                cost=cost,
-                status="blocked_by_preflight",
-                conversation_id=conversation_id,
-                message_id=message_id,
-            ))
+            mongo_store.save_generation_job(
+                _build_job_doc(
+                    job_id=job_id,
+                    prompt_text=prompt_text,
+                    payload=payload,
+                    preflight=preflight,
+                    understanding_payload=understanding_payload,
+                    cost=cost,
+                    status="blocked_by_preflight",
+                    conversation_id=conversation_id,
+                    message_id=message_id,
+                )
+            )
         except Exception as _me:  # noqa: BLE001
-            logger.warning("[%s] mongo save (needs_confirmation) failed: %s", job_id, _me)
+            logger.warning(
+                "[%s] mongo save (needs_confirmation) failed: %s", job_id, _me
+            )
         body["job_id"] = job_id
         return jsonify(body), 200
 
@@ -951,6 +976,7 @@ def generate() -> Any:
     if not character_hint and char_key:
         try:
             from core.character_registry import get_registry as _get_reg
+
             rec = _get_reg().get(char_key)
             if rec is not None:
                 character_hint = {
@@ -961,7 +987,10 @@ def generate() -> Any:
                     "character_tag": rec.character_tag,
                 }
             else:
-                from image_pipeline.anime_pipeline.saa_character_db import lookup_character as _saa_lookup
+                from image_pipeline.anime_pipeline.saa_character_db import (
+                    lookup_character as _saa_lookup,
+                )
+
                 hit = _saa_lookup(char_key)
                 if hit is not None:
                     character_hint = {
@@ -983,12 +1012,12 @@ def generate() -> Any:
             from core.character_understanding import (  # noqa: PLC0415
                 can_attach_character_lora,
             )
+
             safe, reason = can_attach_character_lora(understanding)
         except Exception:  # noqa: BLE001
             safe, reason = False, "safety_gate_error"
         if safe and (
-            understanding.best is not None
-            and understanding.best.confidence >= 0.8
+            understanding.best is not None and understanding.best.confidence >= 0.8
         ):
             best = understanding.best
             character_hint = {
@@ -1020,17 +1049,19 @@ def generate() -> Any:
 
     # Persist the running job (no-op when Mongo is disabled).
     try:
-        mongo_store.save_generation_job(_build_job_doc(
-            job_id=job_id,
-            prompt_text=prompt_text,
-            payload=payload,
-            preflight=preflight,
-            understanding_payload=understanding_payload,
-            cost=cost,
-            status="running",
-            conversation_id=conversation_id,
-            message_id=message_id,
-        ))
+        mongo_store.save_generation_job(
+            _build_job_doc(
+                job_id=job_id,
+                prompt_text=prompt_text,
+                payload=payload,
+                preflight=preflight,
+                understanding_payload=understanding_payload,
+                cost=cost,
+                status="running",
+                conversation_id=conversation_id,
+                message_id=message_id,
+            )
+        )
     except Exception as _me:  # noqa: BLE001
         logger.warning("[%s] mongo save (running) failed: %s", job_id, _me)
 
@@ -1040,14 +1071,19 @@ def generate() -> Any:
     try:
         canonical_id = preflight.get("canonical_id")
         if canonical_id and understanding_payload is not None:
-            mongo_store.upsert_character_profile({
-                "canonical_id": canonical_id,
-                "display_name": (character_hint or {}).get("display_name", ""),
-                "series_slug": (character_hint or {}).get("series_key", ""),
-                "data_status": understanding_payload.get("data_status") or "unknown",
-                "safe_to_attach_lora": bool(preflight.get("safe_to_attach_lora", False)),
-                "needs_review": bool(preflight.get("needs_review", False)),
-            })
+            mongo_store.upsert_character_profile(
+                {
+                    "canonical_id": canonical_id,
+                    "display_name": (character_hint or {}).get("display_name", ""),
+                    "series_slug": (character_hint or {}).get("series_key", ""),
+                    "data_status": understanding_payload.get("data_status")
+                    or "unknown",
+                    "safe_to_attach_lora": bool(
+                        preflight.get("safe_to_attach_lora", False)
+                    ),
+                    "needs_review": bool(preflight.get("needs_review", False)),
+                }
+            )
     except Exception as _me:  # noqa: BLE001
         logger.warning("[%s] mongo character upsert failed: %s", job_id, _me)
 
@@ -1055,7 +1091,8 @@ def generate() -> Any:
         prompt_text,
         layout=payload.get("layout"),
         attached_images=(
-            references_meta["count"] if references_meta is not None
+            references_meta["count"]
+            if references_meta is not None
             else (payload.get("attached_images") or 0)
         ),
         character_hint=character_hint,
@@ -1067,10 +1104,13 @@ def generate() -> Any:
         if result.get("success"):
             mongo_store.update_generation_job(job_id, {"status": "completed"})
         else:
-            mongo_store.update_generation_job(job_id, {
-                "status": "failed",
-                "error": str(result.get("error") or "")[:500],
-            })
+            mongo_store.update_generation_job(
+                job_id,
+                {
+                    "status": "failed",
+                    "error": str(result.get("error") or "")[:500],
+                },
+            )
     except Exception as _me:  # noqa: BLE001
         logger.warning("[%s] mongo lifecycle update failed: %s", job_id, _me)
     if understanding_payload is not None:

@@ -16,26 +16,28 @@ from typing import Any, Optional
 @dataclass
 class PassOverride:
     """Per-pass parameter overrides applied by a preset."""
+
     steps: Optional[int] = None
     cfg: Optional[float] = None
     denoise: Optional[float] = None
     sampler: Optional[str] = None
     scheduler: Optional[str] = None
-    prompt_prefix: str = ""             # prepended to positive prompt
-    prompt_suffix: str = ""             # appended to positive prompt
-    negative_extra: str = ""            # appended to negative prompt
+    prompt_prefix: str = ""  # prepended to positive prompt
+    prompt_suffix: str = ""  # appended to positive prompt
+    negative_extra: str = ""  # appended to negative prompt
     controlnet_strength_scale: float = 1.0  # multiplied onto control strengths
 
 
 @dataclass
 class PlannerPreset:
     """A named style preset that tweaks planner output."""
+
     name: str = ""
     description: str = ""
 
     # Global overrides
-    quality_prefix: Optional[str] = None        # replaces config quality prefix
-    negative_extra: str = ""                     # appended to all negatives
+    quality_prefix: Optional[str] = None  # replaces config quality prefix
+    negative_extra: str = ""  # appended to all negatives
     skip_upscale: bool = False
     skip_cleanup: bool = False
 
@@ -43,12 +45,12 @@ class PlannerPreset:
     pass_overrides: dict[str, PassOverride] = field(default_factory=dict)
 
     # VRAM profile adjustments
-    vram_step_cap: Optional[int] = None         # clamp max steps when VRAM limited
-    vram_resolution_cap: Optional[int] = None   # clamp max dimension
+    vram_step_cap: Optional[int] = None  # clamp max steps when VRAM limited
+    vram_resolution_cap: Optional[int] = None  # clamp max dimension
 
     # Reference preservation
-    reference_weight: float = 1.0       # 1.0 = normal, >1 = stricter identity
-    identity_emphasis: float = 1.0      # multiplied onto identity anchor emphasis
+    reference_weight: float = 1.0  # 1.0 = normal, >1 = stricter identity
+    identity_emphasis: float = 1.0  # multiplied onto identity anchor emphasis
 
 
 # ═══════════════════════════════════════════════════════════════════════

@@ -93,7 +93,8 @@ class MultiRefComposer:
         if not self._composer:
             stage.mark_failed("BFL_API_KEY not configured — cannot call FLUX.2")
             job.run_metadata.add_error(
-                stage="compose", error="BFL_API_KEY missing",
+                stage="compose",
+                error="BFL_API_KEY missing",
             )
             return stage
 
@@ -121,7 +122,8 @@ class MultiRefComposer:
             or job.user_instruction
         )
         augmented_prompt = ReferenceManager.build_ref_prompt(
-            ref_plan, base_prompt,
+            ref_plan,
+            base_prompt,
         )
 
         # ── 3. Select model ───────────────────────────────────────
@@ -141,7 +143,9 @@ class MultiRefComposer:
         except Exception as e:
             stage.mark_failed(f"FLUX.2 composition failed: {e}")
             job.run_metadata.add_error(
-                stage="compose", error=str(e), model=model,
+                stage="compose",
+                error=str(e),
+                model=model,
             )
             return stage
 
@@ -171,13 +175,18 @@ class MultiRefComposer:
 
             logger.info(
                 "[MultiRefComposer] Success: %s, %d refs, %.0f ms, $%.4f",
-                model, ref_plan.count, latency, resp.cost_usd,
+                model,
+                ref_plan.count,
+                latency,
+                resp.cost_usd,
             )
         else:
             error_msg = resp.error or "FLUX.2 returned no image"
             stage.mark_failed(error_msg)
             job.run_metadata.add_error(
-                stage="compose", error=error_msg, model=model,
+                stage="compose",
+                error=error_msg,
+                model=model,
             )
 
         return stage

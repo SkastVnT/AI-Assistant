@@ -6,12 +6,13 @@ and suggests which tools the Researcher should use for each.
 
 This is always the *first* agent to run in every council round.
 """
+
 from __future__ import annotations
 
 import logging
 
 from core.agentic.agents.base import BaseAgent
-from core.agentic.contracts import AgentRole, CriticOutput, PlannerOutput, TaskNode
+from core.agentic.contracts import AgentRole, PlannerOutput, TaskNode
 from core.agentic.prompts import get_system_prompt
 from core.agentic.state import AgentRunState
 
@@ -78,20 +79,32 @@ class PlannerAgent(BaseAgent):
 
         pre = state.pre_context
         if pre:
-            parts.append(f"User question:\n{pre.augmented_message or pre.original_message}")
+            parts.append(
+                f"User question:\n{pre.augmented_message or pre.original_message}"
+            )
             if pre.rag_chunks:
-                parts.append(f"\nPre-fetched RAG context ({len(pre.rag_chunks)} chunks available)")
+                parts.append(
+                    f"\nPre-fetched RAG context ({len(pre.rag_chunks)} chunks available)"
+                )
             if pre.web_search_context:
-                parts.append(f"\nPre-fetched web context available ({len(pre.web_search_context)} chars)")
+                parts.append(
+                    f"\nPre-fetched web context available ({len(pre.web_search_context)} chars)"
+                )
             if pre.mcp_context:
-                parts.append(f"\nMCP file context available ({len(pre.mcp_context)} chars)")
+                parts.append(
+                    f"\nMCP file context available ({len(pre.mcp_context)} chars)"
+                )
 
         # Feed back prior critique so the planner adjusts
         critique = state.latest_critique
         if critique:
-            parts.append(f"\n--- Prior Critique (quality={critique.quality_score}/10, verdict={critique.verdict}) ---")
+            parts.append(
+                f"\n--- Prior Critique (quality={critique.quality_score}/10, verdict={critique.verdict}) ---"
+            )
             for issue in critique.issues:
-                parts.append(f"  [{issue.severity}] {issue.description} → {issue.suggestion}")
+                parts.append(
+                    f"  [{issue.severity}] {issue.description} → {issue.suggestion}"
+                )
 
         return "\n\n".join(parts) or "(no input)"
 
@@ -124,12 +137,16 @@ class PlannerAgent(BaseAgent):
                     tasks.append(TaskNode(question=str(q)))
 
         if not tasks:
-            tasks = [TaskNode(question="(auto-generated) Investigate the user's question")]
+            tasks = [
+                TaskNode(question="(auto-generated) Investigate the user's question")
+            ]
 
         return PlannerOutput(
             approach=str(data.get("approach", "(no approach stated)")),
             tasks=tasks,
-            estimated_complexity=max(1, min(10, int(data.get("estimated_complexity", 3)))),
+            estimated_complexity=max(
+                1, min(10, int(data.get("estimated_complexity", 3)))
+            ),
         )
 
     @staticmethod

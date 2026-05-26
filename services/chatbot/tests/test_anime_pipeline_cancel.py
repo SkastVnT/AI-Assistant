@@ -11,13 +11,13 @@ Scope (verbatim from task):
   * the semaphore-acquire spin loop honours the timeout env var and
     yields ap_error instead of stalling forever
 """
+
 from __future__ import annotations
 
 import sys
 import time
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -173,6 +173,7 @@ def test_orchestrator_is_cancel_requested_safe_without_queue(monkeypatch):
     # Force the soft import to fail.
     monkeypatch.setitem(sys.modules, "core.job_queue", None)
     from image_pipeline.anime_pipeline.orchestrator import _is_cancel_requested
+
     assert _is_cancel_requested("any_job") is False
     assert _is_cancel_requested("") is False
 
@@ -181,10 +182,12 @@ def test_orchestrator_is_cancel_requested_reads_queue(monkeypatch):
     fake = _FakeQueue({"jx": _FakeRecord("jx", state="running")})
     fake._jobs["jx"].cancel_requested = True
     monkeypatch.setitem(
-        sys.modules, "core.job_queue",
+        sys.modules,
+        "core.job_queue",
         SimpleNamespace(get_queue=lambda: fake),
     )
     from image_pipeline.anime_pipeline.orchestrator import _is_cancel_requested
+
     assert _is_cancel_requested("jx") is True
     assert _is_cancel_requested("other") is False
 
@@ -196,6 +199,7 @@ def test_orchestrator_is_cancel_requested_reads_queue(monkeypatch):
 
 def _sse(event, payload):
     import json as _j
+
     return f"event: {event}\ndata: {_j.dumps(payload)}\n\n"
 
 
@@ -204,7 +208,8 @@ def test_wrap_stream_handles_ap_cancelled_keeps_state_cancelled(monkeypatch):
     queue state back to ``completed`` — it should stay ``cancelled``."""
     fake = _FakeQueue()
     monkeypatch.setitem(
-        sys.modules, "core.job_queue",
+        sys.modules,
+        "core.job_queue",
         SimpleNamespace(get_queue=lambda: fake),
     )
     sys.modules.pop("routes.anime_pipeline", None)
@@ -220,8 +225,7 @@ def test_wrap_stream_handles_ap_cancelled_keeps_state_cancelled(monkeypatch):
     assert len(frames) == 4  # all forwarded verbatim
     final_state = fake._jobs["j1"].state
     assert final_state == "cancelled", (
-        f"expected cancelled, got {final_state}; "
-        f"transitions={fake.transition_calls}"
+        f"expected cancelled, got {final_state}; transitions={fake.transition_calls}"
     )
 
 
@@ -257,16 +261,27 @@ def test_semaphore_timeout_yields_ap_error(monkeypatch):
 
     # Stub the orchestrator import inside stream_pipeline.
     import image_pipeline.anime_pipeline as ap_pkg
+
     monkeypatch.setattr(
-        ap_pkg, "AnimePipelineOrchestrator",
+        ap_pkg,
+        "AnimePipelineOrchestrator",
         lambda: SimpleNamespace(run_stream=lambda j: iter([])),
         raising=False,
     )
 
     fake_req = SimpleNamespace(
-        prompt="hello", reference_images=[], preset="anime_quality",
-        quality_mode="quality", debug=False, model_base="", model_cleanup="",
-        model_final="", width=0, height=0, session_id="", conversation_id="",
+        prompt="hello",
+        reference_images=[],
+        preset="anime_quality",
+        quality_mode="quality",
+        debug=False,
+        model_base="",
+        model_cleanup="",
+        model_final="",
+        width=0,
+        height=0,
+        session_id="",
+        conversation_id="",
     )
 
     t0 = time.time()

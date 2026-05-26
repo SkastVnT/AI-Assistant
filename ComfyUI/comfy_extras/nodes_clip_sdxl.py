@@ -23,7 +23,13 @@ class CLIPTextEncodeSDXLRefiner(io.ComfyNode):
     @classmethod
     def execute(cls, clip, ascore, width, height, text) -> io.NodeOutput:
         tokens = clip.tokenize(text)
-        return io.NodeOutput(clip.encode_from_tokens_scheduled(tokens, add_dict={"aesthetic_score": ascore, "width": width, "height": height}))
+        return io.NodeOutput(
+            clip.encode_from_tokens_scheduled(
+                tokens,
+                add_dict={"aesthetic_score": ascore, "width": width, "height": height},
+            )
+        )
+
 
 class CLIPTextEncodeSDXL(io.ComfyNode):
     @classmethod
@@ -37,8 +43,12 @@ class CLIPTextEncodeSDXL(io.ComfyNode):
                 io.Int.Input("height", default=1024, min=0, max=nodes.MAX_RESOLUTION),
                 io.Int.Input("crop_w", default=0, min=0, max=nodes.MAX_RESOLUTION),
                 io.Int.Input("crop_h", default=0, min=0, max=nodes.MAX_RESOLUTION),
-                io.Int.Input("target_width", default=1024, min=0, max=nodes.MAX_RESOLUTION),
-                io.Int.Input("target_height", default=1024, min=0, max=nodes.MAX_RESOLUTION),
+                io.Int.Input(
+                    "target_width", default=1024, min=0, max=nodes.MAX_RESOLUTION
+                ),
+                io.Int.Input(
+                    "target_height", default=1024, min=0, max=nodes.MAX_RESOLUTION
+                ),
                 io.String.Input("text_g", multiline=True, dynamic_prompts=True),
                 io.String.Input("text_l", multiline=True, dynamic_prompts=True),
             ],
@@ -46,7 +56,18 @@ class CLIPTextEncodeSDXL(io.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, clip, width, height, crop_w, crop_h, target_width, target_height, text_g, text_l) -> io.NodeOutput:
+    def execute(
+        cls,
+        clip,
+        width,
+        height,
+        crop_w,
+        crop_h,
+        target_width,
+        target_height,
+        text_g,
+        text_l,
+    ) -> io.NodeOutput:
         tokens = clip.tokenize(text_g)
         tokens["l"] = clip.tokenize(text_l)["l"]
         if len(tokens["l"]) != len(tokens["g"]):
@@ -55,7 +76,19 @@ class CLIPTextEncodeSDXL(io.ComfyNode):
                 tokens["l"] += empty["l"]
             while len(tokens["l"]) > len(tokens["g"]):
                 tokens["g"] += empty["g"]
-        return io.NodeOutput(clip.encode_from_tokens_scheduled(tokens, add_dict={"width": width, "height": height, "crop_w": crop_w, "crop_h": crop_h, "target_width": target_width, "target_height": target_height}))
+        return io.NodeOutput(
+            clip.encode_from_tokens_scheduled(
+                tokens,
+                add_dict={
+                    "width": width,
+                    "height": height,
+                    "crop_w": crop_w,
+                    "crop_h": crop_h,
+                    "target_width": target_width,
+                    "target_height": target_height,
+                },
+            )
+        )
 
 
 class ClipSdxlExtension(ComfyExtension):

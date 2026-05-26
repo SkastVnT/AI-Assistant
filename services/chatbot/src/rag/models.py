@@ -1,6 +1,7 @@
 """
 RAG data models.
 """
+
 import uuid
 from datetime import datetime
 

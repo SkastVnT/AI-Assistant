@@ -11,6 +11,7 @@ Usage::
     async with async_session() as session:
         ...
 """
+
 from __future__ import annotations
 
 from functools import lru_cache

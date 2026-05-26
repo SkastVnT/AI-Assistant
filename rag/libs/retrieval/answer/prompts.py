@@ -47,6 +47,7 @@ SYSTEM_PROMPTS = {
 
 # ── Evidence formatting ───────────────────────────────────────────────────
 
+
 def format_evidence(
     evidence_blocks: list[dict],
 ) -> str:
@@ -63,23 +64,13 @@ def format_evidence(
         fname = e["filename"]
         score = e["score"]
         content = e["content"]
-        parts.append(
-            f"[Source {idx}] (file: {fname}, relevance: {score:.2f})\n"
-            f"{content}"
-        )
+        parts.append(f"[Source {idx}] (file: {fname}, relevance: {score:.2f})\n{content}")
     return "\n\n---\n\n".join(parts)
 
 
 # ── User prompt assembly ──────────────────────────────────────────────────
 
-USER_TEMPLATE = (
-    "Evidence:\n"
-    "{evidence}\n"
-    "\n"
-    "Question: {query}\n"
-    "\n"
-    "Answer:"
-)
+USER_TEMPLATE = "Evidence:\n{evidence}\n\nQuestion: {query}\n\nAnswer:"
 
 
 def build_user_prompt(query: str, evidence_text: str) -> str:

@@ -1,46 +1,45 @@
-﻿"""
+"""
 Extensions module - MongoDB, cache, logger, rate limiter setup
 """
+
+import importlib.util
+import logging
 import os
 import sys
-import logging
-import importlib.util
-from pathlib import Path
 
 from .config import CHATBOT_DIR, ROOT_DIR
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 # Enable werkzeug logging
-werkzeug_logger = logging.getLogger('werkzeug')
+werkzeug_logger = logging.getLogger("werkzeug")
 werkzeug_logger.setLevel(logging.INFO)
 
 
 def _load_root_config_module(module_name, file_name):
     """Load a module from root config directory"""
     root_path = str(ROOT_DIR)
-    app_path = str(ROOT_DIR / 'app')
+    app_path = str(ROOT_DIR / "app")
     chatbot_path = str(CHATBOT_DIR)
-    
+
     original_path_0 = sys.path[0] if sys.path else None
-    
+
     if root_path in sys.path:
         sys.path.remove(root_path)
     sys.path.insert(0, root_path)
     # app/ must also be on path so that internal `from config.X import Y` works
     if app_path not in sys.path:
         sys.path.insert(1, app_path)
-    
+
     try:
         # Try ROOT_DIR/app/config first, then ROOT_DIR/config as fallback
-        module_path = ROOT_DIR / 'app' / 'config' / file_name
+        module_path = ROOT_DIR / "app" / "config" / file_name
         if not module_path.exists():
-            module_path = ROOT_DIR / 'config' / file_name
+            module_path = ROOT_DIR / "config" / file_name
         spec = importlib.util.spec_from_file_location(module_name, module_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
@@ -58,26 +57,30 @@ def _load_root_config_module(module_name, file_name):
 
 
 # Load rate limiter
-_rate_limiter_module = _load_root_config_module('root_rate_limiter', 'rate_limiter.py')
+_rate_limiter_module = _load_root_config_module("root_rate_limiter", "rate_limiter.py")
 wait_for_openai_rate_limit = _rate_limiter_module.wait_for_openai_rate_limit
 get_rate_limit_stats = _rate_limiter_module.get_rate_limit_stats
 
 # Load response cache
-_response_cache_module = _load_root_config_module('root_response_cache', 'response_cache.py')
+_response_cache_module = _load_root_config_module(
+    "root_response_cache", "response_cache.py"
+)
 get_cached_response = _response_cache_module.get_cached_response
 cache_response = _response_cache_module.cache_response
 get_all_cache_stats = _response_cache_module.get_all_cache_stats
 
 # Load monitor
-_monitor_module = _load_root_config_module('root_monitor', 'monitor.py')
+_monitor_module = _load_root_config_module("root_monitor", "monitor.py")
 register_monitor = _monitor_module.register_monitor
 
 
 # Load MongoDB config
 def _load_mongodb():
     """Load MongoDB configuration"""
-    mongodb_config_path = CHATBOT_DIR / 'config' / 'mongodb_config.py'
-    spec = importlib.util.spec_from_file_location("mongodb_config_chatbot", mongodb_config_path)
+    mongodb_config_path = CHATBOT_DIR / "config" / "mongodb_config.py"
+    spec = importlib.util.spec_from_file_location(
+        "mongodb_config_chatbot", mongodb_config_path
+    )
     mongodb_config_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mongodb_config_module)
     return mongodb_config_module.mongodb_client, mongodb_config_module.get_db
@@ -85,8 +88,10 @@ def _load_mongodb():
 
 def _load_mongodb_helpers():
     """Load MongoDB helpers"""
-    mongodb_helpers_path = CHATBOT_DIR / 'config' / 'mongodb_helpers.py'
-    spec = importlib.util.spec_from_file_location("mongodb_helpers_chatbot", mongodb_helpers_path)
+    mongodb_helpers_path = CHATBOT_DIR / "config" / "mongodb_helpers.py"
+    spec = importlib.util.spec_from_file_location(
+        "mongodb_helpers_chatbot", mongodb_helpers_path
+    )
     mongodb_helpers_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mongodb_helpers_module)
     return mongodb_helpers_module
@@ -120,6 +125,7 @@ try:
     from src.utils.cache_manager import get_cache_manager
     from src.utils.database_manager import get_database_manager
     from src.utils.streaming_handler import StreamingHandler
+
     PERFORMANCE_ENABLED = True
     cache = get_cache_manager()
     db = get_database_manager()
@@ -133,6 +139,7 @@ except Exception as e:
 CLOUD_UPLOAD_ENABLED = False
 try:
     from src.utils.imgbb_uploader import ImgBBUploader, upload_to_imgbb
+
     CLOUD_UPLOAD_ENABLED = True
     logger.info("âœ… ImgBB uploader loaded")
 except ImportError as e:
@@ -144,9 +151,10 @@ LOCALMODELS_AVAILABLE = False
 model_loader = None
 
 # Only load local models if USE_API_ONLY is not set
-if not os.getenv('USE_API_ONLY'):
+if not os.getenv("USE_API_ONLY"):
     try:
         from src.utils.local_model_loader import model_loader as _model_loader
+
         model_loader = _model_loader
         LOCALMODELS_AVAILABLE = True
         logger.info("âœ… Local model loader imported")

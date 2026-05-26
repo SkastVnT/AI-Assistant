@@ -1,5 +1,6 @@
 import torch
 
+
 class StubImage:
     def __init__(self):
         pass
@@ -8,10 +9,16 @@ class StubImage:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "content": (['WHITE', 'BLACK', 'NOISE'],),
-                "height": ("INT", {"default": 512, "min": 1, "max": 1024 ** 3, "step": 1}),
-                "width": ("INT", {"default": 512, "min": 1, "max": 4096 ** 3, "step": 1}),
-                "batch_size": ("INT", {"default": 1, "min": 1, "max": 1024 ** 3, "step": 1}),
+                "content": (["WHITE", "BLACK", "NOISE"],),
+                "height": (
+                    "INT",
+                    {"default": 512, "min": 1, "max": 1024**3, "step": 1},
+                ),
+                "width": ("INT", {"default": 512, "min": 1, "max": 4096**3, "step": 1}),
+                "batch_size": (
+                    "INT",
+                    {"default": 1, "min": 1, "max": 1024**3, "step": 1},
+                ),
             },
         }
 
@@ -28,17 +35,28 @@ class StubImage:
         elif content == "NOISE":
             return (torch.rand(batch_size, height, width, 3),)
 
+
 class StubConstantImage:
     def __init__(self):
         pass
+
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "value": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "height": ("INT", {"default": 512, "min": 1, "max": 1024 ** 3, "step": 1}),
-                "width": ("INT", {"default": 512, "min": 1, "max": 4096 ** 3, "step": 1}),
-                "batch_size": ("INT", {"default": 1, "min": 1, "max": 1024 ** 3, "step": 1}),
+                "value": (
+                    "FLOAT",
+                    {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01},
+                ),
+                "height": (
+                    "INT",
+                    {"default": 512, "min": 1, "max": 1024**3, "step": 1},
+                ),
+                "width": ("INT", {"default": 512, "min": 1, "max": 4096**3, "step": 1}),
+                "batch_size": (
+                    "INT",
+                    {"default": 1, "min": 1, "max": 1024**3, "step": 1},
+                ),
             },
         }
 
@@ -50,6 +68,7 @@ class StubConstantImage:
     def stub_constant_image(self, value, height, width, batch_size):
         return (torch.ones(batch_size, height, width, 3) * value,)
 
+
 class StubMask:
     def __init__(self):
         pass
@@ -58,10 +77,19 @@ class StubMask:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "value": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "height": ("INT", {"default": 512, "min": 1, "max": 1024 ** 3, "step": 1}),
-                "width": ("INT", {"default": 512, "min": 1, "max": 4096 ** 3, "step": 1}),
-                "batch_size": ("INT", {"default": 1, "min": 1, "max": 1024 ** 3, "step": 1}),
+                "value": (
+                    "FLOAT",
+                    {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01},
+                ),
+                "height": (
+                    "INT",
+                    {"default": 512, "min": 1, "max": 1024**3, "step": 1},
+                ),
+                "width": ("INT", {"default": 512, "min": 1, "max": 4096**3, "step": 1}),
+                "batch_size": (
+                    "INT",
+                    {"default": 1, "min": 1, "max": 1024**3, "step": 1},
+                ),
             },
         }
 
@@ -73,6 +101,7 @@ class StubMask:
     def stub_mask(self, value, height, width, batch_size):
         return (torch.ones(batch_size, height, width) * value,)
 
+
 class StubInt:
     def __init__(self):
         pass
@@ -81,7 +110,10 @@ class StubInt:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "value": ("INT", {"default": 0, "min": -0xffffffff, "max": 0xffffffff, "step": 1}),
+                "value": (
+                    "INT",
+                    {"default": 0, "min": -0xFFFFFFFF, "max": 0xFFFFFFFF, "step": 1},
+                ),
             },
         }
 
@@ -93,6 +125,7 @@ class StubInt:
     def stub_int(self, value):
         return (value,)
 
+
 class StubFloat:
     def __init__(self):
         pass
@@ -101,7 +134,10 @@ class StubFloat:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "value": ("FLOAT", {"default": 0.0, "min": -1.0e38, "max": 1.0e38, "step": 0.01}),
+                "value": (
+                    "FLOAT",
+                    {"default": 0.0, "min": -1.0e38, "max": 1.0e38, "step": 0.01},
+                ),
             },
         }
 
@@ -112,6 +148,7 @@ class StubFloat:
 
     def stub_float(self, value):
         return (value,)
+
 
 TEST_STUB_NODE_CLASS_MAPPINGS = {
     "StubImage": StubImage,

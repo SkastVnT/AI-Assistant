@@ -46,16 +46,37 @@ logger = logging.getLogger(__name__)
 # ── Orientation detection keywords ─────────────────────────────────
 
 _PORTRAIT_HINTS = {
-    "portrait", "vertical", "dọc", "phone", "9:16", "full body", "full-body",
-    "standing", "đứng", "toàn thân",
+    "portrait",
+    "vertical",
+    "dọc",
+    "phone",
+    "9:16",
+    "full body",
+    "full-body",
+    "standing",
+    "đứng",
+    "toàn thân",
 }
 
 # Text overlay request keywords — when detected, text-blocking negative tags are removed
 _TEXT_REQUEST_KEYWORDS = {
-    "add text", "thêm chữ", "thêm text", "có chữ", "write text",
-    "put text", "text overlay", "với chữ", "tiêu đề", "tên nhân vật",
-    "caption", "label", "title on", "add caption", "add label",
-    "ghi chữ", "viết chữ",
+    "add text",
+    "thêm chữ",
+    "thêm text",
+    "có chữ",
+    "write text",
+    "put text",
+    "text overlay",
+    "với chữ",
+    "tiêu đề",
+    "tên nhân vật",
+    "caption",
+    "label",
+    "title on",
+    "add caption",
+    "add label",
+    "ghi chữ",
+    "viết chữ",
 }
 
 # Tags blocked when no text overlay is requested
@@ -70,12 +91,27 @@ def _user_requests_text(user_prompt: str) -> bool:
     """Return True if the user explicitly wants text in the generated image."""
     lower = user_prompt.lower()
     return any(kw in lower for kw in _TEXT_REQUEST_KEYWORDS)
+
+
 _LANDSCAPE_HINTS = {
-    "landscape", "horizontal", "ngang", "banner", "16:9", "panorama",
-    "wide", "scenery", "phong cảnh",
+    "landscape",
+    "horizontal",
+    "ngang",
+    "banner",
+    "16:9",
+    "panorama",
+    "wide",
+    "scenery",
+    "phong cảnh",
 }
 _SQUARE_HINTS = {
-    "square", "vuông", "1:1", "avatar", "icon", "pfp", "profile",
+    "square",
+    "vuông",
+    "1:1",
+    "avatar",
+    "icon",
+    "pfp",
+    "profile",
 }
 
 # ── VRAM profiles ──────────────────────────────────────────────────
@@ -111,6 +147,7 @@ def _get_vram_profile(name: str) -> dict:
 # ═══════════════════════════════════════════════════════════════════════
 # make_layer_plan — standalone entry point
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def make_layer_plan(
     user_prompt: str,
@@ -168,6 +205,7 @@ def make_layer_plan(
 # LayerPlannerAgent
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class LayerPlannerAgent:
     """Creates a structured LayerPlan from vision analysis and user prompt.
 
@@ -198,8 +236,10 @@ class LayerPlannerAgent:
 
         logger.info(
             "[LayerPlanner] Plan: %dx%d, %d passes, subjects=%s",
-            plan.resolution_width, plan.resolution_height,
-            len(plan.passes), plan.subject_list,
+            plan.resolution_width,
+            plan.resolution_height,
+            len(plan.passes),
+            plan.subject_list,
         )
         return job
 
@@ -221,16 +261,15 @@ class LayerPlannerAgent:
 
         # ── Scene metadata ────────────────────────────────────────
         plan.scene_summary = (
-            va.caption_short if va and va.caption_short
-            else job.user_prompt[:200]
+            va.caption_short if va and va.caption_short else job.user_prompt[:200]
         )
         plan.subject_list = (
-            va.subjects if va and va.subjects
+            va.subjects
+            if va and va.subjects
             else [job.user_prompt.split(",")[0].strip()]
         )
         plan.camera = (
-            va.framing if va and va.framing
-            else self._guess_camera(job.user_prompt)
+            va.framing if va and va.framing else self._guess_camera(job.user_prompt)
         )
         plan.pose = va.pose if va and va.pose else ""
         plan.palette = va.dominant_colors if va and va.dominant_colors else []
@@ -254,7 +293,9 @@ class LayerPlannerAgent:
         # ── Apply critique corrections if available ───────────────
         if critique:
             positive, negative = self._apply_critique(
-                positive, negative, critique,
+                positive,
+                negative,
+                critique,
             )
 
         # ── Reference identity emphasis ───────────────────────────
@@ -267,7 +308,8 @@ class LayerPlannerAgent:
         # ── Structure layers ──────────────────────────────────────
         structure_types = self._select_structure_layers()
         control_inputs = self._build_control_inputs(
-            structure_types, preset,
+            structure_types,
+            preset,
         )
 
         # ── Pass 1: composition ───────────────────────────────────
@@ -288,11 +330,14 @@ class LayerPlannerAgent:
             pass_name="composition",
             model_slot="base",
             checkpoint=comp_cfg.checkpoint,
-            width=w, height=h,
+            width=w,
+            height=h,
             sampler=comp_override.sampler or comp_cfg.sampler,
             scheduler=comp_override.scheduler or comp_cfg.scheduler,
             steps=self._cap_steps(
-                comp_override.steps or comp_cfg.steps, vram, preset,
+                comp_override.steps or comp_cfg.steps,
+                vram,
+                preset,
             ),
             cfg=comp_override.cfg if comp_override.cfg is not None else comp_cfg.cfg,
             denoise=comp_denoise,
@@ -311,11 +356,12 @@ class LayerPlannerAgent:
             pass_name="structure_lock",
             model_slot="preprocessor",
             checkpoint="",
-            width=w, height=h,
-            steps=0, cfg=0, denoise=0,
-            expected_output=(
-                "Lineart + depth hint layers extracted from composition"
-            ),
+            width=w,
+            height=h,
+            steps=0,
+            cfg=0,
+            denoise=0,
+            expected_output=("Lineart + depth hint layers extracted from composition"),
         )
         plan.passes.append(structure_pass)
 
@@ -323,23 +369,21 @@ class LayerPlannerAgent:
         if not preset.skip_cleanup:
             cleanup_cfg = self._config.composition_model
             cleanup_override = preset.pass_overrides.get(
-                "cleanup", PassOverride(),
+                "cleanup",
+                PassOverride(),
             )
             cleanup_pass = PassConfig(
                 pass_name="cleanup",
                 model_slot="cleanup",
                 checkpoint=cleanup_cfg.checkpoint,
-                width=w, height=h,
-                sampler=(
-                    cleanup_override.sampler or cleanup_cfg.sampler
-                ),
-                scheduler=(
-                    cleanup_override.scheduler or cleanup_cfg.scheduler
-                ),
+                width=w,
+                height=h,
+                sampler=(cleanup_override.sampler or cleanup_cfg.sampler),
+                scheduler=(cleanup_override.scheduler or cleanup_cfg.scheduler),
                 steps=self._cap_steps(
-                    cleanup_override.steps
-                    or max(20, cleanup_cfg.steps - 4),
-                    vram, preset,
+                    cleanup_override.steps or max(20, cleanup_cfg.steps - 4),
+                    vram,
+                    preset,
                 ),
                 cfg=(
                     cleanup_override.cfg
@@ -352,14 +396,14 @@ class LayerPlannerAgent:
                     else 0.35
                 ),
                 positive_prompt=self._apply_pass_prompt(
-                    positive, cleanup_override,
+                    positive,
+                    cleanup_override,
                 ),
                 negative_prompt=negative,
                 control_inputs=control_inputs,
                 prompt_strategy="correction",
                 expected_output=(
-                    "Cleaned silhouette, simplified background, "
-                    "stable face block-in"
+                    "Cleaned silhouette, simplified background, stable face block-in"
                 ),
                 lora_models=self._config.default_loras,
             )
@@ -368,17 +412,21 @@ class LayerPlannerAgent:
         # ── Pass 4: beauty ────────────────────────────────────────
         beauty_cfg = self._config.beauty_model
         beauty_override = preset.pass_overrides.get(
-            "beauty", PassOverride(),
+            "beauty",
+            PassOverride(),
         )
         beauty_pass = PassConfig(
             pass_name="beauty",
             model_slot="final",
             checkpoint=beauty_cfg.checkpoint,
-            width=w, height=h,
+            width=w,
+            height=h,
             sampler=beauty_override.sampler or beauty_cfg.sampler,
             scheduler=beauty_override.scheduler or beauty_cfg.scheduler,
             steps=self._cap_steps(
-                beauty_override.steps or beauty_cfg.steps, vram, preset,
+                beauty_override.steps or beauty_cfg.steps,
+                vram,
+                preset,
             ),
             cfg=(
                 beauty_override.cfg
@@ -391,14 +439,14 @@ class LayerPlannerAgent:
                 else beauty_cfg.denoise_strength
             ),
             positive_prompt=self._apply_pass_prompt(
-                positive, beauty_override,
+                positive,
+                beauty_override,
             ),
             negative_prompt=negative,
             control_inputs=control_inputs,
             prompt_strategy="detail",
             expected_output=(
-                "Final anime polish: eyes, hair, costume shading, "
-                "clean linework"
+                "Final anime polish: eyes, hair, costume shading, clean linework"
             ),
             lora_models=self._config.default_loras,
         )
@@ -412,7 +460,9 @@ class LayerPlannerAgent:
                 checkpoint=self._config.upscale_model,
                 width=w * self._config.upscale_factor,
                 height=h * self._config.upscale_factor,
-                steps=0, cfg=0, denoise=0,
+                steps=0,
+                cfg=0,
+                denoise=0,
                 expected_output=(
                     f"{self._config.upscale_factor}x upscaled final image"
                 ),
@@ -452,7 +502,10 @@ class LayerPlannerAgent:
 
     @staticmethod
     def _clamp_resolution(
-        w: int, h: int, vram: dict, preset: PlannerPreset,
+        w: int,
+        h: int,
+        vram: dict,
+        preset: PlannerPreset,
     ) -> tuple[int, int]:
         """Clamp resolution to VRAM and preset caps."""
         cap = preset.vram_resolution_cap or vram.get("max_dim", 1216)
@@ -582,14 +635,20 @@ class LayerPlannerAgent:
                 # Council key_points are concise directives
                 for kp in job.council_guidance.get("key_points", [])[:5]:
                     kp_clean = kp.strip()
-                    if kp_clean and len(kp_clean) < 60 and kp_clean.lower() not in existing_lower:
+                    if (
+                        kp_clean
+                        and len(kp_clean) < 60
+                        and kp_clean.lower() not in existing_lower
+                    ):
                         parts.append(kp_clean)
                         existing_lower.add(kp_clean.lower())
 
         return ", ".join(p.strip() for p in parts if p.strip())
 
     def _build_negative_prompt(
-        self, plan: LayerPlan, preset: PlannerPreset,
+        self,
+        plan: LayerPlan,
+        preset: PlannerPreset,
         job: Optional[AnimePipelineJob] = None,
     ) -> str:
         parts = [self._config.negative_base]
@@ -607,15 +666,15 @@ class LayerPlannerAgent:
         if job and _user_requests_text(job.user_prompt):
             no_text_tags = {t.strip().lower() for t in _NO_TEXT_NEGATIVE.split(",")}
             filtered = [
-                t for t in combined.split(",")
-                if t.strip().lower() not in no_text_tags
+                t for t in combined.split(",") if t.strip().lower() not in no_text_tags
             ]
             combined = ", ".join(filtered)
         else:
             # Ensure comprehensive text/credit blocking is present
             existing_lower = combined.lower()
             additions = [
-                t for t in _NO_TEXT_NEGATIVE.split(",")
+                t
+                for t in _NO_TEXT_NEGATIVE.split(",")
                 if t.strip().lower() not in existing_lower
             ]
             if additions:
@@ -674,13 +733,17 @@ class LayerPlannerAgent:
 
     def _select_structure_layers(self) -> list[str]:
         available = sorted(
-            self._config.structure_layers, key=lambda x: x.priority,
+            self._config.structure_layers,
+            key=lambda x: x.priority,
         )
         selected = []
         for layer in available:
             if len(selected) >= self._config.max_simultaneous_layers:
                 break
-            if not layer.optional or len(selected) < self._config.max_simultaneous_layers:
+            if (
+                not layer.optional
+                or len(selected) < self._config.max_simultaneous_layers
+            ):
                 selected.append(layer.layer_type)
         return selected or ["lineart_anime", "depth"]
 
@@ -702,13 +765,15 @@ class LayerPlannerAgent:
         for lt in structure_types:
             for cfg in self._config.structure_layers:
                 if cfg.layer_type == lt:
-                    inputs.append(ControlInput(
-                        layer_type=lt,
-                        controlnet_model=cfg.controlnet_model,
-                        strength=min(1.0, cfg.strength * scale),
-                        start_percent=cfg.start_percent,
-                        end_percent=cfg.end_percent,
-                        preprocessor=cfg.preprocessor,
-                    ))
+                    inputs.append(
+                        ControlInput(
+                            layer_type=lt,
+                            controlnet_model=cfg.controlnet_model,
+                            strength=min(1.0, cfg.strength * scale),
+                            start_percent=cfg.start_percent,
+                            end_percent=cfg.end_percent,
+                            preprocessor=cfg.preprocessor,
+                        )
+                    )
                     break
         return inputs

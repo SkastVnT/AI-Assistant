@@ -57,6 +57,7 @@ logger = logging.getLogger(__name__)
 # 1) critique_image
 # ═══════════════════════════════════════════════════════════════════
 
+
 def critique_image(
     job: AnimePipelineJob,
     config: AnimePipelineConfig,
@@ -72,10 +73,17 @@ def critique_image(
         return job.critique_results[-1]
     # Fallback: no model succeeded — return neutral scores
     return CritiqueReport(
-        anatomy_score=5, face_score=5, eye_consistency_score=5,
-        hands_score=5, clothing_score=5, composition_score=5,
-        color_score=5, style_score=5, background_score=5,
-        accessories_score=5, pose_score=5,
+        anatomy_score=5,
+        face_score=5,
+        eye_consistency_score=5,
+        hands_score=5,
+        clothing_score=5,
+        composition_score=5,
+        color_score=5,
+        style_score=5,
+        background_score=5,
+        accessories_score=5,
+        pose_score=5,
         model_used="fallback",
     )
 
@@ -86,16 +94,28 @@ def critique_image(
 
 # Map dimension names → (score_attr, issue_attr, negative_tag_to_add)
 _DIMENSION_FIX_MAP: dict[str, tuple[str, str, str]] = {
-    "anatomy":              ("anatomy_score",          "anatomy_issues",      "bad anatomy"),
-    "face_symmetry":        ("face_score",             "face_issues",         "asymmetrical face"),
-    "eye_consistency":      ("eye_consistency_score",  "eye_issues",          "mismatched eyes"),
-    "hand_quality":         ("hands_score",            "hand_issues",         "bad hands, extra fingers"),
-    "clothing_consistency": ("clothing_score",         "clothing_issues",     "inconsistent clothing"),
-    "style_drift":          ("style_score",            "style_drift",         "style inconsistency"),
-    "color_drift":          ("color_score",            "color_issues",        "color mismatch"),
-    "background_clutter":   ("background_score",       "background_issues",   "cluttered background"),
-    "missing_accessories":  ("accessories_score",      "accessories_issues",  "missing details"),
-    "pose_drift":           ("pose_score",             "pose_issues",         "wrong pose"),
+    "anatomy": ("anatomy_score", "anatomy_issues", "bad anatomy"),
+    "face_symmetry": ("face_score", "face_issues", "asymmetrical face"),
+    "eye_consistency": ("eye_consistency_score", "eye_issues", "mismatched eyes"),
+    "hand_quality": ("hands_score", "hand_issues", "bad hands, extra fingers"),
+    "clothing_consistency": (
+        "clothing_score",
+        "clothing_issues",
+        "inconsistent clothing",
+    ),
+    "style_drift": ("style_score", "style_drift", "style inconsistency"),
+    "color_drift": ("color_score", "color_issues", "color mismatch"),
+    "background_clutter": (
+        "background_score",
+        "background_issues",
+        "cluttered background",
+    ),
+    "missing_accessories": (
+        "accessories_score",
+        "accessories_issues",
+        "missing details",
+    ),
+    "pose_drift": ("pose_score", "pose_issues", "wrong pose"),
 }
 
 
@@ -139,12 +159,14 @@ def decide_refine_action(
         # Overall below threshold but no single dimension is critically bad
         return RefineDecision(
             should_refine=True,
-            actions=[RefineAction(
-                action_type=RefineActionType.ADJUST_DENOISE,
-                target="denoise",
-                value=config.refine_denoise_step_up,
-                reason="Overall below threshold, slight denoise bump",
-            )],
+            actions=[
+                RefineAction(
+                    action_type=RefineActionType.ADJUST_DENOISE,
+                    target="denoise",
+                    value=config.refine_denoise_step_up,
+                    reason="Overall below threshold, slight denoise bump",
+                )
+            ],
             reason=f"Score {critique.overall_score:.1f} < {threshold}, general boost",
             worst_dimensions=[],
         )
@@ -155,12 +177,14 @@ def decide_refine_action(
     # ── Check artifact accumulation ───────────────────────────────
     total_issues = len(critique.all_issues)
     if total_issues >= config.refine_artifact_accumulation_limit:
-        actions.append(RefineAction(
-            action_type=RefineActionType.SWITCH_PRESET,
-            target="beauty_strength",
-            value="subtle",
-            reason=f"Artifact accumulation ({total_issues} issues) → switch to subtle",
-        ))
+        actions.append(
+            RefineAction(
+                action_type=RefineActionType.SWITCH_PRESET,
+                target="beauty_strength",
+                value="subtle",
+                reason=f"Artifact accumulation ({total_issues} issues) → switch to subtle",
+            )
+        )
         return RefineDecision(
             should_refine=True,
             actions=actions,
@@ -181,22 +205,26 @@ def decide_refine_action(
         score_attr, issue_attr, neg_tag = fix_info
 
         # Always patch negative with dimension-specific tag
-        actions.append(RefineAction(
-            action_type=RefineActionType.PATCH_NEGATIVE,
-            target="negative",
-            value=neg_tag,
-            reason=f"{dim_name} score {score} < {dim_thresholds.get(dim_name, 5)}",
-        ))
+        actions.append(
+            RefineAction(
+                action_type=RefineActionType.PATCH_NEGATIVE,
+                target="negative",
+                value=neg_tag,
+                reason=f"{dim_name} score {score} < {dim_thresholds.get(dim_name, 5)}",
+            )
+        )
 
         # Add positive prompt patches from the critique
         issues = getattr(critique, issue_attr, [])
         for issue_text in issues[:2]:  # limit to top 2 issues per dimension
-            actions.append(RefineAction(
-                action_type=RefineActionType.PATCH_POSITIVE,
-                target="positive",
-                value=issue_text,
-                reason=f"Fix {dim_name}: {issue_text}",
-            ))
+            actions.append(
+                RefineAction(
+                    action_type=RefineActionType.PATCH_POSITIVE,
+                    target="positive",
+                    value=issue_text,
+                    reason=f"Fix {dim_name}: {issue_text}",
+                )
+            )
 
         # Anatomy / hands / face / eye → bump denoise
         if dim_name in ("anatomy", "hand_quality", "face_symmetry", "eye_consistency"):
@@ -216,41 +244,49 @@ def decide_refine_action(
 
     # ── Denoise adjustment ────────────────────────────────────────
     if needs_denoise_up and not needs_denoise_down:
-        actions.append(RefineAction(
-            action_type=RefineActionType.ADJUST_DENOISE,
-            target="denoise",
-            value=config.refine_denoise_step_up,
-            reason="Anatomy/face/hands issues → raise denoise",
-        ))
+        actions.append(
+            RefineAction(
+                action_type=RefineActionType.ADJUST_DENOISE,
+                target="denoise",
+                value=config.refine_denoise_step_up,
+                reason="Anatomy/face/hands issues → raise denoise",
+            )
+        )
     elif needs_denoise_down and not needs_denoise_up:
-        actions.append(RefineAction(
-            action_type=RefineActionType.ADJUST_DENOISE,
-            target="denoise",
-            value=-config.refine_denoise_step_down,
-            reason="Minor color/bg issues only → lower denoise",
-        ))
+        actions.append(
+            RefineAction(
+                action_type=RefineActionType.ADJUST_DENOISE,
+                target="denoise",
+                value=-config.refine_denoise_step_down,
+                reason="Minor color/bg issues only → lower denoise",
+            )
+        )
 
     # ── Control adjustments ───────────────────────────────────────
     if needs_control_boost and not needs_control_reduce:
-        actions.append(RefineAction(
-            action_type=RefineActionType.ADJUST_CONTROL,
-            target="control_strength",
-            value=config.refine_control_boost,
-            reason="Pose/anatomy drift → strengthen controls",
-        ))
+        actions.append(
+            RefineAction(
+                action_type=RefineActionType.ADJUST_CONTROL,
+                target="control_strength",
+                value=config.refine_control_boost,
+                reason="Pose/anatomy drift → strengthen controls",
+            )
+        )
     elif needs_control_reduce and not needs_control_boost:
-        actions.append(RefineAction(
-            action_type=RefineActionType.ADJUST_CONTROL,
-            target="control_strength",
-            value=-config.refine_control_reduce,
-            reason="Style drift → relax controls",
-        ))
+        actions.append(
+            RefineAction(
+                action_type=RefineActionType.ADJUST_CONTROL,
+                target="control_strength",
+                value=-config.refine_control_reduce,
+                reason="Style drift → relax controls",
+            )
+        )
 
     return RefineDecision(
         should_refine=True,
         actions=actions,
         reason=f"Score {critique.overall_score:.1f} < {threshold}, "
-               f"failing: {', '.join(worst_dims)}",
+        f"failing: {', '.join(worst_dims)}",
         worst_dimensions=worst_dims,
     )
 
@@ -258,6 +294,7 @@ def decide_refine_action(
 # ═══════════════════════════════════════════════════════════════════
 # 3) patch_plan_from_critique
 # ═══════════════════════════════════════════════════════════════════
+
 
 def patch_plan_from_critique(
     pc: PassConfig,
@@ -377,6 +414,7 @@ def patch_plan_from_critique(
 # 4) run_refine_round
 # ═══════════════════════════════════════════════════════════════════
 
+
 def run_refine_round(
     job: AnimePipelineJob,
     config: AnimePipelineConfig,
@@ -401,13 +439,16 @@ def run_refine_round(
     if not decision.should_refine:
         logger.info(
             "[RefineLoop] Round %d: no refine needed — %s",
-            round_num, decision.reason,
+            round_num,
+            decision.reason,
         )
         return job, last_critique, beauty_pc
 
     logger.info(
         "[RefineLoop] Round %d: refining — %s (%d actions)",
-        round_num, decision.reason, len(decision.actions),
+        round_num,
+        decision.reason,
+        len(decision.actions),
     )
 
     # 2) Patch
@@ -427,16 +468,23 @@ def run_refine_round(
     clip_skip = config.final_model.clip_skip
 
     workflow = beauty_agent._builder.build_beauty(
-        patched_pc, source_b64, seed, clip_skip=clip_skip,
+        patched_pc,
+        source_b64,
+        seed,
+        clip_skip=clip_skip,
     )
 
     result = beauty_agent._client.submit_workflow(
-        workflow, job_id=job.job_id, pass_name=f"beauty_refine_{round_num}",
+        workflow,
+        job_id=job.job_id,
+        pass_name=f"beauty_refine_{round_num}",
     )
 
     if not result.success:
         logger.error(
-            "[RefineLoop] Round %d beauty failed: %s", round_num, result.error,
+            "[RefineLoop] Round %d beauty failed: %s",
+            round_num,
+            result.error,
         )
         job.error = f"Refine round {round_num} failed: {result.error}"
         job.status = AnimePipelineStatus.FAILED
@@ -449,7 +497,8 @@ def run_refine_round(
 
     image_b64 = result.images_b64[0]
     job.add_intermediate(
-        f"refine_round_{round_num}", image_b64,
+        f"refine_round_{round_num}",
+        image_b64,
         seed=seed,
         checkpoint=patched_pc.checkpoint,
         denoise=patched_pc.denoise,
@@ -471,10 +520,11 @@ def run_refine_round(
     job.mark_stage(f"refine_round_{round_num}", latency)
 
     logger.info(
-        "[RefineLoop] Round %d done in %.0fms: score %.1f → %.1f, "
-        "%d actions applied",
-        round_num, latency,
-        last_critique.overall_score, new_critique.overall_score,
+        "[RefineLoop] Round %d done in %.0fms: score %.1f → %.1f, %d actions applied",
+        round_num,
+        latency,
+        last_critique.overall_score,
+        new_critique.overall_score,
         len(decision.actions),
     )
 
@@ -495,6 +545,7 @@ def _get_latest_beauty_image(job: AnimePipelineJob) -> Optional[str]:
 # ═══════════════════════════════════════════════════════════════════
 # RefineLoopAgent — orchestrator-level wrapper
 # ═══════════════════════════════════════════════════════════════════
+
 
 class RefineLoopAgent:
     """Run the full critique→refine loop after beauty pass.
@@ -546,14 +597,19 @@ class RefineLoopAgent:
             if not decision.should_refine:
                 logger.info(
                     "[RefineLoop] Stopping at round %d: %s",
-                    round_num, decision.reason,
+                    round_num,
+                    decision.reason,
                 )
                 break
 
             job, last_critique, beauty_pc = run_refine_round(
-                job, self._config, round_num,
-                self._beauty, self._critique,
-                last_critique, beauty_pc,
+                job,
+                self._config,
+                round_num,
+                self._beauty,
+                self._critique,
+                last_critique,
+                beauty_pc,
             )
 
             if job.status == AnimePipelineStatus.FAILED:
@@ -570,7 +626,8 @@ class RefineLoopAgent:
             if last_critique.passed:
                 logger.info(
                     "[RefineLoop] Passed on round %d (score=%.1f)",
-                    round_num, last_critique.overall_score,
+                    round_num,
+                    last_critique.overall_score,
                 )
                 break
 

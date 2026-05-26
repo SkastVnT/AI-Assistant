@@ -44,7 +44,6 @@ from image_pipeline.reasoning.schemas import (
     ZoneRef,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -156,9 +155,7 @@ def panel_two() -> SinglePanelSpec:
         eye_state=EyeState.UNSPECIFIED,
         panel_role=PanelRole.INSERT,
         character_keys=(),
-        prop_requirements=(
-            PropRequirement(prop_key="red_phone", must_appear=True),
-        ),
+        prop_requirements=(PropRequirement(prop_key="red_phone", must_appear=True),),
     )
 
 
@@ -375,7 +372,9 @@ class TestSinglePanelSpec:
 
     def test_aspect_ratio_must_be_w_colon_h(self) -> None:
         with pytest.raises(SchemaValidationError):
-            SinglePanelSpec(panel_id="p1", shot_type=ShotType.MEDIUM, aspect_ratio="square")
+            SinglePanelSpec(
+                panel_id="p1", shot_type=ShotType.MEDIUM, aspect_ratio="square"
+            )
 
     def test_with_revision_increments(self, panel_one: SinglePanelSpec) -> None:
         v2 = panel_one.with_revision(action_description="updated")

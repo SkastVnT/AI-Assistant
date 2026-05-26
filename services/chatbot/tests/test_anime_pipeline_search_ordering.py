@@ -7,6 +7,7 @@ Pinned behaviours (verbatim from 2026-04-23 user request):
   * "tim anh nhay cam (nen tim 5 tam) thi su dung model stepfun step
      3.5 flash (openrouter)"
 """
+
 from __future__ import annotations
 
 import sys
@@ -24,32 +25,42 @@ if str(_REPO_ROOT) not in sys.path:
 
 # ── NSFW heuristic ───────────────────────────────────────────────────
 
-@pytest.mark.parametrize("prompt", [
-    "Klee Genshin Impact, nude, ahegao",
-    "Rem Re:Zero pussy",
-    "Hu Tao naked spread legs",
-    "anime girl r-18 explicit",
-    "Kafka HSR uncensored nipples",
-])
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "Klee Genshin Impact, nude, ahegao",
+        "Rem Re:Zero pussy",
+        "Hu Tao naked spread legs",
+        "anime girl r-18 explicit",
+        "Kafka HSR uncensored nipples",
+    ],
+)
 def test_detect_nsfw_intent_matches_explicit_prompts(prompt):
     from image_pipeline.anime_pipeline.character_research import _detect_nsfw_intent
+
     assert _detect_nsfw_intent(prompt) is True
 
 
-@pytest.mark.parametrize("prompt", [
-    "Klee Genshin Impact",
-    "Rem Re:Zero, masterpiece, best quality",
-    "Hu Tao official art portrait",
-    "",
-    "anime girl smiling in field",
-    "Elysia Honkai Impact 3rd",
-])
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "Klee Genshin Impact",
+        "Rem Re:Zero, masterpiece, best quality",
+        "Hu Tao official art portrait",
+        "",
+        "anime girl smiling in field",
+        "Elysia Honkai Impact 3rd",
+    ],
+)
 def test_detect_nsfw_intent_skips_safe_prompts(prompt):
     from image_pipeline.anime_pipeline.character_research import _detect_nsfw_intent
+
     assert _detect_nsfw_intent(prompt) is False
 
 
 # ── Character-first SerpAPI query ordering ───────────────────────────
+
 
 def test_image_search_first_query_starts_with_series():
     """The very first SerpAPI query must mention BOTH the character and
@@ -66,8 +77,11 @@ def test_image_search_first_query_starts_with_series():
     captured_queries: list[str] = []
 
     class _FakeResp:
-        def raise_for_status(self): pass
-        def json(self): return {"images_results": []}
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"images_results": []}
 
     def _fake_get(url, params=None, **kw):
         captured_queries.append(params.get("q", ""))
@@ -75,8 +89,11 @@ def test_image_search_first_query_starts_with_series():
 
     with patch.object(cr, "_get_serpapi_key", return_value="fake_key"):
         import httpx
+
         with patch.object(httpx, "get", side_effect=_fake_get):
-            cr._image_search_character("Klee", "Genshin Impact", "klee_(genshin_impact)")
+            cr._image_search_character(
+                "Klee", "Genshin Impact", "klee_(genshin_impact)"
+            )
 
     assert captured_queries, "expected at least one SerpAPI query"
     first = captured_queries[0].lower()
@@ -93,8 +110,11 @@ def test_image_search_nsfw_intent_skips_safe_queries():
     captured_queries: list[str] = []
 
     class _FakeResp:
-        def raise_for_status(self): pass
-        def json(self): return {"images_results": []}
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"images_results": []}
 
     def _fake_get(url, params=None, **kw):
         captured_queries.append(params.get("q", ""))
@@ -102,9 +122,12 @@ def test_image_search_nsfw_intent_skips_safe_queries():
 
     with patch.object(cr, "_get_serpapi_key", return_value="fake_key"):
         import httpx
+
         with patch.object(httpx, "get", side_effect=_fake_get):
             cr._image_search_character(
-                "Klee", "Genshin Impact", "klee_(genshin_impact)",
+                "Klee",
+                "Genshin Impact",
+                "klee_(genshin_impact)",
                 nsfw_intent=True,
             )
 
@@ -112,6 +135,7 @@ def test_image_search_nsfw_intent_skips_safe_queries():
 
 
 # ── prioritize_sensitive chain flip ──────────────────────────────────
+
 
 def test_fallback_chain_flips_when_prioritize_sensitive(monkeypatch):
     """With prioritize_sensitive=True, StepFun must be tried FIRST."""
@@ -130,6 +154,7 @@ def test_fallback_chain_flips_when_prioritize_sensitive(monkeypatch):
         def _fn(query, key):
             call_order.append(name)
             return []  # contribute nothing so all providers are tried
+
         return _fn
 
     monkeypatch.setattr(fb, "_provider_gemini", _record("gemini"))
@@ -137,9 +162,11 @@ def test_fallback_chain_flips_when_prioritize_sensitive(monkeypatch):
     monkeypatch.setattr(fb, "_provider_stepfun_openrouter", _record("stepfun"))
 
     fb.fetch_image_urls_fallback(
-        display_name="Klee", series_name="Genshin Impact",
+        display_name="Klee",
+        series_name="Genshin Impact",
         danbooru_tag="klee_(genshin_impact)",
-        already_found=[], target_count=5,
+        already_found=[],
+        target_count=5,
         prioritize_sensitive=True,
     )
 
@@ -160,19 +187,23 @@ def test_fallback_chain_normal_order_when_safe(monkeypatch):
 
     call_order: list[str] = []
     monkeypatch.setattr(
-        fb, "_provider_gemini",
-        lambda q, k: (call_order.append("gemini") or []),
+        fb,
+        "_provider_gemini",
+        lambda q, k: call_order.append("gemini") or [],
     )
     monkeypatch.setattr(
-        fb, "_provider_stepfun_openrouter",
-        lambda q, k: (call_order.append("stepfun") or []),
+        fb,
+        "_provider_stepfun_openrouter",
+        lambda q, k: call_order.append("stepfun") or [],
     )
 
     # allow_sensitive=False → StepFun NOT in chain at all.
     fb.fetch_image_urls_fallback(
-        display_name="Klee", series_name="Genshin Impact",
+        display_name="Klee",
+        series_name="Genshin Impact",
         danbooru_tag="klee_(genshin_impact)",
-        already_found=[], target_count=5,
+        already_found=[],
+        target_count=5,
         allow_sensitive=False,
     )
     assert call_order == ["gemini"]
@@ -181,9 +212,11 @@ def test_fallback_chain_normal_order_when_safe(monkeypatch):
     # allow_sensitive=True without prioritize → safe first, StepFun last.
     call_order.clear()
     fb.fetch_image_urls_fallback(
-        display_name="Klee", series_name="Genshin Impact",
+        display_name="Klee",
+        series_name="Genshin Impact",
         danbooru_tag="klee_(genshin_impact)",
-        already_found=[], target_count=5,
+        already_found=[],
+        target_count=5,
         allow_sensitive=True,
     )
     assert call_order[0] == "gemini"
@@ -199,7 +232,9 @@ def test_stepfun_model_id_overridable_via_env(monkeypatch):
     captured = {}
 
     class _FakeResp:
-        def raise_for_status(self): pass
+        def raise_for_status(self):
+            pass
+
         def json(self):
             return {"choices": [{"message": {"content": "[]"}}]}
 
@@ -208,6 +243,7 @@ def test_stepfun_model_id_overridable_via_env(monkeypatch):
         return _FakeResp()
 
     import httpx
+
     monkeypatch.setenv("OPENROUTER_STEPFUN_MODEL", "stepfun-ai/step-3.5-flash")
     with patch.object(httpx, "post", side_effect=_fake_post):
         fb._provider_stepfun_openrouter("Klee", "fake_key")

@@ -1,9 +1,10 @@
-#code originally taken from: https://github.com/ChenyangSi/FreeU (under MIT License)
+# code originally taken from: https://github.com/ChenyangSi/FreeU (under MIT License)
 
 import torch
 import logging
 from typing_extensions import override
 from comfy_api.latest import ComfyExtension, IO
+
 
 def Fourier_filter(x, threshold, scale):
     # FFT
@@ -13,8 +14,10 @@ def Fourier_filter(x, threshold, scale):
     B, C, H, W = x_freq.shape
     mask = torch.ones((B, C, H, W), device=x.device)
 
-    crow, ccol = H // 2, W //2
-    mask[..., crow - threshold:crow + threshold, ccol - threshold:ccol + threshold] = scale
+    crow, ccol = H // 2, W // 2
+    mask[
+        ..., crow - threshold : crow + threshold, ccol - threshold : ccol + threshold
+    ] = scale
     x_freq = x_freq * mask
 
     # IFFT
@@ -51,16 +54,24 @@ class FreeU(IO.ComfyNode):
         def output_block_patch(h, hsp, transformer_options):
             scale = scale_dict.get(int(h.shape[1]), None)
             if scale is not None:
-                h[:,:h.shape[1] // 2] = h[:,:h.shape[1] // 2] * scale[0]
+                h[:, : h.shape[1] // 2] = h[:, : h.shape[1] // 2] * scale[0]
                 if hsp.device not in on_cpu_devices:
                     try:
                         hsp = Fourier_filter(hsp, threshold=1, scale=scale[1])
                     except:
-                        logging.warning("Device {} does not support the torch.fft functions used in the FreeU node, switching to CPU.".format(hsp.device))
+                        logging.warning(
+                            "Device {} does not support the torch.fft functions used in the FreeU node, switching to CPU.".format(
+                                hsp.device
+                            )
+                        )
                         on_cpu_devices[hsp.device] = True
-                        hsp = Fourier_filter(hsp.cpu(), threshold=1, scale=scale[1]).to(hsp.device)
+                        hsp = Fourier_filter(hsp.cpu(), threshold=1, scale=scale[1]).to(
+                            hsp.device
+                        )
                 else:
-                    hsp = Fourier_filter(hsp.cpu(), threshold=1, scale=scale[1]).to(hsp.device)
+                    hsp = Fourier_filter(hsp.cpu(), threshold=1, scale=scale[1]).to(
+                        hsp.device
+                    )
 
             return h, hsp
 
@@ -102,19 +113,31 @@ class FreeU_V2(IO.ComfyNode):
                 B = hidden_mean.shape[0]
                 hidden_max, _ = torch.max(hidden_mean.view(B, -1), dim=-1, keepdim=True)
                 hidden_min, _ = torch.min(hidden_mean.view(B, -1), dim=-1, keepdim=True)
-                hidden_mean = (hidden_mean - hidden_min.unsqueeze(2).unsqueeze(3)) / (hidden_max - hidden_min).unsqueeze(2).unsqueeze(3)
+                hidden_mean = (hidden_mean - hidden_min.unsqueeze(2).unsqueeze(3)) / (
+                    hidden_max - hidden_min
+                ).unsqueeze(2).unsqueeze(3)
 
-                h[:,:h.shape[1] // 2] = h[:,:h.shape[1] // 2] * ((scale[0] - 1 ) * hidden_mean + 1)
+                h[:, : h.shape[1] // 2] = h[:, : h.shape[1] // 2] * (
+                    (scale[0] - 1) * hidden_mean + 1
+                )
 
                 if hsp.device not in on_cpu_devices:
                     try:
                         hsp = Fourier_filter(hsp, threshold=1, scale=scale[1])
                     except:
-                        logging.warning("Device {} does not support the torch.fft functions used in the FreeU node, switching to CPU.".format(hsp.device))
+                        logging.warning(
+                            "Device {} does not support the torch.fft functions used in the FreeU node, switching to CPU.".format(
+                                hsp.device
+                            )
+                        )
                         on_cpu_devices[hsp.device] = True
-                        hsp = Fourier_filter(hsp.cpu(), threshold=1, scale=scale[1]).to(hsp.device)
+                        hsp = Fourier_filter(hsp.cpu(), threshold=1, scale=scale[1]).to(
+                            hsp.device
+                        )
                 else:
-                    hsp = Fourier_filter(hsp.cpu(), threshold=1, scale=scale[1]).to(hsp.device)
+                    hsp = Fourier_filter(hsp.cpu(), threshold=1, scale=scale[1]).to(
+                        hsp.device
+                    )
 
             return h, hsp
 

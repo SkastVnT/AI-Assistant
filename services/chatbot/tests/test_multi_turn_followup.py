@@ -20,11 +20,12 @@ Run:
     cd services/chatbot
     python -m pytest tests/test_multi_turn_followup.py -v -s --tb=short
 """
+
 from __future__ import annotations
 
+import logging
 import os
 import sys
-import logging
 import unittest
 from dataclasses import replace as dc_replace
 
@@ -39,25 +40,24 @@ os.environ.setdefault("FAL_API_KEY", "test-key")
 os.environ.setdefault("TOGETHER_API_KEY", "test-key")
 
 
-from app.services.image_orchestrator.schemas import (
-    ImageIntent,
-    PlanClassification,
-    SceneSpec,
-    EditOperation,
-)
 from app.services.image_orchestrator.scene_planner import (
     ScenePlanner,
     merge_scene_delta,
 )
+from app.services.image_orchestrator.schemas import (
+    EditOperation,
+    ImageIntent,
+    PlanClassification,
+    SceneSpec,
+)
 from app.services.image_orchestrator.session_memory import (
-    ImageSessionMemory,
     SessionMemoryStore,
 )
-
 
 # ─────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────
+
 
 def _base_scene() -> SceneSpec:
     """A realistic base scene that a first-turn generation would produce."""
@@ -77,28 +77,30 @@ def _base_scene() -> SceneSpec:
 
 class _FakeImageResult:
     """Minimal stand-in for core.image_gen.providers.base.ImageResult."""
+
     def __init__(self, url: str = "https://example.com/img.png", provider: str = "fal"):
-        self.success    = True
+        self.success = True
         self.images_url = [url]
         self.images_b64 = []
-        self.provider   = provider
-        self.model      = "test-model"
-        self.cost_usd   = 0.01
+        self.provider = provider
+        self.model = "test-model"
+        self.cost_usd = 0.01
         self.prompt_used = "test prompt"
-        self.metadata   = {"seed": 42}
-        self.error      = ""
+        self.metadata = {"seed": 42}
+        self.error = ""
 
 
 # ─────────────────────────────────────────────────────────────────────
 # Test: merge_scene_delta — 6 Vietnamese follow-up cases
 # ─────────────────────────────────────────────────────────────────────
 
+
 class TestMergeSceneDelta(unittest.TestCase):
     """Each test starts from _base_scene() and applies one edit."""
 
     def setUp(self):
         self.planner = ScenePlanner()
-        self.base    = _base_scene()
+        self.base = _base_scene()
 
     # Helper: classify + merge in one step
     def _plan_edit(self, message: str) -> SceneSpec:
@@ -108,8 +110,11 @@ class TestMergeSceneDelta(unittest.TestCase):
             has_previous_image=True,
             previous_scene=self.base,
         )
-        self.assertEqual(result.classification, PlanClassification.EDIT_FOLLOWUP,
-                         f"Expected EDIT_FOLLOWUP for: {message!r}")
+        self.assertEqual(
+            result.classification,
+            PlanClassification.EDIT_FOLLOWUP,
+            f"Expected EDIT_FOLLOWUP for: {message!r}",
+        )
         return result.scene
 
     # ── 1. "làm nền tối hơn" ─────────────────────────────────────────
@@ -135,8 +140,9 @@ class TestMergeSceneDelta(unittest.TestCase):
 
         # Subject should mention white hair now
         all_text = f"{scene.subject} {' '.join(scene.subject_attributes)}".lower()
-        self.assertIn("white", all_text,
-                       f"Expected 'white' in subject/attributes: {all_text}")
+        self.assertIn(
+            "white", all_text, f"Expected 'white' in subject/attributes: {all_text}"
+        )
         # Background preserved
         self.assertIn("cherry", scene.background.lower())
         # Edit strength applied
@@ -148,7 +154,7 @@ class TestMergeSceneDelta(unittest.TestCase):
         scene = self._plan_edit("thêm kính")
 
         all_attrs = " ".join(scene.subject_attributes).lower()
-        all_text  = f"{scene.subject} {all_attrs}".lower()
+        all_text = f"{scene.subject} {all_attrs}".lower()
         self.assertTrue(
             "glasses" in all_text or "kính" in all_text,
             f"Expected glasses in scene: subject={scene.subject!r}, attrs={scene.subject_attributes}",
@@ -202,7 +208,7 @@ class TestMergeSceneDelta(unittest.TestCase):
 
         # Hat should be removed or in negative hints
         attrs_text = " ".join(scene.subject_attributes).lower()
-        neg_text   = " ".join(scene.negative_hints).lower()
+        neg_text = " ".join(scene.negative_hints).lower()
         self.assertTrue(
             "hat" not in attrs_text or "hat" in neg_text or "nón" in neg_text,
             f"Hat should be removed; attrs={scene.subject_attributes}, neg={scene.negative_hints}",
@@ -218,6 +224,7 @@ class TestMergeSceneDelta(unittest.TestCase):
 # Test: merge_scene_delta standalone function
 # ─────────────────────────────────────────────────────────────────────
 
+
 class TestMergeSceneDeltaFunction(unittest.TestCase):
     """Test the standalone merge_scene_delta() directly."""
 
@@ -226,7 +233,11 @@ class TestMergeSceneDeltaFunction(unittest.TestCase):
         base = _base_scene()
         original_bg = base.background
 
-        ops = [EditOperation(operation="change", target="background", new_value="cyberpunk city")]
+        ops = [
+            EditOperation(
+                operation="change", target="background", new_value="cyberpunk city"
+            )
+        ]
         merged = merge_scene_delta(base, "đổi background cyberpunk city", ops)
 
         # Base unchanged
@@ -237,7 +248,7 @@ class TestMergeSceneDeltaFunction(unittest.TestCase):
     def test_standalone_merge_applies_edit_ops(self):
         """Edit operations should be reflected in the merged scene."""
         base = _base_scene()
-        ops  = [EditOperation(operation="add", target="glasses")]
+        ops = [EditOperation(operation="add", target="glasses")]
         merged = merge_scene_delta(base, "thêm kính", ops)
 
         all_text = f"{merged.subject} {' '.join(merged.subject_attributes)}".lower()
@@ -248,7 +259,7 @@ class TestMergeSceneDeltaFunction(unittest.TestCase):
 
     def test_standalone_merge_strength(self):
         """Merged scene should have default edit strength."""
-        base   = _base_scene()
+        base = _base_scene()
         merged = merge_scene_delta(base, "tối hơn", [])
         self.assertAlmostEqual(merged.strength, 0.65, places=2)
 
@@ -256,6 +267,7 @@ class TestMergeSceneDeltaFunction(unittest.TestCase):
 # ─────────────────────────────────────────────────────────────────────
 # Test: Session memory lineage tracking
 # ─────────────────────────────────────────────────────────────────────
+
 
 class TestSessionMemoryLineage(unittest.TestCase):
     """edit_lineage_count increments on edits, resets on fresh generation."""
@@ -300,6 +312,7 @@ class TestSessionMemoryLineage(unittest.TestCase):
 # Test: Multi-turn chain (generate → edit → edit → ...)
 # ─────────────────────────────────────────────────────────────────────
 
+
 class TestMultiTurnChain(unittest.TestCase):
     """
     Simulate a realistic conversation:
@@ -313,9 +326,9 @@ class TestMultiTurnChain(unittest.TestCase):
 
     def setUp(self):
         self.planner = ScenePlanner()
-        self.store   = SessionMemoryStore(max_sessions=16)
-        self.fake    = _FakeImageResult()
-        self.sid     = "multi-turn-test"
+        self.store = SessionMemoryStore(max_sessions=16)
+        self.fake = _FakeImageResult()
+        self.sid = "multi-turn-test"
 
     def _do_turn(self, message: str, intent: ImageIntent) -> SceneSpec:
         """Simulate one turn of the pipeline (planner → memory update)."""
@@ -331,14 +344,19 @@ class TestMultiTurnChain(unittest.TestCase):
         scene = result.scene
 
         self.store.update(
-            self.sid, message, scene, self.fake, is_edit=is_edit,
+            self.sid,
+            message,
+            scene,
+            self.fake,
+            is_edit=is_edit,
         )
         return scene
 
     def test_full_chain(self):
         # Turn 1: initial generation (subject may be in Vietnamese)
         scene1 = self._do_turn(
-            "vẽ cô gái anime tóc hồng dưới ánh trăng", ImageIntent.GENERATE,
+            "vẽ cô gái anime tóc hồng dưới ánh trăng",
+            ImageIntent.GENERATE,
         )
         mem = self.store.get(self.sid)
         self.assertEqual(mem.edit_lineage_count, 0)

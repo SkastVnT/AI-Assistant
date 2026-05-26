@@ -1,5 +1,5 @@
-#original code from https://github.com/genmoai/models under apache 2.0 license
-#adapted to ComfyUI
+# original code from https://github.com/genmoai/models under apache 2.0 license
+# adapted to ComfyUI
 
 from typing import Optional
 
@@ -52,9 +52,13 @@ class AttentionPool(nn.Module):
         """
         super().__init__()
         self.num_heads = num_heads
-        self.to_kv = operations.Linear(embed_dim, 2 * embed_dim, device=device, dtype=dtype)
+        self.to_kv = operations.Linear(
+            embed_dim, 2 * embed_dim, device=device, dtype=dtype
+        )
         self.to_q = operations.Linear(embed_dim, embed_dim, device=device, dtype=dtype)
-        self.to_out = operations.Linear(embed_dim, output_dim or embed_dim, device=device, dtype=dtype)
+        self.to_out = operations.Linear(
+            embed_dim, output_dim or embed_dim, device=device, dtype=dtype
+        )
 
     def forward(self, x, mask):
         """

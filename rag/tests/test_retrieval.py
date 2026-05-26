@@ -333,9 +333,7 @@ class TestRetrieveFunction:
         db.add = MagicMock()
         db.flush = AsyncMock()
 
-        request = RetrievalRequest(
-            tenant_id=TENANT_ID, user_id=None, query="x"
-        )
+        request = RetrievalRequest(tenant_id=TENANT_ID, user_id=None, query="x")
 
         with patch(
             "libs.retrieval.service.vector_search_from_embedding",
@@ -476,9 +474,7 @@ class TestRetrieveEndpoint:
             yield db
 
         app.dependency_overrides = {
-            __import__(
-                "apps.api.dependencies", fromlist=["db_session"]
-            ).db_session: fake_db,
+            __import__("apps.api.dependencies", fromlist=["db_session"]).db_session: fake_db,
             __import__(
                 "apps.api.dependencies", fromlist=["embedding_provider"]
             ).embedding_provider: lambda: fake_provider,
@@ -490,9 +486,7 @@ class TestRetrieveEndpoint:
             return_value=search_results,
         ):
             transport = ASGITransport(app=app)
-            async with AsyncClient(
-                transport=transport, base_url="http://test"
-            ) as client:
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
                 resp = await client.post(
                     "/api/v1/query/retrieve",
                     json={
@@ -536,9 +530,7 @@ class TestRetrieveEndpoint:
             yield db
 
         app.dependency_overrides = {
-            __import__(
-                "apps.api.dependencies", fromlist=["db_session"]
-            ).db_session: fake_db,
+            __import__("apps.api.dependencies", fromlist=["db_session"]).db_session: fake_db,
             __import__(
                 "apps.api.dependencies", fromlist=["embedding_provider"]
             ).embedding_provider: lambda: fake_provider,
@@ -550,9 +542,7 @@ class TestRetrieveEndpoint:
             return_value=[],
         ):
             transport = ASGITransport(app=app)
-            async with AsyncClient(
-                transport=transport, base_url="http://test"
-            ) as client:
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
                 resp = await client.post(
                     "/api/v1/query/retrieve",
                     json={
@@ -580,9 +570,7 @@ class TestRetrieveEndpoint:
         app = create_app()
 
         transport = ASGITransport(app=app)
-        async with AsyncClient(
-            transport=transport, base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.post(
                 "/api/v1/query/retrieve",
                 json={"query": "hello"},

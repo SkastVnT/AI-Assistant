@@ -12,50 +12,115 @@ from .blocks import (
     T2IFinalLayer,
     SizeEmbedder,
 )
-from comfy.ldm.modules.diffusionmodules.mmdit import TimestepEmbedder, PatchEmbed, Mlp, get_1d_sincos_pos_embed_from_grid_torch
+from comfy.ldm.modules.diffusionmodules.mmdit import (
+    TimestepEmbedder,
+    PatchEmbed,
+    Mlp,
+    get_1d_sincos_pos_embed_from_grid_torch,
+)
 
 
-def get_2d_sincos_pos_embed_torch(embed_dim, w, h, pe_interpolation=1.0, base_size=16, device=None, dtype=torch.float32):
+def get_2d_sincos_pos_embed_torch(
+    embed_dim,
+    w,
+    h,
+    pe_interpolation=1.0,
+    base_size=16,
+    device=None,
+    dtype=torch.float32,
+):
     grid_h, grid_w = torch.meshgrid(
-        torch.arange(h, device=device, dtype=dtype) / (h/base_size) / pe_interpolation,
-        torch.arange(w, device=device, dtype=dtype) / (w/base_size) / pe_interpolation,
-        indexing='ij'
+        torch.arange(h, device=device, dtype=dtype)
+        / (h / base_size)
+        / pe_interpolation,
+        torch.arange(w, device=device, dtype=dtype)
+        / (w / base_size)
+        / pe_interpolation,
+        indexing="ij",
     )
-    emb_h = get_1d_sincos_pos_embed_from_grid_torch(embed_dim // 2, grid_h, device=device, dtype=dtype)
-    emb_w = get_1d_sincos_pos_embed_from_grid_torch(embed_dim // 2, grid_w, device=device, dtype=dtype)
+    emb_h = get_1d_sincos_pos_embed_from_grid_torch(
+        embed_dim // 2, grid_h, device=device, dtype=dtype
+    )
+    emb_w = get_1d_sincos_pos_embed_from_grid_torch(
+        embed_dim // 2, grid_w, device=device, dtype=dtype
+    )
     emb = torch.cat([emb_w, emb_h], dim=1)  # (H*W, D)
     return emb
+
 
 class PixArtMSBlock(nn.Module):
     """
     A PixArt block with adaptive layer norm zero (adaLN-Zero) conditioning.
     """
-    def __init__(self, hidden_size, num_heads, mlp_ratio=4.0, drop_path=0., input_size=None,
-                 sampling=None, sr_ratio=1, qk_norm=False, dtype=None, device=None, operations=None, **block_kwargs):
+
+    def __init__(
+        self,
+        hidden_size,
+        num_heads,
+        mlp_ratio=4.0,
+        drop_path=0.0,
+        input_size=None,
+        sampling=None,
+        sr_ratio=1,
+        qk_norm=False,
+        dtype=None,
+        device=None,
+        operations=None,
+        **block_kwargs,
+    ):
         super().__init__()
         self.hidden_size = hidden_size
-        self.norm1 = operations.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6, dtype=dtype, device=device)
+        self.norm1 = operations.LayerNorm(
+            hidden_size, elementwise_affine=False, eps=1e-6, dtype=dtype, device=device
+        )
         self.attn = AttentionKVCompress(
-            hidden_size, num_heads=num_heads, qkv_bias=True, sampling=sampling, sr_ratio=sr_ratio,
-            qk_norm=qk_norm, dtype=dtype, device=device, operations=operations, **block_kwargs
+            hidden_size,
+            num_heads=num_heads,
+            qkv_bias=True,
+            sampling=sampling,
+            sr_ratio=sr_ratio,
+            qk_norm=qk_norm,
+            dtype=dtype,
+            device=device,
+            operations=operations,
+            **block_kwargs,
         )
         self.cross_attn = MultiHeadCrossAttention(
-            hidden_size, num_heads, dtype=dtype, device=device, operations=operations, **block_kwargs
+            hidden_size,
+            num_heads,
+            dtype=dtype,
+            device=device,
+            operations=operations,
+            **block_kwargs,
         )
-        self.norm2 = operations.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6, dtype=dtype, device=device)
+        self.norm2 = operations.LayerNorm(
+            hidden_size, elementwise_affine=False, eps=1e-6, dtype=dtype, device=device
+        )
         # to be compatible with lower version pytorch
         approx_gelu = lambda: nn.GELU(approximate="tanh")
         self.mlp = Mlp(
-            in_features=hidden_size, hidden_features=int(hidden_size * mlp_ratio), act_layer=approx_gelu,
-            dtype=dtype, device=device, operations=operations
+            in_features=hidden_size,
+            hidden_features=int(hidden_size * mlp_ratio),
+            act_layer=approx_gelu,
+            dtype=dtype,
+            device=device,
+            operations=operations,
         )
-        self.scale_shift_table = nn.Parameter(torch.randn(6, hidden_size) / hidden_size ** 0.5)
+        self.scale_shift_table = nn.Parameter(
+            torch.randn(6, hidden_size) / hidden_size**0.5
+        )
 
     def forward(self, x, y, t, mask=None, HW=None, **kwargs):
         B, N, C = x.shape
 
-        shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = (self.scale_shift_table[None].to(dtype=x.dtype, device=x.device) + t.reshape(B, 6, -1)).chunk(6, dim=1)
-        x = x + (gate_msa * self.attn(t2i_modulate(self.norm1(x), shift_msa, scale_msa), HW=HW))
+        shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = (
+            self.scale_shift_table[None].to(dtype=x.dtype, device=x.device)
+            + t.reshape(B, 6, -1)
+        ).chunk(6, dim=1)
+        x = x + (
+            gate_msa
+            * self.attn(t2i_modulate(self.norm1(x), shift_msa, scale_msa), HW=HW)
+        )
         x = x + self.cross_attn(x, y, mask)
         x = x + (gate_mlp * self.mlp(t2i_modulate(self.norm2(x), shift_mlp, scale_mlp)))
 
@@ -67,31 +132,32 @@ class PixArtMS(nn.Module):
     """
     Diffusion model with a Transformer backbone.
     """
+
     def __init__(
-            self,
-            input_size=32,
-            patch_size=2,
-            in_channels=4,
-            hidden_size=1152,
-            depth=28,
-            num_heads=16,
-            mlp_ratio=4.0,
-            class_dropout_prob=0.1,
-            learn_sigma=True,
-            pred_sigma=True,
-            drop_path: float = 0.,
-            caption_channels=4096,
-            pe_interpolation=None,
-            pe_precision=None,
-            config=None,
-            model_max_length=120,
-            micro_condition=True,
-            qk_norm=False,
-            kv_compress_config=None,
-            dtype=None,
-            device=None,
-            operations=None,
-            **kwargs,
+        self,
+        input_size=32,
+        patch_size=2,
+        in_channels=4,
+        hidden_size=1152,
+        depth=28,
+        num_heads=16,
+        mlp_ratio=4.0,
+        class_dropout_prob=0.1,
+        learn_sigma=True,
+        pred_sigma=True,
+        drop_path: float = 0.0,
+        caption_channels=4096,
+        pe_interpolation=None,
+        pe_precision=None,
+        config=None,
+        model_max_length=120,
+        micro_condition=True,
+        qk_norm=False,
+        kv_compress_config=None,
+        dtype=None,
+        device=None,
+        operations=None,
+        **kwargs,
     ):
         nn.Module.__init__(self)
         self.dtype = dtype
@@ -108,7 +174,9 @@ class PixArtMS(nn.Module):
         approx_gelu = lambda: nn.GELU(approximate="tanh")
         self.t_block = nn.Sequential(
             nn.SiLU(),
-            operations.Linear(hidden_size, 6 * hidden_size, bias=True, dtype=dtype, device=device)
+            operations.Linear(
+                hidden_size, 6 * hidden_size, bias=True, dtype=dtype, device=device
+            ),
         )
         self.x_embedder = PatchEmbed(
             patch_size=patch_size,
@@ -117,48 +185,74 @@ class PixArtMS(nn.Module):
             bias=True,
             dtype=dtype,
             device=device,
-            operations=operations
+            operations=operations,
         )
         self.t_embedder = TimestepEmbedder(
-            hidden_size, dtype=dtype, device=device, operations=operations,
+            hidden_size,
+            dtype=dtype,
+            device=device,
+            operations=operations,
         )
         self.y_embedder = CaptionEmbedder(
-            in_channels=caption_channels, hidden_size=hidden_size, uncond_prob=class_dropout_prob,
-            act_layer=approx_gelu, token_num=model_max_length,
-            dtype=dtype, device=device, operations=operations,
+            in_channels=caption_channels,
+            hidden_size=hidden_size,
+            uncond_prob=class_dropout_prob,
+            act_layer=approx_gelu,
+            token_num=model_max_length,
+            dtype=dtype,
+            device=device,
+            operations=operations,
         )
 
         self.micro_conditioning = micro_condition
         if self.micro_conditioning:
-            self.csize_embedder = SizeEmbedder(hidden_size//3, dtype=dtype, device=device, operations=operations)
-            self.ar_embedder = SizeEmbedder(hidden_size//3, dtype=dtype, device=device, operations=operations)
+            self.csize_embedder = SizeEmbedder(
+                hidden_size // 3, dtype=dtype, device=device, operations=operations
+            )
+            self.ar_embedder = SizeEmbedder(
+                hidden_size // 3, dtype=dtype, device=device, operations=operations
+            )
 
         # For fixed sin-cos embedding:
         # num_patches = (input_size // patch_size) * (input_size // patch_size)
         # self.base_size = input_size // self.patch_size
         # self.register_buffer("pos_embed", torch.zeros(1, num_patches, hidden_size))
 
-        drop_path = [x.item() for x in torch.linspace(0, drop_path, depth)]  # stochastic depth decay rule
+        drop_path = [
+            x.item() for x in torch.linspace(0, drop_path, depth)
+        ]  # stochastic depth decay rule
         if kv_compress_config is None:
             kv_compress_config = {
-                'sampling': None,
-                'scale_factor': 1,
-                'kv_compress_layer': [],
+                "sampling": None,
+                "scale_factor": 1,
+                "kv_compress_layer": [],
             }
-        self.blocks = nn.ModuleList([
-            PixArtMSBlock(
-                hidden_size, num_heads, mlp_ratio=mlp_ratio, drop_path=drop_path[i],
-                sampling=kv_compress_config['sampling'],
-                sr_ratio=int(kv_compress_config['scale_factor']) if i in kv_compress_config['kv_compress_layer'] else 1,
-                qk_norm=qk_norm,
-                dtype=dtype,
-                device=device,
-                operations=operations,
-            )
-            for i in range(depth)
-        ])
+        self.blocks = nn.ModuleList(
+            [
+                PixArtMSBlock(
+                    hidden_size,
+                    num_heads,
+                    mlp_ratio=mlp_ratio,
+                    drop_path=drop_path[i],
+                    sampling=kv_compress_config["sampling"],
+                    sr_ratio=int(kv_compress_config["scale_factor"])
+                    if i in kv_compress_config["kv_compress_layer"]
+                    else 1,
+                    qk_norm=qk_norm,
+                    dtype=dtype,
+                    device=device,
+                    operations=operations,
+                )
+                for i in range(depth)
+            ]
+        )
         self.final_layer = T2IFinalLayer(
-            hidden_size, patch_size, self.out_channels, dtype=dtype, device=device, operations=operations
+            hidden_size,
+            patch_size,
+            self.out_channels,
+            dtype=dtype,
+            device=device,
+            operations=operations,
         )
 
     def forward_orig(self, x, timestep, y, mask=None, c_size=None, c_ar=None, **kwargs):
@@ -175,7 +269,7 @@ class PixArtMS(nn.Module):
         pe_interpolation = self.pe_interpolation
         if pe_interpolation is None or self.pe_precision is not None:
             # calculate pe_interpolation on-the-fly
-            pe_interpolation = round(c_res / (512/8.0), self.pe_precision or 0)
+            pe_interpolation = round(c_res / (512 / 8.0), self.pe_precision or 0)
 
         pos_embed = get_2d_sincos_pos_embed_torch(
             self.hidden_size,
@@ -187,7 +281,9 @@ class PixArtMS(nn.Module):
             dtype=x.dtype,
         ).unsqueeze(0)
 
-        x = self.x_embedder(x) + pos_embed  # (N, T, D), where T = H * W / patch_size ** 2
+        x = (
+            self.x_embedder(x) + pos_embed
+        )  # (N, T, D), where T = H * W / patch_size ** 2
         t = self.t_embedder(timestep, x.dtype)  # (N, D)
 
         if self.micro_conditioning and (c_size is not None and c_ar is not None):
@@ -203,7 +299,11 @@ class PixArtMS(nn.Module):
             if mask.shape[0] != y.shape[0]:
                 mask = mask.repeat(y.shape[0] // mask.shape[0], 1)
             mask = mask.squeeze(1).squeeze(1)
-            y = y.squeeze(1).masked_select(mask.unsqueeze(-1) != 0).view(1, -1, x.shape[-1])
+            y = (
+                y.squeeze(1)
+                .masked_select(mask.unsqueeze(-1) != 0)
+                .view(1, -1, x.shape[-1])
+            )
             y_lens = mask.sum(dim=1).tolist()
         else:
             y_lens = None
@@ -222,10 +322,14 @@ class PixArtMS(nn.Module):
         # Fallback for missing microconds
         if self.micro_conditioning:
             if c_size is None:
-                c_size = torch.tensor([H*8, W*8], dtype=x.dtype, device=x.device).repeat(B, 1)
+                c_size = torch.tensor(
+                    [H * 8, W * 8], dtype=x.dtype, device=x.device
+                ).repeat(B, 1)
 
             if c_ar is None:
-                c_ar = torch.tensor([H/W], dtype=x.dtype, device=x.device).repeat(B, 1)
+                c_ar = torch.tensor([H / W], dtype=x.dtype, device=x.device).repeat(
+                    B, 1
+                )
 
         ## Still accepts the input w/o that dim but returns garbage
         if len(context.shape) == 3:
@@ -236,7 +340,7 @@ class PixArtMS(nn.Module):
 
         ## only return EPS
         if self.pred_sigma:
-            return out[:, :self.in_channels]
+            return out[:, : self.in_channels]
         return out
 
     def unpatchify(self, x, h, w):
@@ -251,6 +355,6 @@ class PixArtMS(nn.Module):
         assert h * w == x.shape[1]
 
         x = x.reshape(shape=(x.shape[0], h, w, p, p, c))
-        x = torch.einsum('nhwpqc->nchpwq', x)
+        x = torch.einsum("nhwpqc->nchpwq", x)
         imgs = x.reshape(shape=(x.shape[0], c, h * p, w * p))
         return imgs

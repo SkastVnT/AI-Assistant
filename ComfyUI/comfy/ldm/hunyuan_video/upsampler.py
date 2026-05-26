@@ -5,6 +5,7 @@ from comfy.ldm.modules.diffusionmodules.model import ResnetBlock, VideoConv3d
 from comfy.ldm.hunyuan_video.vae_refiner import RMS_norm
 import model_management, model_patcher
 
+
 class SRResidualCausalBlock3D(nn.Module):
     def __init__(self, channels: int):
         super().__init__()
@@ -19,6 +20,7 @@ class SRResidualCausalBlock3D(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x + self.block(x)
 
+
 class SRModel3DV2(nn.Module):
     def __init__(
         self,
@@ -30,7 +32,9 @@ class SRModel3DV2(nn.Module):
     ):
         super().__init__()
         self.in_conv = VideoConv3d(in_channels, hidden_channels, kernel_size=3)
-        self.blocks = nn.ModuleList([SRResidualCausalBlock3D(hidden_channels) for _ in range(num_blocks)])
+        self.blocks = nn.ModuleList(
+            [SRResidualCausalBlock3D(hidden_channels) for _ in range(num_blocks)]
+        )
         self.out_conv = VideoConv3d(hidden_channels, out_channels, kernel_size=3)
         self.global_residual = bool(global_residual)
 
@@ -65,12 +69,19 @@ class Upsampler(nn.Module):
 
         for i, tgt in enumerate(block_out_channels):
             stage = nn.Module()
-            stage.block = nn.ModuleList([ResnetBlock(in_channels=ch if j == 0 else tgt,
-                                                    out_channels=tgt,
-                                                    temb_channels=0,
-                                                    conv_shortcut=False,
-                                                    conv_op=VideoConv3d, norm_op=RMS_norm)
-                                        for j in range(num_res_blocks + 1)])
+            stage.block = nn.ModuleList(
+                [
+                    ResnetBlock(
+                        in_channels=ch if j == 0 else tgt,
+                        out_channels=tgt,
+                        temb_channels=0,
+                        conv_shortcut=False,
+                        conv_op=VideoConv3d,
+                        norm_op=RMS_norm,
+                    )
+                    for j in range(num_res_blocks + 1)
+                ]
+            )
             ch = tgt
             self.up.append(stage)
 
@@ -95,12 +106,14 @@ class Upsampler(nn.Module):
         out = self.conv_out(F.silu(self.norm_out(x)))
         return out
 
+
 UPSAMPLERS = {
     "720p": SRModel3DV2,
     "1080p": Upsampler,
 }
 
-class HunyuanVideo15SRModel():
+
+class HunyuanVideo15SRModel:
     def __init__(self, model_type, config):
         self.load_device = model_management.vae_device()
         offload_device = model_management.vae_offload_device()
@@ -108,7 +121,9 @@ class HunyuanVideo15SRModel():
         self.model_class = UPSAMPLERS.get(model_type)
         self.model = self.model_class(**config).eval()
 
-        self.patcher = model_patcher.ModelPatcher(self.model, load_device=self.load_device, offload_device=offload_device)
+        self.patcher = model_patcher.ModelPatcher(
+            self.model, load_device=self.load_device, offload_device=offload_device
+        )
 
     def load_sd(self, sd):
         return self.model.load_state_dict(sd, strict=True)

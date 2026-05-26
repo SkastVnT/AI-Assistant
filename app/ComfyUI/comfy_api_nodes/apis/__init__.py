@@ -23,288 +23,288 @@ class APIKey(BaseModel):
 
 class APIKeyWithPlaintext(APIKey):
     plaintext_key: Optional[str] = Field(
-        None, description='The full API key (only returned at creation)'
+        None, description="The full API key (only returned at creation)"
     )
 
 
 class AuditLog(BaseModel):
     createdAt: Optional[datetime] = Field(
-        None, description='The date and time the event was created'
+        None, description="The date and time the event was created"
     )
-    event_id: Optional[str] = Field(None, description='the id of the event')
-    event_type: Optional[str] = Field(None, description='the type of the event')
+    event_id: Optional[str] = Field(None, description="the id of the event")
+    event_type: Optional[str] = Field(None, description="the type of the event")
     params: Optional[Dict[str, Any]] = Field(
-        None, description='data related to the event'
+        None, description="data related to the event"
     )
 
 
 class BFLAsyncResponse(BaseModel):
-    id: str = Field(..., title='Id')
-    polling_url: str = Field(..., title='Polling Url')
+    id: str = Field(..., title="Id")
+    polling_url: str = Field(..., title="Polling Url")
 
 
 class BFLAsyncWebhookResponse(BaseModel):
-    id: str = Field(..., title='Id')
-    status: str = Field(..., title='Status')
-    webhook_url: str = Field(..., title='Webhook Url')
+    id: str = Field(..., title="Id")
+    status: str = Field(..., title="Status")
+    webhook_url: str = Field(..., title="Webhook Url")
 
 
 class CannyHighThreshold(RootModel[int]):
     root: int = Field(
         ...,
-        description='High threshold for Canny edge detection',
+        description="High threshold for Canny edge detection",
         ge=0,
         le=500,
-        title='Canny High Threshold',
+        title="Canny High Threshold",
     )
 
 
 class CannyLowThreshold(RootModel[int]):
     root: int = Field(
         ...,
-        description='Low threshold for Canny edge detection',
+        description="Low threshold for Canny edge detection",
         ge=0,
         le=500,
-        title='Canny Low Threshold',
+        title="Canny Low Threshold",
     )
 
 
 class Guidance(RootModel[float]):
     root: float = Field(
         ...,
-        description='Guidance strength for the image generation process',
+        description="Guidance strength for the image generation process",
         ge=1.0,
         le=100.0,
-        title='Guidance',
+        title="Guidance",
     )
 
 
 class Steps(RootModel[int]):
     root: int = Field(
         ...,
-        description='Number of steps for the image generation process',
+        description="Number of steps for the image generation process",
         ge=15,
         le=50,
-        title='Steps',
+        title="Steps",
     )
 
 
 class WebhookUrl(RootModel[AnyUrl]):
     root: AnyUrl = Field(
-        ..., description='URL to receive webhook notifications', title='Webhook Url'
+        ..., description="URL to receive webhook notifications", title="Webhook Url"
     )
 
 
 class BFLFluxKontextMaxGenerateRequest(BaseModel):
     guidance: Optional[float] = Field(
-        3, description='The guidance scale for generation', ge=1.0, le=20.0
+        3, description="The guidance scale for generation", ge=1.0, le=20.0
     )
-    input_image: str = Field(..., description='Base64 encoded image to be edited')
+    input_image: str = Field(..., description="Base64 encoded image to be edited")
     prompt: str = Field(
-        ..., description='The text prompt describing what to edit on the image'
+        ..., description="The text prompt describing what to edit on the image"
     )
     steps: Optional[int] = Field(
-        50, description='Number of inference steps', ge=1, le=50
+        50, description="Number of inference steps", ge=1, le=50
     )
 
 
 class BFLFluxKontextMaxGenerateResponse(BaseModel):
-    id: str = Field(..., description='Job ID for tracking')
-    polling_url: str = Field(..., description='URL to poll for results')
+    id: str = Field(..., description="Job ID for tracking")
+    polling_url: str = Field(..., description="URL to poll for results")
 
 
 class BFLFluxKontextProGenerateRequest(BaseModel):
     guidance: Optional[float] = Field(
-        3, description='The guidance scale for generation', ge=1.0, le=20.0
+        3, description="The guidance scale for generation", ge=1.0, le=20.0
     )
-    input_image: str = Field(..., description='Base64 encoded image to be edited')
+    input_image: str = Field(..., description="Base64 encoded image to be edited")
     prompt: str = Field(
-        ..., description='The text prompt describing what to edit on the image'
+        ..., description="The text prompt describing what to edit on the image"
     )
     steps: Optional[int] = Field(
-        50, description='Number of inference steps', ge=1, le=50
+        50, description="Number of inference steps", ge=1, le=50
     )
 
 
 class BFLFluxKontextProGenerateResponse(BaseModel):
-    id: str = Field(..., description='Job ID for tracking')
-    polling_url: str = Field(..., description='URL to poll for results')
+    id: str = Field(..., description="Job ID for tracking")
+    polling_url: str = Field(..., description="URL to poll for results")
 
 
 class OutputFormat(str, Enum):
-    jpeg = 'jpeg'
-    png = 'png'
+    jpeg = "jpeg"
+    png = "png"
 
 
 class BFLFluxPro11GenerateRequest(BaseModel):
-    height: int = Field(..., description='Height of the generated image')
-    image_prompt: Optional[str] = Field(None, description='Optional image prompt')
+    height: int = Field(..., description="Height of the generated image")
+    image_prompt: Optional[str] = Field(None, description="Optional image prompt")
     output_format: Optional[OutputFormat] = Field(
-        None, description='Output image format'
+        None, description="Output image format"
     )
-    prompt: str = Field(..., description='The main text prompt for image generation')
+    prompt: str = Field(..., description="The main text prompt for image generation")
     prompt_upsampling: Optional[bool] = Field(
-        None, description='Whether to use prompt upsampling'
+        None, description="Whether to use prompt upsampling"
     )
-    safety_tolerance: Optional[int] = Field(None, description='Safety tolerance level')
-    seed: Optional[int] = Field(None, description='Random seed for reproducibility')
+    safety_tolerance: Optional[int] = Field(None, description="Safety tolerance level")
+    seed: Optional[int] = Field(None, description="Random seed for reproducibility")
     webhook_secret: Optional[str] = Field(
-        None, description='Optional webhook secret for async processing'
+        None, description="Optional webhook secret for async processing"
     )
     webhook_url: Optional[str] = Field(
-        None, description='Optional webhook URL for async processing'
+        None, description="Optional webhook URL for async processing"
     )
-    width: int = Field(..., description='Width of the generated image')
+    width: int = Field(..., description="Width of the generated image")
 
 
 class BFLFluxPro11GenerateResponse(BaseModel):
-    id: str = Field(..., description='Job ID for tracking')
-    polling_url: str = Field(..., description='URL to poll for results')
+    id: str = Field(..., description="Job ID for tracking")
+    polling_url: str = Field(..., description="URL to poll for results")
 
 
 class Bottom(RootModel[int]):
     root: int = Field(
         ...,
-        description='Number of pixels to expand at the bottom of the image',
+        description="Number of pixels to expand at the bottom of the image",
         ge=0,
         le=2048,
-        title='Bottom',
+        title="Bottom",
     )
 
 
 class Guidance2(RootModel[float]):
     root: float = Field(
         ...,
-        description='Guidance strength for the image generation process',
+        description="Guidance strength for the image generation process",
         ge=1.5,
         le=100.0,
-        title='Guidance',
+        title="Guidance",
     )
 
 
 class Left(RootModel[int]):
     root: int = Field(
         ...,
-        description='Number of pixels to expand on the left side of the image',
+        description="Number of pixels to expand on the left side of the image",
         ge=0,
         le=2048,
-        title='Left',
+        title="Left",
     )
 
 
 class Right(RootModel[int]):
     root: int = Field(
         ...,
-        description='Number of pixels to expand on the right side of the image',
+        description="Number of pixels to expand on the right side of the image",
         ge=0,
         le=2048,
-        title='Right',
+        title="Right",
     )
 
 
 class Steps2(RootModel[int]):
     root: int = Field(
         ...,
-        description='Number of steps for the image generation process',
+        description="Number of steps for the image generation process",
         examples=[50],
         ge=15,
         le=50,
-        title='Steps',
+        title="Steps",
     )
 
 
 class Top(RootModel[int]):
     root: int = Field(
         ...,
-        description='Number of pixels to expand at the top of the image',
+        description="Number of pixels to expand at the top of the image",
         ge=0,
         le=2048,
-        title='Top',
+        title="Top",
     )
 
 
 class BFLFluxProGenerateRequest(BaseModel):
     guidance_scale: Optional[float] = Field(
-        None, description='The guidance scale for generation.', ge=1.0, le=20.0
+        None, description="The guidance scale for generation.", ge=1.0, le=20.0
     )
     height: int = Field(
-        ..., description='The height of the image to generate.', ge=64, le=2048
+        ..., description="The height of the image to generate.", ge=64, le=2048
     )
     negative_prompt: Optional[str] = Field(
-        None, description='The negative prompt for image generation.'
+        None, description="The negative prompt for image generation."
     )
     num_images: Optional[int] = Field(
-        None, description='The number of images to generate.', ge=1, le=4
+        None, description="The number of images to generate.", ge=1, le=4
     )
     num_inference_steps: Optional[int] = Field(
-        None, description='The number of inference steps.', ge=1, le=100
+        None, description="The number of inference steps.", ge=1, le=100
     )
-    prompt: str = Field(..., description='The text prompt for image generation.')
-    seed: Optional[int] = Field(None, description='The seed value for reproducibility.')
+    prompt: str = Field(..., description="The text prompt for image generation.")
+    seed: Optional[int] = Field(None, description="The seed value for reproducibility.")
     width: int = Field(
-        ..., description='The width of the image to generate.', ge=64, le=2048
+        ..., description="The width of the image to generate.", ge=64, le=2048
     )
 
 
 class BFLFluxProGenerateResponse(BaseModel):
-    id: str = Field(..., description='The unique identifier for the generation task.')
-    polling_url: str = Field(..., description='URL to poll for the generation result.')
+    id: str = Field(..., description="The unique identifier for the generation task.")
+    polling_url: str = Field(..., description="URL to poll for the generation result.")
 
 
 class BFLOutputFormat(str, Enum):
-    jpeg = 'jpeg'
-    png = 'png'
+    jpeg = "jpeg"
+    png = "png"
 
 
 class BFLValidationError(BaseModel):
-    loc: List[Union[str, int]] = Field(..., title='Location')
-    msg: str = Field(..., title='Message')
-    type: str = Field(..., title='Error Type')
+    loc: List[Union[str, int]] = Field(..., title="Location")
+    msg: str = Field(..., title="Message")
+    type: str = Field(..., title="Error Type")
 
 
 class Status(str, Enum):
-    success = 'success'
-    not_found = 'not_found'
-    error = 'error'
+    success = "success"
+    not_found = "not_found"
+    error = "error"
 
 
 class ClaimMyNodeRequest(BaseModel):
     GH_TOKEN: str = Field(
-        ..., description='GitHub token to verify if the user owns the repo of the node'
+        ..., description="GitHub token to verify if the user owns the repo of the node"
     )
 
 
 class ComfyNode(BaseModel):
     category: Optional[str] = Field(
         None,
-        description='UI category where the node is listed, used for grouping nodes.',
+        description="UI category where the node is listed, used for grouping nodes.",
     )
     comfy_node_name: Optional[str] = Field(
-        None, description='Unique identifier for the node'
+        None, description="Unique identifier for the node"
     )
     deprecated: Optional[bool] = Field(
         None,
-        description='Indicates if the node is deprecated. Deprecated nodes are hidden in the UI.',
+        description="Indicates if the node is deprecated. Deprecated nodes are hidden in the UI.",
     )
     description: Optional[str] = Field(
         None, description="Brief description of the node's functionality or purpose."
     )
     experimental: Optional[bool] = Field(
         None,
-        description='Indicates if the node is experimental, subject to changes or removal.',
+        description="Indicates if the node is experimental, subject to changes or removal.",
     )
     function: Optional[str] = Field(
-        None, description='Name of the entry-point function to execute the node.'
+        None, description="Name of the entry-point function to execute the node."
     )
-    input_types: Optional[str] = Field(None, description='Defines input parameters')
+    input_types: Optional[str] = Field(None, description="Defines input parameters")
     output_is_list: Optional[List[bool]] = Field(
-        None, description='Boolean values indicating if each output is a list.'
+        None, description="Boolean values indicating if each output is a list."
     )
     return_names: Optional[str] = Field(
-        None, description='Names of the outputs for clarity in workflows.'
+        None, description="Names of the outputs for clarity in workflows."
     )
     return_types: Optional[str] = Field(
-        None, description='Specifies the types of outputs produced by the node.'
+        None, description="Specifies the types of outputs produced by the node."
     )
 
 
@@ -316,52 +316,52 @@ class ComfyNodeCloudBuildInfo(BaseModel):
 
 
 class Status1(str, Enum):
-    in_progress = 'in_progress'
-    completed = 'completed'
-    incomplete = 'incomplete'
+    in_progress = "in_progress"
+    completed = "completed"
+    incomplete = "incomplete"
 
 
 class Type(str, Enum):
-    computer_call = 'computer_call'
+    computer_call = "computer_call"
 
 
 class ComputerToolCall(BaseModel):
     action: Dict[str, Any]
     call_id: str = Field(
         ...,
-        description='An identifier used when responding to the tool call with output.\n',
+        description="An identifier used when responding to the tool call with output.\n",
     )
-    id: str = Field(..., description='The unique ID of the computer call.')
+    id: str = Field(..., description="The unique ID of the computer call.")
     status: Status1 = Field(
         ...,
-        description='The status of the item. One of `in_progress`, `completed`, or\n`incomplete`. Populated when items are returned via API.\n',
+        description="The status of the item. One of `in_progress`, `completed`, or\n`incomplete`. Populated when items are returned via API.\n",
     )
     type: Type = Field(
-        ..., description='The type of the computer call. Always `computer_call`.'
+        ..., description="The type of the computer call. Always `computer_call`."
     )
 
 
 class Environment(str, Enum):
-    windows = 'windows'
-    mac = 'mac'
-    linux = 'linux'
-    ubuntu = 'ubuntu'
-    browser = 'browser'
+    windows = "windows"
+    mac = "mac"
+    linux = "linux"
+    ubuntu = "ubuntu"
+    browser = "browser"
 
 
 class Type1(str, Enum):
-    computer_use_preview = 'computer_use_preview'
+    computer_use_preview = "computer_use_preview"
 
 
 class ComputerUsePreviewTool(BaseModel):
-    display_height: int = Field(..., description='The height of the computer display.')
-    display_width: int = Field(..., description='The width of the computer display.')
+    display_height: int = Field(..., description="The height of the computer display.")
+    display_width: int = Field(..., description="The width of the computer display.")
     environment: Environment = Field(
-        ..., description='The type of computer environment to control.'
+        ..., description="The type of computer environment to control."
     )
-    type: Literal['ComputerUsePreviewTool'] = Field(
+    type: Literal["ComputerUsePreviewTool"] = Field(
         ...,
-        description='The type of the computer use tool. Always `computer_use_preview`.',
+        description="The type of the computer use tool. Always `computer_use_preview`.",
     )
 
 
@@ -372,55 +372,55 @@ class CreateAPIKeyRequest(BaseModel):
 
 class Customer(BaseModel):
     createdAt: Optional[datetime] = Field(
-        None, description='The date and time the user was created'
+        None, description="The date and time the user was created"
     )
-    email: Optional[str] = Field(None, description='The email address for this user')
-    has_fund: Optional[bool] = Field(None, description='Whether the user has funds')
-    id: str = Field(..., description='The firebase UID of the user')
-    is_admin: Optional[bool] = Field(None, description='Whether the user is an admin')
-    metronome_id: Optional[str] = Field(None, description='The Metronome customer ID')
-    name: Optional[str] = Field(None, description='The name for this user')
-    stripe_id: Optional[str] = Field(None, description='The Stripe customer ID')
+    email: Optional[str] = Field(None, description="The email address for this user")
+    has_fund: Optional[bool] = Field(None, description="Whether the user has funds")
+    id: str = Field(..., description="The firebase UID of the user")
+    is_admin: Optional[bool] = Field(None, description="Whether the user is an admin")
+    metronome_id: Optional[str] = Field(None, description="The Metronome customer ID")
+    name: Optional[str] = Field(None, description="The name for this user")
+    stripe_id: Optional[str] = Field(None, description="The Stripe customer ID")
     updatedAt: Optional[datetime] = Field(
-        None, description='The date and time the user was last updated'
+        None, description="The date and time the user was last updated"
     )
 
 
 class CustomerStorageResourceResponse(BaseModel):
     download_url: Optional[str] = Field(
         None,
-        description='The signed URL to use for downloading the file from the specified path',
+        description="The signed URL to use for downloading the file from the specified path",
     )
     existing_file: Optional[bool] = Field(
-        None, description='Whether an existing file with the same hash was found'
+        None, description="Whether an existing file with the same hash was found"
     )
     expires_at: Optional[datetime] = Field(
-        None, description='When the signed URL will expire'
+        None, description="When the signed URL will expire"
     )
     upload_url: Optional[str] = Field(
         None,
-        description='The signed URL to use for uploading the file to the specified path',
+        description="The signed URL to use for uploading the file to the specified path",
     )
 
 
 class Role(str, Enum):
-    user = 'user'
-    assistant = 'assistant'
-    system = 'system'
-    developer = 'developer'
+    user = "user"
+    assistant = "assistant"
+    system = "system"
+    developer = "developer"
 
 
 class Type2(str, Enum):
-    message = 'message'
+    message = "message"
 
 
 class Error(BaseModel):
     details: Optional[List[str]] = Field(
         None,
-        description='Optional detailed information about the error or hints for resolving it.',
+        description="Optional detailed information about the error or hints for resolving it.",
     )
     message: Optional[str] = Field(
-        None, description='A clear and concise description of the error.'
+        None, description="A clear and concise description of the error."
     )
 
 
@@ -430,100 +430,100 @@ class ErrorResponse(BaseModel):
 
 
 class Type3(str, Enum):
-    file_search = 'file_search'
+    file_search = "file_search"
 
 
 class FileSearchTool(BaseModel):
-    type: Literal['FileSearchTool'] = Field(..., description='The type of tool')
+    type: Literal["FileSearchTool"] = Field(..., description="The type of tool")
     vector_store_ids: List[str] = Field(
-        ..., description='IDs of vector stores to search in'
+        ..., description="IDs of vector stores to search in"
     )
 
 
 class Result(BaseModel):
-    file_id: Optional[str] = Field(None, description='The unique ID of the file.\n')
-    filename: Optional[str] = Field(None, description='The name of the file.\n')
+    file_id: Optional[str] = Field(None, description="The unique ID of the file.\n")
+    filename: Optional[str] = Field(None, description="The name of the file.\n")
     score: Optional[float] = Field(
-        None, description='The relevance score of the file - a value between 0 and 1.\n'
+        None, description="The relevance score of the file - a value between 0 and 1.\n"
     )
     text: Optional[str] = Field(
-        None, description='The text that was retrieved from the file.\n'
+        None, description="The text that was retrieved from the file.\n"
     )
 
 
 class Status2(str, Enum):
-    in_progress = 'in_progress'
-    searching = 'searching'
-    completed = 'completed'
-    incomplete = 'incomplete'
-    failed = 'failed'
+    in_progress = "in_progress"
+    searching = "searching"
+    completed = "completed"
+    incomplete = "incomplete"
+    failed = "failed"
 
 
 class Type4(str, Enum):
-    file_search_call = 'file_search_call'
+    file_search_call = "file_search_call"
 
 
 class FileSearchToolCall(BaseModel):
-    id: str = Field(..., description='The unique ID of the file search tool call.\n')
+    id: str = Field(..., description="The unique ID of the file search tool call.\n")
     queries: List[str] = Field(
-        ..., description='The queries used to search for files.\n'
+        ..., description="The queries used to search for files.\n"
     )
     results: Optional[List[Result]] = Field(
-        None, description='The results of the file search tool call.\n'
+        None, description="The results of the file search tool call.\n"
     )
     status: Status2 = Field(
         ...,
-        description='The status of the file search tool call. One of `in_progress`, \n`searching`, `incomplete` or `failed`,\n',
+        description="The status of the file search tool call. One of `in_progress`, \n`searching`, `incomplete` or `failed`,\n",
     )
     type: Type4 = Field(
         ...,
-        description='The type of the file search tool call. Always `file_search_call`.\n',
+        description="The type of the file search tool call. Always `file_search_call`.\n",
     )
 
 
 class Type5(str, Enum):
-    function = 'function'
+    function = "function"
 
 
 class FunctionTool(BaseModel):
     description: Optional[str] = Field(
-        None, description='Description of what the function does'
+        None, description="Description of what the function does"
     )
-    name: str = Field(..., description='Name of the function')
+    name: str = Field(..., description="Name of the function")
     parameters: Dict[str, Any] = Field(
-        ..., description='JSON Schema object describing the function parameters'
+        ..., description="JSON Schema object describing the function parameters"
     )
-    type: Literal['FunctionTool'] = Field(..., description='The type of tool')
+    type: Literal["FunctionTool"] = Field(..., description="The type of tool")
 
 
 class Status3(str, Enum):
-    in_progress = 'in_progress'
-    completed = 'completed'
-    incomplete = 'incomplete'
+    in_progress = "in_progress"
+    completed = "completed"
+    incomplete = "incomplete"
 
 
 class Type6(str, Enum):
-    function_call = 'function_call'
+    function_call = "function_call"
 
 
 class FunctionToolCall(BaseModel):
     arguments: str = Field(
-        ..., description='A JSON string of the arguments to pass to the function.\n'
+        ..., description="A JSON string of the arguments to pass to the function.\n"
     )
     call_id: str = Field(
         ...,
-        description='The unique ID of the function tool call generated by the model.\n',
+        description="The unique ID of the function tool call generated by the model.\n",
     )
     id: Optional[str] = Field(
-        None, description='The unique ID of the function tool call.\n'
+        None, description="The unique ID of the function tool call.\n"
     )
-    name: str = Field(..., description='The name of the function to run.\n')
+    name: str = Field(..., description="The name of the function to run.\n")
     status: Optional[Status3] = Field(
         None,
-        description='The status of the item. One of `in_progress`, `completed`, or\n`incomplete`. Populated when items are returned via API.\n',
+        description="The status of the item. One of `in_progress`, `completed`, or\n`incomplete`. Populated when items are returned via API.\n",
     )
     type: Type6 = Field(
-        ..., description='The type of the function tool call. Always `function_call`.\n'
+        ..., description="The type of the function tool call. Always `function_call`.\n"
     )
 
 
@@ -542,22 +542,22 @@ class GeminiCitationMetadata(BaseModel):
 
 
 class Role1(str, Enum):
-    user = 'user'
-    model = 'model'
+    user = "user"
+    model = "model"
 
 
 class GeminiFunctionDeclaration(BaseModel):
     description: Optional[str] = None
     name: str
     parameters: Dict[str, Any] = Field(
-        ..., description='JSON schema for the function parameters'
+        ..., description="JSON schema for the function parameters"
     )
 
 
 class GeminiGenerationConfig(BaseModel):
     maxOutputTokens: Optional[int] = Field(
         None,
-        description='Maximum number of tokens that can be generated in the response. A token is approximately 4 characters. 100 tokens correspond to roughly 60-80 words.\n',
+        description="Maximum number of tokens that can be generated in the response. A token is approximately 4 characters. 100 tokens correspond to roughly 60-80 words.\n",
         examples=[2048],
         ge=16,
         le=8192,
@@ -582,42 +582,42 @@ class GeminiGenerationConfig(BaseModel):
     )
     topP: Optional[float] = Field(
         0.95,
-        description='If specified, nucleus sampling is used.\nTop-P changes how the model selects tokens for output. Tokens are selected from the most (see top-K) to least probable until the sum of their probabilities equals the top-P value. For example, if tokens A, B, and C have a probability of 0.3, 0.2, and 0.1 and the top-P value is 0.5, then the model will select either A or B as the next token by using temperature and excludes C as a candidate.\nSpecify a lower value for less random responses and a higher value for more random responses.\n',
+        description="If specified, nucleus sampling is used.\nTop-P changes how the model selects tokens for output. Tokens are selected from the most (see top-K) to least probable until the sum of their probabilities equals the top-P value. For example, if tokens A, B, and C have a probability of 0.3, 0.2, and 0.1 and the top-P value is 0.5, then the model will select either A or B as the next token by using temperature and excludes C as a candidate.\nSpecify a lower value for less random responses and a higher value for more random responses.\n",
         ge=0.0,
         le=1.0,
     )
 
 
 class GeminiMimeType(str, Enum):
-    application_pdf = 'application/pdf'
-    audio_mpeg = 'audio/mpeg'
-    audio_mp3 = 'audio/mp3'
-    audio_wav = 'audio/wav'
-    image_png = 'image/png'
-    image_jpeg = 'image/jpeg'
-    image_webp = 'image/webp'
-    text_plain = 'text/plain'
-    video_mov = 'video/mov'
-    video_mpeg = 'video/mpeg'
-    video_mp4 = 'video/mp4'
-    video_mpg = 'video/mpg'
-    video_avi = 'video/avi'
-    video_wmv = 'video/wmv'
-    video_mpegps = 'video/mpegps'
-    video_flv = 'video/flv'
+    application_pdf = "application/pdf"
+    audio_mpeg = "audio/mpeg"
+    audio_mp3 = "audio/mp3"
+    audio_wav = "audio/wav"
+    image_png = "image/png"
+    image_jpeg = "image/jpeg"
+    image_webp = "image/webp"
+    text_plain = "text/plain"
+    video_mov = "video/mov"
+    video_mpeg = "video/mpeg"
+    video_mp4 = "video/mp4"
+    video_mpg = "video/mpg"
+    video_avi = "video/avi"
+    video_wmv = "video/wmv"
+    video_mpegps = "video/mpegps"
+    video_flv = "video/flv"
 
 
 class GeminiOffset(BaseModel):
     nanos: Optional[int] = Field(
         None,
-        description='Signed fractions of a second at nanosecond resolution. Negative second values with fractions must still have non-negative nanos values.\n',
+        description="Signed fractions of a second at nanosecond resolution. Negative second values with fractions must still have non-negative nanos values.\n",
         examples=[0],
         ge=0,
         le=999999999,
     )
     seconds: Optional[int] = Field(
         None,
-        description='Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive.\n',
+        description="Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive.\n",
         examples=[60],
         ge=-315576000000,
         le=315576000000,
@@ -625,41 +625,41 @@ class GeminiOffset(BaseModel):
 
 
 class GeminiSafetyCategory(str, Enum):
-    HARM_CATEGORY_SEXUALLY_EXPLICIT = 'HARM_CATEGORY_SEXUALLY_EXPLICIT'
-    HARM_CATEGORY_HATE_SPEECH = 'HARM_CATEGORY_HATE_SPEECH'
-    HARM_CATEGORY_HARASSMENT = 'HARM_CATEGORY_HARASSMENT'
-    HARM_CATEGORY_DANGEROUS_CONTENT = 'HARM_CATEGORY_DANGEROUS_CONTENT'
+    HARM_CATEGORY_SEXUALLY_EXPLICIT = "HARM_CATEGORY_SEXUALLY_EXPLICIT"
+    HARM_CATEGORY_HATE_SPEECH = "HARM_CATEGORY_HATE_SPEECH"
+    HARM_CATEGORY_HARASSMENT = "HARM_CATEGORY_HARASSMENT"
+    HARM_CATEGORY_DANGEROUS_CONTENT = "HARM_CATEGORY_DANGEROUS_CONTENT"
 
 
 class Probability(str, Enum):
-    NEGLIGIBLE = 'NEGLIGIBLE'
-    LOW = 'LOW'
-    MEDIUM = 'MEDIUM'
-    HIGH = 'HIGH'
-    UNKNOWN = 'UNKNOWN'
+    NEGLIGIBLE = "NEGLIGIBLE"
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    UNKNOWN = "UNKNOWN"
 
 
 class GeminiSafetyRating(BaseModel):
     category: Optional[GeminiSafetyCategory] = None
     probability: Optional[Probability] = Field(
         None,
-        description='The probability that the content violates the specified safety category',
+        description="The probability that the content violates the specified safety category",
     )
 
 
 class GeminiSafetyThreshold(str, Enum):
-    OFF = 'OFF'
-    BLOCK_NONE = 'BLOCK_NONE'
-    BLOCK_LOW_AND_ABOVE = 'BLOCK_LOW_AND_ABOVE'
-    BLOCK_MEDIUM_AND_ABOVE = 'BLOCK_MEDIUM_AND_ABOVE'
-    BLOCK_ONLY_HIGH = 'BLOCK_ONLY_HIGH'
+    OFF = "OFF"
+    BLOCK_NONE = "BLOCK_NONE"
+    BLOCK_LOW_AND_ABOVE = "BLOCK_LOW_AND_ABOVE"
+    BLOCK_MEDIUM_AND_ABOVE = "BLOCK_MEDIUM_AND_ABOVE"
+    BLOCK_ONLY_HIGH = "BLOCK_ONLY_HIGH"
 
 
 class GeminiTextPart(BaseModel):
     text: Optional[str] = Field(
         None,
-        description='A text prompt or code snippet.',
-        examples=['Answer as concisely as possible'],
+        description="A text prompt or code snippet.",
+        examples=["Answer as concisely as possible"],
     )
 
 
@@ -673,110 +673,110 @@ class GeminiVideoMetadata(BaseModel):
 
 
 class GitCommitSummary(BaseModel):
-    author: Optional[str] = Field(None, description='The author of the commit')
+    author: Optional[str] = Field(None, description="The author of the commit")
     branch_name: Optional[str] = Field(
-        None, description='The branch where the commit was made'
+        None, description="The branch where the commit was made"
     )
-    commit_hash: Optional[str] = Field(None, description='The hash of the commit')
-    commit_name: Optional[str] = Field(None, description='The name of the commit')
+    commit_hash: Optional[str] = Field(None, description="The hash of the commit")
+    commit_name: Optional[str] = Field(None, description="The name of the commit")
     status_summary: Optional[Dict[str, str]] = Field(
-        None, description='A map of operating system to status pairs'
+        None, description="A map of operating system to status pairs"
     )
     timestamp: Optional[datetime] = Field(
-        None, description='The timestamp when the commit was made'
+        None, description="The timestamp when the commit was made"
     )
 
 
 class GithubEnterprise(BaseModel):
-    avatar_url: str = Field(..., description='URL to the enterprise avatar')
-    created_at: datetime = Field(..., description='When the enterprise was created')
-    description: Optional[str] = Field(None, description='The enterprise description')
-    html_url: str = Field(..., description='The HTML URL of the enterprise')
-    id: int = Field(..., description='The enterprise ID')
-    name: str = Field(..., description='The enterprise name')
-    node_id: str = Field(..., description='The enterprise node ID')
-    slug: str = Field(..., description='The enterprise slug')
+    avatar_url: str = Field(..., description="URL to the enterprise avatar")
+    created_at: datetime = Field(..., description="When the enterprise was created")
+    description: Optional[str] = Field(None, description="The enterprise description")
+    html_url: str = Field(..., description="The HTML URL of the enterprise")
+    id: int = Field(..., description="The enterprise ID")
+    name: str = Field(..., description="The enterprise name")
+    node_id: str = Field(..., description="The enterprise node ID")
+    slug: str = Field(..., description="The enterprise slug")
     updated_at: datetime = Field(
-        ..., description='When the enterprise was last updated'
+        ..., description="When the enterprise was last updated"
     )
-    website_url: Optional[str] = Field(None, description='The enterprise website URL')
+    website_url: Optional[str] = Field(None, description="The enterprise website URL")
 
 
 class RepositorySelection(str, Enum):
-    selected = 'selected'
-    all = 'all'
+    selected = "selected"
+    all = "all"
 
 
 class GithubOrganization(BaseModel):
     avatar_url: str = Field(..., description="URL to the organization's avatar")
-    description: Optional[str] = Field(None, description='The organization description')
+    description: Optional[str] = Field(None, description="The organization description")
     events_url: str = Field(..., description="The API URL of the organization's events")
     hooks_url: str = Field(..., description="The API URL of the organization's hooks")
-    id: int = Field(..., description='The organization ID')
+    id: int = Field(..., description="The organization ID")
     issues_url: str = Field(..., description="The API URL of the organization's issues")
     login: str = Field(..., description="The organization's login name")
     members_url: str = Field(
         ..., description="The API URL of the organization's members"
     )
-    node_id: str = Field(..., description='The organization node ID')
+    node_id: str = Field(..., description="The organization node ID")
     public_members_url: str = Field(
         ..., description="The API URL of the organization's public members"
     )
     repos_url: str = Field(
         ..., description="The API URL of the organization's repositories"
     )
-    url: str = Field(..., description='The API URL of the organization')
+    url: str = Field(..., description="The API URL of the organization")
 
 
 class State(str, Enum):
-    uploaded = 'uploaded'
-    open = 'open'
+    uploaded = "uploaded"
+    open = "open"
 
 
 class Action(str, Enum):
-    published = 'published'
-    unpublished = 'unpublished'
-    created = 'created'
-    edited = 'edited'
-    deleted = 'deleted'
-    prereleased = 'prereleased'
-    released = 'released'
+    published = "published"
+    unpublished = "unpublished"
+    created = "created"
+    edited = "edited"
+    deleted = "deleted"
+    prereleased = "prereleased"
+    released = "released"
 
 
 class Type7(str, Enum):
-    Bot = 'Bot'
-    User = 'User'
-    Organization = 'Organization'
+    Bot = "Bot"
+    User = "User"
+    Organization = "Organization"
 
 
 class GithubUser(BaseModel):
     avatar_url: str = Field(..., description="URL to the user's avatar")
     gravatar_id: Optional[str] = Field(None, description="The user's gravatar ID")
-    html_url: str = Field(..., description='The HTML URL of the user')
+    html_url: str = Field(..., description="The HTML URL of the user")
     id: int = Field(..., description="The user's ID")
     login: str = Field(..., description="The user's login name")
     node_id: str = Field(..., description="The user's node ID")
-    site_admin: bool = Field(..., description='Whether the user is a site admin')
-    type: Type7 = Field(..., description='The type of user')
-    url: str = Field(..., description='The API URL of the user')
+    site_admin: bool = Field(..., description="Whether the user is a site admin")
+    type: Type7 = Field(..., description="The type of user")
+    url: str = Field(..., description="The API URL of the user")
 
 
 class IdeogramColorPalette1(BaseModel):
-    name: str = Field(..., description='Name of the preset color palette')
+    name: str = Field(..., description="Name of the preset color palette")
 
 
 class Member(BaseModel):
     color: Optional[str] = Field(
-        None, description='Hexadecimal color code', pattern='^#[0-9A-Fa-f]{6}$'
+        None, description="Hexadecimal color code", pattern="^#[0-9A-Fa-f]{6}$"
     )
     weight: Optional[float] = Field(
-        None, description='Optional weight for the color (0-1)', ge=0.0, le=1.0
+        None, description="Optional weight for the color (0-1)", ge=0.0, le=1.0
     )
 
 
 class IdeogramColorPalette2(BaseModel):
     members: List[Member] = Field(
-        ..., description='Array of color definitions with optional weights'
+        ..., description="Array of color definitions with optional weights"
     )
 
 
@@ -785,7 +785,7 @@ class IdeogramColorPalette(
 ):
     root: Union[IdeogramColorPalette1, IdeogramColorPalette2] = Field(
         ...,
-        description='A color palette specification that can either use a preset name or explicit color definitions with weights',
+        description="A color palette specification that can either use a preset name or explicit color definitions with weights",
     )
 
 
@@ -795,7 +795,7 @@ class ImageRequest(BaseModel):
         description="Optional. The aspect ratio (e.g., 'ASPECT_16_9', 'ASPECT_1_1'). Cannot be used with resolution. Defaults to 'ASPECT_1_1' if unspecified.",
     )
     color_palette: Optional[Dict[str, Any]] = Field(
-        None, description='Optional. Color palette object. Only for V_2, V_2_TURBO.'
+        None, description="Optional. Color palette object. Only for V_2, V_2_TURBO."
     )
     magic_prompt_option: Optional[str] = Field(
         None, description="Optional. MagicPrompt usage ('AUTO', 'ON', 'OFF')."
@@ -803,16 +803,16 @@ class ImageRequest(BaseModel):
     model: str = Field(..., description="The model used (e.g., 'V_2', 'V_2A_TURBO')")
     negative_prompt: Optional[str] = Field(
         None,
-        description='Optional. Description of what to exclude. Only for V_1, V_1_TURBO, V_2, V_2_TURBO.',
+        description="Optional. Description of what to exclude. Only for V_1, V_1_TURBO, V_2, V_2_TURBO.",
     )
     num_images: Optional[int] = Field(
         1,
-        description='Optional. Number of images to generate (1-8). Defaults to 1.',
+        description="Optional. Number of images to generate (1-8). Defaults to 1.",
         ge=1,
         le=8,
     )
     prompt: str = Field(
-        ..., description='Required. The prompt to use to generate the image.'
+        ..., description="Required. The prompt to use to generate the image."
     )
     resolution: Optional[str] = Field(
         None,
@@ -820,7 +820,7 @@ class ImageRequest(BaseModel):
     )
     seed: Optional[int] = Field(
         None,
-        description='Optional. A number between 0 and 2147483647.',
+        description="Optional. A number between 0 and 2147483647.",
         ge=0,
         le=2147483647,
     )
@@ -832,41 +832,41 @@ class ImageRequest(BaseModel):
 
 class IdeogramGenerateRequest(BaseModel):
     image_request: ImageRequest = Field(
-        ..., description='The image generation request parameters.'
+        ..., description="The image generation request parameters."
     )
 
 
 class Datum(BaseModel):
     is_image_safe: Optional[bool] = Field(
-        None, description='Indicates whether the image is considered safe.'
+        None, description="Indicates whether the image is considered safe."
     )
     prompt: Optional[str] = Field(
-        None, description='The prompt used to generate this image.'
+        None, description="The prompt used to generate this image."
     )
     resolution: Optional[str] = Field(
         None, description="The resolution of the generated image (e.g., '1024x1024')."
     )
     seed: Optional[int] = Field(
-        None, description='The seed value used for this generation.'
+        None, description="The seed value used for this generation."
     )
     style_type: Optional[str] = Field(
         None,
         description="The style type used for generation (e.g., 'REALISTIC', 'ANIME').",
     )
-    url: Optional[str] = Field(None, description='URL to the generated image.')
+    url: Optional[str] = Field(None, description="URL to the generated image.")
 
 
 class IdeogramGenerateResponse(BaseModel):
     created: Optional[datetime] = Field(
-        None, description='Timestamp when the generation was created.'
+        None, description="Timestamp when the generation was created."
     )
     data: Optional[List[Datum]] = Field(
-        None, description='Array of generated image information.'
+        None, description="Array of generated image information."
     )
 
 
 class StyleCode(RootModel[str]):
-    root: str = Field(..., pattern='^[0-9A-Fa-f]{8}$')
+    root: str = Field(..., pattern="^[0-9A-Fa-f]{8}$")
 
 
 class Datum1(BaseModel):
@@ -884,9 +884,9 @@ class IdeogramV3IdeogramResponse(BaseModel):
 
 
 class RenderingSpeed1(str, Enum):
-    TURBO = 'TURBO'
-    DEFAULT = 'DEFAULT'
-    QUALITY = 'QUALITY'
+    TURBO = "TURBO"
+    DEFAULT = "DEFAULT"
+    QUALITY = "QUALITY"
 
 
 class IdeogramV3ReframeRequest(BaseModel):
@@ -901,16 +901,16 @@ class IdeogramV3ReframeRequest(BaseModel):
 
 
 class MagicPrompt(str, Enum):
-    AUTO = 'AUTO'
-    ON = 'ON'
-    OFF = 'OFF'
+    AUTO = "AUTO"
+    ON = "ON"
+    OFF = "OFF"
 
 
 class StyleType(str, Enum):
-    AUTO = 'AUTO'
-    GENERAL = 'GENERAL'
-    REALISTIC = 'REALISTIC'
-    DESIGN = 'DESIGN'
+    AUTO = "AUTO"
+    GENERAL = "GENERAL"
+    REALISTIC = "REALISTIC"
+    DESIGN = "DESIGN"
 
 
 class IdeogramV3RemixRequest(BaseModel):
@@ -943,62 +943,62 @@ class IdeogramV3ReplaceBackgroundRequest(BaseModel):
 
 
 class ColorPalette(BaseModel):
-    name: str = Field(..., description='Name of the color palette', examples=['PASTEL'])
+    name: str = Field(..., description="Name of the color palette", examples=["PASTEL"])
 
 
 class MagicPrompt2(str, Enum):
-    ON = 'ON'
-    OFF = 'OFF'
+    ON = "ON"
+    OFF = "OFF"
 
 
 class StyleType1(str, Enum):
-    AUTO = 'AUTO'
-    GENERAL = 'GENERAL'
-    REALISTIC = 'REALISTIC'
-    DESIGN = 'DESIGN'
-    FICTION = 'FICTION'
+    AUTO = "AUTO"
+    GENERAL = "GENERAL"
+    REALISTIC = "REALISTIC"
+    DESIGN = "DESIGN"
+    FICTION = "FICTION"
 
 
 class ImagenImageGenerationInstance(BaseModel):
-    prompt: str = Field(..., description='Text prompt for image generation')
+    prompt: str = Field(..., description="Text prompt for image generation")
 
 
 class AspectRatio(str, Enum):
-    field_1_1 = '1:1'
-    field_9_16 = '9:16'
-    field_16_9 = '16:9'
-    field_3_4 = '3:4'
-    field_4_3 = '4:3'
+    field_1_1 = "1:1"
+    field_9_16 = "9:16"
+    field_16_9 = "16:9"
+    field_3_4 = "3:4"
+    field_4_3 = "4:3"
 
 
 class PersonGeneration(str, Enum):
-    dont_allow = 'dont_allow'
-    allow_adult = 'allow_adult'
-    allow_all = 'allow_all'
+    dont_allow = "dont_allow"
+    allow_adult = "allow_adult"
+    allow_all = "allow_all"
 
 
 class SafetySetting(str, Enum):
-    block_most = 'block_most'
-    block_some = 'block_some'
-    block_few = 'block_few'
-    block_fewest = 'block_fewest'
+    block_most = "block_most"
+    block_some = "block_some"
+    block_few = "block_few"
+    block_fewest = "block_fewest"
 
 
 class ImagenImagePrediction(BaseModel):
     bytesBase64Encoded: Optional[str] = Field(
-        None, description='Base64-encoded image content'
+        None, description="Base64-encoded image content"
     )
     mimeType: Optional[str] = Field(
-        None, description='MIME type of the generated image'
+        None, description="MIME type of the generated image"
     )
     prompt: Optional[str] = Field(
-        None, description='Enhanced or rewritten prompt used to generate this image'
+        None, description="Enhanced or rewritten prompt used to generate this image"
     )
 
 
 class MimeType(str, Enum):
-    image_png = 'image/png'
-    image_jpeg = 'image/jpeg'
+    image_png = "image/png"
+    image_jpeg = "image/jpeg"
 
 
 class ImagenOutputOptions(BaseModel):
@@ -1007,81 +1007,81 @@ class ImagenOutputOptions(BaseModel):
 
 
 class Includable(str, Enum):
-    file_search_call_results = 'file_search_call.results'
-    message_input_image_image_url = 'message.input_image.image_url'
-    computer_call_output_output_image_url = 'computer_call_output.output.image_url'
+    file_search_call_results = "file_search_call.results"
+    message_input_image_image_url = "message.input_image.image_url"
+    computer_call_output_output_image_url = "computer_call_output.output.image_url"
 
 
 class Type8(str, Enum):
-    input_file = 'input_file'
+    input_file = "input_file"
 
 
 class InputFileContent(BaseModel):
     file_data: Optional[str] = Field(
-        None, description='The content of the file to be sent to the model.\n'
+        None, description="The content of the file to be sent to the model.\n"
     )
     file_id: Optional[str] = Field(
-        None, description='The ID of the file to be sent to the model.'
+        None, description="The ID of the file to be sent to the model."
     )
     filename: Optional[str] = Field(
-        None, description='The name of the file to be sent to the model.'
+        None, description="The name of the file to be sent to the model."
     )
     type: Type8 = Field(
-        ..., description='The type of the input item. Always `input_file`.'
+        ..., description="The type of the input item. Always `input_file`."
     )
 
 
 class Detail(str, Enum):
-    low = 'low'
-    high = 'high'
-    auto = 'auto'
+    low = "low"
+    high = "high"
+    auto = "auto"
 
 
 class Type9(str, Enum):
-    input_image = 'input_image'
+    input_image = "input_image"
 
 
 class InputImageContent(BaseModel):
     detail: Detail = Field(
         ...,
-        description='The detail level of the image to be sent to the model. One of `high`, `low`, or `auto`. Defaults to `auto`.',
+        description="The detail level of the image to be sent to the model. One of `high`, `low`, or `auto`. Defaults to `auto`.",
     )
     file_id: Optional[str] = Field(
-        None, description='The ID of the file to be sent to the model.'
+        None, description="The ID of the file to be sent to the model."
     )
     image_url: Optional[str] = Field(
         None,
-        description='The URL of the image to be sent to the model. A fully qualified URL or base64 encoded image in a data URL.',
+        description="The URL of the image to be sent to the model. A fully qualified URL or base64 encoded image in a data URL.",
     )
     type: Type9 = Field(
-        ..., description='The type of the input item. Always `input_image`.'
+        ..., description="The type of the input item. Always `input_image`."
     )
 
 
 class Role3(str, Enum):
-    user = 'user'
-    system = 'system'
-    developer = 'developer'
+    user = "user"
+    system = "system"
+    developer = "developer"
 
 
 class Type10(str, Enum):
-    message = 'message'
+    message = "message"
 
 
 class Type11(str, Enum):
-    input_text = 'input_text'
+    input_text = "input_text"
 
 
 class InputTextContent(BaseModel):
-    text: str = Field(..., description='The text input to the model.')
+    text: str = Field(..., description="The text input to the model.")
     type: Type11 = Field(
-        ..., description='The type of the input item. Always `input_text`.'
+        ..., description="The type of the input item. Always `input_text`."
     )
 
 
 class KlingAudioUploadType(str, Enum):
-    file = 'file'
-    url = 'url'
+    file = "file"
+    url = "url"
 
 
 class KlingCameraConfig(BaseModel):
@@ -1124,23 +1124,23 @@ class KlingCameraConfig(BaseModel):
 
 
 class KlingCameraControlType(str, Enum):
-    simple = 'simple'
-    down_back = 'down_back'
-    forward_up = 'forward_up'
-    right_turn_forward = 'right_turn_forward'
-    left_turn_forward = 'left_turn_forward'
+    simple = "simple"
+    down_back = "down_back"
+    forward_up = "forward_up"
+    right_turn_forward = "right_turn_forward"
+    left_turn_forward = "left_turn_forward"
 
 
 class KlingCharacterEffectModelName(str, Enum):
-    kling_v1 = 'kling-v1'
-    kling_v1_5 = 'kling-v1-5'
-    kling_v1_6 = 'kling-v1-6'
+    kling_v1 = "kling-v1"
+    kling_v1_5 = "kling-v1-5"
+    kling_v1_6 = "kling-v1-6"
 
 
 class KlingDualCharacterEffectsScene(str, Enum):
-    hug = 'hug'
-    kiss = 'kiss'
-    heart_gesture = 'heart_gesture'
+    hug = "hug"
+    kiss = "kiss"
+    heart_gesture = "heart_gesture"
 
 
 class KlingDualCharacterImages(RootModel[List[str]]):
@@ -1150,29 +1150,29 @@ class KlingDualCharacterImages(RootModel[List[str]]):
 class KlingErrorResponse(BaseModel):
     code: int = Field(
         ...,
-        description='- 1000: Authentication failed\n- 1001: Authorization is empty\n- 1002: Authorization is invalid\n- 1003: Authorization is not yet valid\n- 1004: Authorization has expired\n- 1100: Account exception\n- 1101: Account in arrears (postpaid scenario)\n- 1102: Resource pack depleted or expired (prepaid scenario)\n- 1103: Unauthorized access to requested resource\n- 1200: Invalid request parameters\n- 1201: Invalid parameters\n- 1202: Invalid request method\n- 1203: Requested resource does not exist\n- 1300: Trigger platform strategy\n- 1301: Trigger content security policy\n- 1302: API request too frequent\n- 1303: Concurrency/QPS exceeds limit\n- 1304: Trigger IP whitelist policy\n- 5000: Internal server error\n- 5001: Service temporarily unavailable\n- 5002: Server internal timeout\n',
+        description="- 1000: Authentication failed\n- 1001: Authorization is empty\n- 1002: Authorization is invalid\n- 1003: Authorization is not yet valid\n- 1004: Authorization has expired\n- 1100: Account exception\n- 1101: Account in arrears (postpaid scenario)\n- 1102: Resource pack depleted or expired (prepaid scenario)\n- 1103: Unauthorized access to requested resource\n- 1200: Invalid request parameters\n- 1201: Invalid parameters\n- 1202: Invalid request method\n- 1203: Requested resource does not exist\n- 1300: Trigger platform strategy\n- 1301: Trigger content security policy\n- 1302: API request too frequent\n- 1303: Concurrency/QPS exceeds limit\n- 1304: Trigger IP whitelist policy\n- 5000: Internal server error\n- 5001: Service temporarily unavailable\n- 5002: Server internal timeout\n",
     )
-    message: str = Field(..., description='Human-readable error message')
+    message: str = Field(..., description="Human-readable error message")
     request_id: str = Field(
-        ..., description='Request ID for tracking and troubleshooting'
+        ..., description="Request ID for tracking and troubleshooting"
     )
 
 
 class Trajectory(BaseModel):
     x: Optional[int] = Field(
         None,
-        description='The horizontal coordinate of trajectory point. Based on bottom-left corner of image as origin (0,0).',
+        description="The horizontal coordinate of trajectory point. Based on bottom-left corner of image as origin (0,0).",
     )
     y: Optional[int] = Field(
         None,
-        description='The vertical coordinate of trajectory point. Based on bottom-left corner of image as origin (0,0).',
+        description="The vertical coordinate of trajectory point. Based on bottom-left corner of image as origin (0,0).",
     )
 
 
 class DynamicMask(BaseModel):
     mask: Optional[AnyUrl] = Field(
         None,
-        description='Dynamic Brush Application Area (Mask image created by users using the motion brush). The aspect ratio must match the input image.',
+        description="Dynamic Brush Application Area (Mask image created by users using the motion brush). The aspect ratio must match the input image.",
     )
     trajectories: Optional[List[Trajectory]] = None
 
@@ -1182,152 +1182,152 @@ class TaskInfo(BaseModel):
 
 
 class KlingImageGenAspectRatio(str, Enum):
-    field_16_9 = '16:9'
-    field_9_16 = '9:16'
-    field_1_1 = '1:1'
-    field_4_3 = '4:3'
-    field_3_4 = '3:4'
-    field_3_2 = '3:2'
-    field_2_3 = '2:3'
-    field_21_9 = '21:9'
+    field_16_9 = "16:9"
+    field_9_16 = "9:16"
+    field_1_1 = "1:1"
+    field_4_3 = "4:3"
+    field_3_4 = "3:4"
+    field_3_2 = "3:2"
+    field_2_3 = "2:3"
+    field_21_9 = "21:9"
 
 
 class KlingImageGenImageReferenceType(str, Enum):
-    subject = 'subject'
-    face = 'face'
+    subject = "subject"
+    face = "face"
 
 
 class KlingImageGenModelName(str, Enum):
-    kling_v1 = 'kling-v1'
-    kling_v1_5 = 'kling-v1-5'
-    kling_v2 = 'kling-v2'
+    kling_v1 = "kling-v1"
+    kling_v1_5 = "kling-v1-5"
+    kling_v2 = "kling-v2"
 
 
 class KlingImageGenerationsRequest(BaseModel):
-    aspect_ratio: Optional[KlingImageGenAspectRatio] = '16:9'
+    aspect_ratio: Optional[KlingImageGenAspectRatio] = "16:9"
     callback_url: Optional[AnyUrl] = Field(
-        None, description='The callback notification address'
+        None, description="The callback notification address"
     )
     human_fidelity: Optional[float] = Field(
-        0.45, description='Subject reference similarity', ge=0.0, le=1.0
+        0.45, description="Subject reference similarity", ge=0.0, le=1.0
     )
     image: Optional[str] = Field(
-        None, description='Reference Image - Base64 encoded string or image URL'
+        None, description="Reference Image - Base64 encoded string or image URL"
     )
     image_fidelity: Optional[float] = Field(
-        0.5, description='Reference intensity for user-uploaded images', ge=0.0, le=1.0
+        0.5, description="Reference intensity for user-uploaded images", ge=0.0, le=1.0
     )
     image_reference: Optional[KlingImageGenImageReferenceType] = None
-    model_name: Optional[KlingImageGenModelName] = 'kling-v1'
-    n: Optional[int] = Field(1, description='Number of generated images', ge=1, le=9)
+    model_name: Optional[KlingImageGenModelName] = "kling-v1"
+    n: Optional[int] = Field(1, description="Number of generated images", ge=1, le=9)
     negative_prompt: Optional[str] = Field(
-        None, description='Negative text prompt', max_length=200
+        None, description="Negative text prompt", max_length=200
     )
-    prompt: str = Field(..., description='Positive text prompt', max_length=500)
+    prompt: str = Field(..., description="Positive text prompt", max_length=500)
 
 
 class KlingImageResult(BaseModel):
-    index: Optional[int] = Field(None, description='Image Number (0-9)')
-    url: Optional[AnyUrl] = Field(None, description='URL for generated image')
+    index: Optional[int] = Field(None, description="Image Number (0-9)")
+    url: Optional[AnyUrl] = Field(None, description="URL for generated image")
 
 
 class KlingLipSyncMode(str, Enum):
-    text2video = 'text2video'
-    audio2video = 'audio2video'
+    text2video = "text2video"
+    audio2video = "audio2video"
 
 
 class KlingLipSyncVoiceLanguage(str, Enum):
-    zh = 'zh'
-    en = 'en'
+    zh = "zh"
+    en = "en"
 
 
 class ResourcePackType(str, Enum):
-    decreasing_total = 'decreasing_total'
-    constant_period = 'constant_period'
+    decreasing_total = "decreasing_total"
+    constant_period = "constant_period"
 
 
 class Status5(str, Enum):
-    toBeOnline = 'toBeOnline'
-    online = 'online'
-    expired = 'expired'
-    runOut = 'runOut'
+    toBeOnline = "toBeOnline"
+    online = "online"
+    expired = "expired"
+    runOut = "runOut"
 
 
 class ResourcePackSubscribeInfo(BaseModel):
     effective_time: Optional[int] = Field(
-        None, description='Effective time, Unix timestamp in ms'
+        None, description="Effective time, Unix timestamp in ms"
     )
     invalid_time: Optional[int] = Field(
-        None, description='Expiration time, Unix timestamp in ms'
+        None, description="Expiration time, Unix timestamp in ms"
     )
     purchase_time: Optional[int] = Field(
-        None, description='Purchase time, Unix timestamp in ms'
+        None, description="Purchase time, Unix timestamp in ms"
     )
     remaining_quantity: Optional[float] = Field(
-        None, description='Remaining quantity (updated with a 12-hour delay)'
+        None, description="Remaining quantity (updated with a 12-hour delay)"
     )
-    resource_pack_id: Optional[str] = Field(None, description='Resource package ID')
-    resource_pack_name: Optional[str] = Field(None, description='Resource package name')
+    resource_pack_id: Optional[str] = Field(None, description="Resource package ID")
+    resource_pack_name: Optional[str] = Field(None, description="Resource package name")
     resource_pack_type: Optional[ResourcePackType] = Field(
         None,
-        description='Resource package type (decreasing_total=decreasing total, constant_period=constant periodicity)',
+        description="Resource package type (decreasing_total=decreasing total, constant_period=constant periodicity)",
     )
-    status: Optional[Status5] = Field(None, description='Resource Package Status')
-    total_quantity: Optional[float] = Field(None, description='Total quantity')
+    status: Optional[Status5] = Field(None, description="Resource Package Status")
+    total_quantity: Optional[float] = Field(None, description="Total quantity")
 
 
 class Data3(BaseModel):
-    code: Optional[int] = Field(None, description='Error code; 0 indicates success')
-    msg: Optional[str] = Field(None, description='Error information')
+    code: Optional[int] = Field(None, description="Error code; 0 indicates success")
+    msg: Optional[str] = Field(None, description="Error information")
     resource_pack_subscribe_infos: Optional[List[ResourcePackSubscribeInfo]] = Field(
-        None, description='Resource package list'
+        None, description="Resource package list"
     )
 
 
 class KlingResourcePackageResponse(BaseModel):
-    code: Optional[int] = Field(None, description='Error code; 0 indicates success')
+    code: Optional[int] = Field(None, description="Error code; 0 indicates success")
     data: Optional[Data3] = None
-    message: Optional[str] = Field(None, description='Error information')
+    message: Optional[str] = Field(None, description="Error information")
     request_id: Optional[str] = Field(
         None,
-        description='Request ID, generated by the system, used to track requests and troubleshoot problems',
+        description="Request ID, generated by the system, used to track requests and troubleshoot problems",
     )
 
 
 class KlingSingleImageEffectDuration(str, Enum):
-    field_5 = '5'
+    field_5 = "5"
 
 
 class KlingSingleImageEffectModelName(str, Enum):
-    kling_v1_6 = 'kling-v1-6'
+    kling_v1_6 = "kling-v1-6"
 
 
 class KlingSingleImageEffectsScene(str, Enum):
-    bloombloom = 'bloombloom'
-    dizzydizzy = 'dizzydizzy'
-    fuzzyfuzzy = 'fuzzyfuzzy'
-    squish = 'squish'
-    expansion = 'expansion'
+    bloombloom = "bloombloom"
+    dizzydizzy = "dizzydizzy"
+    fuzzyfuzzy = "fuzzyfuzzy"
+    squish = "squish"
+    expansion = "expansion"
 
 
 class KlingTaskStatus(str, Enum):
-    submitted = 'submitted'
-    processing = 'processing'
-    succeed = 'succeed'
-    failed = 'failed'
+    submitted = "submitted"
+    processing = "processing"
+    succeed = "succeed"
+    failed = "failed"
 
 
 class KlingTextToVideoModelName(str, Enum):
-    kling_v1 = 'kling-v1'
-    kling_v1_6 = 'kling-v1-6'
-    kling_v2_1_master = 'kling-v2-1-master'
-    kling_v2_5_turbo = 'kling-v2-5-turbo'
+    kling_v1 = "kling-v1"
+    kling_v1_6 = "kling-v1-6"
+    kling_v2_1_master = "kling-v2-1-master"
+    kling_v2_5_turbo = "kling-v2-5-turbo"
 
 
 class KlingVideoGenAspectRatio(str, Enum):
-    field_16_9 = '16:9'
-    field_9_16 = '9:16'
-    field_1_1 = '1:1'
+    field_16_9 = "16:9"
+    field_9_16 = "9:16"
+    field_1_1 = "1:1"
 
 
 class KlingVideoGenCfgScale(RootModel[float]):
@@ -1340,48 +1340,48 @@ class KlingVideoGenCfgScale(RootModel[float]):
 
 
 class KlingVideoGenDuration(str, Enum):
-    field_5 = '5'
-    field_10 = '10'
+    field_5 = "5"
+    field_10 = "10"
 
 
 class KlingVideoGenMode(str, Enum):
-    std = 'std'
-    pro = 'pro'
+    std = "std"
+    pro = "pro"
 
 
 class KlingVideoGenModelName(str, Enum):
-    kling_v1 = 'kling-v1'
-    kling_v1_5 = 'kling-v1-5'
-    kling_v1_6 = 'kling-v1-6'
-    kling_v2_master = 'kling-v2-master'
-    kling_v2_1 = 'kling-v2-1'
-    kling_v2_1_master = 'kling-v2-1-master'
-    kling_v2_5_turbo = 'kling-v2-5-turbo'
+    kling_v1 = "kling-v1"
+    kling_v1_5 = "kling-v1-5"
+    kling_v1_6 = "kling-v1-6"
+    kling_v2_master = "kling-v2-master"
+    kling_v2_1 = "kling-v2-1"
+    kling_v2_1_master = "kling-v2-1-master"
+    kling_v2_5_turbo = "kling-v2-5-turbo"
 
 
 class KlingVideoResult(BaseModel):
-    duration: Optional[str] = Field(None, description='Total video duration')
-    id: Optional[str] = Field(None, description='Generated video ID')
-    url: Optional[AnyUrl] = Field(None, description='URL for generated video')
+    duration: Optional[str] = Field(None, description="Total video duration")
+    id: Optional[str] = Field(None, description="Generated video ID")
+    url: Optional[AnyUrl] = Field(None, description="URL for generated video")
 
 
 class KlingVirtualTryOnModelName(str, Enum):
-    kolors_virtual_try_on_v1 = 'kolors-virtual-try-on-v1'
-    kolors_virtual_try_on_v1_5 = 'kolors-virtual-try-on-v1-5'
+    kolors_virtual_try_on_v1 = "kolors-virtual-try-on-v1"
+    kolors_virtual_try_on_v1_5 = "kolors-virtual-try-on-v1-5"
 
 
 class KlingVirtualTryOnRequest(BaseModel):
     callback_url: Optional[AnyUrl] = Field(
-        None, description='The callback notification address'
+        None, description="The callback notification address"
     )
     cloth_image: Optional[str] = Field(
         None,
-        description='Reference clothing image - Base64 encoded string or image URL',
+        description="Reference clothing image - Base64 encoded string or image URL",
     )
     human_image: str = Field(
-        ..., description='Reference human image - Base64 encoded string or image URL'
+        ..., description="Reference human image - Base64 encoded string or image URL"
     )
-    model_name: Optional[KlingVirtualTryOnModelName] = 'kolors-virtual-try-on-v1'
+    model_name: Optional[KlingVirtualTryOnModelName] = "kolors-virtual-try-on-v1"
 
 
 class TaskResult6(BaseModel):
@@ -1389,112 +1389,112 @@ class TaskResult6(BaseModel):
 
 
 class Data7(BaseModel):
-    created_at: Optional[int] = Field(None, description='Task creation time')
-    task_id: Optional[str] = Field(None, description='Task ID')
+    created_at: Optional[int] = Field(None, description="Task creation time")
+    task_id: Optional[str] = Field(None, description="Task ID")
     task_result: Optional[TaskResult6] = None
     task_status: Optional[KlingTaskStatus] = None
-    task_status_msg: Optional[str] = Field(None, description='Task status information')
-    updated_at: Optional[int] = Field(None, description='Task update time')
+    task_status_msg: Optional[str] = Field(None, description="Task status information")
+    updated_at: Optional[int] = Field(None, description="Task update time")
 
 
 class KlingVirtualTryOnResponse(BaseModel):
-    code: Optional[int] = Field(None, description='Error code')
+    code: Optional[int] = Field(None, description="Error code")
     data: Optional[Data7] = None
-    message: Optional[str] = Field(None, description='Error message')
-    request_id: Optional[str] = Field(None, description='Request ID')
+    message: Optional[str] = Field(None, description="Error message")
+    request_id: Optional[str] = Field(None, description="Request ID")
 
 
 class LumaAspectRatio(str, Enum):
-    field_1_1 = '1:1'
-    field_16_9 = '16:9'
-    field_9_16 = '9:16'
-    field_4_3 = '4:3'
-    field_3_4 = '3:4'
-    field_21_9 = '21:9'
-    field_9_21 = '9:21'
+    field_1_1 = "1:1"
+    field_16_9 = "16:9"
+    field_9_16 = "9:16"
+    field_4_3 = "4:3"
+    field_3_4 = "3:4"
+    field_21_9 = "21:9"
+    field_9_21 = "9:21"
 
 
 class LumaAssets(BaseModel):
-    image: Optional[AnyUrl] = Field(None, description='The URL of the image')
+    image: Optional[AnyUrl] = Field(None, description="The URL of the image")
     progress_video: Optional[AnyUrl] = Field(
-        None, description='The URL of the progress video'
+        None, description="The URL of the progress video"
     )
-    video: Optional[AnyUrl] = Field(None, description='The URL of the video')
+    video: Optional[AnyUrl] = Field(None, description="The URL of the video")
 
 
 class GenerationType(str, Enum):
-    add_audio = 'add_audio'
+    add_audio = "add_audio"
 
 
 class LumaAudioGenerationRequest(BaseModel):
     callback_url: Optional[AnyUrl] = Field(
-        None, description='The callback URL for the audio'
+        None, description="The callback URL for the audio"
     )
-    generation_type: Optional[GenerationType] = 'add_audio'
+    generation_type: Optional[GenerationType] = "add_audio"
     negative_prompt: Optional[str] = Field(
-        None, description='The negative prompt of the audio'
+        None, description="The negative prompt of the audio"
     )
-    prompt: Optional[str] = Field(None, description='The prompt of the audio')
+    prompt: Optional[str] = Field(None, description="The prompt of the audio")
 
 
 class LumaError(BaseModel):
-    detail: Optional[str] = Field(None, description='The error message')
+    detail: Optional[str] = Field(None, description="The error message")
 
 
 class Type12(str, Enum):
-    generation = 'generation'
+    generation = "generation"
 
 
 class LumaGenerationReference(BaseModel):
-    id: UUID = Field(..., description='The ID of the generation')
-    type: Literal['generation']
+    id: UUID = Field(..., description="The ID of the generation")
+    type: Literal["generation"]
 
 
 class GenerationType1(str, Enum):
-    video = 'video'
+    video = "video"
 
 
 class LumaGenerationType(str, Enum):
-    video = 'video'
-    image = 'image'
+    video = "video"
+    image = "image"
 
 
 class GenerationType2(str, Enum):
-    image = 'image'
+    image = "image"
 
 
 class LumaImageIdentity(BaseModel):
     images: Optional[List[AnyUrl]] = Field(
-        None, description='The URLs of the image identity'
+        None, description="The URLs of the image identity"
     )
 
 
 class LumaImageModel(str, Enum):
-    photon_1 = 'photon-1'
-    photon_flash_1 = 'photon-flash-1'
+    photon_1 = "photon-1"
+    photon_flash_1 = "photon-flash-1"
 
 
 class LumaImageRef(BaseModel):
-    url: Optional[AnyUrl] = Field(None, description='The URL of the image reference')
+    url: Optional[AnyUrl] = Field(None, description="The URL of the image reference")
     weight: Optional[float] = Field(
-        None, description='The weight of the image reference'
+        None, description="The weight of the image reference"
     )
 
 
 class Type13(str, Enum):
-    image = 'image'
+    image = "image"
 
 
 class LumaImageReference(BaseModel):
-    type: Literal['image']
-    url: AnyUrl = Field(..., description='The URL of the image')
+    type: Literal["image"]
+    url: AnyUrl = Field(..., description="The URL of the image")
 
 
 class LumaKeyframe(RootModel[Union[LumaGenerationReference, LumaImageReference]]):
     root: Union[LumaGenerationReference, LumaImageReference] = Field(
         ...,
-        description='A keyframe can be either a Generation reference, an Image, or a Video',
-        discriminator='type',
+        description="A keyframe can be either a Generation reference, an Image, or a Video",
+        discriminator="type",
     )
 
 
@@ -1504,32 +1504,32 @@ class LumaKeyframes(BaseModel):
 
 
 class LumaModifyImageRef(BaseModel):
-    url: Optional[AnyUrl] = Field(None, description='The URL of the image reference')
+    url: Optional[AnyUrl] = Field(None, description="The URL of the image reference")
     weight: Optional[float] = Field(
-        None, description='The weight of the modify image reference'
+        None, description="The weight of the modify image reference"
     )
 
 
 class LumaState(str, Enum):
-    queued = 'queued'
-    dreaming = 'dreaming'
-    completed = 'completed'
-    failed = 'failed'
+    queued = "queued"
+    dreaming = "dreaming"
+    completed = "completed"
+    failed = "failed"
 
 
 class GenerationType3(str, Enum):
-    upscale_video = 'upscale_video'
+    upscale_video = "upscale_video"
 
 
 class LumaVideoModel(str, Enum):
-    ray_2 = 'ray-2'
-    ray_flash_2 = 'ray-flash-2'
-    ray_1_6 = 'ray-1-6'
+    ray_2 = "ray-2"
+    ray_flash_2 = "ray-flash-2"
+    ray_1_6 = "ray-1-6"
 
 
 class LumaVideoModelOutputDuration1(str, Enum):
-    field_5s = '5s'
-    field_9s = '9s'
+    field_5s = "5s"
+    field_9s = "9s"
 
 
 class LumaVideoModelOutputDuration(
@@ -1539,10 +1539,10 @@ class LumaVideoModelOutputDuration(
 
 
 class LumaVideoModelOutputResolution1(str, Enum):
-    field_540p = '540p'
-    field_720p = '720p'
-    field_1080p = '1080p'
-    field_4k = '4k'
+    field_540p = "540p"
+    field_720p = "720p"
+    field_1080p = "1080p"
+    field_4k = "4k"
 
 
 class LumaVideoModelOutputResolution(
@@ -1552,56 +1552,56 @@ class LumaVideoModelOutputResolution(
 
 
 class MachineStats(BaseModel):
-    cpu_capacity: Optional[str] = Field(None, description='Total CPU on the machine.')
+    cpu_capacity: Optional[str] = Field(None, description="Total CPU on the machine.")
     disk_capacity: Optional[str] = Field(
-        None, description='Total disk capacity on the machine.'
+        None, description="Total disk capacity on the machine."
     )
     gpu_type: Optional[str] = Field(
-        None, description='The GPU type. eg. NVIDIA Tesla K80'
+        None, description="The GPU type. eg. NVIDIA Tesla K80"
     )
     initial_cpu: Optional[str] = Field(
-        None, description='Initial CPU available before the job starts.'
+        None, description="Initial CPU available before the job starts."
     )
     initial_disk: Optional[str] = Field(
-        None, description='Initial disk available before the job starts.'
+        None, description="Initial disk available before the job starts."
     )
     initial_ram: Optional[str] = Field(
-        None, description='Initial RAM available before the job starts.'
+        None, description="Initial RAM available before the job starts."
     )
-    machine_name: Optional[str] = Field(None, description='Name of the machine.')
+    machine_name: Optional[str] = Field(None, description="Name of the machine.")
     memory_capacity: Optional[str] = Field(
-        None, description='Total memory on the machine.'
+        None, description="Total memory on the machine."
     )
     os_version: Optional[str] = Field(
-        None, description='The operating system version. eg. Ubuntu Linux 20.04'
+        None, description="The operating system version. eg. Ubuntu Linux 20.04"
     )
-    pip_freeze: Optional[str] = Field(None, description='The pip freeze output')
+    pip_freeze: Optional[str] = Field(None, description="The pip freeze output")
     vram_time_series: Optional[Dict[str, Any]] = Field(
-        None, description='Time series of VRAM usage.'
+        None, description="Time series of VRAM usage."
     )
 
 
 class MinimaxBaseResponse(BaseModel):
     status_code: int = Field(
         ...,
-        description='Status code. 0 indicates success, other values indicate errors.',
+        description="Status code. 0 indicates success, other values indicate errors.",
     )
     status_msg: str = Field(
-        ..., description='Specific error details or success message.'
+        ..., description="Specific error details or success message."
     )
 
 
 class File(BaseModel):
-    bytes: Optional[int] = Field(None, description='File size in bytes')
+    bytes: Optional[int] = Field(None, description="File size in bytes")
     created_at: Optional[int] = Field(
-        None, description='Unix timestamp when the file was created, in seconds'
+        None, description="Unix timestamp when the file was created, in seconds"
     )
     download_url: Optional[str] = Field(
-        None, description='The URL to download the video'
+        None, description="The URL to download the video"
     )
-    file_id: Optional[int] = Field(None, description='Unique identifier for the file')
-    filename: Optional[str] = Field(None, description='The name of the file')
-    purpose: Optional[str] = Field(None, description='The purpose of using the file')
+    file_id: Optional[int] = Field(None, description="Unique identifier for the file")
+    filename: Optional[str] = Field(None, description="The name of the file")
+    purpose: Optional[str] = Field(None, description="The purpose of using the file")
 
 
 class MinimaxFileRetrieveResponse(BaseModel):
@@ -1610,131 +1610,130 @@ class MinimaxFileRetrieveResponse(BaseModel):
 
 
 class Status6(str, Enum):
-    Queueing = 'Queueing'
-    Preparing = 'Preparing'
-    Processing = 'Processing'
-    Success = 'Success'
-    Fail = 'Fail'
+    Queueing = "Queueing"
+    Preparing = "Preparing"
+    Processing = "Processing"
+    Success = "Success"
+    Fail = "Fail"
 
 
 class MinimaxTaskResultResponse(BaseModel):
     base_resp: MinimaxBaseResponse
     file_id: Optional[str] = Field(
         None,
-        description='After the task status changes to Success, this field returns the file ID corresponding to the generated video.',
+        description="After the task status changes to Success, this field returns the file ID corresponding to the generated video.",
     )
     status: Status6 = Field(
         ...,
         description="Task status: 'Queueing' (in queue), 'Preparing' (task is preparing), 'Processing' (generating), 'Success' (task completed successfully), or 'Fail' (task failed).",
     )
-    task_id: str = Field(..., description='The task ID being queried.')
+    task_id: str = Field(..., description="The task ID being queried.")
 
 
 class MiniMaxModel(str, Enum):
-    T2V_01_Director = 'T2V-01-Director'
-    I2V_01_Director = 'I2V-01-Director'
-    S2V_01 = 'S2V-01'
-    I2V_01 = 'I2V-01'
-    I2V_01_live = 'I2V-01-live'
-    T2V_01 = 'T2V-01'
-    Hailuo_02 = 'MiniMax-Hailuo-02'
+    T2V_01_Director = "T2V-01-Director"
+    I2V_01_Director = "I2V-01-Director"
+    S2V_01 = "S2V-01"
+    I2V_01 = "I2V-01"
+    I2V_01_live = "I2V-01-live"
+    T2V_01 = "T2V-01"
+    Hailuo_02 = "MiniMax-Hailuo-02"
 
 
 class SubjectReferenceItem(BaseModel):
     image: Optional[str] = Field(
-        None, description='URL or base64 encoding of the subject reference image.'
+        None, description="URL or base64 encoding of the subject reference image."
     )
     mask: Optional[str] = Field(
         None,
-        description='URL or base64 encoding of the mask for the subject reference image.',
+        description="URL or base64 encoding of the mask for the subject reference image.",
     )
 
 
 class MinimaxVideoGenerationRequest(BaseModel):
     callback_url: Optional[str] = Field(
         None,
-        description='Optional. URL to receive real-time status updates about the video generation task.',
+        description="Optional. URL to receive real-time status updates about the video generation task.",
     )
     first_frame_image: Optional[str] = Field(
         None,
-        description='URL or base64 encoding of the first frame image. Required when model is I2V-01, I2V-01-Director, or I2V-01-live.',
+        description="URL or base64 encoding of the first frame image. Required when model is I2V-01, I2V-01-Director, or I2V-01-live.",
     )
     model: MiniMaxModel = Field(
         ...,
-        description='Required. ID of model. Options: T2V-01-Director, I2V-01-Director, S2V-01, I2V-01, I2V-01-live, T2V-01',
+        description="Required. ID of model. Options: T2V-01-Director, I2V-01-Director, S2V-01, I2V-01, I2V-01-live, T2V-01",
     )
     prompt: Optional[str] = Field(
         None,
-        description='Description of the video. Should be less than 2000 characters. Supports camera movement instructions in [brackets].',
+        description="Description of the video. Should be less than 2000 characters. Supports camera movement instructions in [brackets].",
         max_length=2000,
     )
     prompt_optimizer: Optional[bool] = Field(
         True,
-        description='If true (default), the model will automatically optimize the prompt. Set to false for more precise control.',
+        description="If true (default), the model will automatically optimize the prompt. Set to false for more precise control.",
     )
     subject_reference: Optional[List[SubjectReferenceItem]] = Field(
         None,
-        description='Only available when model is S2V-01. The model will generate a video based on the subject uploaded through this parameter.',
+        description="Only available when model is S2V-01. The model will generate a video based on the subject uploaded through this parameter.",
     )
     duration: Optional[int] = Field(
-        None,
-        description="The length of the output video in seconds."
+        None, description="The length of the output video in seconds."
     )
     resolution: Optional[str] = Field(
         None,
-        description="The dimensions of the video display. 1080p corresponds to 1920 x 1080 pixels, 768p corresponds to 1366 x 768 pixels."
+        description="The dimensions of the video display. 1080p corresponds to 1920 x 1080 pixels, 768p corresponds to 1366 x 768 pixels.",
     )
 
 
 class MinimaxVideoGenerationResponse(BaseModel):
     base_resp: MinimaxBaseResponse
     task_id: str = Field(
-        ..., description='The task ID for the asynchronous video generation task.'
+        ..., description="The task ID for the asynchronous video generation task."
     )
 
 
 class Modality(str, Enum):
-    MODALITY_UNSPECIFIED = 'MODALITY_UNSPECIFIED'
-    TEXT = 'TEXT'
-    IMAGE = 'IMAGE'
-    VIDEO = 'VIDEO'
-    AUDIO = 'AUDIO'
-    DOCUMENT = 'DOCUMENT'
+    MODALITY_UNSPECIFIED = "MODALITY_UNSPECIFIED"
+    TEXT = "TEXT"
+    IMAGE = "IMAGE"
+    VIDEO = "VIDEO"
+    AUDIO = "AUDIO"
+    DOCUMENT = "DOCUMENT"
 
 
 class ModalityTokenCount(BaseModel):
     modality: Optional[Modality] = None
     tokenCount: Optional[int] = Field(
-        None, description='Number of tokens for the given modality.'
+        None, description="Number of tokens for the given modality."
     )
 
 
 class Truncation(str, Enum):
-    disabled = 'disabled'
-    auto = 'auto'
+    disabled = "disabled"
+    auto = "auto"
 
 
 class ModelResponseProperties(BaseModel):
     instructions: Optional[str] = Field(
-        None, description='Instructions for the model on how to generate the response'
+        None, description="Instructions for the model on how to generate the response"
     )
     max_output_tokens: Optional[int] = Field(
-        None, description='Maximum number of tokens to generate'
+        None, description="Maximum number of tokens to generate"
     )
     model: Optional[str] = Field(
-        None, description='The model used to generate the response'
+        None, description="The model used to generate the response"
     )
     temperature: Optional[float] = Field(
-        1, description='Controls randomness in the response', ge=0.0, le=2.0
+        1, description="Controls randomness in the response", ge=0.0, le=2.0
     )
     top_p: Optional[float] = Field(
         1,
-        description='Controls diversity of the response via nucleus sampling',
+        description="Controls diversity of the response via nucleus sampling",
         ge=0.0,
         le=1.0,
     )
     truncation: Optional[Truncation] = Field(
-        'disabled', description='How to handle truncation of the response'
+        "disabled", description="How to handle truncation of the response"
     )
 
 
@@ -1756,58 +1755,58 @@ class MoonvalleyPromptResponse(BaseModel):
 
 class MoonvalleyTextToVideoInferenceParams(BaseModel):
     add_quality_guidance: Optional[bool] = Field(
-        True, description='Whether to add quality guidance'
+        True, description="Whether to add quality guidance"
     )
     caching_coefficient: Optional[float] = Field(
-        0.3, description='Caching coefficient for optimization'
+        0.3, description="Caching coefficient for optimization"
     )
     caching_cooldown: Optional[int] = Field(
-        3, description='Number of caching cooldown steps'
+        3, description="Number of caching cooldown steps"
     )
     caching_warmup: Optional[int] = Field(
-        3, description='Number of caching warmup steps'
+        3, description="Number of caching warmup steps"
     )
     clip_value: Optional[float] = Field(
-        3, description='CLIP value for generation control'
+        3, description="CLIP value for generation control"
     )
     conditioning_frame_index: Optional[int] = Field(
-        0, description='Index of the conditioning frame'
+        0, description="Index of the conditioning frame"
     )
     cooldown_steps: Optional[int] = Field(
-        75, description='Number of cooldown steps (calculated based on num_frames)'
+        75, description="Number of cooldown steps (calculated based on num_frames)"
     )
     fps: Optional[int] = Field(
-        24, description='Frames per second of the generated video'
+        24, description="Frames per second of the generated video"
     )
     guidance_scale: Optional[float] = Field(
-        10, description='Guidance scale for generation control'
+        10, description="Guidance scale for generation control"
     )
     height: Optional[int] = Field(
-        1080, description='Height of the generated video in pixels'
+        1080, description="Height of the generated video in pixels"
     )
-    negative_prompt: Optional[str] = Field(None, description='Negative prompt text')
-    num_frames: Optional[int] = Field(64, description='Number of frames to generate')
+    negative_prompt: Optional[str] = Field(None, description="Negative prompt text")
+    num_frames: Optional[int] = Field(64, description="Number of frames to generate")
     seed: Optional[int] = Field(
-        None, description='Random seed for generation (default: random)'
+        None, description="Random seed for generation (default: random)"
     )
     shift_value: Optional[float] = Field(
-        3, description='Shift value for generation control'
+        3, description="Shift value for generation control"
     )
-    steps: Optional[int] = Field(80, description='Number of denoising steps')
+    steps: Optional[int] = Field(80, description="Number of denoising steps")
     use_guidance_schedule: Optional[bool] = Field(
-        True, description='Whether to use guidance scheduling'
+        True, description="Whether to use guidance scheduling"
     )
     use_negative_prompts: Optional[bool] = Field(
-        False, description='Whether to use negative prompts'
+        False, description="Whether to use negative prompts"
     )
     use_timestep_transform: Optional[bool] = Field(
-        True, description='Whether to use timestep transformation'
+        True, description="Whether to use timestep transformation"
     )
     warmup_steps: Optional[int] = Field(
-        0, description='Number of warmup steps (calculated based on num_frames)'
+        0, description="Number of warmup steps (calculated based on num_frames)"
     )
     width: Optional[int] = Field(
-        1920, description='Width of the generated video in pixels'
+        1920, description="Width of the generated video in pixels"
     )
 
 
@@ -1828,218 +1827,218 @@ class MoonvalleyUploadFileResponse(BaseModel):
 
 class MoonvalleyVideoToVideoInferenceParams(BaseModel):
     add_quality_guidance: Optional[bool] = Field(
-        True, description='Whether to add quality guidance'
+        True, description="Whether to add quality guidance"
     )
     caching_coefficient: Optional[float] = Field(
-        0.3, description='Caching coefficient for optimization'
+        0.3, description="Caching coefficient for optimization"
     )
     caching_cooldown: Optional[int] = Field(
-        3, description='Number of caching cooldown steps'
+        3, description="Number of caching cooldown steps"
     )
     caching_warmup: Optional[int] = Field(
-        3, description='Number of caching warmup steps'
+        3, description="Number of caching warmup steps"
     )
     clip_value: Optional[float] = Field(
-        3, description='CLIP value for generation control'
+        3, description="CLIP value for generation control"
     )
     conditioning_frame_index: Optional[int] = Field(
-        0, description='Index of the conditioning frame'
+        0, description="Index of the conditioning frame"
     )
     cooldown_steps: Optional[int] = Field(
-        36, description='Number of cooldown steps (calculated based on num_frames)'
+        36, description="Number of cooldown steps (calculated based on num_frames)"
     )
     guidance_scale: Optional[float] = Field(
-        15, description='Guidance scale for generation control'
+        15, description="Guidance scale for generation control"
     )
-    negative_prompt: Optional[str] = Field(None, description='Negative prompt text')
+    negative_prompt: Optional[str] = Field(None, description="Negative prompt text")
     seed: Optional[int] = Field(
-        None, description='Random seed for generation (default: random)'
+        None, description="Random seed for generation (default: random)"
     )
     shift_value: Optional[float] = Field(
-        3, description='Shift value for generation control'
+        3, description="Shift value for generation control"
     )
-    steps: Optional[int] = Field(80, description='Number of denoising steps')
+    steps: Optional[int] = Field(80, description="Number of denoising steps")
     use_guidance_schedule: Optional[bool] = Field(
-        True, description='Whether to use guidance scheduling'
+        True, description="Whether to use guidance scheduling"
     )
     use_negative_prompts: Optional[bool] = Field(
-        False, description='Whether to use negative prompts'
+        False, description="Whether to use negative prompts"
     )
     use_timestep_transform: Optional[bool] = Field(
-        True, description='Whether to use timestep transformation'
+        True, description="Whether to use timestep transformation"
     )
     warmup_steps: Optional[int] = Field(
-        24, description='Number of warmup steps (calculated based on num_frames)'
+        24, description="Number of warmup steps (calculated based on num_frames)"
     )
 
 
 class ControlType(str, Enum):
-    motion_control = 'motion_control'
-    pose_control = 'pose_control'
+    motion_control = "motion_control"
+    pose_control = "pose_control"
 
 
 class MoonvalleyVideoToVideoRequest(BaseModel):
     control_type: ControlType = Field(
-        ..., description='Supported types for video control'
+        ..., description="Supported types for video control"
     )
     inference_params: Optional[MoonvalleyVideoToVideoInferenceParams] = None
-    prompt_text: str = Field(..., description='Describes the video to generate')
-    video_url: str = Field(..., description='Url to control video')
+    prompt_text: str = Field(..., description="Describes the video to generate")
+    video_url: str = Field(..., description="Url to control video")
     webhook_url: Optional[str] = Field(
-        None, description='Optional webhook URL for notifications'
+        None, description="Optional webhook URL for notifications"
     )
 
 
 class NodeStatus(str, Enum):
-    NodeStatusActive = 'NodeStatusActive'
-    NodeStatusDeleted = 'NodeStatusDeleted'
-    NodeStatusBanned = 'NodeStatusBanned'
+    NodeStatusActive = "NodeStatusActive"
+    NodeStatusDeleted = "NodeStatusDeleted"
+    NodeStatusBanned = "NodeStatusBanned"
 
 
 class NodeVersionIdentifier(BaseModel):
-    node_id: str = Field(..., description='The unique identifier of the node')
-    version: str = Field(..., description='The version of the node')
+    node_id: str = Field(..., description="The unique identifier of the node")
+    version: str = Field(..., description="The version of the node")
 
 
 class NodeVersionStatus(str, Enum):
-    NodeVersionStatusActive = 'NodeVersionStatusActive'
-    NodeVersionStatusDeleted = 'NodeVersionStatusDeleted'
-    NodeVersionStatusBanned = 'NodeVersionStatusBanned'
-    NodeVersionStatusPending = 'NodeVersionStatusPending'
-    NodeVersionStatusFlagged = 'NodeVersionStatusFlagged'
+    NodeVersionStatusActive = "NodeVersionStatusActive"
+    NodeVersionStatusDeleted = "NodeVersionStatusDeleted"
+    NodeVersionStatusBanned = "NodeVersionStatusBanned"
+    NodeVersionStatusPending = "NodeVersionStatusPending"
+    NodeVersionStatusFlagged = "NodeVersionStatusFlagged"
 
 
 class NodeVersionUpdateRequest(BaseModel):
     changelog: Optional[str] = Field(
-        None, description='The changelog describing the version changes.'
+        None, description="The changelog describing the version changes."
     )
     deprecated: Optional[bool] = Field(
-        None, description='Whether the version is deprecated.'
+        None, description="Whether the version is deprecated."
     )
 
 
 class Moderation(str, Enum):
-    low = 'low'
-    auto = 'auto'
+    low = "low"
+    auto = "auto"
 
 
 class OutputFormat1(str, Enum):
-    png = 'png'
-    webp = 'webp'
-    jpeg = 'jpeg'
+    png = "png"
+    webp = "webp"
+    jpeg = "jpeg"
 
 
 class OpenAIImageEditRequest(BaseModel):
     background: Optional[str] = Field(
-        None, description='Background transparency', examples=['opaque']
+        None, description="Background transparency", examples=["opaque"]
     )
     model: str = Field(
-        ..., description='The model to use for image editing', examples=['gpt-image-1']
+        ..., description="The model to use for image editing", examples=["gpt-image-1"]
     )
     moderation: Optional[Moderation] = Field(
-        None, description='Content moderation setting', examples=['auto']
+        None, description="Content moderation setting", examples=["auto"]
     )
     n: Optional[int] = Field(
-        None, description='The number of images to generate', examples=[1]
+        None, description="The number of images to generate", examples=[1]
     )
     output_compression: Optional[int] = Field(
-        None, description='Compression level for JPEG or WebP (0-100)', examples=[100]
+        None, description="Compression level for JPEG or WebP (0-100)", examples=[100]
     )
     output_format: Optional[OutputFormat1] = Field(
-        None, description='Format of the output image', examples=['png']
+        None, description="Format of the output image", examples=["png"]
     )
     prompt: str = Field(
         ...,
-        description='A text description of the desired edit',
-        examples=['Give the rocketship rainbow coloring'],
+        description="A text description of the desired edit",
+        examples=["Give the rocketship rainbow coloring"],
     )
     quality: Optional[str] = Field(
-        None, description='The quality of the edited image', examples=['low']
+        None, description="The quality of the edited image", examples=["low"]
     )
     size: Optional[str] = Field(
-        None, description='Size of the output image', examples=['1024x1024']
+        None, description="Size of the output image", examples=["1024x1024"]
     )
     user: Optional[str] = Field(
         None,
-        description='A unique identifier for end-user monitoring',
-        examples=['user-1234'],
+        description="A unique identifier for end-user monitoring",
+        examples=["user-1234"],
     )
 
 
 class Background(str, Enum):
-    transparent = 'transparent'
-    opaque = 'opaque'
+    transparent = "transparent"
+    opaque = "opaque"
 
 
 class Quality(str, Enum):
-    low = 'low'
-    medium = 'medium'
-    high = 'high'
-    standard = 'standard'
-    hd = 'hd'
+    low = "low"
+    medium = "medium"
+    high = "high"
+    standard = "standard"
+    hd = "hd"
 
 
 class ResponseFormat(str, Enum):
-    url = 'url'
-    b64_json = 'b64_json'
+    url = "url"
+    b64_json = "b64_json"
 
 
 class Style(str, Enum):
-    vivid = 'vivid'
-    natural = 'natural'
+    vivid = "vivid"
+    natural = "natural"
 
 
 class OpenAIImageGenerationRequest(BaseModel):
     background: Optional[Background] = Field(
-        None, description='Background transparency', examples=['opaque']
+        None, description="Background transparency", examples=["opaque"]
     )
     model: Optional[str] = Field(
-        None, description='The model to use for image generation', examples=['dall-e-3']
+        None, description="The model to use for image generation", examples=["dall-e-3"]
     )
     moderation: Optional[Moderation] = Field(
-        None, description='Content moderation setting', examples=['auto']
+        None, description="Content moderation setting", examples=["auto"]
     )
     n: Optional[int] = Field(
         None,
-        description='The number of images to generate (1-10). Only 1 supported for dall-e-3.',
+        description="The number of images to generate (1-10). Only 1 supported for dall-e-3.",
         examples=[1],
     )
     output_compression: Optional[int] = Field(
-        None, description='Compression level for JPEG or WebP (0-100)', examples=[100]
+        None, description="Compression level for JPEG or WebP (0-100)", examples=[100]
     )
     output_format: Optional[OutputFormat1] = Field(
-        None, description='Format of the output image', examples=['png']
+        None, description="Format of the output image", examples=["png"]
     )
     prompt: str = Field(
         ...,
-        description='A text description of the desired image',
-        examples=['Draw a rocket in front of a blackhole in deep space'],
+        description="A text description of the desired image",
+        examples=["Draw a rocket in front of a blackhole in deep space"],
     )
     quality: Optional[Quality] = Field(
-        None, description='The quality of the generated image', examples=['high']
+        None, description="The quality of the generated image", examples=["high"]
     )
     response_format: Optional[ResponseFormat] = Field(
-        None, description='Response format of image data', examples=['b64_json']
+        None, description="Response format of image data", examples=["b64_json"]
     )
     size: Optional[str] = Field(
         None,
-        description='Size of the image (e.g., 1024x1024, 1536x1024, auto)',
-        examples=['1024x1536'],
+        description="Size of the image (e.g., 1024x1024, 1536x1024, auto)",
+        examples=["1024x1536"],
     )
     style: Optional[Style] = Field(
-        None, description='Style of the image (only for dall-e-3)', examples=['vivid']
+        None, description="Style of the image (only for dall-e-3)", examples=["vivid"]
     )
     user: Optional[str] = Field(
         None,
-        description='A unique identifier for end-user monitoring',
-        examples=['user-1234'],
+        description="A unique identifier for end-user monitoring",
+        examples=["user-1234"],
     )
 
 
 class Datum2(BaseModel):
-    b64_json: Optional[str] = Field(None, description='Base64 encoded image data')
-    revised_prompt: Optional[str] = Field(None, description='Revised prompt')
-    url: Optional[str] = Field(None, description='URL of the image')
+    b64_json: Optional[str] = Field(None, description="Base64 encoded image data")
+    revised_prompt: Optional[str] = Field(None, description="Revised prompt")
+    url: Optional[str] = Field(None, description="URL of the image")
 
 
 class InputTokensDetails(BaseModel):
@@ -2060,185 +2059,185 @@ class OpenAIImageGenerationResponse(BaseModel):
 
 
 class OpenAIModels(str, Enum):
-    gpt_4 = 'gpt-4'
-    gpt_4_0314 = 'gpt-4-0314'
-    gpt_4_0613 = 'gpt-4-0613'
-    gpt_4_32k = 'gpt-4-32k'
-    gpt_4_32k_0314 = 'gpt-4-32k-0314'
-    gpt_4_32k_0613 = 'gpt-4-32k-0613'
-    gpt_4_0125_preview = 'gpt-4-0125-preview'
-    gpt_4_turbo = 'gpt-4-turbo'
-    gpt_4_turbo_2024_04_09 = 'gpt-4-turbo-2024-04-09'
-    gpt_4_turbo_preview = 'gpt-4-turbo-preview'
-    gpt_4_1106_preview = 'gpt-4-1106-preview'
-    gpt_4_vision_preview = 'gpt-4-vision-preview'
-    gpt_3_5_turbo = 'gpt-3.5-turbo'
-    gpt_3_5_turbo_16k = 'gpt-3.5-turbo-16k'
-    gpt_3_5_turbo_0301 = 'gpt-3.5-turbo-0301'
-    gpt_3_5_turbo_0613 = 'gpt-3.5-turbo-0613'
-    gpt_3_5_turbo_1106 = 'gpt-3.5-turbo-1106'
-    gpt_3_5_turbo_0125 = 'gpt-3.5-turbo-0125'
-    gpt_3_5_turbo_16k_0613 = 'gpt-3.5-turbo-16k-0613'
-    gpt_4_1 = 'gpt-4.1'
-    gpt_4_1_mini = 'gpt-4.1-mini'
-    gpt_4_1_nano = 'gpt-4.1-nano'
-    gpt_4_1_2025_04_14 = 'gpt-4.1-2025-04-14'
-    gpt_4_1_mini_2025_04_14 = 'gpt-4.1-mini-2025-04-14'
-    gpt_4_1_nano_2025_04_14 = 'gpt-4.1-nano-2025-04-14'
-    o1 = 'o1'
-    o1_mini = 'o1-mini'
-    o1_preview = 'o1-preview'
-    o1_pro = 'o1-pro'
-    o1_2024_12_17 = 'o1-2024-12-17'
-    o1_preview_2024_09_12 = 'o1-preview-2024-09-12'
-    o1_mini_2024_09_12 = 'o1-mini-2024-09-12'
-    o1_pro_2025_03_19 = 'o1-pro-2025-03-19'
-    o3 = 'o3'
-    o3_mini = 'o3-mini'
-    o3_2025_04_16 = 'o3-2025-04-16'
-    o3_mini_2025_01_31 = 'o3-mini-2025-01-31'
-    o4_mini = 'o4-mini'
-    o4_mini_2025_04_16 = 'o4-mini-2025-04-16'
-    gpt_4o = 'gpt-4o'
-    gpt_4o_mini = 'gpt-4o-mini'
-    gpt_4o_2024_11_20 = 'gpt-4o-2024-11-20'
-    gpt_4o_2024_08_06 = 'gpt-4o-2024-08-06'
-    gpt_4o_2024_05_13 = 'gpt-4o-2024-05-13'
-    gpt_4o_mini_2024_07_18 = 'gpt-4o-mini-2024-07-18'
-    gpt_4o_audio_preview = 'gpt-4o-audio-preview'
-    gpt_4o_audio_preview_2024_10_01 = 'gpt-4o-audio-preview-2024-10-01'
-    gpt_4o_audio_preview_2024_12_17 = 'gpt-4o-audio-preview-2024-12-17'
-    gpt_4o_mini_audio_preview = 'gpt-4o-mini-audio-preview'
-    gpt_4o_mini_audio_preview_2024_12_17 = 'gpt-4o-mini-audio-preview-2024-12-17'
-    gpt_4o_search_preview = 'gpt-4o-search-preview'
-    gpt_4o_mini_search_preview = 'gpt-4o-mini-search-preview'
-    gpt_4o_search_preview_2025_03_11 = 'gpt-4o-search-preview-2025-03-11'
-    gpt_4o_mini_search_preview_2025_03_11 = 'gpt-4o-mini-search-preview-2025-03-11'
-    computer_use_preview = 'computer-use-preview'
-    computer_use_preview_2025_03_11 = 'computer-use-preview-2025-03-11'
-    chatgpt_4o_latest = 'chatgpt-4o-latest'
+    gpt_4 = "gpt-4"
+    gpt_4_0314 = "gpt-4-0314"
+    gpt_4_0613 = "gpt-4-0613"
+    gpt_4_32k = "gpt-4-32k"
+    gpt_4_32k_0314 = "gpt-4-32k-0314"
+    gpt_4_32k_0613 = "gpt-4-32k-0613"
+    gpt_4_0125_preview = "gpt-4-0125-preview"
+    gpt_4_turbo = "gpt-4-turbo"
+    gpt_4_turbo_2024_04_09 = "gpt-4-turbo-2024-04-09"
+    gpt_4_turbo_preview = "gpt-4-turbo-preview"
+    gpt_4_1106_preview = "gpt-4-1106-preview"
+    gpt_4_vision_preview = "gpt-4-vision-preview"
+    gpt_3_5_turbo = "gpt-3.5-turbo"
+    gpt_3_5_turbo_16k = "gpt-3.5-turbo-16k"
+    gpt_3_5_turbo_0301 = "gpt-3.5-turbo-0301"
+    gpt_3_5_turbo_0613 = "gpt-3.5-turbo-0613"
+    gpt_3_5_turbo_1106 = "gpt-3.5-turbo-1106"
+    gpt_3_5_turbo_0125 = "gpt-3.5-turbo-0125"
+    gpt_3_5_turbo_16k_0613 = "gpt-3.5-turbo-16k-0613"
+    gpt_4_1 = "gpt-4.1"
+    gpt_4_1_mini = "gpt-4.1-mini"
+    gpt_4_1_nano = "gpt-4.1-nano"
+    gpt_4_1_2025_04_14 = "gpt-4.1-2025-04-14"
+    gpt_4_1_mini_2025_04_14 = "gpt-4.1-mini-2025-04-14"
+    gpt_4_1_nano_2025_04_14 = "gpt-4.1-nano-2025-04-14"
+    o1 = "o1"
+    o1_mini = "o1-mini"
+    o1_preview = "o1-preview"
+    o1_pro = "o1-pro"
+    o1_2024_12_17 = "o1-2024-12-17"
+    o1_preview_2024_09_12 = "o1-preview-2024-09-12"
+    o1_mini_2024_09_12 = "o1-mini-2024-09-12"
+    o1_pro_2025_03_19 = "o1-pro-2025-03-19"
+    o3 = "o3"
+    o3_mini = "o3-mini"
+    o3_2025_04_16 = "o3-2025-04-16"
+    o3_mini_2025_01_31 = "o3-mini-2025-01-31"
+    o4_mini = "o4-mini"
+    o4_mini_2025_04_16 = "o4-mini-2025-04-16"
+    gpt_4o = "gpt-4o"
+    gpt_4o_mini = "gpt-4o-mini"
+    gpt_4o_2024_11_20 = "gpt-4o-2024-11-20"
+    gpt_4o_2024_08_06 = "gpt-4o-2024-08-06"
+    gpt_4o_2024_05_13 = "gpt-4o-2024-05-13"
+    gpt_4o_mini_2024_07_18 = "gpt-4o-mini-2024-07-18"
+    gpt_4o_audio_preview = "gpt-4o-audio-preview"
+    gpt_4o_audio_preview_2024_10_01 = "gpt-4o-audio-preview-2024-10-01"
+    gpt_4o_audio_preview_2024_12_17 = "gpt-4o-audio-preview-2024-12-17"
+    gpt_4o_mini_audio_preview = "gpt-4o-mini-audio-preview"
+    gpt_4o_mini_audio_preview_2024_12_17 = "gpt-4o-mini-audio-preview-2024-12-17"
+    gpt_4o_search_preview = "gpt-4o-search-preview"
+    gpt_4o_mini_search_preview = "gpt-4o-mini-search-preview"
+    gpt_4o_search_preview_2025_03_11 = "gpt-4o-search-preview-2025-03-11"
+    gpt_4o_mini_search_preview_2025_03_11 = "gpt-4o-mini-search-preview-2025-03-11"
+    computer_use_preview = "computer-use-preview"
+    computer_use_preview_2025_03_11 = "computer-use-preview-2025-03-11"
+    chatgpt_4o_latest = "chatgpt-4o-latest"
 
 
 class Reason(str, Enum):
-    max_output_tokens = 'max_output_tokens'
-    content_filter = 'content_filter'
+    max_output_tokens = "max_output_tokens"
+    content_filter = "content_filter"
 
 
 class IncompleteDetails(BaseModel):
     reason: Optional[Reason] = Field(
-        None, description='The reason why the response is incomplete.'
+        None, description="The reason why the response is incomplete."
     )
 
 
 class Object(str, Enum):
-    response = 'response'
+    response = "response"
 
 
 class Status7(str, Enum):
-    completed = 'completed'
-    failed = 'failed'
-    in_progress = 'in_progress'
-    incomplete = 'incomplete'
+    completed = "completed"
+    failed = "failed"
+    in_progress = "in_progress"
+    incomplete = "incomplete"
 
 
 class Type14(str, Enum):
-    output_audio = 'output_audio'
+    output_audio = "output_audio"
 
 
 class OutputAudioContent(BaseModel):
-    data: str = Field(..., description='Base64-encoded audio data')
-    transcript: str = Field(..., description='Transcript of the audio')
-    type: Type14 = Field(..., description='The type of output content')
+    data: str = Field(..., description="Base64-encoded audio data")
+    transcript: str = Field(..., description="Transcript of the audio")
+    type: Type14 = Field(..., description="The type of output content")
 
 
 class Role4(str, Enum):
-    assistant = 'assistant'
+    assistant = "assistant"
 
 
 class Type15(str, Enum):
-    message = 'message'
+    message = "message"
 
 
 class Type16(str, Enum):
-    output_text = 'output_text'
+    output_text = "output_text"
 
 
 class OutputTextContent(BaseModel):
-    text: str = Field(..., description='The text content')
-    type: Type16 = Field(..., description='The type of output content')
+    text: str = Field(..., description="The text content")
+    type: Type16 = Field(..., description="The type of output content")
 
 
 class PersonalAccessToken(BaseModel):
     createdAt: Optional[datetime] = Field(
-        None, description='[Output Only]The date and time the token was created.'
+        None, description="[Output Only]The date and time the token was created."
     )
     description: Optional[str] = Field(
         None,
         description="Optional. A more detailed description of the token's intended use.",
     )
-    id: Optional[UUID] = Field(None, description='Unique identifier for the GitCommit')
+    id: Optional[UUID] = Field(None, description="Unique identifier for the GitCommit")
     name: Optional[str] = Field(
         None,
-        description='Required. The name of the token. Can be a simple description.',
+        description="Required. The name of the token. Can be a simple description.",
     )
     token: Optional[str] = Field(
         None,
-        description='[Output Only]. The personal access token. Only returned during creation.',
+        description="[Output Only]. The personal access token. Only returned during creation.",
     )
 
 
 class AspectRatio1(RootModel[float]):
     root: float = Field(
         ...,
-        description='Aspect ratio (width / height)',
+        description="Aspect ratio (width / height)",
         ge=0.4,
         le=2.5,
-        title='Aspectratio',
+        title="Aspectratio",
     )
 
 
 class IngredientsMode(str, Enum):
-    creative = 'creative'
-    precise = 'precise'
+    creative = "creative"
+    precise = "precise"
 
 
 class PikaBodyGenerate22C2vGenerate22PikascenesPost(BaseModel):
     aspectRatio: Optional[AspectRatio1] = Field(
-        None, description='Aspect ratio (width / height)', title='Aspectratio'
+        None, description="Aspect ratio (width / height)", title="Aspectratio"
     )
-    duration: Optional[int] = Field(5, title='Duration')
-    images: Optional[List[StrictBytes]] = Field(None, title='Images')
-    ingredientsMode: IngredientsMode = Field(..., title='Ingredientsmode')
-    negativePrompt: Optional[str] = Field(None, title='Negativeprompt')
-    promptText: Optional[str] = Field(None, title='Prompttext')
-    resolution: Optional[str] = Field('1080p', title='Resolution')
-    seed: Optional[int] = Field(None, title='Seed')
+    duration: Optional[int] = Field(5, title="Duration")
+    images: Optional[List[StrictBytes]] = Field(None, title="Images")
+    ingredientsMode: IngredientsMode = Field(..., title="Ingredientsmode")
+    negativePrompt: Optional[str] = Field(None, title="Negativeprompt")
+    promptText: Optional[str] = Field(None, title="Prompttext")
+    resolution: Optional[str] = Field("1080p", title="Resolution")
+    seed: Optional[int] = Field(None, title="Seed")
 
 
 class PikaBodyGeneratePikadditionsGeneratePikadditionsPost(BaseModel):
-    image: Optional[StrictBytes] = Field(None, title='Image')
-    negativePrompt: Optional[str] = Field(None, title='Negativeprompt')
-    promptText: Optional[str] = Field(None, title='Prompttext')
-    seed: Optional[int] = Field(None, title='Seed')
-    video: Optional[StrictBytes] = Field(None, title='Video')
+    image: Optional[StrictBytes] = Field(None, title="Image")
+    negativePrompt: Optional[str] = Field(None, title="Negativeprompt")
+    promptText: Optional[str] = Field(None, title="Prompttext")
+    seed: Optional[int] = Field(None, title="Seed")
+    video: Optional[StrictBytes] = Field(None, title="Video")
 
 
 class PikaBodyGeneratePikaswapsGeneratePikaswapsPost(BaseModel):
-    image: Optional[StrictBytes] = Field(None, title='Image')
+    image: Optional[StrictBytes] = Field(None, title="Image")
     modifyRegionMask: Optional[StrictBytes] = Field(
         None,
-        description='A mask image that specifies the region to modify, where the mask is white and the background is black',
-        title='Modifyregionmask',
+        description="A mask image that specifies the region to modify, where the mask is white and the background is black",
+        title="Modifyregionmask",
     )
     modifyRegionRoi: Optional[str] = Field(
         None,
-        description='Plaintext description of the object / region to modify',
-        title='Modifyregionroi',
+        description="Plaintext description of the object / region to modify",
+        title="Modifyregionroi",
     )
-    negativePrompt: Optional[str] = Field(None, title='Negativeprompt')
-    promptText: Optional[str] = Field(None, title='Prompttext')
-    seed: Optional[int] = Field(None, title='Seed')
-    video: Optional[StrictBytes] = Field(None, title='Video')
+    negativePrompt: Optional[str] = Field(None, title="Negativeprompt")
+    promptText: Optional[str] = Field(None, title="Prompttext")
+    seed: Optional[int] = Field(None, title="Seed")
+    video: Optional[StrictBytes] = Field(None, title="Video")
 
 
 class PikaDurationEnum(int, Enum):
@@ -2247,50 +2246,50 @@ class PikaDurationEnum(int, Enum):
 
 
 class PikaGenerateResponse(BaseModel):
-    video_id: str = Field(..., title='Video Id')
+    video_id: str = Field(..., title="Video Id")
 
 
 class PikaResolutionEnum(str, Enum):
-    field_1080p = '1080p'
-    field_720p = '720p'
+    field_1080p = "1080p"
+    field_720p = "720p"
 
 
 class PikaStatusEnum(str, Enum):
-    queued = 'queued'
-    started = 'started'
-    finished = 'finished'
+    queued = "queued"
+    started = "started"
+    finished = "finished"
 
 
 class PikaValidationError(BaseModel):
-    loc: List[Union[str, int]] = Field(..., title='Location')
-    msg: str = Field(..., title='Message')
-    type: str = Field(..., title='Error Type')
+    loc: List[Union[str, int]] = Field(..., title="Location")
+    msg: str = Field(..., title="Message")
+    type: str = Field(..., title="Error Type")
 
 
 class PikaVideoResponse(BaseModel):
-    id: str = Field(..., title='Id')
-    progress: Optional[int] = Field(None, title='Progress')
+    id: str = Field(..., title="Id")
+    progress: Optional[int] = Field(None, title="Progress")
     status: PikaStatusEnum
-    url: Optional[str] = Field(None, title='Url')
+    url: Optional[str] = Field(None, title="Url")
 
 
 class Pikaffect(str, Enum):
-    Cake_ify = 'Cake-ify'
-    Crumble = 'Crumble'
-    Crush = 'Crush'
-    Decapitate = 'Decapitate'
-    Deflate = 'Deflate'
-    Dissolve = 'Dissolve'
-    Explode = 'Explode'
-    Eye_pop = 'Eye-pop'
-    Inflate = 'Inflate'
-    Levitate = 'Levitate'
-    Melt = 'Melt'
-    Peel = 'Peel'
-    Poke = 'Poke'
-    Squish = 'Squish'
-    Ta_da = 'Ta-da'
-    Tear = 'Tear'
+    Cake_ify = "Cake-ify"
+    Crumble = "Crumble"
+    Crush = "Crush"
+    Decapitate = "Decapitate"
+    Deflate = "Deflate"
+    Dissolve = "Dissolve"
+    Explode = "Explode"
+    Eye_pop = "Eye-pop"
+    Inflate = "Inflate"
+    Levitate = "Levitate"
+    Melt = "Melt"
+    Peel = "Peel"
+    Poke = "Poke"
+    Squish = "Squish"
+    Ta_da = "Ta-da"
+    Tear = "Tear"
 
 
 class Resp(BaseModel):
@@ -2300,7 +2299,7 @@ class Resp(BaseModel):
 class PixverseImageUploadResponse(BaseModel):
     ErrCode: Optional[int] = None
     ErrMsg: Optional[str] = None
-    Resp_1: Optional[Resp] = Field(None, alias='Resp')
+    Resp_1: Optional[Resp] = Field(None, alias="Resp")
 
 
 class Duration(int, Enum):
@@ -2309,27 +2308,27 @@ class Duration(int, Enum):
 
 
 class Model1(str, Enum):
-    v3_5 = 'v3.5'
+    v3_5 = "v3.5"
 
 
 class MotionMode(str, Enum):
-    normal = 'normal'
-    fast = 'fast'
+    normal = "normal"
+    fast = "fast"
 
 
 class Quality1(str, Enum):
-    field_360p = '360p'
-    field_540p = '540p'
-    field_720p = '720p'
-    field_1080p = '1080p'
+    field_360p = "360p"
+    field_540p = "540p"
+    field_720p = "720p"
+    field_1080p = "1080p"
 
 
 class Style1(str, Enum):
-    anime = 'anime'
-    field_3d_animation = '3d_animation'
-    clay = 'clay'
-    comic = 'comic'
-    cyberpunk = 'cyberpunk'
+    anime = "anime"
+    field_3d_animation = "3d_animation"
+    clay = "clay"
+    comic = "comic"
+    cyberpunk = "cyberpunk"
 
 
 class PixverseImageVideoRequest(BaseModel):
@@ -2346,11 +2345,11 @@ class PixverseImageVideoRequest(BaseModel):
 
 
 class AspectRatio2(str, Enum):
-    field_16_9 = '16:9'
-    field_4_3 = '4:3'
-    field_1_1 = '1:1'
-    field_3_4 = '3:4'
-    field_9_16 = '9:16'
+    field_16_9 = "16:9"
+    field_4_3 = "4:3"
+    field_1_1 = "1:1"
+    field_3_4 = "3:4"
+    field_9_16 = "9:16"
 
 
 class PixverseTextVideoRequest(BaseModel):
@@ -2412,7 +2411,7 @@ class Resp2(BaseModel):
     size: Optional[int] = None
     status: Optional[Status8] = Field(
         None,
-        description='Video generation status codes:\n* 1 - Generation successful\n* 5 - Generating\n* 6 - Deleted\n* 7 - Contents moderation failed\n* 8 - Generation failed\n',
+        description="Video generation status codes:\n* 1 - Generation successful\n* 5 - Generating\n* 6 - Deleted\n* 7 - Contents moderation failed\n* 8 - Generation failed\n",
     )
     style: Optional[str] = None
     url: Optional[str] = None
@@ -2425,14 +2424,14 @@ class PixverseVideoResultResponse(BaseModel):
 
 
 class PublisherStatus(str, Enum):
-    PublisherStatusActive = 'PublisherStatusActive'
-    PublisherStatusBanned = 'PublisherStatusBanned'
+    PublisherStatusActive = "PublisherStatusActive"
+    PublisherStatusBanned = "PublisherStatusBanned"
 
 
 class PublisherUser(BaseModel):
-    email: Optional[str] = Field(None, description='The email address for this user.')
-    id: Optional[str] = Field(None, description='The unique id for this user.')
-    name: Optional[str] = Field(None, description='The name for this user.')
+    email: Optional[str] = Field(None, description="The email address for this user.")
+    id: Optional[str] = Field(None, description="The unique id for this user.")
+    name: Optional[str] = Field(None, description="The name for this user.")
 
 
 class RgbItem(RootModel[int]):
@@ -2444,58 +2443,58 @@ class RGBColor(BaseModel):
 
 
 class GenerateSummary(str, Enum):
-    auto = 'auto'
-    concise = 'concise'
-    detailed = 'detailed'
+    auto = "auto"
+    concise = "concise"
+    detailed = "detailed"
 
 
 class Summary(str, Enum):
-    auto = 'auto'
-    concise = 'concise'
-    detailed = 'detailed'
+    auto = "auto"
+    concise = "concise"
+    detailed = "detailed"
 
 
 class ReasoningEffort(str, Enum):
-    low = 'low'
-    medium = 'medium'
-    high = 'high'
+    low = "low"
+    medium = "medium"
+    high = "high"
 
 
 class Status9(str, Enum):
-    in_progress = 'in_progress'
-    completed = 'completed'
-    incomplete = 'incomplete'
+    in_progress = "in_progress"
+    completed = "completed"
+    incomplete = "incomplete"
 
 
 class Type17(str, Enum):
-    summary_text = 'summary_text'
+    summary_text = "summary_text"
 
 
 class SummaryItem(BaseModel):
     text: str = Field(
         ...,
-        description='A short summary of the reasoning used by the model when generating\nthe response.\n',
+        description="A short summary of the reasoning used by the model when generating\nthe response.\n",
     )
     type: Type17 = Field(
-        ..., description='The type of the object. Always `summary_text`.\n'
+        ..., description="The type of the object. Always `summary_text`.\n"
     )
 
 
 class Type18(str, Enum):
-    reasoning = 'reasoning'
+    reasoning = "reasoning"
 
 
 class ReasoningItem(BaseModel):
     id: str = Field(
-        ..., description='The unique identifier of the reasoning content.\n'
+        ..., description="The unique identifier of the reasoning content.\n"
     )
     status: Optional[Status9] = Field(
         None,
-        description='The status of the item. One of `in_progress`, `completed`, or\n`incomplete`. Populated when items are returned via API.\n',
+        description="The status of the item. One of `in_progress`, `completed`, or\n`incomplete`. Populated when items are returned via API.\n",
     )
-    summary: List[SummaryItem] = Field(..., description='Reasoning text contents.\n')
+    summary: List[SummaryItem] = Field(..., description="Reasoning text contents.\n")
     type: Type18 = Field(
-        ..., description='The type of the object. Always `reasoning`.\n'
+        ..., description="The type of the object. Always `reasoning`.\n"
     )
 
 
@@ -2510,34 +2509,34 @@ class RecraftImageFeatures(BaseModel):
 
 
 class RecraftImageFormat(str, Enum):
-    webp = 'webp'
-    png = 'png'
+    webp = "webp"
+    png = "png"
 
 
 class Controls(BaseModel):
     artistic_level: Optional[int] = Field(
         None,
-        description='Defines artistic tone of your image. At a simple level, the person looks straight at the camera in a static and clean style. Dynamic and eccentric levels introduce movement and creativity.',
+        description="Defines artistic tone of your image. At a simple level, the person looks straight at the camera in a static and clean style. Dynamic and eccentric levels introduce movement and creativity.",
         ge=0,
         le=5,
     )
     background_color: Optional[RGBColor] = None
     colors: Optional[List[RGBColor]] = Field(
-        None, description='An array of preferable colors'
+        None, description="An array of preferable colors"
     )
-    no_text: Optional[bool] = Field(None, description='Do not embed text layouts')
+    no_text: Optional[bool] = Field(None, description="Do not embed text layouts")
 
 
 class RecraftImageGenerationRequest(BaseModel):
     controls: Optional[Controls] = Field(
-        None, description='The controls for the generated image'
+        None, description="The controls for the generated image"
     )
     model: str = Field(
         ..., description='The model to use for generation (e.g., "recraftv3")'
     )
-    n: int = Field(..., description='The number of images to generate', ge=1, le=4)
+    n: int = Field(..., description="The number of images to generate", ge=1, le=4)
     prompt: str = Field(
-        ..., description='The text prompt describing the image to generate'
+        ..., description="The text prompt describing the image to generate"
     )
     size: str = Field(
         ..., description='The size of the generated image (e.g., "1024x1024")'
@@ -2554,80 +2553,80 @@ class RecraftImageGenerationRequest(BaseModel):
 
 class Datum3(BaseModel):
     image_id: Optional[str] = Field(
-        None, description='Unique identifier for the generated image'
+        None, description="Unique identifier for the generated image"
     )
-    url: Optional[str] = Field(None, description='URL to access the generated image')
+    url: Optional[str] = Field(None, description="URL to access the generated image")
 
 
 class RecraftImageGenerationResponse(BaseModel):
     created: int = Field(
-        ..., description='Unix timestamp when the generation was created'
+        ..., description="Unix timestamp when the generation was created"
     )
-    credits: int = Field(..., description='Number of credits used for the generation')
-    data: List[Datum3] = Field(..., description='Array of generated image information')
+    credits: int = Field(..., description="Number of credits used for the generation")
+    data: List[Datum3] = Field(..., description="Array of generated image information")
 
 
 class RecraftImageStyle(str, Enum):
-    digital_illustration = 'digital_illustration'
-    icon = 'icon'
-    realistic_image = 'realistic_image'
-    vector_illustration = 'vector_illustration'
+    digital_illustration = "digital_illustration"
+    icon = "icon"
+    realistic_image = "realistic_image"
+    vector_illustration = "vector_illustration"
 
 
 class RecraftImageSubStyle(str, Enum):
-    field_2d_art_poster = '2d_art_poster'
-    field_3d = '3d'
-    field_80s = '80s'
-    glow = 'glow'
-    grain = 'grain'
-    hand_drawn = 'hand_drawn'
-    infantile_sketch = 'infantile_sketch'
-    kawaii = 'kawaii'
-    pixel_art = 'pixel_art'
-    psychedelic = 'psychedelic'
-    seamless = 'seamless'
-    voxel = 'voxel'
-    watercolor = 'watercolor'
-    broken_line = 'broken_line'
-    colored_outline = 'colored_outline'
-    colored_shapes = 'colored_shapes'
-    colored_shapes_gradient = 'colored_shapes_gradient'
-    doodle_fill = 'doodle_fill'
-    doodle_offset_fill = 'doodle_offset_fill'
-    offset_fill = 'offset_fill'
-    outline = 'outline'
-    outline_gradient = 'outline_gradient'
-    uneven_fill = 'uneven_fill'
-    field_70s = '70s'
-    cartoon = 'cartoon'
-    doodle_line_art = 'doodle_line_art'
-    engraving = 'engraving'
-    flat_2 = 'flat_2'
-    kawaii_1 = 'kawaii'
-    line_art = 'line_art'
-    linocut = 'linocut'
-    seamless_1 = 'seamless'
-    b_and_w = 'b_and_w'
-    enterprise = 'enterprise'
-    hard_flash = 'hard_flash'
-    hdr = 'hdr'
-    motion_blur = 'motion_blur'
-    natural_light = 'natural_light'
-    studio_portrait = 'studio_portrait'
-    line_circuit = 'line_circuit'
-    field_2d_art_poster_2 = '2d_art_poster_2'
-    engraving_color = 'engraving_color'
-    flat_air_art = 'flat_air_art'
-    hand_drawn_outline = 'hand_drawn_outline'
-    handmade_3d = 'handmade_3d'
-    stickers_drawings = 'stickers_drawings'
-    plastic = 'plastic'
-    pictogram = 'pictogram'
+    field_2d_art_poster = "2d_art_poster"
+    field_3d = "3d"
+    field_80s = "80s"
+    glow = "glow"
+    grain = "grain"
+    hand_drawn = "hand_drawn"
+    infantile_sketch = "infantile_sketch"
+    kawaii = "kawaii"
+    pixel_art = "pixel_art"
+    psychedelic = "psychedelic"
+    seamless = "seamless"
+    voxel = "voxel"
+    watercolor = "watercolor"
+    broken_line = "broken_line"
+    colored_outline = "colored_outline"
+    colored_shapes = "colored_shapes"
+    colored_shapes_gradient = "colored_shapes_gradient"
+    doodle_fill = "doodle_fill"
+    doodle_offset_fill = "doodle_offset_fill"
+    offset_fill = "offset_fill"
+    outline = "outline"
+    outline_gradient = "outline_gradient"
+    uneven_fill = "uneven_fill"
+    field_70s = "70s"
+    cartoon = "cartoon"
+    doodle_line_art = "doodle_line_art"
+    engraving = "engraving"
+    flat_2 = "flat_2"
+    kawaii_1 = "kawaii"
+    line_art = "line_art"
+    linocut = "linocut"
+    seamless_1 = "seamless"
+    b_and_w = "b_and_w"
+    enterprise = "enterprise"
+    hard_flash = "hard_flash"
+    hdr = "hdr"
+    motion_blur = "motion_blur"
+    natural_light = "natural_light"
+    studio_portrait = "studio_portrait"
+    line_circuit = "line_circuit"
+    field_2d_art_poster_2 = "2d_art_poster_2"
+    engraving_color = "engraving_color"
+    flat_air_art = "flat_air_art"
+    hand_drawn_outline = "hand_drawn_outline"
+    handmade_3d = "handmade_3d"
+    stickers_drawings = "stickers_drawings"
+    plastic = "plastic"
+    pictogram = "pictogram"
 
 
 class RecraftResponseFormat(str, Enum):
-    url = 'url'
-    b64_json = 'b64_json'
+    url = "url"
+    b64_json = "b64_json"
 
 
 class RecraftTextLayoutItem(BaseModel):
@@ -2636,14 +2635,14 @@ class RecraftTextLayoutItem(BaseModel):
 
 
 class RecraftTransformModel(str, Enum):
-    refm1 = 'refm1'
-    recraft20b = 'recraft20b'
-    recraftv2 = 'recraftv2'
-    recraftv3 = 'recraftv3'
-    flux1_1pro = 'flux1_1pro'
-    flux1dev = 'flux1dev'
-    imagen3 = 'imagen3'
-    hidream_i1_dev = 'hidream_i1_dev'
+    refm1 = "refm1"
+    recraft20b = "recraft20b"
+    recraftv2 = "recraftv2"
+    recraftv3 = "recraftv3"
+    flux1_1pro = "flux1_1pro"
+    flux1dev = "flux1dev"
+    imagen3 = "imagen3"
+    hidream_i1_dev = "hidream_i1_dev"
 
 
 class RecraftUserControls(BaseModel):
@@ -2654,224 +2653,224 @@ class RecraftUserControls(BaseModel):
 
 
 class Attention(str, Enum):
-    low = 'low'
-    medium = 'medium'
-    high = 'high'
+    low = "low"
+    medium = "medium"
+    high = "high"
 
 
 class Project(str, Enum):
-    comfyui = 'comfyui'
-    comfyui_frontend = 'comfyui_frontend'
-    desktop = 'desktop'
+    comfyui = "comfyui"
+    comfyui_frontend = "comfyui_frontend"
+    desktop = "desktop"
 
 
 class ReleaseNote(BaseModel):
     attention: Attention = Field(
-        ..., description='The attention level for this release'
+        ..., description="The attention level for this release"
     )
     content: str = Field(
-        ..., description='The content of the release note in markdown format'
+        ..., description="The content of the release note in markdown format"
     )
-    id: int = Field(..., description='Unique identifier for the release note')
+    id: int = Field(..., description="Unique identifier for the release note")
     project: Project = Field(
-        ..., description='The project this release note belongs to'
+        ..., description="The project this release note belongs to"
     )
     published_at: datetime = Field(
-        ..., description='When the release note was published'
+        ..., description="When the release note was published"
     )
-    version: str = Field(..., description='The version of the release')
+    version: str = Field(..., description="The version of the release")
 
 
 class RenderingSpeed(str, Enum):
-    DEFAULT = 'DEFAULT'
-    TURBO = 'TURBO'
-    QUALITY = 'QUALITY'
+    DEFAULT = "DEFAULT"
+    TURBO = "TURBO"
+    QUALITY = "QUALITY"
 
 
 class Type19(str, Enum):
-    response_completed = 'response.completed'
+    response_completed = "response.completed"
 
 
 class Type20(str, Enum):
-    response_content_part_added = 'response.content_part.added'
+    response_content_part_added = "response.content_part.added"
 
 
 class Type21(str, Enum):
-    response_content_part_done = 'response.content_part.done'
+    response_content_part_done = "response.content_part.done"
 
 
 class Type22(str, Enum):
-    response_created = 'response.created'
+    response_created = "response.created"
 
 
 class ResponseErrorCode(str, Enum):
-    server_error = 'server_error'
-    rate_limit_exceeded = 'rate_limit_exceeded'
-    invalid_prompt = 'invalid_prompt'
-    vector_store_timeout = 'vector_store_timeout'
-    invalid_image = 'invalid_image'
-    invalid_image_format = 'invalid_image_format'
-    invalid_base64_image = 'invalid_base64_image'
-    invalid_image_url = 'invalid_image_url'
-    image_too_large = 'image_too_large'
-    image_too_small = 'image_too_small'
-    image_parse_error = 'image_parse_error'
-    image_content_policy_violation = 'image_content_policy_violation'
-    invalid_image_mode = 'invalid_image_mode'
-    image_file_too_large = 'image_file_too_large'
-    unsupported_image_media_type = 'unsupported_image_media_type'
-    empty_image_file = 'empty_image_file'
-    failed_to_download_image = 'failed_to_download_image'
-    image_file_not_found = 'image_file_not_found'
+    server_error = "server_error"
+    rate_limit_exceeded = "rate_limit_exceeded"
+    invalid_prompt = "invalid_prompt"
+    vector_store_timeout = "vector_store_timeout"
+    invalid_image = "invalid_image"
+    invalid_image_format = "invalid_image_format"
+    invalid_base64_image = "invalid_base64_image"
+    invalid_image_url = "invalid_image_url"
+    image_too_large = "image_too_large"
+    image_too_small = "image_too_small"
+    image_parse_error = "image_parse_error"
+    image_content_policy_violation = "image_content_policy_violation"
+    invalid_image_mode = "invalid_image_mode"
+    image_file_too_large = "image_file_too_large"
+    unsupported_image_media_type = "unsupported_image_media_type"
+    empty_image_file = "empty_image_file"
+    failed_to_download_image = "failed_to_download_image"
+    image_file_not_found = "image_file_not_found"
 
 
 class Type23(str, Enum):
-    error = 'error'
+    error = "error"
 
 
 class ResponseErrorEvent(BaseModel):
-    code: str = Field(..., description='The error code.\n')
-    message: str = Field(..., description='The error message.\n')
-    param: str = Field(..., description='The error parameter.\n')
-    type: Type23 = Field(..., description='The type of the event. Always `error`.\n')
+    code: str = Field(..., description="The error code.\n")
+    message: str = Field(..., description="The error message.\n")
+    param: str = Field(..., description="The error parameter.\n")
+    type: Type23 = Field(..., description="The type of the event. Always `error`.\n")
 
 
 class Type24(str, Enum):
-    response_failed = 'response.failed'
+    response_failed = "response.failed"
 
 
 class Type25(str, Enum):
-    json_object = 'json_object'
+    json_object = "json_object"
 
 
 class ResponseFormatJsonObject(BaseModel):
     type: Type25 = Field(
         ...,
-        description='The type of response format being defined. Always `json_object`.',
+        description="The type of response format being defined. Always `json_object`.",
     )
 
 
 class ResponseFormatJsonSchemaSchema(BaseModel):
     pass
     model_config = ConfigDict(
-        extra='allow',
+        extra="allow",
     )
 
 
 class Type26(str, Enum):
-    text = 'text'
+    text = "text"
 
 
 class ResponseFormatText(BaseModel):
     type: Type26 = Field(
-        ..., description='The type of response format being defined. Always `text`.'
+        ..., description="The type of response format being defined. Always `text`."
     )
 
 
 class Type27(str, Enum):
-    response_in_progress = 'response.in_progress'
+    response_in_progress = "response.in_progress"
 
 
 class Type28(str, Enum):
-    response_incomplete = 'response.incomplete'
+    response_incomplete = "response.incomplete"
 
 
 class Type29(str, Enum):
-    response_output_item_added = 'response.output_item.added'
+    response_output_item_added = "response.output_item.added"
 
 
 class Type30(str, Enum):
-    response_output_item_done = 'response.output_item.done'
+    response_output_item_done = "response.output_item.done"
 
 
 class Truncation1(str, Enum):
-    auto = 'auto'
-    disabled = 'disabled'
+    auto = "auto"
+    disabled = "disabled"
 
 
 class InputTokensDetails1(BaseModel):
     cached_tokens: int = Field(
         ...,
-        description='The number of tokens that were retrieved from the cache. \n[More on prompt caching](/docs/guides/prompt-caching).\n',
+        description="The number of tokens that were retrieved from the cache. \n[More on prompt caching](/docs/guides/prompt-caching).\n",
     )
 
 
 class OutputTokensDetails(BaseModel):
-    reasoning_tokens: int = Field(..., description='The number of reasoning tokens.')
+    reasoning_tokens: int = Field(..., description="The number of reasoning tokens.")
 
 
 class ResponseUsage(BaseModel):
-    input_tokens: int = Field(..., description='The number of input tokens.')
+    input_tokens: int = Field(..., description="The number of input tokens.")
     input_tokens_details: InputTokensDetails1 = Field(
-        ..., description='A detailed breakdown of the input tokens.'
+        ..., description="A detailed breakdown of the input tokens."
     )
-    output_tokens: int = Field(..., description='The number of output tokens.')
+    output_tokens: int = Field(..., description="The number of output tokens.")
     output_tokens_details: OutputTokensDetails = Field(
-        ..., description='A detailed breakdown of the output tokens.'
+        ..., description="A detailed breakdown of the output tokens."
     )
-    total_tokens: int = Field(..., description='The total number of tokens used.')
+    total_tokens: int = Field(..., description="The total number of tokens used.")
 
 
 class Rodin3DCheckStatusRequest(BaseModel):
     subscription_key: str = Field(
-        ..., description='subscription from generate endpoint'
+        ..., description="subscription from generate endpoint"
     )
 
 
 class Rodin3DDownloadRequest(BaseModel):
-    task_uuid: str = Field(..., description='Task UUID')
+    task_uuid: str = Field(..., description="Task UUID")
 
 
 class RodinGenerateJobsData(BaseModel):
-    subscription_key: Optional[str] = Field(None, description='Subscription Key.')
-    uuids: Optional[List[str]] = Field(None, description='subjobs uuid.')
+    subscription_key: Optional[str] = Field(None, description="Subscription Key.")
+    uuids: Optional[List[str]] = Field(None, description="subjobs uuid.")
 
 
 class RodinMaterialType(str, Enum):
-    PBR = 'PBR'
-    Shaded = 'Shaded'
+    PBR = "PBR"
+    Shaded = "Shaded"
 
 
 class RodinMeshModeType(str, Enum):
-    Quad = 'Quad'
-    Raw = 'Raw'
+    Quad = "Quad"
+    Raw = "Raw"
 
 
 class RodinQualityType(str, Enum):
-    extra_low = 'extra-low'
-    low = 'low'
-    medium = 'medium'
-    high = 'high'
+    extra_low = "extra-low"
+    low = "low"
+    medium = "medium"
+    high = "high"
 
 
 class RodinResourceItem(BaseModel):
-    name: Optional[str] = Field(None, description='File name')
-    url: Optional[str] = Field(None, description='Download url')
+    name: Optional[str] = Field(None, description="File name")
+    url: Optional[str] = Field(None, description="Download url")
 
 
 class RodinStatusOptions(str, Enum):
-    Done = 'Done'
-    Failed = 'Failed'
-    Generating = 'Generating'
-    Waiting = 'Waiting'
+    Done = "Done"
+    Failed = "Failed"
+    Generating = "Generating"
+    Waiting = "Waiting"
 
 
 class RodinTierType(str, Enum):
-    Regular = 'Regular'
-    Sketch = 'Sketch'
-    Detail = 'Detail'
-    Smooth = 'Smooth'
+    Regular = "Regular"
+    Sketch = "Sketch"
+    Detail = "Detail"
+    Smooth = "Smooth"
 
 
 class RunwayAspectRatioEnum(str, Enum):
-    field_1280_720 = '1280:720'
-    field_720_1280 = '720:1280'
-    field_1104_832 = '1104:832'
-    field_832_1104 = '832:1104'
-    field_960_960 = '960:960'
-    field_1584_672 = '1584:672'
-    field_1280_768 = '1280:768'
-    field_768_1280 = '768:1280'
+    field_1280_720 = "1280:720"
+    field_720_1280 = "720:1280"
+    field_1104_832 = "1104:832"
+    field_832_1104 = "832:1104"
+    field_960_960 = "960:960"
+    field_1584_672 = "1584:672"
+    field_1280_768 = "1280:768"
+    field_768_1280 = "768:1280"
 
 
 class RunwayDurationEnum(int, Enum):
@@ -2880,17 +2879,17 @@ class RunwayDurationEnum(int, Enum):
 
 
 class RunwayImageToVideoResponse(BaseModel):
-    id: Optional[str] = Field(None, description='Task ID')
+    id: Optional[str] = Field(None, description="Task ID")
 
 
 class RunwayModelEnum(str, Enum):
-    gen4_turbo = 'gen4_turbo'
-    gen3a_turbo = 'gen3a_turbo'
+    gen4_turbo = "gen4_turbo"
+    gen3a_turbo = "gen3a_turbo"
 
 
 class Position(str, Enum):
-    first = 'first'
-    last = 'last'
+    first = "first"
+    last = "last"
 
 
 class RunwayPromptImageDetailedObject(BaseModel):
@@ -2899,7 +2898,7 @@ class RunwayPromptImageDetailedObject(BaseModel):
         description="The position of the image in the output video. 'last' is currently supported for gen3a_turbo only.",
     )
     uri: str = Field(
-        ..., description='A HTTPS URL or data URI containing an encoded image.'
+        ..., description="A HTTPS URL or data URI containing an encoded image."
     )
 
 
@@ -2908,26 +2907,26 @@ class RunwayPromptImageObject(
 ):
     root: Union[str, List[RunwayPromptImageDetailedObject]] = Field(
         ...,
-        description='Image(s) to use for the video generation. Can be a single URI or an array of image objects with positions.',
+        description="Image(s) to use for the video generation. Can be a single URI or an array of image objects with positions.",
     )
 
 
 class RunwayTaskStatusEnum(str, Enum):
-    SUCCEEDED = 'SUCCEEDED'
-    RUNNING = 'RUNNING'
-    FAILED = 'FAILED'
-    PENDING = 'PENDING'
-    CANCELLED = 'CANCELLED'
-    THROTTLED = 'THROTTLED'
+    SUCCEEDED = "SUCCEEDED"
+    RUNNING = "RUNNING"
+    FAILED = "FAILED"
+    PENDING = "PENDING"
+    CANCELLED = "CANCELLED"
+    THROTTLED = "THROTTLED"
 
 
 class RunwayTaskStatusResponse(BaseModel):
-    createdAt: datetime = Field(..., description='Task creation timestamp')
-    id: str = Field(..., description='Task ID')
-    output: Optional[List[str]] = Field(None, description='Array of output video URLs')
+    createdAt: datetime = Field(..., description="Task creation timestamp")
+    id: str = Field(..., description="Task ID")
+    output: Optional[List[str]] = Field(None, description="Array of output video URLs")
     progress: Optional[float] = Field(
         None,
-        description='Float value between 0 and 1 representing the progress of the task. Only available if status is RUNNING.',
+        description="Float value between 0 and 1 representing the progress of the task. Only available if status is RUNNING.",
         ge=0.0,
         le=1.0,
     )
@@ -2935,70 +2934,70 @@ class RunwayTaskStatusResponse(BaseModel):
 
 
 class RunwayTextToImageAspectRatioEnum(str, Enum):
-    field_1920_1080 = '1920:1080'
-    field_1080_1920 = '1080:1920'
-    field_1024_1024 = '1024:1024'
-    field_1360_768 = '1360:768'
-    field_1080_1080 = '1080:1080'
-    field_1168_880 = '1168:880'
-    field_1440_1080 = '1440:1080'
-    field_1080_1440 = '1080:1440'
-    field_1808_768 = '1808:768'
-    field_2112_912 = '2112:912'
+    field_1920_1080 = "1920:1080"
+    field_1080_1920 = "1080:1920"
+    field_1024_1024 = "1024:1024"
+    field_1360_768 = "1360:768"
+    field_1080_1080 = "1080:1080"
+    field_1168_880 = "1168:880"
+    field_1440_1080 = "1440:1080"
+    field_1080_1440 = "1080:1440"
+    field_1808_768 = "1808:768"
+    field_2112_912 = "2112:912"
 
 
 class Model4(str, Enum):
-    gen4_image = 'gen4_image'
+    gen4_image = "gen4_image"
 
 
 class ReferenceImage(BaseModel):
     uri: Optional[str] = Field(
-        None, description='A HTTPS URL or data URI containing an encoded image'
+        None, description="A HTTPS URL or data URI containing an encoded image"
     )
 
 
 class RunwayTextToImageRequest(BaseModel):
-    model: Model4 = Field(..., description='Model to use for generation')
+    model: Model4 = Field(..., description="Model to use for generation")
     promptText: str = Field(
-        ..., description='Text prompt for the image generation', max_length=1000
+        ..., description="Text prompt for the image generation", max_length=1000
     )
     ratio: RunwayTextToImageAspectRatioEnum
     referenceImages: Optional[List[ReferenceImage]] = Field(
-        None, description='Array of reference images to guide the generation'
+        None, description="Array of reference images to guide the generation"
     )
 
 
 class RunwayTextToImageResponse(BaseModel):
-    id: Optional[str] = Field(None, description='Task ID')
+    id: Optional[str] = Field(None, description="Task ID")
 
 
 class Name(str, Enum):
-    content_moderation = 'content_moderation'
+    content_moderation = "content_moderation"
 
 
 class StabilityContentModerationResponse(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new) you file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new) you file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: Name = Field(
         ...,
-        description='Our content moderation system has flagged some part of your request and subsequently denied it.  You were not charged for this request.  While this may at times be frustrating, it is necessary to maintain the integrity of our platform and ensure a safe experience for all users. If you would like to provide feedback, please use the [Support Form](https://kb.stability.ai/knowledge-base/kb-tickets/new).',
+        description="Our content moderation system has flagged some part of your request and subsequently denied it.  You were not charged for this request.  While this may at times be frustrating, it is necessary to maintain the integrity of our platform and ensure a safe experience for all users. If you would like to provide feedback, please use the [Support Form](https://kb.stability.ai/knowledge-base/kb-tickets/new).",
     )
 
 
 class StabilityCreativity(RootModel[float]):
     root: float = Field(
         ...,
-        description='Controls the likelihood of creating additional details not heavily conditioned by the init image.',
+        description="Controls the likelihood of creating additional details not heavily conditioned by the init image.",
         ge=0.2,
         le=0.5,
     )
@@ -3007,20 +3006,20 @@ class StabilityCreativity(RootModel[float]):
 class StabilityError(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[[{'some-field': 'is required'}]],
+        description="One or more error messages indicating what went wrong.",
+        examples=[[{"some-field": "is required"}]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new) you file, as it will greatly assist us in diagnosing the root cause of the problem.\n',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new) you file, as it will greatly assist us in diagnosing the root cause of the problem.\n",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3028,107 +3027,107 @@ class StabilityError(BaseModel):
 class StabilityGenerationID(RootModel[str]):
     root: str = Field(
         ...,
-        description='The `id` of a generation, typically used for async generations, that can be used to check the status of the generation or retrieve the result.',
-        examples=['a6dc6c6e20acda010fe14d71f180658f2896ed9b4ec25aa99a6ff06c796987c4'],
+        description="The `id` of a generation, typically used for async generations, that can be used to check the status of the generation or retrieve the result.",
+        examples=["a6dc6c6e20acda010fe14d71f180658f2896ed9b4ec25aa99a6ff06c796987c4"],
         max_length=64,
         min_length=64,
     )
 
 
 class Status10(str, Enum):
-    in_progress = 'in-progress'
+    in_progress = "in-progress"
 
 
 class StabilityGetResultResponse202(BaseModel):
     id: Optional[str] = Field(
-        None, description='The ID of the generation result.', examples=[1234567890]
+        None, description="The ID of the generation result.", examples=[1234567890]
     )
     status: Optional[Status10] = None
 
 
 class AspectRatio3(str, Enum):
-    field_21_9 = '21:9'
-    field_16_9 = '16:9'
-    field_3_2 = '3:2'
-    field_5_4 = '5:4'
-    field_1_1 = '1:1'
-    field_4_5 = '4:5'
-    field_2_3 = '2:3'
-    field_9_16 = '9:16'
-    field_9_21 = '9:21'
+    field_21_9 = "21:9"
+    field_16_9 = "16:9"
+    field_3_2 = "3:2"
+    field_5_4 = "5:4"
+    field_1_1 = "1:1"
+    field_4_5 = "4:5"
+    field_2_3 = "2:3"
+    field_9_16 = "9:16"
+    field_9_21 = "9:21"
 
 
 class Mode(str, Enum):
-    text_to_image = 'text-to-image'
-    image_to_image = 'image-to-image'
+    text_to_image = "text-to-image"
+    image_to_image = "image-to-image"
 
 
 class Model5(str, Enum):
-    sd3_5_large = 'sd3.5-large'
-    sd3_5_large_turbo = 'sd3.5-large-turbo'
-    sd3_5_medium = 'sd3.5-medium'
+    sd3_5_large = "sd3.5-large"
+    sd3_5_large_turbo = "sd3.5-large-turbo"
+    sd3_5_medium = "sd3.5-medium"
 
 
 class OutputFormat3(str, Enum):
-    png = 'png'
-    jpeg = 'jpeg'
+    png = "png"
+    jpeg = "jpeg"
 
 
 class StylePreset(str, Enum):
-    enhance = 'enhance'
-    anime = 'anime'
-    photographic = 'photographic'
-    digital_art = 'digital-art'
-    comic_book = 'comic-book'
-    fantasy_art = 'fantasy-art'
-    line_art = 'line-art'
-    analog_film = 'analog-film'
-    neon_punk = 'neon-punk'
-    isometric = 'isometric'
-    low_poly = 'low-poly'
-    origami = 'origami'
-    modeling_compound = 'modeling-compound'
-    cinematic = 'cinematic'
-    field_3d_model = '3d-model'
-    pixel_art = 'pixel-art'
-    tile_texture = 'tile-texture'
+    enhance = "enhance"
+    anime = "anime"
+    photographic = "photographic"
+    digital_art = "digital-art"
+    comic_book = "comic-book"
+    fantasy_art = "fantasy-art"
+    line_art = "line-art"
+    analog_film = "analog-film"
+    neon_punk = "neon-punk"
+    isometric = "isometric"
+    low_poly = "low-poly"
+    origami = "origami"
+    modeling_compound = "modeling-compound"
+    cinematic = "cinematic"
+    field_3d_model = "3d-model"
+    pixel_art = "pixel-art"
+    tile_texture = "tile-texture"
 
 
 class StabilityImageGenerationSD3Request(BaseModel):
     aspect_ratio: Optional[AspectRatio3] = Field(
-        '1:1',
-        description='Controls the aspect ratio of the generated image. Defaults to 1:1.\n\n> **Important:** This parameter is only valid for **text-to-image** requests.',
+        "1:1",
+        description="Controls the aspect ratio of the generated image. Defaults to 1:1.\n\n> **Important:** This parameter is only valid for **text-to-image** requests.",
     )
     cfg_scale: Optional[float] = Field(
         None,
-        description='How strictly the diffusion process adheres to the prompt text (higher values keep your image closer to your prompt). The _Large_ and _Medium_ models use a default of `4`. The _Turbo_ model uses a default of `1`.',
+        description="How strictly the diffusion process adheres to the prompt text (higher values keep your image closer to your prompt). The _Large_ and _Medium_ models use a default of `4`. The _Turbo_ model uses a default of `1`.",
         ge=1.0,
         le=10.0,
     )
     image: Optional[StrictBytes] = Field(
         None,
-        description='The image to use as the starting point for the generation.\n\nSupported formats:\n\n\n\n  - jpeg\n  - png\n  - webp\n\nSupported dimensions:\n\n\n\n  - Every side must be at least 64 pixels\n\n> **Important:** This parameter is only valid for **image-to-image** requests.',
+        description="The image to use as the starting point for the generation.\n\nSupported formats:\n\n\n\n  - jpeg\n  - png\n  - webp\n\nSupported dimensions:\n\n\n\n  - Every side must be at least 64 pixels\n\n> **Important:** This parameter is only valid for **image-to-image** requests.",
     )
     mode: Optional[Mode] = Field(
-        'text-to-image',
-        description='Controls whether this is a text-to-image or image-to-image generation, which affects which parameters are required:\n- **text-to-image** requires only the `prompt` parameter\n- **image-to-image** requires the `prompt`, `image`, and `strength` parameters',
-        title='GenerationMode',
+        "text-to-image",
+        description="Controls whether this is a text-to-image or image-to-image generation, which affects which parameters are required:\n- **text-to-image** requires only the `prompt` parameter\n- **image-to-image** requires the `prompt`, `image`, and `strength` parameters",
+        title="GenerationMode",
     )
     model: Optional[Model5] = Field(
-        'sd3.5-large',
-        description='The model to use for generation.\n\n- `sd3.5-large` requires 6.5 credits per generation\n- `sd3.5-large-turbo` requires 4 credits per generation\n- `sd3.5-medium` requires 3.5 credits per generation\n- As of the April 17, 2025, `sd3-large`, `sd3-large-turbo` and `sd3-medium`\n\n\n\n  are re-routed to their `sd3.5-[model version]` equivalent, at the same price.',
+        "sd3.5-large",
+        description="The model to use for generation.\n\n- `sd3.5-large` requires 6.5 credits per generation\n- `sd3.5-large-turbo` requires 4 credits per generation\n- `sd3.5-medium` requires 3.5 credits per generation\n- As of the April 17, 2025, `sd3-large`, `sd3-large-turbo` and `sd3-medium`\n\n\n\n  are re-routed to their `sd3.5-[model version]` equivalent, at the same price.",
     )
     negative_prompt: Optional[str] = Field(
         None,
-        description='Keywords of what you **do not** wish to see in the output image.\nThis is an advanced feature.',
+        description="Keywords of what you **do not** wish to see in the output image.\nThis is an advanced feature.",
         max_length=10000,
     )
     output_format: Optional[OutputFormat3] = Field(
-        'png', description='Dictates the `content-type` of the generated image.'
+        "png", description="Dictates the `content-type` of the generated image."
     )
     prompt: str = Field(
         ...,
-        description='What you wish to see in the output image. A strong, descriptive prompt that clearly defines\nelements, colors, and subjects will lead to better results.',
+        description="What you wish to see in the output image. A strong, descriptive prompt that clearly defines\nelements, colors, and subjects will lead to better results.",
         max_length=10000,
         min_length=1,
     )
@@ -3140,34 +3139,34 @@ class StabilityImageGenerationSD3Request(BaseModel):
     )
     strength: Optional[float] = Field(
         None,
-        description='Sometimes referred to as _denoising_, this parameter controls how much influence the\n`image` parameter has on the generated image.  A value of 0 would yield an image that\nis identical to the input.  A value of 1 would be as if you passed in no image at all.\n\n> **Important:** This parameter is only valid for **image-to-image** requests.',
+        description="Sometimes referred to as _denoising_, this parameter controls how much influence the\n`image` parameter has on the generated image.  A value of 0 would yield an image that\nis identical to the input.  A value of 1 would be as if you passed in no image at all.\n\n> **Important:** This parameter is only valid for **image-to-image** requests.",
         ge=0.0,
         le=1.0,
     )
     style_preset: Optional[StylePreset] = Field(
-        None, description='Guides the image model towards a particular style.'
+        None, description="Guides the image model towards a particular style."
     )
 
 
 class FinishReason(str, Enum):
-    SUCCESS = 'SUCCESS'
-    CONTENT_FILTERED = 'CONTENT_FILTERED'
+    SUCCESS = "SUCCESS"
+    CONTENT_FILTERED = "CONTENT_FILTERED"
 
 
 class StabilityImageGenrationSD3Response200(BaseModel):
     finish_reason: FinishReason = Field(
         ...,
-        description='The reason the generation finished.\n\n- `SUCCESS` = successful generation.\n- `CONTENT_FILTERED` = successful generation, however the output violated our content moderation\npolicy and has been blurred as a result.',
-        examples=['SUCCESS'],
+        description="The reason the generation finished.\n\n- `SUCCESS` = successful generation.\n- `CONTENT_FILTERED` = successful generation, however the output violated our content moderation\npolicy and has been blurred as a result.",
+        examples=["SUCCESS"],
     )
     image: str = Field(
         ...,
-        description='The generated image, encoded to base64.',
-        examples=['AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1...'],
+        description="The generated image, encoded to base64.",
+        examples=["AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1..."],
     )
     seed: Optional[float] = Field(
         0,
-        description='The seed used as random noise for this generation.',
+        description="The seed used as random noise for this generation.",
         examples=[343940597],
         ge=0.0,
         le=4294967294.0,
@@ -3177,20 +3176,20 @@ class StabilityImageGenrationSD3Response200(BaseModel):
 class StabilityImageGenrationSD3Response400(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3198,20 +3197,20 @@ class StabilityImageGenrationSD3Response400(BaseModel):
 class StabilityImageGenrationSD3Response413(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3219,20 +3218,20 @@ class StabilityImageGenrationSD3Response413(BaseModel):
 class StabilityImageGenrationSD3Response422(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3240,20 +3239,20 @@ class StabilityImageGenrationSD3Response422(BaseModel):
 class StabilityImageGenrationSD3Response429(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3261,28 +3260,28 @@ class StabilityImageGenrationSD3Response429(BaseModel):
 class StabilityImageGenrationSD3Response500(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
 
 class OutputFormat4(str, Enum):
-    jpeg = 'jpeg'
-    png = 'png'
-    webp = 'webp'
+    jpeg = "jpeg"
+    png = "png"
+    webp = "webp"
 
 
 class StabilityImageGenrationUpscaleConservativeRequest(BaseModel):
@@ -3291,16 +3290,16 @@ class StabilityImageGenrationUpscaleConservativeRequest(BaseModel):
     )
     image: StrictBytes = Field(
         ...,
-        description='The image you wish to upscale.\n\nSupported Formats:\n- jpeg\n- png\n- webp\n\nValidation Rules:\n- Every side must be at least 64 pixels\n- Total pixel count must be between 4,096 and 9,437,184 pixels\n- The aspect ratio must be between 1:2.5 and 2.5:1',
-        examples=['./some/image.png'],
+        description="The image you wish to upscale.\n\nSupported Formats:\n- jpeg\n- png\n- webp\n\nValidation Rules:\n- Every side must be at least 64 pixels\n- Total pixel count must be between 4,096 and 9,437,184 pixels\n- The aspect ratio must be between 1:2.5 and 2.5:1",
+        examples=["./some/image.png"],
     )
     negative_prompt: Optional[str] = Field(
         None,
-        description='A blurb of text describing what you **do not** wish to see in the output image.\nThis is an advanced feature.',
+        description="A blurb of text describing what you **do not** wish to see in the output image.\nThis is an advanced feature.",
         max_length=10000,
     )
     output_format: Optional[OutputFormat4] = Field(
-        'png', description='Dictates the `content-type` of the generated image.'
+        "png", description="Dictates the `content-type` of the generated image."
     )
     prompt: str = Field(
         ...,
@@ -3319,17 +3318,17 @@ class StabilityImageGenrationUpscaleConservativeRequest(BaseModel):
 class StabilityImageGenrationUpscaleConservativeResponse200(BaseModel):
     finish_reason: FinishReason = Field(
         ...,
-        description='The reason the generation finished.\n\n- `SUCCESS` = successful generation.\n- `CONTENT_FILTERED` = successful generation, however the output violated our content moderation\npolicy and has been blurred as a result.',
-        examples=['SUCCESS'],
+        description="The reason the generation finished.\n\n- `SUCCESS` = successful generation.\n- `CONTENT_FILTERED` = successful generation, however the output violated our content moderation\npolicy and has been blurred as a result.",
+        examples=["SUCCESS"],
     )
     image: str = Field(
         ...,
-        description='The generated image, encoded to base64.',
-        examples=['AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1...'],
+        description="The generated image, encoded to base64.",
+        examples=["AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1..."],
     )
     seed: Optional[float] = Field(
         0,
-        description='The seed used as random noise for this generation.',
+        description="The seed used as random noise for this generation.",
         examples=[343940597],
         ge=0.0,
         le=4294967294.0,
@@ -3339,20 +3338,20 @@ class StabilityImageGenrationUpscaleConservativeResponse200(BaseModel):
 class StabilityImageGenrationUpscaleConservativeResponse400(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3360,20 +3359,20 @@ class StabilityImageGenrationUpscaleConservativeResponse400(BaseModel):
 class StabilityImageGenrationUpscaleConservativeResponse413(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3381,20 +3380,20 @@ class StabilityImageGenrationUpscaleConservativeResponse413(BaseModel):
 class StabilityImageGenrationUpscaleConservativeResponse422(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3402,20 +3401,20 @@ class StabilityImageGenrationUpscaleConservativeResponse422(BaseModel):
 class StabilityImageGenrationUpscaleConservativeResponse429(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3423,20 +3422,20 @@ class StabilityImageGenrationUpscaleConservativeResponse429(BaseModel):
 class StabilityImageGenrationUpscaleConservativeResponse500(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3444,22 +3443,22 @@ class StabilityImageGenrationUpscaleConservativeResponse500(BaseModel):
 class StabilityImageGenrationUpscaleCreativeRequest(BaseModel):
     creativity: Optional[float] = Field(
         0.3,
-        description='Indicates how creative the model should be when upscaling an image.\nHigher values will result in more details being added to the image during upscaling.',
+        description="Indicates how creative the model should be when upscaling an image.\nHigher values will result in more details being added to the image during upscaling.",
         ge=0.1,
         le=0.5,
     )
     image: StrictBytes = Field(
         ...,
-        description='The image you wish to upscale.\n\nSupported Formats:\n- jpeg\n- png\n- webp\n\nValidation Rules:\n- Every side must be at least 64 pixels\n- Total pixel count must be between 4,096 and 1,048,576 pixels',
-        examples=['./some/image.png'],
+        description="The image you wish to upscale.\n\nSupported Formats:\n- jpeg\n- png\n- webp\n\nValidation Rules:\n- Every side must be at least 64 pixels\n- Total pixel count must be between 4,096 and 1,048,576 pixels",
+        examples=["./some/image.png"],
     )
     negative_prompt: Optional[str] = Field(
         None,
-        description='A blurb of text describing what you **do not** wish to see in the output image.\nThis is an advanced feature.',
+        description="A blurb of text describing what you **do not** wish to see in the output image.\nThis is an advanced feature.",
         max_length=10000,
     )
     output_format: Optional[OutputFormat4] = Field(
-        'png', description='Dictates the `content-type` of the generated image.'
+        "png", description="Dictates the `content-type` of the generated image."
     )
     prompt: str = Field(
         ...,
@@ -3474,7 +3473,7 @@ class StabilityImageGenrationUpscaleCreativeRequest(BaseModel):
         le=4294967294.0,
     )
     style_preset: Optional[StylePreset] = Field(
-        None, description='Guides the image model towards a particular style.'
+        None, description="Guides the image model towards a particular style."
     )
 
 
@@ -3485,20 +3484,20 @@ class StabilityImageGenrationUpscaleCreativeResponse200(BaseModel):
 class StabilityImageGenrationUpscaleCreativeResponse400(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3506,20 +3505,20 @@ class StabilityImageGenrationUpscaleCreativeResponse400(BaseModel):
 class StabilityImageGenrationUpscaleCreativeResponse413(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3527,20 +3526,20 @@ class StabilityImageGenrationUpscaleCreativeResponse413(BaseModel):
 class StabilityImageGenrationUpscaleCreativeResponse422(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3548,20 +3547,20 @@ class StabilityImageGenrationUpscaleCreativeResponse422(BaseModel):
 class StabilityImageGenrationUpscaleCreativeResponse429(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3569,20 +3568,20 @@ class StabilityImageGenrationUpscaleCreativeResponse429(BaseModel):
 class StabilityImageGenrationUpscaleCreativeResponse500(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3590,28 +3589,28 @@ class StabilityImageGenrationUpscaleCreativeResponse500(BaseModel):
 class StabilityImageGenrationUpscaleFastRequest(BaseModel):
     image: StrictBytes = Field(
         ...,
-        description='The image you wish to upscale.\n\nSupported Formats:\n- jpeg\n- png\n- webp\n\nValidation Rules:\n- Width must be between 32 and 1,536 pixels\n- Height must be between 32 and 1,536 pixels\n- Total pixel count must be between 1,024 and 1,048,576 pixels',
-        examples=['./some/image.png'],
+        description="The image you wish to upscale.\n\nSupported Formats:\n- jpeg\n- png\n- webp\n\nValidation Rules:\n- Width must be between 32 and 1,536 pixels\n- Height must be between 32 and 1,536 pixels\n- Total pixel count must be between 1,024 and 1,048,576 pixels",
+        examples=["./some/image.png"],
     )
     output_format: Optional[OutputFormat4] = Field(
-        'png', description='Dictates the `content-type` of the generated image.'
+        "png", description="Dictates the `content-type` of the generated image."
     )
 
 
 class StabilityImageGenrationUpscaleFastResponse200(BaseModel):
     finish_reason: FinishReason = Field(
         ...,
-        description='The reason the generation finished.\n\n- `SUCCESS` = successful generation.\n- `CONTENT_FILTERED` = successful generation, however the output violated our content moderation\npolicy and has been blurred as a result.',
-        examples=['SUCCESS'],
+        description="The reason the generation finished.\n\n- `SUCCESS` = successful generation.\n- `CONTENT_FILTERED` = successful generation, however the output violated our content moderation\npolicy and has been blurred as a result.",
+        examples=["SUCCESS"],
     )
     image: str = Field(
         ...,
-        description='The generated image, encoded to base64.',
-        examples=['AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1...'],
+        description="The generated image, encoded to base64.",
+        examples=["AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1..."],
     )
     seed: Optional[float] = Field(
         0,
-        description='The seed used as random noise for this generation.',
+        description="The seed used as random noise for this generation.",
         examples=[343940597],
         ge=0.0,
         le=4294967294.0,
@@ -3621,20 +3620,20 @@ class StabilityImageGenrationUpscaleFastResponse200(BaseModel):
 class StabilityImageGenrationUpscaleFastResponse400(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3642,20 +3641,20 @@ class StabilityImageGenrationUpscaleFastResponse400(BaseModel):
 class StabilityImageGenrationUpscaleFastResponse413(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3663,20 +3662,20 @@ class StabilityImageGenrationUpscaleFastResponse413(BaseModel):
 class StabilityImageGenrationUpscaleFastResponse422(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3684,20 +3683,20 @@ class StabilityImageGenrationUpscaleFastResponse422(BaseModel):
 class StabilityImageGenrationUpscaleFastResponse429(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3705,20 +3704,20 @@ class StabilityImageGenrationUpscaleFastResponse429(BaseModel):
 class StabilityImageGenrationUpscaleFastResponse500(BaseModel):
     errors: List[str] = Field(
         ...,
-        description='One or more error messages indicating what went wrong.',
-        examples=[['some-field: is required']],
+        description="One or more error messages indicating what went wrong.",
+        examples=[["some-field: is required"]],
         min_length=1,
     )
     id: str = Field(
         ...,
-        description='A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.',
-        examples=['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'],
+        description="A unique identifier associated with this error. Please include this in any [support tickets](https://kb.stability.ai/knowledge-base/kb-tickets/new)\nyou file, as it will greatly assist us in diagnosing the root cause of the problem.",
+        examples=["a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"],
         min_length=1,
     )
     name: str = Field(
         ...,
-        description='Short-hand name for an error, useful for discriminating between errors with the same status code.',
-        examples=['bad_request'],
+        description="Short-hand name for an error, useful for discriminating between errors with the same status code.",
+        examples=["bad_request"],
         min_length=1,
     )
 
@@ -3726,8 +3725,8 @@ class StabilityImageGenrationUpscaleFastResponse500(BaseModel):
 class StabilityStabilityClientID(RootModel[str]):
     root: str = Field(
         ...,
-        description='The name of your application, used to help us communicate app-specific debugging or moderation issues to you.',
-        examples=['my-awesome-app'],
+        description="The name of your application, used to help us communicate app-specific debugging or moderation issues to you.",
+        examples=["my-awesome-app"],
         max_length=256,
     )
 
@@ -3735,8 +3734,8 @@ class StabilityStabilityClientID(RootModel[str]):
 class StabilityStabilityClientUserID(RootModel[str]):
     root: str = Field(
         ...,
-        description='A unique identifier for your end user. Used to help us communicate user-specific debugging or moderation issues to you. Feel free to obfuscate this value to protect user privacy.',
-        examples=['DiscordUser#9999'],
+        description="A unique identifier for your end user. Used to help us communicate user-specific debugging or moderation issues to you. Feel free to obfuscate this value to protect user privacy.",
+        examples=["DiscordUser#9999"],
         max_length=256,
     )
 
@@ -3744,18 +3743,18 @@ class StabilityStabilityClientUserID(RootModel[str]):
 class StabilityStabilityClientVersion(RootModel[str]):
     root: str = Field(
         ...,
-        description='The version of your application, used to help us communicate version-specific debugging or moderation issues to you.',
-        examples=['1.2.1'],
+        description="The version of your application, used to help us communicate version-specific debugging or moderation issues to you.",
+        examples=["1.2.1"],
         max_length=256,
     )
 
 
 class StorageFile(BaseModel):
-    file_path: Optional[str] = Field(None, description='Path to the file in storage')
+    file_path: Optional[str] = Field(None, description="Path to the file in storage")
     id: Optional[UUID] = Field(
-        None, description='Unique identifier for the storage file'
+        None, description="Unique identifier for the storage file"
     )
-    public_url: Optional[str] = Field(None, description='Public URL')
+    public_url: Optional[str] = Field(None, description="Public URL")
 
 
 class StripeAddress(BaseModel):
@@ -3832,15 +3831,15 @@ class StripeCardDetails(BaseModel):
 
 
 class Object1(str, Enum):
-    charge = 'charge'
+    charge = "charge"
 
 
 class Object2(str, Enum):
-    event = 'event'
+    event = "event"
 
 
 class Type31(str, Enum):
-    payment_intent_succeeded = 'payment_intent.succeeded'
+    payment_intent_succeeded = "payment_intent.succeeded"
 
 
 class StripeOutcome(BaseModel):
@@ -3856,7 +3855,7 @@ class StripeOutcome(BaseModel):
 
 
 class Object3(str, Enum):
-    payment_intent = 'payment_intent'
+    payment_intent = "payment_intent"
 
 
 class StripePaymentMethodDetails(BaseModel):
@@ -3897,71 +3896,71 @@ class StripeShipping(BaseModel):
 
 
 class Type32(str, Enum):
-    json_schema = 'json_schema'
+    json_schema = "json_schema"
 
 
 class TextResponseFormatJsonSchema(BaseModel):
     description: Optional[str] = Field(
         None,
-        description='A description of what the response format is for, used by the model to\ndetermine how to respond in the format.\n',
+        description="A description of what the response format is for, used by the model to\ndetermine how to respond in the format.\n",
     )
     name: str = Field(
         ...,
-        description='The name of the response format. Must be a-z, A-Z, 0-9, or contain\nunderscores and dashes, with a maximum length of 64.\n',
+        description="The name of the response format. Must be a-z, A-Z, 0-9, or contain\nunderscores and dashes, with a maximum length of 64.\n",
     )
-    schema_: ResponseFormatJsonSchemaSchema = Field(..., alias='schema')
+    schema_: ResponseFormatJsonSchemaSchema = Field(..., alias="schema")
     strict: Optional[bool] = Field(
         False,
-        description='Whether to enable strict schema adherence when generating the output.\nIf set to true, the model will always follow the exact schema defined\nin the `schema` field. Only a subset of JSON Schema is supported when\n`strict` is `true`. To learn more, read the [Structured Outputs\nguide](/docs/guides/structured-outputs).\n',
+        description="Whether to enable strict schema adherence when generating the output.\nIf set to true, the model will always follow the exact schema defined\nin the `schema` field. Only a subset of JSON Schema is supported when\n`strict` is `true`. To learn more, read the [Structured Outputs\nguide](/docs/guides/structured-outputs).\n",
     )
     type: Type32 = Field(
         ...,
-        description='The type of response format being defined. Always `json_schema`.',
+        description="The type of response format being defined. Always `json_schema`.",
     )
 
 
 class Type33(str, Enum):
-    function = 'function'
+    function = "function"
 
 
 class ToolChoiceFunction(BaseModel):
-    name: str = Field(..., description='The name of the function to call.')
+    name: str = Field(..., description="The name of the function to call.")
     type: Type33 = Field(
-        ..., description='For function calling, the type is always `function`.'
+        ..., description="For function calling, the type is always `function`."
     )
 
 
 class ToolChoiceOptions(str, Enum):
-    none = 'none'
-    auto = 'auto'
-    required = 'required'
+    none = "none"
+    auto = "auto"
+    required = "required"
 
 
 class Type34(str, Enum):
-    file_search = 'file_search'
-    web_search_preview = 'web_search_preview'
-    computer_use_preview = 'computer_use_preview'
-    web_search_preview_2025_03_11 = 'web_search_preview_2025_03_11'
+    file_search = "file_search"
+    web_search_preview = "web_search_preview"
+    computer_use_preview = "computer_use_preview"
+    web_search_preview_2025_03_11 = "web_search_preview_2025_03_11"
 
 
 class ToolChoiceTypes(BaseModel):
     type: Type34 = Field(
         ...,
-        description='The type of hosted tool the model should to use. Learn more about\n[built-in tools](/docs/guides/tools).\n\nAllowed values are:\n- `file_search`\n- `web_search_preview`\n- `computer_use_preview`\n',
+        description="The type of hosted tool the model should to use. Learn more about\n[built-in tools](/docs/guides/tools).\n\nAllowed values are:\n- `file_search`\n- `web_search_preview`\n- `computer_use_preview`\n",
     )
 
 
 class TripoAnimation(str, Enum):
-    preset_idle = 'preset:idle'
-    preset_walk = 'preset:walk'
-    preset_climb = 'preset:climb'
-    preset_jump = 'preset:jump'
-    preset_run = 'preset:run'
-    preset_slash = 'preset:slash'
-    preset_shoot = 'preset:shoot'
-    preset_hurt = 'preset:hurt'
-    preset_fall = 'preset:fall'
-    preset_turn = 'preset:turn'
+    preset_idle = "preset:idle"
+    preset_walk = "preset:walk"
+    preset_climb = "preset:climb"
+    preset_jump = "preset:jump"
+    preset_run = "preset:run"
+    preset_slash = "preset:slash"
+    preset_shoot = "preset:shoot"
+    preset_hurt = "preset:hurt"
+    preset_fall = "preset:fall"
+    preset_turn = "preset:turn"
 
 
 class TripoBalance(BaseModel):
@@ -3970,12 +3969,12 @@ class TripoBalance(BaseModel):
 
 
 class TripoConvertFormat(str, Enum):
-    GLTF = 'GLTF'
-    USDZ = 'USDZ'
-    FBX = 'FBX'
-    OBJ = 'OBJ'
-    STL = 'STL'
-    field_3MF = '3MF'
+    GLTF = "GLTF"
+    USDZ = "USDZ"
+    FBX = "FBX"
+    OBJ = "OBJ"
+    STL = "STL"
+    field_3MF = "3MF"
 
 
 class Code(int, Enum):
@@ -3998,63 +3997,63 @@ class TripoErrorResponse(BaseModel):
 
 
 class TripoImageToModel(str, Enum):
-    image_to_model = 'image_to_model'
+    image_to_model = "image_to_model"
 
 
 class TripoModelStyle(str, Enum):
-    person_person2cartoon = 'person:person2cartoon'
-    animal_venom = 'animal:venom'
-    object_clay = 'object:clay'
-    object_steampunk = 'object:steampunk'
-    object_christmas = 'object:christmas'
-    object_barbie = 'object:barbie'
-    gold = 'gold'
-    ancient_bronze = 'ancient_bronze'
+    person_person2cartoon = "person:person2cartoon"
+    animal_venom = "animal:venom"
+    object_clay = "object:clay"
+    object_steampunk = "object:steampunk"
+    object_christmas = "object:christmas"
+    object_barbie = "object:barbie"
+    gold = "gold"
+    ancient_bronze = "ancient_bronze"
 
 
 class TripoModelVersion(str, Enum):
-    v2_5_20250123 = 'v2.5-20250123'
-    v2_0_20240919 = 'v2.0-20240919'
-    v1_4_20240625 = 'v1.4-20240625'
+    v2_5_20250123 = "v2.5-20250123"
+    v2_0_20240919 = "v2.0-20240919"
+    v1_4_20240625 = "v1.4-20240625"
 
 
 class TripoMultiviewMode(str, Enum):
-    LEFT = 'LEFT'
-    RIGHT = 'RIGHT'
+    LEFT = "LEFT"
+    RIGHT = "RIGHT"
 
 
 class TripoMultiviewToModel(str, Enum):
-    multiview_to_model = 'multiview_to_model'
+    multiview_to_model = "multiview_to_model"
 
 
 class TripoOrientation(str, Enum):
-    align_image = 'align_image'
-    default = 'default'
+    align_image = "align_image"
+    default = "default"
 
 
 class TripoResponseSuccessCode(RootModel[int]):
     root: int = Field(
         ...,
-        description='Standard success code for Tripo API responses. Typically 0 for success.',
+        description="Standard success code for Tripo API responses. Typically 0 for success.",
         examples=[0],
     )
 
 
 class TripoSpec(str, Enum):
-    mixamo = 'mixamo'
-    tripo = 'tripo'
+    mixamo = "mixamo"
+    tripo = "tripo"
 
 
 class TripoStandardFormat(str, Enum):
-    glb = 'glb'
-    fbx = 'fbx'
+    glb = "glb"
+    fbx = "fbx"
 
 
 class TripoStylizeOptions(str, Enum):
-    lego = 'lego'
-    voxel = 'voxel'
-    voronoi = 'voronoi'
-    minecraft = 'minecraft'
+    lego = "lego"
+    voxel = "voxel"
+    voronoi = "voronoi"
+    minecraft = "minecraft"
 
 
 class Code1(int, Enum):
@@ -4062,7 +4061,7 @@ class Code1(int, Enum):
 
 
 class Data9(BaseModel):
-    task_id: str = Field(..., description='used for getTask')
+    task_id: str = Field(..., description="used for getTask")
 
 
 class TripoSuccessTask(BaseModel):
@@ -4071,8 +4070,8 @@ class TripoSuccessTask(BaseModel):
 
 
 class Topology(str, Enum):
-    bip = 'bip'
-    quad = 'quad'
+    bip = "bip"
+    quad = "quad"
 
 
 class Output(BaseModel):
@@ -4085,14 +4084,14 @@ class Output(BaseModel):
 
 
 class Status11(str, Enum):
-    queued = 'queued'
-    running = 'running'
-    success = 'success'
-    failed = 'failed'
-    cancelled = 'cancelled'
-    unknown = 'unknown'
-    banned = 'banned'
-    expired = 'expired'
+    queued = "queued"
+    running = "running"
+    success = "success"
+    failed = "failed"
+    cancelled = "cancelled"
+    unknown = "unknown"
+    banned = "banned"
+    expired = "expired"
 
 
 class TripoTask(BaseModel):
@@ -4106,112 +4105,112 @@ class TripoTask(BaseModel):
 
 
 class TripoTextToModel(str, Enum):
-    text_to_model = 'text_to_model'
+    text_to_model = "text_to_model"
 
 
 class TripoTextureAlignment(str, Enum):
-    original_image = 'original_image'
-    geometry = 'geometry'
+    original_image = "original_image"
+    geometry = "geometry"
 
 
 class TripoTextureFormat(str, Enum):
-    BMP = 'BMP'
-    DPX = 'DPX'
-    HDR = 'HDR'
-    JPEG = 'JPEG'
-    OPEN_EXR = 'OPEN_EXR'
-    PNG = 'PNG'
-    TARGA = 'TARGA'
-    TIFF = 'TIFF'
-    WEBP = 'WEBP'
+    BMP = "BMP"
+    DPX = "DPX"
+    HDR = "HDR"
+    JPEG = "JPEG"
+    OPEN_EXR = "OPEN_EXR"
+    PNG = "PNG"
+    TARGA = "TARGA"
+    TIFF = "TIFF"
+    WEBP = "WEBP"
 
 
 class TripoTextureQuality(str, Enum):
-    standard = 'standard'
-    detailed = 'detailed'
+    standard = "standard"
+    detailed = "detailed"
 
 
 class TripoTopology(str, Enum):
-    bip = 'bip'
-    quad = 'quad'
+    bip = "bip"
+    quad = "quad"
 
 
 class TripoTypeAnimatePrerigcheck(str, Enum):
-    animate_prerigcheck = 'animate_prerigcheck'
+    animate_prerigcheck = "animate_prerigcheck"
 
 
 class TripoTypeAnimateRetarget(str, Enum):
-    animate_retarget = 'animate_retarget'
+    animate_retarget = "animate_retarget"
 
 
 class TripoTypeAnimateRig(str, Enum):
-    animate_rig = 'animate_rig'
+    animate_rig = "animate_rig"
 
 
 class TripoTypeConvertModel(str, Enum):
-    convert_model = 'convert_model'
+    convert_model = "convert_model"
 
 
 class TripoTypeRefineModel(str, Enum):
-    refine_model = 'refine_model'
+    refine_model = "refine_model"
 
 
 class TripoTypeStylizeModel(str, Enum):
-    stylize_model = 'stylize_model'
+    stylize_model = "stylize_model"
 
 
 class TripoTypeTextureModel(str, Enum):
-    texture_model = 'texture_model'
+    texture_model = "texture_model"
 
 
 class User(BaseModel):
-    email: Optional[str] = Field(None, description='The email address for this user.')
-    id: Optional[str] = Field(None, description='The unique id for this user.')
+    email: Optional[str] = Field(None, description="The email address for this user.")
+    id: Optional[str] = Field(None, description="The unique id for this user.")
     isAdmin: Optional[bool] = Field(
-        None, description='Indicates if the user has admin privileges.'
+        None, description="Indicates if the user has admin privileges."
     )
     isApproved: Optional[bool] = Field(
-        None, description='Indicates if the user is approved.'
+        None, description="Indicates if the user is approved."
     )
-    name: Optional[str] = Field(None, description='The name for this user.')
+    name: Optional[str] = Field(None, description="The name for this user.")
 
 
 class Veo2GenVidPollRequest(BaseModel):
     operationName: str = Field(
         ...,
-        description='Full operation name (from predict response)',
+        description="Full operation name (from predict response)",
         examples=[
-            'projects/PROJECT_ID/locations/us-central1/publishers/google/models/MODEL_ID/operations/OPERATION_ID'
+            "projects/PROJECT_ID/locations/us-central1/publishers/google/models/MODEL_ID/operations/OPERATION_ID"
         ],
     )
 
 
 class Error1(BaseModel):
-    code: Optional[int] = Field(None, description='Error code')
-    message: Optional[str] = Field(None, description='Error message')
+    code: Optional[int] = Field(None, description="Error code")
+    message: Optional[str] = Field(None, description="Error message")
 
 
 class Video(BaseModel):
     bytesBase64Encoded: Optional[str] = Field(
-        None, description='Base64-encoded video content'
+        None, description="Base64-encoded video content"
     )
-    gcsUri: Optional[str] = Field(None, description='Cloud Storage URI of the video')
-    mimeType: Optional[str] = Field(None, description='Video MIME type')
+    gcsUri: Optional[str] = Field(None, description="Cloud Storage URI of the video")
+    mimeType: Optional[str] = Field(None, description="Video MIME type")
 
 
 class Response(BaseModel):
     field_type: Optional[str] = Field(
         None,
-        alias='@type',
+        alias="@type",
         examples=[
-            'type.googleapis.com/cloud.ai.large_models.vision.GenerateVideoResponse'
+            "type.googleapis.com/cloud.ai.large_models.vision.GenerateVideoResponse"
         ],
     )
     raiMediaFilteredCount: Optional[int] = Field(
-        None, description='Count of media filtered by responsible AI policies'
+        None, description="Count of media filtered by responsible AI policies"
     )
     raiMediaFilteredReasons: Optional[List[str]] = Field(
-        None, description='Reasons why media was filtered by responsible AI policies'
+        None, description="Reasons why media was filtered by responsible AI policies"
     )
     videos: Optional[List[Video]] = None
 
@@ -4219,11 +4218,11 @@ class Response(BaseModel):
 class Veo2GenVidPollResponse(BaseModel):
     done: Optional[bool] = None
     error: Optional[Error1] = Field(
-        None, description='Error details if operation failed'
+        None, description="Error details if operation failed"
     )
     name: Optional[str] = None
     response: Optional[Response] = Field(
-        None, description='The actual prediction response if done is true'
+        None, description="The actual prediction response if done is true"
     )
 
 
@@ -4241,18 +4240,18 @@ class Image1(BaseModel):
 
 class Instance(BaseModel):
     image: Optional[Union[Image, Image1]] = Field(
-        None, description='Optional image to guide video generation'
+        None, description="Optional image to guide video generation"
     )
-    prompt: str = Field(..., description='Text description of the video')
+    prompt: str = Field(..., description="Text description of the video")
 
 
 class PersonGeneration1(str, Enum):
-    ALLOW = 'ALLOW'
-    BLOCK = 'BLOCK'
+    ALLOW = "ALLOW"
+    BLOCK = "BLOCK"
 
 
 class Parameters(BaseModel):
-    aspectRatio: Optional[str] = Field(None, examples=['16:9'])
+    aspectRatio: Optional[str] = Field(None, examples=["16:9"])
     durationSeconds: Optional[int] = None
     enhancePrompt: Optional[bool] = None
     negativePrompt: Optional[str] = None
@@ -4260,7 +4259,7 @@ class Parameters(BaseModel):
     sampleCount: Optional[int] = None
     seed: Optional[int] = None
     storageUri: Optional[str] = Field(
-        None, description='Optional Cloud Storage URI to upload the video'
+        None, description="Optional Cloud Storage URI to upload the video"
     )
 
 
@@ -4272,9 +4271,9 @@ class Veo2GenVidRequest(BaseModel):
 class Veo2GenVidResponse(BaseModel):
     name: str = Field(
         ...,
-        description='Operation resource name',
+        description="Operation resource name",
         examples=[
-            'projects/PROJECT_ID/locations/us-central1/publishers/google/models/MODEL_ID/operations/a1b07c8e-7b5a-4aba-bb34-3e1ccb8afcc8'
+            "projects/PROJECT_ID/locations/us-central1/publishers/google/models/MODEL_ID/operations/a1b07c8e-7b5a-4aba-bb34-3e1ccb8afcc8"
         ],
     )
 
@@ -4282,9 +4281,9 @@ class Veo2GenVidResponse(BaseModel):
 class VeoGenVidPollRequest(BaseModel):
     operationName: str = Field(
         ...,
-        description='Full operation name (from predict response)',
+        description="Full operation name (from predict response)",
         examples=[
-            'projects/PROJECT_ID/locations/us-central1/publishers/google/models/MODEL_ID/operations/OPERATION_ID'
+            "projects/PROJECT_ID/locations/us-central1/publishers/google/models/MODEL_ID/operations/OPERATION_ID"
         ],
     )
 
@@ -4292,16 +4291,16 @@ class VeoGenVidPollRequest(BaseModel):
 class Response1(BaseModel):
     field_type: Optional[str] = Field(
         None,
-        alias='@type',
+        alias="@type",
         examples=[
-            'type.googleapis.com/cloud.ai.large_models.vision.GenerateVideoResponse'
+            "type.googleapis.com/cloud.ai.large_models.vision.GenerateVideoResponse"
         ],
     )
     raiMediaFilteredCount: Optional[int] = Field(
-        None, description='Count of media filtered by responsible AI policies'
+        None, description="Count of media filtered by responsible AI policies"
     )
     raiMediaFilteredReasons: Optional[List[str]] = Field(
-        None, description='Reasons why media was filtered by responsible AI policies'
+        None, description="Reasons why media was filtered by responsible AI policies"
     )
     videos: Optional[List[Video]] = None
 
@@ -4309,11 +4308,11 @@ class Response1(BaseModel):
 class VeoGenVidPollResponse(BaseModel):
     done: Optional[bool] = None
     error: Optional[Error1] = Field(
-        None, description='Error details if operation failed'
+        None, description="Error details if operation failed"
     )
     name: Optional[str] = None
     response: Optional[Response1] = Field(
-        None, description='The actual prediction response if done is true'
+        None, description="The actual prediction response if done is true"
     )
 
 
@@ -4331,25 +4330,25 @@ class Image3(BaseModel):
 
 class Instance1(BaseModel):
     image: Optional[Union[Image2, Image3]] = Field(
-        None, description='Optional image to guide video generation'
+        None, description="Optional image to guide video generation"
     )
-    prompt: str = Field(..., description='Text description of the video')
+    prompt: str = Field(..., description="Text description of the video")
 
 
 class Parameters1(BaseModel):
-    aspectRatio: Optional[str] = Field(None, examples=['16:9'])
+    aspectRatio: Optional[str] = Field(None, examples=["16:9"])
     durationSeconds: Optional[int] = None
     enhancePrompt: Optional[bool] = None
     generateAudio: Optional[bool] = Field(
         None,
-        description='Generate audio for the video. Only supported by veo 3 models.',
+        description="Generate audio for the video. Only supported by veo 3 models.",
     )
     negativePrompt: Optional[str] = None
     personGeneration: Optional[PersonGeneration1] = None
     sampleCount: Optional[int] = None
     seed: Optional[int] = None
     storageUri: Optional[str] = Field(
-        None, description='Optional Cloud Storage URI to upload the video'
+        None, description="Optional Cloud Storage URI to upload the video"
     )
 
 
@@ -4361,373 +4360,373 @@ class VeoGenVidRequest(BaseModel):
 class VeoGenVidResponse(BaseModel):
     name: str = Field(
         ...,
-        description='Operation resource name',
+        description="Operation resource name",
         examples=[
-            'projects/PROJECT_ID/locations/us-central1/publishers/google/models/MODEL_ID/operations/a1b07c8e-7b5a-4aba-bb34-3e1ccb8afcc8'
+            "projects/PROJECT_ID/locations/us-central1/publishers/google/models/MODEL_ID/operations/a1b07c8e-7b5a-4aba-bb34-3e1ccb8afcc8"
         ],
     )
 
 
 class SearchContextSize(str, Enum):
-    low = 'low'
-    medium = 'medium'
-    high = 'high'
+    low = "low"
+    medium = "medium"
+    high = "high"
 
 
 class Type35(str, Enum):
-    web_search_preview = 'web_search_preview'
-    web_search_preview_2025_03_11 = 'web_search_preview_2025_03_11'
+    web_search_preview = "web_search_preview"
+    web_search_preview_2025_03_11 = "web_search_preview_2025_03_11"
 
 
 class WebSearchPreviewTool(BaseModel):
     search_context_size: Optional[SearchContextSize] = Field(
         None,
-        description='High level guidance for the amount of context window space to use for the search. One of `low`, `medium`, or `high`. `medium` is the default.',
+        description="High level guidance for the amount of context window space to use for the search. One of `low`, `medium`, or `high`. `medium` is the default.",
     )
-    type: Literal['WebSearchPreviewTool'] = Field(
+    type: Literal["WebSearchPreviewTool"] = Field(
         ...,
-        description='The type of the web search tool. One of `web_search_preview` or `web_search_preview_2025_03_11`.',
+        description="The type of the web search tool. One of `web_search_preview` or `web_search_preview_2025_03_11`.",
     )
 
 
 class Status12(str, Enum):
-    in_progress = 'in_progress'
-    searching = 'searching'
-    completed = 'completed'
-    failed = 'failed'
+    in_progress = "in_progress"
+    searching = "searching"
+    completed = "completed"
+    failed = "failed"
 
 
 class Type36(str, Enum):
-    web_search_call = 'web_search_call'
+    web_search_call = "web_search_call"
 
 
 class WebSearchToolCall(BaseModel):
-    id: str = Field(..., description='The unique ID of the web search tool call.\n')
+    id: str = Field(..., description="The unique ID of the web search tool call.\n")
     status: Status12 = Field(
-        ..., description='The status of the web search tool call.\n'
+        ..., description="The status of the web search tool call.\n"
     )
     type: Type36 = Field(
         ...,
-        description='The type of the web search tool call. Always `web_search_call`.\n',
+        description="The type of the web search tool call. Always `web_search_call`.\n",
     )
 
 
 class WorkflowRunStatus(str, Enum):
-    WorkflowRunStatusStarted = 'WorkflowRunStatusStarted'
-    WorkflowRunStatusFailed = 'WorkflowRunStatusFailed'
-    WorkflowRunStatusCompleted = 'WorkflowRunStatusCompleted'
+    WorkflowRunStatusStarted = "WorkflowRunStatusStarted"
+    WorkflowRunStatusFailed = "WorkflowRunStatusFailed"
+    WorkflowRunStatusCompleted = "WorkflowRunStatusCompleted"
 
 
 class ActionJobResult(BaseModel):
     action_job_id: Optional[str] = Field(
-        None, description='Identifier of the job this result belongs to'
+        None, description="Identifier of the job this result belongs to"
     )
     action_run_id: Optional[str] = Field(
-        None, description='Identifier of the run this result belongs to'
+        None, description="Identifier of the run this result belongs to"
     )
-    author: Optional[str] = Field(None, description='The author of the commit')
+    author: Optional[str] = Field(None, description="The author of the commit")
     avg_vram: Optional[int] = Field(
-        None, description='The average VRAM used by the job'
+        None, description="The average VRAM used by the job"
     )
     branch_name: Optional[str] = Field(
-        None, description='Name of the relevant git branch'
+        None, description="Name of the relevant git branch"
     )
     comfy_run_flags: Optional[str] = Field(
-        None, description='The comfy run flags. E.g. `--low-vram`'
+        None, description="The comfy run flags. E.g. `--low-vram`"
     )
-    commit_hash: Optional[str] = Field(None, description='The hash of the commit')
-    commit_id: Optional[str] = Field(None, description='The ID of the commit')
-    commit_message: Optional[str] = Field(None, description='The message of the commit')
+    commit_hash: Optional[str] = Field(None, description="The hash of the commit")
+    commit_id: Optional[str] = Field(None, description="The ID of the commit")
+    commit_message: Optional[str] = Field(None, description="The message of the commit")
     commit_time: Optional[int] = Field(
-        None, description='The Unix timestamp when the commit was made'
+        None, description="The Unix timestamp when the commit was made"
     )
-    cuda_version: Optional[str] = Field(None, description='CUDA version used')
+    cuda_version: Optional[str] = Field(None, description="CUDA version used")
     end_time: Optional[int] = Field(
-        None, description='The end time of the job as a Unix timestamp.'
+        None, description="The end time of the job as a Unix timestamp."
     )
-    git_repo: Optional[str] = Field(None, description='The repository name')
-    id: Optional[UUID] = Field(None, description='Unique identifier for the job result')
+    git_repo: Optional[str] = Field(None, description="The repository name")
+    id: Optional[UUID] = Field(None, description="Unique identifier for the job result")
     job_trigger_user: Optional[str] = Field(
-        None, description='The user who triggered the job.'
+        None, description="The user who triggered the job."
     )
     machine_stats: Optional[MachineStats] = None
-    operating_system: Optional[str] = Field(None, description='Operating system used')
-    peak_vram: Optional[int] = Field(None, description='The peak VRAM used by the job')
-    pr_number: Optional[str] = Field(None, description='The pull request number')
-    python_version: Optional[str] = Field(None, description='PyTorch version used')
-    pytorch_version: Optional[str] = Field(None, description='PyTorch version used')
+    operating_system: Optional[str] = Field(None, description="Operating system used")
+    peak_vram: Optional[int] = Field(None, description="The peak VRAM used by the job")
+    pr_number: Optional[str] = Field(None, description="The pull request number")
+    python_version: Optional[str] = Field(None, description="PyTorch version used")
+    pytorch_version: Optional[str] = Field(None, description="PyTorch version used")
     start_time: Optional[int] = Field(
-        None, description='The start time of the job as a Unix timestamp.'
+        None, description="The start time of the job as a Unix timestamp."
     )
     status: Optional[WorkflowRunStatus] = None
     storage_file: Optional[StorageFile] = None
-    workflow_name: Optional[str] = Field(None, description='Name of the workflow')
+    workflow_name: Optional[str] = Field(None, description="Name of the workflow")
 
 
 class BFLCannyInputs(BaseModel):
     canny_high_threshold: Optional[CannyHighThreshold] = Field(
         default_factory=lambda: CannyHighThreshold.model_validate(200),
-        description='High threshold for Canny edge detection',
-        title='Canny High Threshold',
+        description="High threshold for Canny edge detection",
+        title="Canny High Threshold",
     )
     canny_low_threshold: Optional[CannyLowThreshold] = Field(
         default_factory=lambda: CannyLowThreshold.model_validate(50),
-        description='Low threshold for Canny edge detection',
-        title='Canny Low Threshold',
+        description="Low threshold for Canny edge detection",
+        title="Canny Low Threshold",
     )
     control_image: Optional[str] = Field(
         None,
-        description='Base64 encoded image to use as control input if no preprocessed image is provided',
-        title='Control Image',
+        description="Base64 encoded image to use as control input if no preprocessed image is provided",
+        title="Control Image",
     )
     guidance: Optional[Guidance] = Field(
         default_factory=lambda: Guidance.model_validate(30),
-        description='Guidance strength for the image generation process',
-        title='Guidance',
+        description="Guidance strength for the image generation process",
+        title="Guidance",
     )
     output_format: Optional[BFLOutputFormat] = Field(
-        'jpeg',
+        "jpeg",
         description="Output format for the generated image. Can be 'jpeg' or 'png'.",
     )
     preprocessed_image: Optional[str] = Field(
         None,
-        description='Optional pre-processed image that will bypass the control preprocessing step',
-        title='Preprocessed Image',
+        description="Optional pre-processed image that will bypass the control preprocessing step",
+        title="Preprocessed Image",
     )
     prompt: str = Field(
         ...,
-        description='Text prompt for image generation',
-        examples=['ein fantastisches bild'],
-        title='Prompt',
+        description="Text prompt for image generation",
+        examples=["ein fantastisches bild"],
+        title="Prompt",
     )
     prompt_upsampling: Optional[bool] = Field(
         False,
-        description='Whether to perform upsampling on the prompt',
-        title='Prompt Upsampling',
+        description="Whether to perform upsampling on the prompt",
+        title="Prompt Upsampling",
     )
     safety_tolerance: Optional[int] = Field(
         2,
-        description='Tolerance level for input and output moderation. Between 0 and 6, 0 being most strict, 6 being least strict.',
+        description="Tolerance level for input and output moderation. Between 0 and 6, 0 being most strict, 6 being least strict.",
         ge=0,
         le=6,
-        title='Safety Tolerance',
+        title="Safety Tolerance",
     )
     seed: Optional[int] = Field(
         None,
-        description='Optional seed for reproducibility',
+        description="Optional seed for reproducibility",
         examples=[42],
-        title='Seed',
+        title="Seed",
     )
     steps: Optional[Steps] = Field(
         default_factory=lambda: Steps.model_validate(50),
-        description='Number of steps for the image generation process',
-        title='Steps',
+        description="Number of steps for the image generation process",
+        title="Steps",
     )
     webhook_secret: Optional[str] = Field(
         None,
-        description='Optional secret for webhook signature verification',
-        title='Webhook Secret',
+        description="Optional secret for webhook signature verification",
+        title="Webhook Secret",
     )
     webhook_url: Optional[WebhookUrl] = Field(
-        None, description='URL to receive webhook notifications', title='Webhook Url'
+        None, description="URL to receive webhook notifications", title="Webhook Url"
     )
 
 
 class BFLDepthInputs(BaseModel):
     control_image: Optional[str] = Field(
         None,
-        description='Base64 encoded image to use as control input',
-        title='Control Image',
+        description="Base64 encoded image to use as control input",
+        title="Control Image",
     )
     guidance: Optional[Guidance] = Field(
         default_factory=lambda: Guidance.model_validate(15),
-        description='Guidance strength for the image generation process',
-        title='Guidance',
+        description="Guidance strength for the image generation process",
+        title="Guidance",
     )
     output_format: Optional[BFLOutputFormat] = Field(
-        'jpeg',
+        "jpeg",
         description="Output format for the generated image. Can be 'jpeg' or 'png'.",
     )
     preprocessed_image: Optional[str] = Field(
         None,
-        description='Optional pre-processed image that will bypass the control preprocessing step',
-        title='Preprocessed Image',
+        description="Optional pre-processed image that will bypass the control preprocessing step",
+        title="Preprocessed Image",
     )
     prompt: str = Field(
         ...,
-        description='Text prompt for image generation',
-        examples=['ein fantastisches bild'],
-        title='Prompt',
+        description="Text prompt for image generation",
+        examples=["ein fantastisches bild"],
+        title="Prompt",
     )
     prompt_upsampling: Optional[bool] = Field(
         False,
-        description='Whether to perform upsampling on the prompt',
-        title='Prompt Upsampling',
+        description="Whether to perform upsampling on the prompt",
+        title="Prompt Upsampling",
     )
     safety_tolerance: Optional[int] = Field(
         2,
-        description='Tolerance level for input and output moderation. Between 0 and 6, 0 being most strict, 6 being least strict.',
+        description="Tolerance level for input and output moderation. Between 0 and 6, 0 being most strict, 6 being least strict.",
         ge=0,
         le=6,
-        title='Safety Tolerance',
+        title="Safety Tolerance",
     )
     seed: Optional[int] = Field(
         None,
-        description='Optional seed for reproducibility',
+        description="Optional seed for reproducibility",
         examples=[42],
-        title='Seed',
+        title="Seed",
     )
     steps: Optional[Steps] = Field(
         default_factory=lambda: Steps.model_validate(50),
-        description='Number of steps for the image generation process',
-        title='Steps',
+        description="Number of steps for the image generation process",
+        title="Steps",
     )
     webhook_secret: Optional[str] = Field(
         None,
-        description='Optional secret for webhook signature verification',
-        title='Webhook Secret',
+        description="Optional secret for webhook signature verification",
+        title="Webhook Secret",
     )
     webhook_url: Optional[WebhookUrl] = Field(
-        None, description='URL to receive webhook notifications', title='Webhook Url'
+        None, description="URL to receive webhook notifications", title="Webhook Url"
     )
 
 
 class BFLFluxProExpandInputs(BaseModel):
     bottom: Optional[Bottom] = Field(
         0,
-        description='Number of pixels to expand at the bottom of the image',
-        title='Bottom',
+        description="Number of pixels to expand at the bottom of the image",
+        title="Bottom",
     )
     guidance: Optional[Guidance2] = Field(
         default_factory=lambda: Guidance2.model_validate(60),
-        description='Guidance strength for the image generation process',
-        title='Guidance',
+        description="Guidance strength for the image generation process",
+        title="Guidance",
     )
     image: str = Field(
         ...,
-        description='A Base64-encoded string representing the image you wish to expand.',
-        title='Image',
+        description="A Base64-encoded string representing the image you wish to expand.",
+        title="Image",
     )
     left: Optional[Left] = Field(
         0,
-        description='Number of pixels to expand on the left side of the image',
-        title='Left',
+        description="Number of pixels to expand on the left side of the image",
+        title="Left",
     )
     output_format: Optional[BFLOutputFormat] = Field(
-        'jpeg',
+        "jpeg",
         description="Output format for the generated image. Can be 'jpeg' or 'png'.",
     )
     prompt: Optional[str] = Field(
-        '',
-        description='The description of the changes you want to make. This text guides the expansion process, allowing you to specify features, styles, or modifications for the expanded areas.',
-        examples=['ein fantastisches bild'],
-        title='Prompt',
+        "",
+        description="The description of the changes you want to make. This text guides the expansion process, allowing you to specify features, styles, or modifications for the expanded areas.",
+        examples=["ein fantastisches bild"],
+        title="Prompt",
     )
     prompt_upsampling: Optional[bool] = Field(
         False,
-        description='Whether to perform upsampling on the prompt. If active, automatically modifies the prompt for more creative generation',
-        title='Prompt Upsampling',
+        description="Whether to perform upsampling on the prompt. If active, automatically modifies the prompt for more creative generation",
+        title="Prompt Upsampling",
     )
     right: Optional[Right] = Field(
         0,
-        description='Number of pixels to expand on the right side of the image',
-        title='Right',
+        description="Number of pixels to expand on the right side of the image",
+        title="Right",
     )
     safety_tolerance: Optional[int] = Field(
         2,
-        description='Tolerance level for input and output moderation. Between 0 and 6, 0 being most strict, 6 being least strict.',
+        description="Tolerance level for input and output moderation. Between 0 and 6, 0 being most strict, 6 being least strict.",
         examples=[2],
         ge=0,
         le=6,
-        title='Safety Tolerance',
+        title="Safety Tolerance",
     )
     seed: Optional[int] = Field(
-        None, description='Optional seed for reproducibility', title='Seed'
+        None, description="Optional seed for reproducibility", title="Seed"
     )
     steps: Optional[Steps2] = Field(
         default_factory=lambda: Steps2.model_validate(50),
-        description='Number of steps for the image generation process',
+        description="Number of steps for the image generation process",
         examples=[50],
-        title='Steps',
+        title="Steps",
     )
     top: Optional[Top] = Field(
-        0, description='Number of pixels to expand at the top of the image', title='Top'
+        0, description="Number of pixels to expand at the top of the image", title="Top"
     )
     webhook_secret: Optional[str] = Field(
         None,
-        description='Optional secret for webhook signature verification',
-        title='Webhook Secret',
+        description="Optional secret for webhook signature verification",
+        title="Webhook Secret",
     )
     webhook_url: Optional[WebhookUrl] = Field(
-        None, description='URL to receive webhook notifications', title='Webhook Url'
+        None, description="URL to receive webhook notifications", title="Webhook Url"
     )
 
 
 class BFLFluxProFillInputs(BaseModel):
     guidance: Optional[Guidance2] = Field(
         default_factory=lambda: Guidance2.model_validate(60),
-        description='Guidance strength for the image generation process',
-        title='Guidance',
+        description="Guidance strength for the image generation process",
+        title="Guidance",
     )
     image: str = Field(
         ...,
-        description='A Base64-encoded string representing the image you wish to modify. Can contain alpha mask if desired.',
-        title='Image',
+        description="A Base64-encoded string representing the image you wish to modify. Can contain alpha mask if desired.",
+        title="Image",
     )
     mask: Optional[str] = Field(
         None,
-        description='A Base64-encoded string representing a mask for the areas you want to modify in the image. The mask should be the same dimensions as the image and in black and white. Black areas (0%) indicate no modification, while white areas (100%) specify areas for inpainting. Optional if you provide an alpha mask in the original image. Validation: The endpoint verifies that the dimensions of the mask match the original image.',
-        title='Mask',
+        description="A Base64-encoded string representing a mask for the areas you want to modify in the image. The mask should be the same dimensions as the image and in black and white. Black areas (0%) indicate no modification, while white areas (100%) specify areas for inpainting. Optional if you provide an alpha mask in the original image. Validation: The endpoint verifies that the dimensions of the mask match the original image.",
+        title="Mask",
     )
     output_format: Optional[BFLOutputFormat] = Field(
-        'jpeg',
+        "jpeg",
         description="Output format for the generated image. Can be 'jpeg' or 'png'.",
     )
     prompt: Optional[str] = Field(
-        '',
-        description='The description of the changes you want to make. This text guides the inpainting process, allowing you to specify features, styles, or modifications for the masked area.',
-        examples=['ein fantastisches bild'],
-        title='Prompt',
+        "",
+        description="The description of the changes you want to make. This text guides the inpainting process, allowing you to specify features, styles, or modifications for the masked area.",
+        examples=["ein fantastisches bild"],
+        title="Prompt",
     )
     prompt_upsampling: Optional[bool] = Field(
         False,
-        description='Whether to perform upsampling on the prompt. If active, automatically modifies the prompt for more creative generation',
-        title='Prompt Upsampling',
+        description="Whether to perform upsampling on the prompt. If active, automatically modifies the prompt for more creative generation",
+        title="Prompt Upsampling",
     )
     safety_tolerance: Optional[int] = Field(
         2,
-        description='Tolerance level for input and output moderation. Between 0 and 6, 0 being most strict, 6 being least strict.',
+        description="Tolerance level for input and output moderation. Between 0 and 6, 0 being most strict, 6 being least strict.",
         examples=[2],
         ge=0,
         le=6,
-        title='Safety Tolerance',
+        title="Safety Tolerance",
     )
     seed: Optional[int] = Field(
-        None, description='Optional seed for reproducibility', title='Seed'
+        None, description="Optional seed for reproducibility", title="Seed"
     )
     steps: Optional[Steps2] = Field(
         default_factory=lambda: Steps2.model_validate(50),
-        description='Number of steps for the image generation process',
+        description="Number of steps for the image generation process",
         examples=[50],
-        title='Steps',
+        title="Steps",
     )
     webhook_secret: Optional[str] = Field(
         None,
-        description='Optional secret for webhook signature verification',
-        title='Webhook Secret',
+        description="Optional secret for webhook signature verification",
+        title="Webhook Secret",
     )
     webhook_url: Optional[WebhookUrl] = Field(
-        None, description='URL to receive webhook notifications', title='Webhook Url'
+        None, description="URL to receive webhook notifications", title="Webhook Url"
     )
 
 
 class BFLHTTPValidationError(BaseModel):
-    detail: Optional[List[BFLValidationError]] = Field(None, title='Detail')
+    detail: Optional[List[BFLValidationError]] = Field(None, title="Detail")
 
 
 class BulkNodeVersionsRequest(BaseModel):
     node_versions: List[NodeVersionIdentifier] = Field(
-        ..., description='List of node ID and version pairs to retrieve'
+        ..., description="List of node ID and version pairs to retrieve"
     )
 
 
@@ -4737,7 +4736,7 @@ CreateModelResponseProperties = ModelResponseProperties
 class GeminiInlineData(BaseModel):
     data: Optional[str] = Field(
         None,
-        description='The base64 encoding of the image, PDF, or video to include inline in the prompt. When including media inline, you must also specify the media type (mimeType) of the data. Size limit: 20MB\n',
+        description="The base64 encoding of the image, PDF, or video to include inline in the prompt. When including media inline, you must also specify the media type (mimeType) of the data. Size limit: 20MB\n",
     )
     mimeType: Optional[GeminiMimeType] = None
 
@@ -4746,8 +4745,8 @@ class GeminiPart(BaseModel):
     inlineData: Optional[GeminiInlineData] = None
     text: Optional[str] = Field(
         None,
-        description='A text prompt or code snippet.',
-        examples=['Write a story about a robot learning to paint'],
+        description="A text prompt or code snippet.",
+        examples=["Write a story about a robot learning to paint"],
     )
 
 
@@ -4765,214 +4764,214 @@ class GeminiSafetySetting(BaseModel):
 class GeminiSystemInstructionContent(BaseModel):
     parts: List[GeminiTextPart] = Field(
         ...,
-        description='A list of ordered parts that make up a single message. Different parts may have different IANA MIME types. For limits on the inputs, such as the maximum number of tokens or the number of images, see the model specifications on the Google models page.\n',
+        description="A list of ordered parts that make up a single message. Different parts may have different IANA MIME types. For limits on the inputs, such as the maximum number of tokens or the number of images, see the model specifications on the Google models page.\n",
     )
     role: Role1 = Field(
         ...,
-        description='The identity of the entity that creates the message. The following values are supported: user: This indicates that the message is sent by a real person, typically a user-generated message. model: This indicates that the message is generated by the model. The model value is used to insert messages from the model into the conversation during multi-turn conversations. For non-multi-turn conversations, this field can be left blank or unset.\n',
-        examples=['user'],
+        description="The identity of the entity that creates the message. The following values are supported: user: This indicates that the message is sent by a real person, typically a user-generated message. model: This indicates that the message is generated by the model. The model value is used to insert messages from the model into the conversation during multi-turn conversations. For non-multi-turn conversations, this field can be left blank or unset.\n",
+        examples=["user"],
     )
 
 
 class GeminiUsageMetadata(BaseModel):
     cachedContentTokenCount: Optional[int] = Field(
         None,
-        description='Output only. Number of tokens in the cached part in the input (the cached content).',
+        description="Output only. Number of tokens in the cached part in the input (the cached content).",
     )
     candidatesTokenCount: Optional[int] = Field(
-        None, description='Number of tokens in the response(s).'
+        None, description="Number of tokens in the response(s)."
     )
     candidatesTokensDetails: Optional[List[ModalityTokenCount]] = Field(
-        None, description='Breakdown of candidate tokens by modality.'
+        None, description="Breakdown of candidate tokens by modality."
     )
     promptTokenCount: Optional[int] = Field(
         None,
-        description='Number of tokens in the request. When cachedContent is set, this is still the total effective prompt size meaning this includes the number of tokens in the cached content.',
+        description="Number of tokens in the request. When cachedContent is set, this is still the total effective prompt size meaning this includes the number of tokens in the cached content.",
     )
     promptTokensDetails: Optional[List[ModalityTokenCount]] = Field(
-        None, description='Breakdown of prompt tokens by modality.'
+        None, description="Breakdown of prompt tokens by modality."
     )
     thoughtsTokenCount: Optional[int] = Field(
-        None, description='Number of tokens present in thoughts output.'
+        None, description="Number of tokens present in thoughts output."
     )
     toolUsePromptTokenCount: Optional[int] = Field(
-        None, description='Number of tokens present in tool-use prompt(s).'
+        None, description="Number of tokens present in tool-use prompt(s)."
     )
 
 
 class GithubInstallation(BaseModel):
-    access_tokens_url: str = Field(..., description='The API URL for access tokens')
+    access_tokens_url: str = Field(..., description="The API URL for access tokens")
     account: GithubUser
-    app_id: int = Field(..., description='The GitHub App ID')
-    created_at: datetime = Field(..., description='When the installation was created')
+    app_id: int = Field(..., description="The GitHub App ID")
+    created_at: datetime = Field(..., description="When the installation was created")
     events: List[str] = Field(
-        ..., description='The events the installation subscribes to'
+        ..., description="The events the installation subscribes to"
     )
-    html_url: str = Field(..., description='The HTML URL of the installation')
-    id: int = Field(..., description='The installation ID')
-    permissions: Dict[str, Any] = Field(..., description='The installation permissions')
-    repositories_url: str = Field(..., description='The API URL for repositories')
+    html_url: str = Field(..., description="The HTML URL of the installation")
+    id: int = Field(..., description="The installation ID")
+    permissions: Dict[str, Any] = Field(..., description="The installation permissions")
+    repositories_url: str = Field(..., description="The API URL for repositories")
     repository_selection: RepositorySelection = Field(
-        ..., description='Repository selection for the installation'
+        ..., description="Repository selection for the installation"
     )
     single_file_name: Optional[str] = Field(
-        None, description='The single file name if applicable'
+        None, description="The single file name if applicable"
     )
-    target_id: int = Field(..., description='The target ID')
-    target_type: str = Field(..., description='The target type')
+    target_id: int = Field(..., description="The target ID")
+    target_type: str = Field(..., description="The target type")
     updated_at: datetime = Field(
-        ..., description='When the installation was last updated'
+        ..., description="When the installation was last updated"
     )
 
 
 class GithubReleaseAsset(BaseModel):
-    browser_download_url: str = Field(..., description='The browser download URL')
-    content_type: str = Field(..., description='The content type of the asset')
-    created_at: datetime = Field(..., description='When the asset was created')
-    download_count: int = Field(..., description='The number of downloads')
-    id: int = Field(..., description='The asset ID')
-    label: Optional[str] = Field(None, description='The label of the asset')
-    name: str = Field(..., description='The name of the asset')
-    node_id: str = Field(..., description='The asset node ID')
-    size: int = Field(..., description='The size of the asset in bytes')
-    state: State = Field(..., description='The state of the asset')
-    updated_at: datetime = Field(..., description='When the asset was last updated')
+    browser_download_url: str = Field(..., description="The browser download URL")
+    content_type: str = Field(..., description="The content type of the asset")
+    created_at: datetime = Field(..., description="When the asset was created")
+    download_count: int = Field(..., description="The number of downloads")
+    id: int = Field(..., description="The asset ID")
+    label: Optional[str] = Field(None, description="The label of the asset")
+    name: str = Field(..., description="The name of the asset")
+    node_id: str = Field(..., description="The asset node ID")
+    size: int = Field(..., description="The size of the asset in bytes")
+    state: State = Field(..., description="The state of the asset")
+    updated_at: datetime = Field(..., description="When the asset was last updated")
     uploader: GithubUser
 
 
 class Release(BaseModel):
-    assets: List[GithubReleaseAsset] = Field(..., description='Array of release assets')
-    assets_url: Optional[str] = Field(None, description='The URL to the release assets')
+    assets: List[GithubReleaseAsset] = Field(..., description="Array of release assets")
+    assets_url: Optional[str] = Field(None, description="The URL to the release assets")
     author: GithubUser
-    body: Optional[str] = Field(None, description='The release notes/body')
-    created_at: datetime = Field(..., description='When the release was created')
-    draft: bool = Field(..., description='Whether the release is a draft')
-    html_url: str = Field(..., description='The HTML URL of the release')
-    id: int = Field(..., description='The ID of the release')
-    name: Optional[str] = Field(None, description='The name of the release')
-    node_id: str = Field(..., description='The node ID of the release')
-    prerelease: bool = Field(..., description='Whether the release is a prerelease')
+    body: Optional[str] = Field(None, description="The release notes/body")
+    created_at: datetime = Field(..., description="When the release was created")
+    draft: bool = Field(..., description="Whether the release is a draft")
+    html_url: str = Field(..., description="The HTML URL of the release")
+    id: int = Field(..., description="The ID of the release")
+    name: Optional[str] = Field(None, description="The name of the release")
+    node_id: str = Field(..., description="The node ID of the release")
+    prerelease: bool = Field(..., description="Whether the release is a prerelease")
     published_at: Optional[datetime] = Field(
-        None, description='When the release was published'
+        None, description="When the release was published"
     )
-    tag_name: str = Field(..., description='The tag name of the release')
-    tarball_url: str = Field(..., description='URL to the tarball')
+    tag_name: str = Field(..., description="The tag name of the release")
+    tarball_url: str = Field(..., description="URL to the tarball")
     target_commitish: str = Field(
-        ..., description='The branch or commit the release was created from'
+        ..., description="The branch or commit the release was created from"
     )
     upload_url: Optional[str] = Field(
-        None, description='The URL to upload release assets'
+        None, description="The URL to upload release assets"
     )
-    url: str = Field(..., description='The API URL of the release')
-    zipball_url: str = Field(..., description='URL to the zipball')
+    url: str = Field(..., description="The API URL of the release")
+    zipball_url: str = Field(..., description="URL to the zipball")
 
 
 class GithubRepository(BaseModel):
-    clone_url: str = Field(..., description='The clone URL of the repository')
-    created_at: datetime = Field(..., description='When the repository was created')
-    default_branch: str = Field(..., description='The default branch of the repository')
-    description: Optional[str] = Field(None, description='The repository description')
-    fork: bool = Field(..., description='Whether the repository is a fork')
+    clone_url: str = Field(..., description="The clone URL of the repository")
+    created_at: datetime = Field(..., description="When the repository was created")
+    default_branch: str = Field(..., description="The default branch of the repository")
+    description: Optional[str] = Field(None, description="The repository description")
+    fork: bool = Field(..., description="Whether the repository is a fork")
     full_name: str = Field(
-        ..., description='The full name of the repository (owner/repo)'
+        ..., description="The full name of the repository (owner/repo)"
     )
-    git_url: str = Field(..., description='The git URL of the repository')
-    html_url: str = Field(..., description='The HTML URL of the repository')
-    id: int = Field(..., description='The repository ID')
-    name: str = Field(..., description='The name of the repository')
-    node_id: str = Field(..., description='The repository node ID')
+    git_url: str = Field(..., description="The git URL of the repository")
+    html_url: str = Field(..., description="The HTML URL of the repository")
+    id: int = Field(..., description="The repository ID")
+    name: str = Field(..., description="The name of the repository")
+    node_id: str = Field(..., description="The repository node ID")
     owner: GithubUser
-    private: bool = Field(..., description='Whether the repository is private')
+    private: bool = Field(..., description="Whether the repository is private")
     pushed_at: datetime = Field(
-        ..., description='When the repository was last pushed to'
+        ..., description="When the repository was last pushed to"
     )
-    ssh_url: str = Field(..., description='The SSH URL of the repository')
+    ssh_url: str = Field(..., description="The SSH URL of the repository")
     updated_at: datetime = Field(
-        ..., description='When the repository was last updated'
+        ..., description="When the repository was last updated"
     )
-    url: str = Field(..., description='The API URL of the repository')
+    url: str = Field(..., description="The API URL of the repository")
 
 
 class IdeogramV3EditRequest(BaseModel):
     color_palette: Optional[IdeogramColorPalette] = None
     image: Optional[StrictBytes] = Field(
         None,
-        description='The image being edited (max size 10MB); only JPEG, WebP and PNG formats are supported at this time.',
+        description="The image being edited (max size 10MB); only JPEG, WebP and PNG formats are supported at this time.",
     )
     magic_prompt: Optional[str] = Field(
         None,
-        description='Determine if MagicPrompt should be used in generating the request or not.',
+        description="Determine if MagicPrompt should be used in generating the request or not.",
     )
     mask: Optional[StrictBytes] = Field(
         None,
-        description='A black and white image of the same size as the image being edited (max size 10MB). Black regions in the mask should match up with the regions of the image that you would like to edit; only JPEG, WebP and PNG formats are supported at this time.',
+        description="A black and white image of the same size as the image being edited (max size 10MB). Black regions in the mask should match up with the regions of the image that you would like to edit; only JPEG, WebP and PNG formats are supported at this time.",
     )
     num_images: Optional[int] = Field(
-        None, description='The number of images to generate.'
+        None, description="The number of images to generate."
     )
     prompt: str = Field(
-        ..., description='The prompt used to describe the edited result.'
+        ..., description="The prompt used to describe the edited result."
     )
     rendering_speed: RenderingSpeed
     seed: Optional[int] = Field(
-        None, description='Random seed. Set for reproducible generation.'
+        None, description="Random seed. Set for reproducible generation."
     )
     style_codes: Optional[List[StyleCode]] = Field(
         None,
-        description='A list of 8 character hexadecimal codes representing the style of the image. Cannot be used in conjunction with style_reference_images or style_type.',
+        description="A list of 8 character hexadecimal codes representing the style of the image. Cannot be used in conjunction with style_reference_images or style_type.",
     )
     style_reference_images: Optional[List[StrictBytes]] = Field(
         None,
-        description='A set of images to use as style references (maximum total size 10MB across all style references). The images should be in JPEG, PNG or WebP format.',
+        description="A set of images to use as style references (maximum total size 10MB across all style references). The images should be in JPEG, PNG or WebP format.",
     )
     character_reference_images: Optional[List[str]] = Field(
         None,
-        description='Generations with character reference are subject to the character reference pricing. A set of images to use as character references (maximum total size 10MB across all character references), currently only supports 1 character reference image. The images should be in JPEG, PNG or WebP format.'
+        description="Generations with character reference are subject to the character reference pricing. A set of images to use as character references (maximum total size 10MB across all character references), currently only supports 1 character reference image. The images should be in JPEG, PNG or WebP format.",
     )
     character_reference_images_mask: Optional[List[str]] = Field(
         None,
-        description='Optional masks for character reference images. When provided, must match the number of character_reference_images. Each mask should be a grayscale image of the same dimensions as the corresponding character reference image. The images should be in JPEG, PNG or WebP format.'
+        description="Optional masks for character reference images. When provided, must match the number of character_reference_images. Each mask should be a grayscale image of the same dimensions as the corresponding character reference image. The images should be in JPEG, PNG or WebP format.",
     )
 
 
 class IdeogramV3Request(BaseModel):
     aspect_ratio: Optional[str] = Field(
-        None, description='Aspect ratio in format WxH', examples=['1x3']
+        None, description="Aspect ratio in format WxH", examples=["1x3"]
     )
     color_palette: Optional[ColorPalette] = None
     magic_prompt: Optional[MagicPrompt2] = Field(
-        None, description='Whether to enable magic prompt enhancement'
+        None, description="Whether to enable magic prompt enhancement"
     )
     negative_prompt: Optional[str] = Field(
-        None, description='Text prompt specifying what to avoid in the generation'
+        None, description="Text prompt specifying what to avoid in the generation"
     )
     num_images: Optional[int] = Field(
-        None, description='Number of images to generate', ge=1
+        None, description="Number of images to generate", ge=1
     )
-    prompt: str = Field(..., description='The text prompt for image generation')
+    prompt: str = Field(..., description="The text prompt for image generation")
     rendering_speed: RenderingSpeed
     resolution: Optional[str] = Field(
-        None, description='Image resolution in format WxH', examples=['1280x800']
+        None, description="Image resolution in format WxH", examples=["1280x800"]
     )
     seed: Optional[int] = Field(
-        None, description='Seed value for reproducible generation'
+        None, description="Seed value for reproducible generation"
     )
     style_codes: Optional[List[StyleCode]] = Field(
-        None, description='Array of style codes in hexadecimal format'
+        None, description="Array of style codes in hexadecimal format"
     )
     style_reference_images: Optional[List[str]] = Field(
-        None, description='Array of reference image URLs or identifiers'
+        None, description="Array of reference image URLs or identifiers"
     )
     style_type: Optional[StyleType1] = Field(
-        None, description='The type of style to apply'
+        None, description="The type of style to apply"
     )
     character_reference_images: Optional[List[str]] = Field(
         None,
-        description='Generations with character reference are subject to the character reference pricing. A set of images to use as character references (maximum total size 10MB across all character references), currently only supports 1 character reference image. The images should be in JPEG, PNG or WebP format.'
+        description="Generations with character reference are subject to the character reference pricing. A set of images to use as character references (maximum total size 10MB across all character references), currently only supports 1 character reference image. The images should be in JPEG, PNG or WebP format.",
     )
     character_reference_images_mask: Optional[List[str]] = Field(
         None,
-        description='Optional masks for character reference images. When provided, must match the number of character_reference_images. Each mask should be a grayscale image of the same dimensions as the corresponding character reference image. The images should be in JPEG, PNG or WebP format.'
+        description="Optional masks for character reference images. When provided, must match the number of character_reference_images. Each mask should be a grayscale image of the same dimensions as the corresponding character reference image. The images should be in JPEG, PNG or WebP format.",
     )
 
 
@@ -5003,8 +5002,8 @@ class InputContent(
 class InputMessageContentList(RootModel[List[InputContent]]):
     root: List[InputContent] = Field(
         ...,
-        description='A list of one or many input items to the model, containing different content \ntypes.\n',
-        title='Input item content list',
+        description="A list of one or many input items to the model, containing different content \ntypes.\n",
+        title="Input item content list",
     )
 
 
@@ -5016,48 +5015,48 @@ class KlingCameraControl(BaseModel):
 class KlingDualCharacterEffectInput(BaseModel):
     duration: KlingVideoGenDuration
     images: KlingDualCharacterImages
-    mode: Optional[KlingVideoGenMode] = 'std'
-    model_name: Optional[KlingCharacterEffectModelName] = 'kling-v1'
+    mode: Optional[KlingVideoGenMode] = "std"
+    model_name: Optional[KlingCharacterEffectModelName] = "kling-v1"
 
 
 class KlingImage2VideoRequest(BaseModel):
-    aspect_ratio: Optional[KlingVideoGenAspectRatio] = '16:9'
+    aspect_ratio: Optional[KlingVideoGenAspectRatio] = "16:9"
     callback_url: Optional[AnyUrl] = Field(
         None,
-        description='The callback notification address. Server will notify when the task status changes.',
+        description="The callback notification address. Server will notify when the task status changes.",
     )
     camera_control: Optional[KlingCameraControl] = None
     cfg_scale: Optional[KlingVideoGenCfgScale] = Field(
         default_factory=lambda: KlingVideoGenCfgScale.model_validate(0.5)
     )
-    duration: Optional[KlingVideoGenDuration] = '5'
+    duration: Optional[KlingVideoGenDuration] = "5"
     dynamic_masks: Optional[List[DynamicMask]] = Field(
         None,
-        description='Dynamic Brush Configuration List (up to 6 groups). For 5-second videos, trajectory length must not exceed 77 coordinates.',
+        description="Dynamic Brush Configuration List (up to 6 groups). For 5-second videos, trajectory length must not exceed 77 coordinates.",
     )
     external_task_id: Optional[str] = Field(
         None,
-        description='Customized Task ID. Must be unique within a single user account.',
+        description="Customized Task ID. Must be unique within a single user account.",
     )
     image: Optional[str] = Field(
         None,
-        description='Reference Image - URL or Base64 encoded string, cannot exceed 10MB, resolution not less than 300*300px, aspect ratio between 1:2.5 ~ 2.5:1. Base64 should not include data:image prefix.',
+        description="Reference Image - URL or Base64 encoded string, cannot exceed 10MB, resolution not less than 300*300px, aspect ratio between 1:2.5 ~ 2.5:1. Base64 should not include data:image prefix.",
     )
     image_tail: Optional[str] = Field(
         None,
-        description='Reference Image - End frame control. URL or Base64 encoded string, cannot exceed 10MB, resolution not less than 300*300px. Base64 should not include data:image prefix.',
+        description="Reference Image - End frame control. URL or Base64 encoded string, cannot exceed 10MB, resolution not less than 300*300px. Base64 should not include data:image prefix.",
     )
-    mode: Optional[KlingVideoGenMode] = 'std'
-    model_name: Optional[KlingVideoGenModelName] = 'kling-v2-master'
+    mode: Optional[KlingVideoGenMode] = "std"
+    model_name: Optional[KlingVideoGenModelName] = "kling-v2-master"
     negative_prompt: Optional[str] = Field(
-        None, description='Negative text prompt', max_length=2500
+        None, description="Negative text prompt", max_length=2500
     )
     prompt: Optional[str] = Field(
-        None, description='Positive text prompt', max_length=2500
+        None, description="Positive text prompt", max_length=2500
     )
     static_mask: Optional[str] = Field(
         None,
-        description='Static Brush Application Area (Mask image created by users using the motion brush). The aspect ratio must match the input image.',
+        description="Static Brush Application Area (Mask image created by users using the motion brush). The aspect ratio must match the input image.",
     )
 
 
@@ -5066,19 +5065,19 @@ class TaskResult(BaseModel):
 
 
 class Data(BaseModel):
-    created_at: Optional[int] = Field(None, description='Task creation time')
-    task_id: Optional[str] = Field(None, description='Task ID')
+    created_at: Optional[int] = Field(None, description="Task creation time")
+    task_id: Optional[str] = Field(None, description="Task ID")
     task_info: Optional[TaskInfo] = None
     task_result: Optional[TaskResult] = None
     task_status: Optional[KlingTaskStatus] = None
-    updated_at: Optional[int] = Field(None, description='Task update time')
+    updated_at: Optional[int] = Field(None, description="Task update time")
 
 
 class KlingImage2VideoResponse(BaseModel):
-    code: Optional[int] = Field(None, description='Error code')
+    code: Optional[int] = Field(None, description="Error code")
     data: Optional[Data] = None
-    message: Optional[str] = Field(None, description='Error message')
-    request_id: Optional[str] = Field(None, description='Request ID')
+    message: Optional[str] = Field(None, description="Error message")
+    request_id: Optional[str] = Field(None, description="Request ID")
 
 
 class TaskResult1(BaseModel):
@@ -5086,52 +5085,52 @@ class TaskResult1(BaseModel):
 
 
 class Data1(BaseModel):
-    created_at: Optional[int] = Field(None, description='Task creation time')
-    task_id: Optional[str] = Field(None, description='Task ID')
+    created_at: Optional[int] = Field(None, description="Task creation time")
+    task_id: Optional[str] = Field(None, description="Task ID")
     task_result: Optional[TaskResult1] = None
     task_status: Optional[KlingTaskStatus] = None
-    task_status_msg: Optional[str] = Field(None, description='Task status information')
-    updated_at: Optional[int] = Field(None, description='Task update time')
+    task_status_msg: Optional[str] = Field(None, description="Task status information")
+    updated_at: Optional[int] = Field(None, description="Task update time")
 
 
 class KlingImageGenerationsResponse(BaseModel):
-    code: Optional[int] = Field(None, description='Error code')
+    code: Optional[int] = Field(None, description="Error code")
     data: Optional[Data1] = None
-    message: Optional[str] = Field(None, description='Error message')
-    request_id: Optional[str] = Field(None, description='Request ID')
+    message: Optional[str] = Field(None, description="Error message")
+    request_id: Optional[str] = Field(None, description="Request ID")
 
 
 class KlingLipSyncInputObject(BaseModel):
     audio_file: Optional[str] = Field(
         None,
-        description='Local Path of Audio File. Supported formats: .mp3/.wav/.m4a/.aac, maximum file size of 5MB. Base64 code.',
+        description="Local Path of Audio File. Supported formats: .mp3/.wav/.m4a/.aac, maximum file size of 5MB. Base64 code.",
     )
     audio_type: Optional[KlingAudioUploadType] = None
     audio_url: Optional[str] = Field(
         None,
-        description='Audio File Download URL. Supported formats: .mp3/.wav/.m4a/.aac, maximum file size of 5MB.',
+        description="Audio File Download URL. Supported formats: .mp3/.wav/.m4a/.aac, maximum file size of 5MB.",
     )
     mode: KlingLipSyncMode
     text: Optional[str] = Field(
         None,
-        description='Text Content for Lip-Sync Video Generation. Required when mode is text2video. Maximum length is 120 characters.',
+        description="Text Content for Lip-Sync Video Generation. Required when mode is text2video. Maximum length is 120 characters.",
     )
     video_id: Optional[str] = Field(
         None,
-        description='The ID of the video generated by Kling AI. Only supports 5-second and 10-second videos generated within the last 30 days.',
+        description="The ID of the video generated by Kling AI. Only supports 5-second and 10-second videos generated within the last 30 days.",
     )
     video_url: Optional[str] = Field(
         None,
-        description='Get link for uploaded video. Video files support .mp4/.mov, file size does not exceed 100MB, video length between 2-10s.',
+        description="Get link for uploaded video. Video files support .mp4/.mov, file size does not exceed 100MB, video length between 2-10s.",
     )
     voice_id: Optional[str] = Field(
         None,
-        description='Voice ID. Required when mode is text2video. The system offers a variety of voice options to choose from.',
+        description="Voice ID. Required when mode is text2video. The system offers a variety of voice options to choose from.",
     )
-    voice_language: Optional[KlingLipSyncVoiceLanguage] = 'en'
+    voice_language: Optional[KlingLipSyncVoiceLanguage] = "en"
     voice_speed: Optional[float] = Field(
         1,
-        description='Speech Rate. Valid range: 0.8~2.0, accurate to one decimal place.',
+        description="Speech Rate. Valid range: 0.8~2.0, accurate to one decimal place.",
         ge=0.8,
         le=2.0,
     )
@@ -5140,7 +5139,7 @@ class KlingLipSyncInputObject(BaseModel):
 class KlingLipSyncRequest(BaseModel):
     callback_url: Optional[AnyUrl] = Field(
         None,
-        description='The callback notification address. Server will notify when the task status changes.',
+        description="The callback notification address. Server will notify when the task status changes.",
     )
     input: KlingLipSyncInputObject
 
@@ -5150,65 +5149,65 @@ class TaskResult2(BaseModel):
 
 
 class Data2(BaseModel):
-    created_at: Optional[int] = Field(None, description='Task creation time')
-    task_id: Optional[str] = Field(None, description='Task ID')
+    created_at: Optional[int] = Field(None, description="Task creation time")
+    task_id: Optional[str] = Field(None, description="Task ID")
     task_info: Optional[TaskInfo] = None
     task_result: Optional[TaskResult2] = None
     task_status: Optional[KlingTaskStatus] = None
-    updated_at: Optional[int] = Field(None, description='Task update time')
+    updated_at: Optional[int] = Field(None, description="Task update time")
 
 
 class KlingLipSyncResponse(BaseModel):
-    code: Optional[int] = Field(None, description='Error code')
+    code: Optional[int] = Field(None, description="Error code")
     data: Optional[Data2] = None
-    message: Optional[str] = Field(None, description='Error message')
-    request_id: Optional[str] = Field(None, description='Request ID')
+    message: Optional[str] = Field(None, description="Error message")
+    request_id: Optional[str] = Field(None, description="Request ID")
 
 
 class KlingSingleImageEffectInput(BaseModel):
     duration: KlingSingleImageEffectDuration
     image: str = Field(
         ...,
-        description='Reference Image. URL or Base64 encoded string (without data:image prefix). File size cannot exceed 10MB, resolution not less than 300*300px, aspect ratio between 1:2.5 ~ 2.5:1.',
+        description="Reference Image. URL or Base64 encoded string (without data:image prefix). File size cannot exceed 10MB, resolution not less than 300*300px, aspect ratio between 1:2.5 ~ 2.5:1.",
     )
     model_name: KlingSingleImageEffectModelName
 
 
 class KlingText2VideoRequest(BaseModel):
-    aspect_ratio: Optional[KlingVideoGenAspectRatio] = '16:9'
+    aspect_ratio: Optional[KlingVideoGenAspectRatio] = "16:9"
     callback_url: Optional[AnyUrl] = Field(
-        None, description='The callback notification address'
+        None, description="The callback notification address"
     )
     camera_control: Optional[KlingCameraControl] = None
     cfg_scale: Optional[KlingVideoGenCfgScale] = Field(
         default_factory=lambda: KlingVideoGenCfgScale.model_validate(0.5)
     )
-    duration: Optional[KlingVideoGenDuration] = '5'
-    external_task_id: Optional[str] = Field(None, description='Customized Task ID')
-    mode: Optional[KlingVideoGenMode] = 'std'
-    model_name: Optional[KlingTextToVideoModelName] = 'kling-v1'
+    duration: Optional[KlingVideoGenDuration] = "5"
+    external_task_id: Optional[str] = Field(None, description="Customized Task ID")
+    mode: Optional[KlingVideoGenMode] = "std"
+    model_name: Optional[KlingTextToVideoModelName] = "kling-v1"
     negative_prompt: Optional[str] = Field(
-        None, description='Negative text prompt', max_length=2500
+        None, description="Negative text prompt", max_length=2500
     )
     prompt: Optional[str] = Field(
-        None, description='Positive text prompt', max_length=2500
+        None, description="Positive text prompt", max_length=2500
     )
 
 
 class Data4(BaseModel):
-    created_at: Optional[int] = Field(None, description='Task creation time')
-    task_id: Optional[str] = Field(None, description='Task ID')
+    created_at: Optional[int] = Field(None, description="Task creation time")
+    task_id: Optional[str] = Field(None, description="Task ID")
     task_info: Optional[TaskInfo] = None
     task_result: Optional[TaskResult2] = None
     task_status: Optional[KlingTaskStatus] = None
-    updated_at: Optional[int] = Field(None, description='Task update time')
+    updated_at: Optional[int] = Field(None, description="Task update time")
 
 
 class KlingText2VideoResponse(BaseModel):
-    code: Optional[int] = Field(None, description='Error code')
+    code: Optional[int] = Field(None, description="Error code")
     data: Optional[Data4] = None
-    message: Optional[str] = Field(None, description='Error message')
-    request_id: Optional[str] = Field(None, description='Request ID')
+    message: Optional[str] = Field(None, description="Error message")
+    request_id: Optional[str] = Field(None, description="Request ID")
 
 
 class KlingVideoEffectsInput(
@@ -5220,84 +5219,84 @@ class KlingVideoEffectsInput(
 class KlingVideoEffectsRequest(BaseModel):
     callback_url: Optional[AnyUrl] = Field(
         None,
-        description='The callback notification address for the result of this task.',
+        description="The callback notification address for the result of this task.",
     )
     effect_scene: Union[KlingDualCharacterEffectsScene, KlingSingleImageEffectsScene]
     external_task_id: Optional[str] = Field(
         None,
-        description='Customized Task ID. Must be unique within a single user account.',
+        description="Customized Task ID. Must be unique within a single user account.",
     )
     input: KlingVideoEffectsInput
 
 
 class Data5(BaseModel):
-    created_at: Optional[int] = Field(None, description='Task creation time')
-    task_id: Optional[str] = Field(None, description='Task ID')
+    created_at: Optional[int] = Field(None, description="Task creation time")
+    task_id: Optional[str] = Field(None, description="Task ID")
     task_info: Optional[TaskInfo] = None
     task_result: Optional[TaskResult2] = None
     task_status: Optional[KlingTaskStatus] = None
-    updated_at: Optional[int] = Field(None, description='Task update time')
+    updated_at: Optional[int] = Field(None, description="Task update time")
 
 
 class KlingVideoEffectsResponse(BaseModel):
-    code: Optional[int] = Field(None, description='Error code')
+    code: Optional[int] = Field(None, description="Error code")
     data: Optional[Data5] = None
-    message: Optional[str] = Field(None, description='Error message')
-    request_id: Optional[str] = Field(None, description='Request ID')
+    message: Optional[str] = Field(None, description="Error message")
+    request_id: Optional[str] = Field(None, description="Request ID")
 
 
 class KlingVideoExtendRequest(BaseModel):
     callback_url: Optional[AnyUrl] = Field(
         None,
-        description='The callback notification address. Server will notify when the task status changes.',
+        description="The callback notification address. Server will notify when the task status changes.",
     )
     cfg_scale: Optional[KlingVideoGenCfgScale] = Field(
         default_factory=lambda: KlingVideoGenCfgScale.model_validate(0.5)
     )
     negative_prompt: Optional[str] = Field(
         None,
-        description='Negative text prompt for elements to avoid in the extended video',
+        description="Negative text prompt for elements to avoid in the extended video",
         max_length=2500,
     )
     prompt: Optional[str] = Field(
         None,
-        description='Positive text prompt for guiding the video extension',
+        description="Positive text prompt for guiding the video extension",
         max_length=2500,
     )
     video_id: Optional[str] = Field(
         None,
-        description='The ID of the video to be extended. Supports videos generated by text-to-video, image-to-video, and previous video extension operations. Cannot exceed 3 minutes total duration after extension.',
+        description="The ID of the video to be extended. Supports videos generated by text-to-video, image-to-video, and previous video extension operations. Cannot exceed 3 minutes total duration after extension.",
     )
 
 
 class Data6(BaseModel):
-    created_at: Optional[int] = Field(None, description='Task creation time')
-    task_id: Optional[str] = Field(None, description='Task ID')
+    created_at: Optional[int] = Field(None, description="Task creation time")
+    task_id: Optional[str] = Field(None, description="Task ID")
     task_info: Optional[TaskInfo] = None
     task_result: Optional[TaskResult2] = None
     task_status: Optional[KlingTaskStatus] = None
-    updated_at: Optional[int] = Field(None, description='Task update time')
+    updated_at: Optional[int] = Field(None, description="Task update time")
 
 
 class KlingVideoExtendResponse(BaseModel):
-    code: Optional[int] = Field(None, description='Error code')
+    code: Optional[int] = Field(None, description="Error code")
     data: Optional[Data6] = None
-    message: Optional[str] = Field(None, description='Error message')
-    request_id: Optional[str] = Field(None, description='Request ID')
+    message: Optional[str] = Field(None, description="Error message")
+    request_id: Optional[str] = Field(None, description="Request ID")
 
 
 class LumaGenerationRequest(BaseModel):
     aspect_ratio: LumaAspectRatio
     callback_url: Optional[AnyUrl] = Field(
         None,
-        description='The callback URL of the generation, a POST request with Generation object will be sent to the callback URL when the generation is dreaming, completed, or failed',
+        description="The callback URL of the generation, a POST request with Generation object will be sent to the callback URL when the generation is dreaming, completed, or failed",
     )
     duration: LumaVideoModelOutputDuration
-    generation_type: Optional[GenerationType1] = 'video'
+    generation_type: Optional[GenerationType1] = "video"
     keyframes: Optional[LumaKeyframes] = None
-    loop: Optional[bool] = Field(None, description='Whether to loop the video')
+    loop: Optional[bool] = Field(None, description="Whether to loop the video")
     model: LumaVideoModel
-    prompt: str = Field(..., description='The prompt of the generation')
+    prompt: str = Field(..., description="The prompt of the generation")
     resolution: LumaVideoModelOutputResolution
 
 
@@ -5306,24 +5305,24 @@ class CharacterRef(BaseModel):
 
 
 class LumaImageGenerationRequest(BaseModel):
-    aspect_ratio: Optional[LumaAspectRatio] = '16:9'
+    aspect_ratio: Optional[LumaAspectRatio] = "16:9"
     callback_url: Optional[AnyUrl] = Field(
-        None, description='The callback URL for the generation'
+        None, description="The callback URL for the generation"
     )
     character_ref: Optional[CharacterRef] = None
-    generation_type: Optional[GenerationType2] = 'image'
+    generation_type: Optional[GenerationType2] = "image"
     image_ref: Optional[List[LumaImageRef]] = None
-    model: Optional[LumaImageModel] = 'photon-1'
+    model: Optional[LumaImageModel] = "photon-1"
     modify_image_ref: Optional[LumaModifyImageRef] = None
-    prompt: Optional[str] = Field(None, description='The prompt of the generation')
+    prompt: Optional[str] = Field(None, description="The prompt of the generation")
     style_ref: Optional[List[LumaImageRef]] = None
 
 
 class LumaUpscaleVideoGenerationRequest(BaseModel):
     callback_url: Optional[AnyUrl] = Field(
-        None, description='The callback URL for the upscale'
+        None, description="The callback URL for the upscale"
     )
-    generation_type: Optional[GenerationType3] = 'upscale_video'
+    generation_type: Optional[GenerationType3] = "upscale_video"
     resolution: Optional[LumaVideoModelOutputResolution] = None
 
 
@@ -5346,47 +5345,47 @@ class MoonvalleyTextToImageRequest(BaseModel):
 
 class NodeVersion(BaseModel):
     changelog: Optional[str] = Field(
-        None, description='Summary of changes made in this version'
+        None, description="Summary of changes made in this version"
     )
     comfy_node_extract_status: Optional[str] = Field(
-        None, description='The status of comfy node extraction process.'
+        None, description="The status of comfy node extraction process."
     )
     createdAt: Optional[datetime] = Field(
-        None, description='The date and time the version was created.'
+        None, description="The date and time the version was created."
     )
     dependencies: Optional[List[str]] = Field(
-        None, description='A list of pip dependencies required by the node.'
+        None, description="A list of pip dependencies required by the node."
     )
     deprecated: Optional[bool] = Field(
-        None, description='Indicates if this version is deprecated.'
+        None, description="Indicates if this version is deprecated."
     )
     downloadUrl: Optional[str] = Field(
-        None, description='[Output Only] URL to download this version of the node'
+        None, description="[Output Only] URL to download this version of the node"
     )
     id: Optional[str] = None
     node_id: Optional[str] = Field(
-        None, description='The unique identifier of the node.'
+        None, description="The unique identifier of the node."
     )
     status: Optional[NodeVersionStatus] = None
     status_reason: Optional[str] = Field(
-        None, description='The reason for the status change.'
+        None, description="The reason for the status change."
     )
     supported_accelerators: Optional[List[str]] = Field(
         None,
-        description='List of accelerators (e.g. CUDA, DirectML, ROCm) that this node supports',
+        description="List of accelerators (e.g. CUDA, DirectML, ROCm) that this node supports",
     )
     supported_comfyui_frontend_version: Optional[str] = Field(
-        None, description='Supported versions of ComfyUI frontend'
+        None, description="Supported versions of ComfyUI frontend"
     )
     supported_comfyui_version: Optional[str] = Field(
-        None, description='Supported versions of ComfyUI'
+        None, description="Supported versions of ComfyUI"
     )
     supported_os: Optional[List[str]] = Field(
-        None, description='List of operating systems that this node supports'
+        None, description="List of operating systems that this node supports"
     )
     version: Optional[str] = Field(
         None,
-        description='The version identifier, following semantic versioning. Must be unique for the node.',
+        description="The version identifier, following semantic versioning. Must be unique for the node.",
     )
 
 
@@ -5395,70 +5394,70 @@ class OutputContent(RootModel[Union[OutputTextContent, OutputAudioContent]]):
 
 
 class OutputMessage(BaseModel):
-    content: List[OutputContent] = Field(..., description='The content of the message')
-    role: Role4 = Field(..., description='The role of the message')
-    type: Type15 = Field(..., description='The type of output item')
+    content: List[OutputContent] = Field(..., description="The content of the message")
+    role: Role4 = Field(..., description="The role of the message")
+    type: Type15 = Field(..., description="The type of output item")
 
 
 class PikaBodyGenerate22I2vGenerate22I2vPost(BaseModel):
     duration: Optional[PikaDurationEnum] = 5
-    image: Optional[StrictBytes] = Field(None, title='Image')
-    negativePrompt: Optional[str] = Field(None, title='Negativeprompt')
-    promptText: Optional[str] = Field(None, title='Prompttext')
-    resolution: Optional[PikaResolutionEnum] = '1080p'
-    seed: Optional[int] = Field(None, title='Seed')
+    image: Optional[StrictBytes] = Field(None, title="Image")
+    negativePrompt: Optional[str] = Field(None, title="Negativeprompt")
+    promptText: Optional[str] = Field(None, title="Prompttext")
+    resolution: Optional[PikaResolutionEnum] = "1080p"
+    seed: Optional[int] = Field(None, title="Seed")
 
 
 class PikaBodyGenerate22KeyframeGenerate22PikaframesPost(BaseModel):
-    duration: Optional[int] = Field(None, ge=5, le=10, title='Duration')
+    duration: Optional[int] = Field(None, ge=5, le=10, title="Duration")
     keyFrames: Optional[List[StrictBytes]] = Field(
-        None, description='Array of keyframe images', title='Keyframes'
+        None, description="Array of keyframe images", title="Keyframes"
     )
-    negativePrompt: Optional[str] = Field(None, title='Negativeprompt')
-    promptText: str = Field(..., title='Prompttext')
-    resolution: Optional[PikaResolutionEnum] = '1080p'
-    seed: Optional[int] = Field(None, title='Seed')
+    negativePrompt: Optional[str] = Field(None, title="Negativeprompt")
+    promptText: str = Field(..., title="Prompttext")
+    resolution: Optional[PikaResolutionEnum] = "1080p"
+    seed: Optional[int] = Field(None, title="Seed")
 
 
 class PikaBodyGenerate22T2vGenerate22T2vPost(BaseModel):
     aspectRatio: Optional[float] = Field(
         1.7777777777777777,
-        description='Aspect ratio (width / height)',
+        description="Aspect ratio (width / height)",
         ge=0.4,
         le=2.5,
-        title='Aspectratio',
+        title="Aspectratio",
     )
     duration: Optional[PikaDurationEnum] = 5
-    negativePrompt: Optional[str] = Field(None, title='Negativeprompt')
-    promptText: str = Field(..., title='Prompttext')
-    resolution: Optional[PikaResolutionEnum] = '1080p'
-    seed: Optional[int] = Field(None, title='Seed')
+    negativePrompt: Optional[str] = Field(None, title="Negativeprompt")
+    promptText: str = Field(..., title="Prompttext")
+    resolution: Optional[PikaResolutionEnum] = "1080p"
+    seed: Optional[int] = Field(None, title="Seed")
 
 
 class PikaBodyGeneratePikaffectsGeneratePikaffectsPost(BaseModel):
-    image: Optional[StrictBytes] = Field(None, title='Image')
-    negativePrompt: Optional[str] = Field(None, title='Negativeprompt')
+    image: Optional[StrictBytes] = Field(None, title="Image")
+    negativePrompt: Optional[str] = Field(None, title="Negativeprompt")
     pikaffect: Optional[Pikaffect] = None
-    promptText: Optional[str] = Field(None, title='Prompttext')
-    seed: Optional[int] = Field(None, title='Seed')
+    promptText: Optional[str] = Field(None, title="Prompttext")
+    seed: Optional[int] = Field(None, title="Seed")
 
 
 class PikaHTTPValidationError(BaseModel):
-    detail: Optional[List[PikaValidationError]] = Field(None, title='Detail')
+    detail: Optional[List[PikaValidationError]] = Field(None, title="Detail")
 
 
 class PublisherMember(BaseModel):
     id: Optional[str] = Field(
-        None, description='The unique identifier for the publisher member.'
+        None, description="The unique identifier for the publisher member."
     )
     role: Optional[str] = Field(
-        None, description='The role of the user in the publisher.'
+        None, description="The role of the user in the publisher."
     )
     user: Optional[PublisherUser] = None
 
 
 class Reasoning(BaseModel):
-    effort: Optional[ReasoningEffort] = 'medium'
+    effort: Optional[ReasoningEffort] = "medium"
     generate_summary: Optional[GenerateSummary] = Field(
         None,
         description="**Deprecated:** use `summary` instead.\n\nA summary of the reasoning performed by the model. This can be\nuseful for debugging and understanding the model's reasoning process.\nOne of `auto`, `concise`, or `detailed`.\n",
@@ -5512,41 +5511,41 @@ class RecraftTransformImageWithMaskRequest(BaseModel):
 
 class ResponseContentPartAddedEvent(BaseModel):
     content_index: int = Field(
-        ..., description='The index of the content part that was added.'
+        ..., description="The index of the content part that was added."
     )
     item_id: str = Field(
-        ..., description='The ID of the output item that the content part was added to.'
+        ..., description="The ID of the output item that the content part was added to."
     )
     output_index: int = Field(
         ...,
-        description='The index of the output item that the content part was added to.',
+        description="The index of the output item that the content part was added to.",
     )
     part: OutputContent
     type: Type20 = Field(
-        ..., description='The type of the event. Always `response.content_part.added`.'
+        ..., description="The type of the event. Always `response.content_part.added`."
     )
 
 
 class ResponseContentPartDoneEvent(BaseModel):
     content_index: int = Field(
-        ..., description='The index of the content part that is done.'
+        ..., description="The index of the content part that is done."
     )
     item_id: str = Field(
-        ..., description='The ID of the output item that the content part was added to.'
+        ..., description="The ID of the output item that the content part was added to."
     )
     output_index: int = Field(
         ...,
-        description='The index of the output item that the content part was added to.',
+        description="The index of the output item that the content part was added to.",
     )
     part: OutputContent
     type: Type21 = Field(
-        ..., description='The type of the event. Always `response.content_part.done`.'
+        ..., description="The type of the event. Always `response.content_part.done`."
     )
 
 
 class ResponseError(BaseModel):
     code: ResponseErrorCode
-    message: str = Field(..., description='A human-readable description of the error.')
+    message: str = Field(..., description="A human-readable description of the error.")
 
 
 class Rodin3DDownloadResponse(BaseModel):
@@ -5554,25 +5553,25 @@ class Rodin3DDownloadResponse(BaseModel):
 
 
 class Rodin3DGenerateRequest(BaseModel):
-    images: str = Field(..., description='The reference images to generate 3D Assets.')
+    images: str = Field(..., description="The reference images to generate 3D Assets.")
     material: Optional[RodinMaterialType] = None
     mesh_mode: Optional[RodinMeshModeType] = None
     quality: Optional[RodinQualityType] = None
-    seed: Optional[int] = Field(None, description='Seed.')
+    seed: Optional[int] = Field(None, description="Seed.")
     tier: Optional[RodinTierType] = None
 
 
 class Rodin3DGenerateResponse(BaseModel):
     jobs: Optional[RodinGenerateJobsData] = None
-    message: Optional[str] = Field(None, description='message')
-    prompt: Optional[str] = Field(None, description='prompt')
-    submit_time: Optional[str] = Field(None, description='Time')
-    uuid: Optional[str] = Field(None, description='Task UUID')
+    message: Optional[str] = Field(None, description="message")
+    prompt: Optional[str] = Field(None, description="prompt")
+    submit_time: Optional[str] = Field(None, description="Time")
+    uuid: Optional[str] = Field(None, description="Task UUID")
 
 
 class RodinCheckStatusJobItem(BaseModel):
     status: Optional[RodinStatusOptions] = None
-    uuid: Optional[str] = Field(None, description='sub uuid')
+    uuid: Optional[str] = Field(None, description="sub uuid")
 
 
 class RunwayImageToVideoRequest(BaseModel):
@@ -5580,11 +5579,11 @@ class RunwayImageToVideoRequest(BaseModel):
     model: RunwayModelEnum
     promptImage: RunwayPromptImageObject
     promptText: Optional[str] = Field(
-        None, description='Text prompt for the generation', max_length=1000
+        None, description="Text prompt for the generation", max_length=1000
     )
     ratio: RunwayAspectRatioEnum
     seed: int = Field(
-        ..., description='Random seed for generation', ge=0, le=4294967295
+        ..., description="Random seed for generation", ge=0, le=4294967295
     )
 
 
@@ -5715,42 +5714,42 @@ class Tool(
 ):
     root: Union[
         FileSearchTool, FunctionTool, WebSearchPreviewTool, ComputerUsePreviewTool
-    ] = Field(..., discriminator='type')
+    ] = Field(..., discriminator="type")
 
 
 class BulkNodeVersionResult(BaseModel):
     error_message: Optional[str] = Field(
         None,
-        description='Error message if retrieval failed (only present if status is error)',
+        description="Error message if retrieval failed (only present if status is error)",
     )
     identifier: NodeVersionIdentifier
     node_version: Optional[NodeVersion] = None
-    status: Status = Field(..., description='Status of the retrieval operation')
+    status: Status = Field(..., description="Status of the retrieval operation")
 
 
 class BulkNodeVersionsResponse(BaseModel):
     node_versions: List[BulkNodeVersionResult] = Field(
-        ..., description='List of retrieved node versions with their status'
+        ..., description="List of retrieved node versions with their status"
     )
 
 
 class EasyInputMessage(BaseModel):
     content: Union[str, InputMessageContentList] = Field(
         ...,
-        description='Text, image, or audio input to the model, used to generate a response.\nCan also contain previous assistant responses.\n',
+        description="Text, image, or audio input to the model, used to generate a response.\nCan also contain previous assistant responses.\n",
     )
     role: Role = Field(
         ...,
-        description='The role of the message input. One of `user`, `assistant`, `system`, or\n`developer`.\n',
+        description="The role of the message input. One of `user`, `assistant`, `system`, or\n`developer`.\n",
     )
     type: Optional[Type2] = Field(
-        None, description='The type of the message input. Always `message`.\n'
+        None, description="The type of the message input. Always `message`.\n"
     )
 
 
 class GeminiContent(BaseModel):
     parts: List[GeminiPart]
-    role: Role1 = Field(..., examples=['user'])
+    role: Role1 = Field(..., examples=["user"])
 
 
 class GeminiGenerateContentRequest(BaseModel):
@@ -5763,11 +5762,11 @@ class GeminiGenerateContentRequest(BaseModel):
 
 
 class GithubReleaseWebhook(BaseModel):
-    action: Action = Field(..., description='The action performed on the release')
+    action: Action = Field(..., description="The action performed on the release")
     enterprise: Optional[GithubEnterprise] = None
     installation: Optional[GithubInstallation] = None
     organization: Optional[GithubOrganization] = None
-    release: Release = Field(..., description='The release object')
+    release: Release = Field(..., description="The release object")
     repository: GithubRepository
     sender: GithubUser
 
@@ -5805,20 +5804,20 @@ class Item(
         WebSearchToolCall,
         FunctionToolCall,
         ReasoningItem,
-    ] = Field(..., description='Content item used to generate a response.\n')
+    ] = Field(..., description="Content item used to generate a response.\n")
 
 
 class LumaGeneration(BaseModel):
     assets: Optional[LumaAssets] = None
     created_at: Optional[datetime] = Field(
-        None, description='The date and time when the generation was created'
+        None, description="The date and time when the generation was created"
     )
     failure_reason: Optional[str] = Field(
-        None, description='The reason for the state of the generation'
+        None, description="The reason for the state of the generation"
     )
     generation_type: Optional[LumaGenerationType] = None
-    id: Optional[UUID] = Field(None, description='The ID of the generation')
-    model: Optional[str] = Field(None, description='The model used for the generation')
+    id: Optional[UUID] = Field(None, description="The ID of the generation")
+    model: Optional[str] = Field(None, description="The model used for the generation")
     request: Optional[
         Union[
             LumaGenerationRequest,
@@ -5826,7 +5825,7 @@ class LumaGeneration(BaseModel):
             LumaUpscaleVideoGenerationRequest,
             LumaAudioGenerationRequest,
         ]
-    ] = Field(None, description='The request of the generation')
+    ] = Field(None, description="The request of the generation")
     state: Optional[LumaState] = None
 
 
@@ -5854,7 +5853,7 @@ class OutputItem(
 
 class Publisher(BaseModel):
     createdAt: Optional[datetime] = Field(
-        None, description='The date and time the publisher was created.'
+        None, description="The date and time the publisher was created."
     )
     description: Optional[str] = None
     id: Optional[str] = Field(
@@ -5863,7 +5862,7 @@ class Publisher(BaseModel):
     )
     logo: Optional[str] = Field(None, description="URL to the publisher's logo.")
     members: Optional[List[PublisherMember]] = Field(
-        None, description='A list of members in the publisher.'
+        None, description="A list of members in the publisher."
     )
     name: Optional[str] = None
     source_code_repo: Optional[str] = None
@@ -5899,20 +5898,20 @@ class RecraftImageToImageRequest(BaseModel):
 class ResponseOutputItemAddedEvent(BaseModel):
     item: OutputItem
     output_index: int = Field(
-        ..., description='The index of the output item that was added.\n'
+        ..., description="The index of the output item that was added.\n"
     )
     type: Type29 = Field(
-        ..., description='The type of the event. Always `response.output_item.added`.\n'
+        ..., description="The type of the event. Always `response.output_item.added`.\n"
     )
 
 
 class ResponseOutputItemDoneEvent(BaseModel):
     item: OutputItem
     output_index: int = Field(
-        ..., description='The index of the output item that was marked done.\n'
+        ..., description="The index of the output item that was marked done.\n"
     )
     type: Type30 = Field(
-        ..., description='The type of the event. Always `response.output_item.done`.\n'
+        ..., description="The type of the event. Always `response.output_item.done`.\n"
     )
 
 
@@ -5927,12 +5926,12 @@ class ResponseProperties(BaseModel):
     )
     max_output_tokens: Optional[int] = Field(
         None,
-        description='An upper bound for the number of tokens that can be generated for a response, including visible output tokens and [reasoning tokens](/docs/guides/reasoning).\n',
+        description="An upper bound for the number of tokens that can be generated for a response, including visible output tokens and [reasoning tokens](/docs/guides/reasoning).\n",
     )
     model: Optional[OpenAIModels] = None
     previous_response_id: Optional[str] = Field(
         None,
-        description='The unique ID of the previous response to the model. Use this to\ncreate multi-turn conversations. Learn more about \n[conversation state](/docs/guides/conversation-state).\n',
+        description="The unique ID of the previous response to the model. Use this to\ncreate multi-turn conversations. Learn more about \n[conversation state](/docs/guides/conversation-state).\n",
     )
     reasoning: Optional[Reasoning] = None
     text: Optional[Text] = None
@@ -5940,18 +5939,18 @@ class ResponseProperties(BaseModel):
         Union[ToolChoiceOptions, ToolChoiceTypes, ToolChoiceFunction]
     ] = Field(
         None,
-        description='How the model should select which tool (or tools) to use when generating\na response. See the `tools` parameter to see how to specify which tools\nthe model can call.\n',
+        description="How the model should select which tool (or tools) to use when generating\na response. See the `tools` parameter to see how to specify which tools\nthe model can call.\n",
     )
     tools: Optional[List[Tool]] = None
     truncation: Optional[Truncation1] = Field(
-        'disabled',
+        "disabled",
         description="The truncation strategy to use for the model response.\n- `auto`: If the context of this response and previous ones exceeds\n  the model's context window size, the model will truncate the \n  response to fit the context window by dropping input items in the\n  middle of the conversation. \n- `disabled` (default): If a model response will exceed the context window \n  size for a model, the request will fail with a 400 error.\n",
     )
 
 
 class Rodin3DCheckStatusResponse(BaseModel):
     jobs: Optional[List[RodinCheckStatusJobItem]] = Field(
-        None, description='Details for the generation status.'
+        None, description="Details for the generation status."
     )
 
 
@@ -5991,29 +5990,29 @@ class InputItem(RootModel[Union[EasyInputMessage, Item]]):
 class Node(BaseModel):
     author: Optional[str] = None
     banner_url: Optional[str] = Field(None, description="URL to the node's banner.")
-    category: Optional[str] = Field(None, description='The category of the node.')
+    category: Optional[str] = Field(None, description="The category of the node.")
     created_at: Optional[datetime] = Field(
-        None, description='The date and time when the node was created'
+        None, description="The date and time when the node was created"
     )
     description: Optional[str] = None
     downloads: Optional[int] = Field(
-        None, description='The number of downloads of the node.'
+        None, description="The number of downloads of the node."
     )
     github_stars: Optional[int] = Field(
-        None, description='Number of stars on the GitHub repository.'
+        None, description="Number of stars on the GitHub repository."
     )
     icon: Optional[str] = Field(None, description="URL to the node's icon.")
-    id: Optional[str] = Field(None, description='The unique identifier of the node.')
+    id: Optional[str] = Field(None, description="The unique identifier of the node.")
     latest_version: Optional[NodeVersion] = None
     license: Optional[str] = Field(
         None, description="The path to the LICENSE file in the node's repository."
     )
-    name: Optional[str] = Field(None, description='The display name of the node.')
+    name: Optional[str] = Field(None, description="The display name of the node.")
     preempted_comfy_node_names: Optional[List[str]] = Field(
-        None, description='A list of Comfy node names that are preempted by this node.'
+        None, description="A list of Comfy node names that are preempted by this node."
     )
     publisher: Optional[Publisher] = None
-    rating: Optional[float] = Field(None, description='The average rating of the node.')
+    rating: Optional[float] = Field(None, description="The average rating of the node.")
     repository: Optional[str] = Field(None, description="URL to the node's repository.")
     search_ranking: Optional[int] = Field(
         None,
@@ -6021,46 +6020,46 @@ class Node(BaseModel):
     )
     status: Optional[NodeStatus] = None
     status_detail: Optional[str] = Field(
-        None, description='The status detail of the node.'
+        None, description="The status detail of the node."
     )
     supported_accelerators: Optional[List[str]] = Field(
         None,
-        description='List of accelerators (e.g. CUDA, DirectML, ROCm) that this node supports',
+        description="List of accelerators (e.g. CUDA, DirectML, ROCm) that this node supports",
     )
     supported_comfyui_frontend_version: Optional[str] = Field(
-        None, description='Supported versions of ComfyUI frontend'
+        None, description="Supported versions of ComfyUI frontend"
     )
     supported_comfyui_version: Optional[str] = Field(
-        None, description='Supported versions of ComfyUI'
+        None, description="Supported versions of ComfyUI"
     )
     supported_os: Optional[List[str]] = Field(
-        None, description='List of operating systems that this node supports'
+        None, description="List of operating systems that this node supports"
     )
     tags: Optional[List[str]] = None
     translations: Optional[Dict[str, Dict[str, Any]]] = Field(
-        None, description='Translations of node metadata in different languages.'
+        None, description="Translations of node metadata in different languages."
     )
 
 
 class OpenAICreateResponse(CreateModelResponseProperties, ResponseProperties):
     include: Optional[List[Includable]] = Field(
         None,
-        description='Specify additional output data to include in the model response. Currently\nsupported values are:\n- `file_search_call.results`: Include the search results of\n  the file search tool call.\n- `message.input_image.image_url`: Include image urls from the input message.\n- `computer_call_output.output.image_url`: Include image urls from the computer call output.\n',
+        description="Specify additional output data to include in the model response. Currently\nsupported values are:\n- `file_search_call.results`: Include the search results of\n  the file search tool call.\n- `message.input_image.image_url`: Include image urls from the input message.\n- `computer_call_output.output.image_url`: Include image urls from the computer call output.\n",
     )
     input: Union[str, List[InputItem]] = Field(
         ...,
-        description='Text, image, or file inputs to the model, used to generate a response.\n\nLearn more:\n- [Text inputs and outputs](/docs/guides/text)\n- [Image inputs](/docs/guides/images)\n- [File inputs](/docs/guides/pdf-files)\n- [Conversation state](/docs/guides/conversation-state)\n- [Function calling](/docs/guides/function-calling)\n',
+        description="Text, image, or file inputs to the model, used to generate a response.\n\nLearn more:\n- [Text inputs and outputs](/docs/guides/text)\n- [Image inputs](/docs/guides/images)\n- [File inputs](/docs/guides/pdf-files)\n- [Conversation state](/docs/guides/conversation-state)\n- [Function calling](/docs/guides/function-calling)\n",
     )
     parallel_tool_calls: Optional[bool] = Field(
-        True, description='Whether to allow the model to run tool calls in parallel.\n'
+        True, description="Whether to allow the model to run tool calls in parallel.\n"
     )
     store: Optional[bool] = Field(
         True,
-        description='Whether to store the generated model response for later retrieval via\nAPI.\n',
+        description="Whether to store the generated model response for later retrieval via\nAPI.\n",
     )
     stream: Optional[bool] = Field(
         False,
-        description='If set to true, the model response data will be streamed to the client\nas it is generated using [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format).\nSee the [Streaming section below](/docs/api-reference/responses-streaming)\nfor more information.\n',
+        description="If set to true, the model response data will be streamed to the client\nas it is generated using [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format).\nSee the [Streaming section below](/docs/api-reference/responses-streaming)\nfor more information.\n",
     )
     usage: Optional[ResponseUsage] = None
 
@@ -6068,15 +6067,15 @@ class OpenAICreateResponse(CreateModelResponseProperties, ResponseProperties):
 class OpenAIResponse(ModelResponseProperties, ResponseProperties):
     created_at: Optional[float] = Field(
         None,
-        description='Unix timestamp (in seconds) of when this Response was created.',
+        description="Unix timestamp (in seconds) of when this Response was created.",
     )
     error: Optional[ResponseError] = None
-    id: Optional[str] = Field(None, description='Unique identifier for this Response.')
+    id: Optional[str] = Field(None, description="Unique identifier for this Response.")
     incomplete_details: Optional[IncompleteDetails] = Field(
-        None, description='Details about why the response is incomplete.\n'
+        None, description="Details about why the response is incomplete.\n"
     )
     object: Optional[Object] = Field(
-        None, description='The object type of this resource - always set to `response`.'
+        None, description="The object type of this resource - always set to `response`."
     )
     output: Optional[List[OutputItem]] = Field(
         None,
@@ -6084,14 +6083,14 @@ class OpenAIResponse(ModelResponseProperties, ResponseProperties):
     )
     output_text: Optional[str] = Field(
         None,
-        description='SDK-only convenience property that contains the aggregated text output \nfrom all `output_text` items in the `output` array, if any are present. \nSupported in the Python and JavaScript SDKs.\n',
+        description="SDK-only convenience property that contains the aggregated text output \nfrom all `output_text` items in the `output` array, if any are present. \nSupported in the Python and JavaScript SDKs.\n",
     )
     parallel_tool_calls: Optional[bool] = Field(
-        True, description='Whether to allow the model to run tool calls in parallel.\n'
+        True, description="Whether to allow the model to run tool calls in parallel.\n"
     )
     status: Optional[Status7] = Field(
         None,
-        description='The status of the response generation. One of `completed`, `failed`, `in_progress`, or `incomplete`.',
+        description="The status of the response generation. One of `completed`, `failed`, `in_progress`, or `incomplete`.",
     )
     usage: Optional[ResponseUsage] = None
 
@@ -6099,35 +6098,35 @@ class OpenAIResponse(ModelResponseProperties, ResponseProperties):
 class ResponseCompletedEvent(BaseModel):
     response: OpenAIResponse
     type: Type19 = Field(
-        ..., description='The type of the event. Always `response.completed`.'
+        ..., description="The type of the event. Always `response.completed`."
     )
 
 
 class ResponseCreatedEvent(BaseModel):
     response: OpenAIResponse
     type: Type22 = Field(
-        ..., description='The type of the event. Always `response.created`.'
+        ..., description="The type of the event. Always `response.created`."
     )
 
 
 class ResponseFailedEvent(BaseModel):
     response: OpenAIResponse
     type: Type24 = Field(
-        ..., description='The type of the event. Always `response.failed`.\n'
+        ..., description="The type of the event. Always `response.failed`.\n"
     )
 
 
 class ResponseInProgressEvent(BaseModel):
     response: OpenAIResponse
     type: Type27 = Field(
-        ..., description='The type of the event. Always `response.in_progress`.\n'
+        ..., description="The type of the event. Always `response.in_progress`.\n"
     )
 
 
 class ResponseIncompleteEvent(BaseModel):
     response: OpenAIResponse
     type: Type28 = Field(
-        ..., description='The type of the event. Always `response.incomplete`.\n'
+        ..., description="The type of the event. Always `response.incomplete`.\n"
     )
 
 
@@ -6158,4 +6157,4 @@ class OpenAIResponseStreamEvent(
         ResponseContentPartAddedEvent,
         ResponseContentPartDoneEvent,
         ResponseErrorEvent,
-    ] = Field(..., description='Events that can be emitted during response streaming')
+    ] = Field(..., description="Events that can be emitted during response streaming")

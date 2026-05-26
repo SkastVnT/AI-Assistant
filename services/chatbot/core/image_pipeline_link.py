@@ -27,10 +27,12 @@ Hard rules:
   asset-context cap so an attacker cannot force expensive work by sending
   a huge ``generated_images`` array.
 """
+
 from __future__ import annotations
 
 import logging
-from typing import Any, Iterable, Optional
+from collections.abc import Iterable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +62,7 @@ _STATE_HINT = {
 }
 
 
-def _lookup_job(job_id: str) -> Optional[dict]:
+def _lookup_job(job_id: str) -> dict | None:
     """Look up *job_id* in the JobQueue singleton; return the dict shape or None.
 
     The import is lazy and any failure (queue module missing, attribute
@@ -84,11 +86,13 @@ def _lookup_job(job_id: str) -> Optional[dict]:
     try:
         return rec.to_dict()
     except Exception as exc:  # pragma: no cover - defensive only
-        logger.debug("image_pipeline_link: rec.to_dict() failed for %r: %s", job_id, exc)
+        logger.debug(
+            "image_pipeline_link: rec.to_dict() failed for %r: %s", job_id, exc
+        )
         return None
 
 
-def summarize_job(job_id: str) -> Optional[dict]:
+def summarize_job(job_id: str) -> dict | None:
     """Return a compact summary of *job_id*, or None if unknown.
 
     Shape::
@@ -179,7 +183,7 @@ def enrich_records_with_live_state(records: Iterable[Any]) -> list[Any]:
     return out
 
 
-def format_pipeline_hint(record: Any) -> Optional[str]:
+def format_pipeline_hint(record: Any) -> str | None:
     """Produce a one-line hint describing the live state of *record*.
 
     Used by :mod:`core.asset_memory` to extend a context line for records

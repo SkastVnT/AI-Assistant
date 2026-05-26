@@ -49,10 +49,8 @@ def generate_markdown_report(result: EvalRunResult) -> str:
         "",
         "## Per-Case Results",
         "",
-        "| Case | Context Rel. | Groundedness | Answer Rel. "
-        "| Overall | Status |",
-        "|------|-------------|-------------|-------------|"
-        "---------|--------|",
+        "| Case | Context Rel. | Groundedness | Answer Rel. | Overall | Status |",
+        "|------|-------------|-------------|-------------|---------|--------|",
     ]
 
     for c in result.case_results:
@@ -61,9 +59,7 @@ def generate_markdown_report(result: EvalRunResult) -> str:
         ar = f"{c.answer_relevance:.2f}" if c.answer_relevance is not None else "-"
         ov = f"{c.overall_score:.2f}" if c.overall_score is not None else "-"
         st = "PASS" if c.passed else "FAIL"
-        lines.append(
-            f"| {c.case_id} | {cr} | {gr} | {ar} | {ov} | {st} |"
-        )
+        lines.append(f"| {c.case_id} | {cr} | {gr} | {ar} | {ov} | {st} |")
 
     # ── Failed case details ───────────────────────────────────────
     failed = [c for c in result.case_results if not c.passed]
@@ -80,10 +76,7 @@ def generate_markdown_report(result: EvalRunResult) -> str:
                     f"{c.context_relevance_reasoning}"
                 )
             if c.groundedness_reasoning:
-                lines.append(
-                    f"**Groundedness ({c.groundedness:.2f}):** "
-                    f"{c.groundedness_reasoning}"
-                )
+                lines.append(f"**Groundedness ({c.groundedness:.2f}):** {c.groundedness_reasoning}")
             if c.answer_relevance_reasoning:
                 lines.append(
                     f"**Answer Relevance ({c.answer_relevance:.2f}):** "

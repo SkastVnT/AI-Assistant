@@ -5,18 +5,17 @@ from __future__ import annotations
 import logging
 import os
 import secrets
-from typing import Optional
 
 _TEST_SECRET_KEY = "test-only-flask-secret-key"
 _DEV_ENV_NAMES = {"", "dev", "development", "local"}
 _TEST_TRUE_VALUES = {"1", "true", "yes", "on"}
 
 
-def _is_enabled(value: Optional[str]) -> bool:
+def _is_enabled(value: str | None) -> bool:
     return (value or "").strip().lower() in _TEST_TRUE_VALUES
 
 
-def resolve_flask_secret_key(*, logger: Optional[logging.Logger] = None) -> str:
+def resolve_flask_secret_key(*, logger: logging.Logger | None = None) -> str:
     """Return the Flask secret key according to the repo trust boundary.
 
     Order:
@@ -43,4 +42,3 @@ def resolve_flask_secret_key(*, logger: Optional[logging.Logger] = None) -> str:
         return key
 
     raise RuntimeError("FLASK_SECRET_KEY must be set outside dev/test environments")
-

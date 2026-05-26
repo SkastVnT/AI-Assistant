@@ -77,9 +77,7 @@ def spec_filename(
     series_slug = _slug(getattr(job, "series_tag", ""), fallback="unknown")
     stamp = ts if ts is not None else int(time.time())
     clean_ext = ext.lstrip(".").lower() or "png"
-    return (
-        f"{session}_{feature_slug}_{char_slug}_{series_slug}_{stamp}.{clean_ext}"
-    )
+    return f"{session}_{feature_slug}_{char_slug}_{series_slug}_{stamp}.{clean_ext}"
 
 
 class ResultStore:
@@ -138,6 +136,7 @@ class ResultStore:
             if not spec_path.exists():
                 try:
                     import os as _os
+
                     _os.link(filepath, spec_path)
                 except Exception:
                     spec_path.write_bytes(filepath.read_bytes())
@@ -224,12 +223,15 @@ class ResultStore:
         # Build pass list from intermediates
         for img in job.intermediates:
             prefix = _STAGE_FILE_PREFIX.get(img.stage, img.stage)
-            manifest["passes"].append({
-                "name": img.stage,
-                "model": img.metadata.get("checkpoint") or img.metadata.get("model", ""),
-                "duration_ms": job.stage_timings_ms.get(img.stage, 0.0),
-                "output": f"{prefix}.png",
-            })
+            manifest["passes"].append(
+                {
+                    "name": img.stage,
+                    "model": img.metadata.get("checkpoint")
+                    or img.metadata.get("model", ""),
+                    "duration_ms": job.stage_timings_ms.get(img.stage, 0.0),
+                    "output": f"{prefix}.png",
+                }
+            )
 
         # Add critique summaries
         if job.critique_results:
@@ -250,7 +252,9 @@ class ResultStore:
 
         return str(filepath)
 
-    def save_all(self, job: AnimePipelineJob, rank_result: Any = None) -> dict[str, str]:
+    def save_all(
+        self, job: AnimePipelineJob, rank_result: Any = None
+    ) -> dict[str, str]:
         """Save all intermediates, final image, and manifest. Returns paths."""
         paths: dict[str, str] = {}
 
@@ -263,7 +267,13 @@ class ResultStore:
         # Structure layers
         for layer in job.structure_layers:
             if layer.image_b64:
-                path = self.save_hint_layer(job, layer.layer_type.value if hasattr(layer.layer_type, 'value') else str(layer.layer_type), layer.image_b64)
+                path = self.save_hint_layer(
+                    job,
+                    layer.layer_type.value
+                    if hasattr(layer.layer_type, "value")
+                    else str(layer.layer_type),
+                    layer.image_b64,
+                )
                 paths[f"hint_{layer.layer_type}"] = path
 
         if job.final_image_b64:

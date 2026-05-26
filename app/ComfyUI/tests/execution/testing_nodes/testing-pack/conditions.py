@@ -1,6 +1,7 @@
 import re
 import torch
 
+
 class TestIntConditions:
     def __init__(self):
         pass
@@ -9,8 +10,24 @@ class TestIntConditions:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "a": ("INT", {"default": 0, "min": -0xffffffffffffffff, "max": 0xffffffffffffffff, "step": 1}),
-                "b": ("INT", {"default": 0, "min": -0xffffffffffffffff, "max": 0xffffffffffffffff, "step": 1}),
+                "a": (
+                    "INT",
+                    {
+                        "default": 0,
+                        "min": -0xFFFFFFFFFFFFFFFF,
+                        "max": 0xFFFFFFFFFFFFFFFF,
+                        "step": 1,
+                    },
+                ),
+                "b": (
+                    "INT",
+                    {
+                        "default": 0,
+                        "min": -0xFFFFFFFFFFFFFFFF,
+                        "max": 0xFFFFFFFFFFFFFFFF,
+                        "step": 1,
+                    },
+                ),
                 "operation": (["==", "!=", "<", ">", "<=", ">="],),
             },
         }
@@ -43,8 +60,24 @@ class TestFloatConditions:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "a": ("FLOAT", {"default": 0, "min": -999999999999.0, "max": 999999999999.0, "step": 1}),
-                "b": ("FLOAT", {"default": 0, "min": -999999999999.0, "max": 999999999999.0, "step": 1}),
+                "a": (
+                    "FLOAT",
+                    {
+                        "default": 0,
+                        "min": -999999999999.0,
+                        "max": 999999999999.0,
+                        "step": 1,
+                    },
+                ),
+                "b": (
+                    "FLOAT",
+                    {
+                        "default": 0,
+                        "min": -999999999999.0,
+                        "max": 999999999999.0,
+                        "step": 1,
+                    },
+                ),
                 "operation": (["==", "!=", "<", ">", "<=", ">="],),
             },
         }
@@ -68,6 +101,7 @@ class TestFloatConditions:
         elif operation == ">=":
             return (a >= b,)
 
+
 class TestStringConditions:
     def __init__(self):
         pass
@@ -78,7 +112,16 @@ class TestStringConditions:
             "required": {
                 "a": ("STRING", {"multiline": False}),
                 "b": ("STRING", {"multiline": False}),
-                "operation": (["a == b", "a != b", "a IN b", "a MATCH REGEX(b)", "a BEGINSWITH b", "a ENDSWITH b"],),
+                "operation": (
+                    [
+                        "a == b",
+                        "a != b",
+                        "a IN b",
+                        "a MATCH REGEX(b)",
+                        "a BEGINSWITH b",
+                        "a ENDSWITH b",
+                    ],
+                ),
                 "case_sensitive": ("BOOLEAN", {"default": True}),
             },
         }
@@ -109,6 +152,7 @@ class TestStringConditions:
         elif operation == "a ENDSWITH b":
             return (a.endswith(b),)
 
+
 class TestToBoolNode:
     def __init__(self):
         pass
@@ -129,7 +173,7 @@ class TestToBoolNode:
 
     CATEGORY = "Testing/Logic"
 
-    def to_bool(self, value, invert = False):
+    def to_bool(self, value, invert=False):
         if isinstance(value, torch.Tensor):
             if value.max().item() == 0 and value.min().item() == 0:
                 result = False
@@ -146,6 +190,7 @@ class TestToBoolNode:
             result = not result
 
         return (result,)
+
 
 class TestBoolOperationNode:
     def __init__(self):

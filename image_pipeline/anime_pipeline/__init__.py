@@ -30,9 +30,9 @@ from .schemas import (
     ControlInput,
     CritiqueDimension,
     CritiqueReport,
-    CritiqueResult,          # backward compat alias
+    CritiqueResult,  # backward compat alias
     IntermediateImage,
-    LayerPassConfig,          # backward compat alias
+    LayerPassConfig,  # backward compat alias
     LayerPlan,
     PassConfig,
     RefineAction,

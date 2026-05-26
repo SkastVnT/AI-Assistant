@@ -46,7 +46,8 @@ class AuthContext:
     def can_access_sensitivity(self, level: str) -> bool:
         """Check whether the user's max_sensitivity is >= the given level."""
         return _SENSITIVITY_RANK.get(
-            self.max_sensitivity, 0,
+            self.max_sensitivity,
+            0,
         ) >= _SENSITIVITY_RANK.get(level, 99)
 
 

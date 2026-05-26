@@ -23,8 +23,8 @@ Env vars consumed (all pre-existing):
 
 from __future__ import annotations
 
-import os
 import logging
+import os
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -121,9 +121,13 @@ def get_runtime_profile() -> RuntimeProfile:
     global _profile
     if _profile is None:
         _profile = RuntimeProfile(
-            auto_start_image_services=_env_bool("AUTO_START_IMAGE_SERVICES", default=True),
+            auto_start_image_services=_env_bool(
+                "AUTO_START_IMAGE_SERVICES", default=True
+            ),
             auto_start_comfyui=_env_bool("AUTO_START_COMFYUI", default=True),
-            auto_start_stable_diffusion=_env_bool("AUTO_START_STABLE_DIFFUSION", default=True),
+            auto_start_stable_diffusion=_env_bool(
+                "AUTO_START_STABLE_DIFFUSION", default=True
+            ),
             image_first_mode=_env_bool("IMAGE_FIRST_MODE", default=False),
             comfyui_url=os.getenv("COMFYUI_URL", "").strip(),
             sd_api_url=os.getenv("SD_API_URL", "").strip(),

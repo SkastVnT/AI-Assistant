@@ -21,6 +21,7 @@ Run from the repo root inside ``venv-image``:
 
 Exit code 0 if all hard checks pass, 1 otherwise.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -60,9 +61,13 @@ def check_torch_cuda() -> bool:
     print(f"  device                    = {name}")
     print(f"  compute capability        = sm_{cap[0]}{cap[1]}")
     if cap[0] < 8:
-        print(f"WARN: capability sm_{cap[0]}{cap[1]} is older than SDXL recommended (>= sm_80).")
+        print(
+            f"WARN: capability sm_{cap[0]}{cap[1]} is older than SDXL recommended (>= sm_80)."
+        )
     if cap == (12, 0):
-        print("  Blackwell sm_120 detected — confirm torch is built with CUDA 12.8 kernels.")
+        print(
+            "  Blackwell sm_120 detected — confirm torch is built with CUDA 12.8 kernels."
+        )
     try:
         t = torch.randn(8, 8, device="cuda")
         _ = (t @ t.T).sum().item()
@@ -82,7 +87,11 @@ def check_rtx5070_config() -> bool:
     os.environ["ANIME_PIPELINE_CONFIG"] = str(cfg_path)
     try:
         # Force-reimport so the env var override is honoured fresh.
-        for mod in [m for m in list(sys.modules) if m.startswith("image_pipeline.anime_pipeline.config")]:
+        for mod in [
+            m
+            for m in list(sys.modules)
+            if m.startswith("image_pipeline.anime_pipeline.config")
+        ]:
             del sys.modules[mod]
         from image_pipeline.anime_pipeline import config as ap_config
     except Exception as e:
@@ -96,6 +105,7 @@ def check_rtx5070_config() -> bool:
     raw = None
     try:
         import yaml
+
         with cfg_path.open("r", encoding="utf-8") as f:
             raw = yaml.safe_load(f) or {}
     except Exception as e:
@@ -103,11 +113,11 @@ def check_rtx5070_config() -> bool:
         return False
 
     expectations = {
-        "models.composition.steps":         22,
-        "models.beauty.steps":              22,
-        "models.final.steps":               22,
-        "models.upscale.scale_factor":      1.5,
-        "structure_lock.max_simultaneous":  1,
+        "models.composition.steps": 22,
+        "models.beauty.steps": 22,
+        "models.final.steps": 22,
+        "models.upscale.scale_factor": 1.5,
+        "structure_lock.max_simultaneous": 1,
     }
     ok = True
     for dotted, expected in expectations.items():
@@ -128,7 +138,9 @@ def check_rtx5070_config() -> bool:
     marker = "OK  " if vram_profile == "normalvram" else "WARN"
     if vram_profile != "normalvram":
         ok = False
-    print(f"  {marker} vram.profile                     = {vram_profile!r} (expected 'normalvram')")
+    print(
+        f"  {marker} vram.profile                     = {vram_profile!r} (expected 'normalvram')"
+    )
     return ok
 
 
@@ -175,8 +187,11 @@ def check_loras_dir() -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--comfyui-url", default=None,
-                        help="ComfyUI base URL (e.g. http://127.0.0.1:8188); optional ping check")
+    parser.add_argument(
+        "--comfyui-url",
+        default=None,
+        help="ComfyUI base URL (e.g. http://127.0.0.1:8188); optional ping check",
+    )
     args = parser.parse_args()
 
     print(f"repo root: {REPO_ROOT}")

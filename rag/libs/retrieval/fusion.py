@@ -57,18 +57,14 @@ def reciprocal_rank_fusion(
         for rank_0, result in enumerate(results):
             rank_1 = rank_0 + 1  # 1-based rank
             contribution = w / (k + rank_1)
-            rrf_scores[result.chunk_id] = (
-                rrf_scores.get(result.chunk_id, 0.0) + contribution
-            )
+            rrf_scores[result.chunk_id] = rrf_scores.get(result.chunk_id, 0.0) + contribution
             # Keep the result with the richest metadata (first seen wins)
             if result.chunk_id not in best_result:
                 best_result[result.chunk_id] = result
 
     # Build output with RRF score replacing original score
     fused: list[SearchResult] = []
-    for chunk_id, rrf_score in sorted(
-        rrf_scores.items(), key=lambda kv: kv[1], reverse=True
-    ):
+    for chunk_id, rrf_score in sorted(rrf_scores.items(), key=lambda kv: kv[1], reverse=True):
         original = best_result[chunk_id]
         fused.append(
             SearchResult(

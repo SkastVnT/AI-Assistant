@@ -1,6 +1,7 @@
 """
 Base parser interface and shared data model.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

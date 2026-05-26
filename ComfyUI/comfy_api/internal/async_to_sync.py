@@ -406,7 +406,10 @@ class AsyncToSyncConverter:
 
                 # Special handling for types.UnionType (Python 3.10+ pipe operator)
                 # Convert to old-style Union for compatibility
-                if str(origin) == "<class 'types.UnionType'>" or origin_name == "UnionType":
+                if (
+                    str(origin) == "<class 'types.UnionType'>"
+                    or origin_name == "UnionType"
+                ):
                     origin_name = "Union"
 
                 # Format arguments recursively
@@ -416,7 +419,9 @@ class AsyncToSyncConverter:
                         # Track each type in the union
                         if type_tracker:
                             type_tracker.track_type(arg)
-                        formatted_args.append(cls._format_type_annotation(arg, type_tracker))
+                        formatted_args.append(
+                            cls._format_type_annotation(arg, type_tracker)
+                        )
                     return f"{origin_name}[{', '.join(formatted_args)}]"
                 else:
                     return origin_name
@@ -541,18 +546,21 @@ class AsyncToSyncConverter:
         # Try to get evaluated type hints to resolve string annotations
         try:
             from typing import get_type_hints
+
             type_hints = get_type_hints(method)
         except Exception:
             # Fallback to empty dict if we can't get type hints
             type_hints = {}
 
         # For async methods, extract the actual return type
-        return_annotation = type_hints.get('return', sig.return_annotation)
+        return_annotation = type_hints.get("return", sig.return_annotation)
         if is_async and inspect.iscoroutinefunction(method):
             return_annotation = cls._extract_coroutine_return_type(return_annotation)
 
         # Format parameters with type hints
-        params_str = cls._format_method_parameters(sig, type_hints=type_hints, type_tracker=type_tracker)
+        params_str = cls._format_method_parameters(
+            sig, type_hints=type_hints, type_tracker=type_tracker
+        )
 
         # Format return type
         return_type = cls._format_type_annotation(return_annotation, type_tracker)
@@ -677,6 +685,7 @@ class AsyncToSyncConverter:
                 # Try to get type hints
                 try:
                     from typing import get_type_hints
+
                     init_hints = get_type_hints(init_method)
                 except Exception:
                     init_hints = {}
@@ -839,6 +848,7 @@ class AsyncToSyncConverter:
                 # Try to get type hints for __init__
                 try:
                     from typing import get_type_hints
+
                     init_hints = get_type_hints(init_method)
                 except Exception:
                     init_hints = {}
@@ -934,7 +944,10 @@ class AsyncToSyncConverter:
                     # If the class type matches the annotated type
                     if (
                         attr_type == class_type
-                        or (hasattr(attr_type, "__name__") and attr_type.__name__ == class_name)
+                        or (
+                            hasattr(attr_type, "__name__")
+                            and attr_type.__name__ == class_name
+                        )
                         or (isinstance(attr_type, str) and attr_type == class_name)
                     ):
                         attribute_mappings[class_name] = attr_name

@@ -9,13 +9,14 @@ def is_link(obj):
         return False
     return True
 
+
 # The GraphBuilder is just a utility class that outputs graphs in the form expected by the ComfyUI back-end
 class GraphBuilder:
     _default_prefix_root = ""
     _default_prefix_call_index = 0
     _default_prefix_graph_index = 0
 
-    def __init__(self, prefix = None):
+    def __init__(self, prefix=None):
         if prefix is None:
             self.prefix = GraphBuilder.alloc_prefix()
         else:
@@ -24,7 +25,7 @@ class GraphBuilder:
         self.id_gen = 1
 
     @classmethod
-    def set_default_prefix(cls, prefix_root, call_index, graph_index = 0):
+    def set_default_prefix(cls, prefix_root, call_index, graph_index=0):
         cls._default_prefix_root = prefix_root
         cls._default_prefix_call_index = call_index
         cls._default_prefix_graph_index = graph_index
@@ -80,6 +81,7 @@ class GraphBuilder:
         id = self.prefix + id
         del self.nodes[id]
 
+
 class Node:
     def __init__(self, id, class_type, inputs):
         self.id = id
@@ -104,13 +106,11 @@ class Node:
         self.override_display_id = override_display_id
 
     def serialize(self):
-        serialized = {
-            "class_type": self.class_type,
-            "inputs": self.inputs
-        }
+        serialized = {"class_type": self.class_type, "inputs": self.inputs}
         if self.override_display_id is not None:
             serialized["override_display_id"] = self.override_display_id
         return serialized
+
 
 def add_graph_prefix(graph, outputs, prefix):
     # Change the node IDs and any internal links
@@ -118,10 +118,13 @@ def add_graph_prefix(graph, outputs, prefix):
     for node_id, node_info in graph.items():
         # Make sure the added nodes have unique IDs
         new_node_id = prefix + node_id
-        new_node = { "class_type": node_info["class_type"], "inputs": {} }
+        new_node = {"class_type": node_info["class_type"], "inputs": {}}
         for input_name, input_value in node_info.get("inputs", {}).items():
             if is_link(input_value):
-                new_node["inputs"][input_name] = [prefix + input_value[0], input_value[1]]
+                new_node["inputs"][input_name] = [
+                    prefix + input_value[0],
+                    input_value[1],
+                ]
             else:
                 new_node["inputs"][input_name] = input_value
         new_graph[new_node_id] = new_node
@@ -137,6 +140,7 @@ def add_graph_prefix(graph, outputs, prefix):
 
     return new_graph, tuple(new_outputs)
 
+
 class ExecutionBlocker:
     """
     Return this from a node and any users will be blocked with the given error message.
@@ -151,5 +155,6 @@ class ExecutionBlocker:
        (I would recommend not making nodes like this in the future -- instead, make multiple nodes with
        different outputs. Unfortunately, there are several popular existing nodes using this pattern.)
     """
+
     def __init__(self, message):
         self.message = message

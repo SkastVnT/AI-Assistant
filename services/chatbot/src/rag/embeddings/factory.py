@@ -4,6 +4,7 @@ Embedding provider factory.
 Reads ``RAG_EMBED_PROVIDER``, ``RAG_EMBED_MODEL``, and ``RAG_EMBED_DIM``
 from :pymod:`core.rag_settings` and returns the matching provider instance.
 """
+
 from __future__ import annotations
 
 import logging
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 _PROVIDER_MAP = {
     "openai": "src.rag.embeddings.openai_provider.OpenAIProvider",
     "gemini": "src.rag.embeddings.gemini_provider.GeminiProvider",
-    "local":  "src.rag.embeddings.local_st_provider.LocalSTProvider",
+    "local": "src.rag.embeddings.local_st_provider.LocalSTProvider",
 }
 
 

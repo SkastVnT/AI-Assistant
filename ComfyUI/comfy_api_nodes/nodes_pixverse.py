@@ -39,7 +39,9 @@ async def upload_image_to_pixverse(cls: type[IO.ComfyNode], image: torch.Tensor)
         content_type="multipart/form-data",
     )
     if response_upload.Resp is None:
-        raise Exception(f"PixVerse image upload request failed: '{response_upload.ErrMsg}'")
+        raise Exception(
+            f"PixVerse image upload request failed: '{response_upload.ErrMsg}'"
+        )
     return response_upload.Resp.img_id
 
 
@@ -57,7 +59,9 @@ class PixverseTemplateNode(IO.ComfyNode):
             inputs=[
                 IO.Combo.Input("template", options=list(pixverse_templates.keys())),
             ],
-            outputs=[IO.Custom(PixverseIO.TEMPLATE).Output(display_name="pixverse_template")],
+            outputs=[
+                IO.Custom(PixverseIO.TEMPLATE).Output(display_name="pixverse_template")
+            ],
         )
 
     @classmethod
@@ -171,7 +175,9 @@ class PixverseTextToVideoNode(IO.ComfyNode):
 
         response_poll = await poll_op(
             cls,
-            ApiEndpoint(path=f"/proxy/pixverse/video/result/{response_api.Resp.video_id}"),
+            ApiEndpoint(
+                path=f"/proxy/pixverse/video/result/{response_api.Resp.video_id}"
+            ),
             response_model=PixverseGenerationStatusResponse,
             completed_statuses=[PixverseStatus.successful],
             failed_statuses=[
@@ -288,7 +294,9 @@ class PixverseImageToVideoNode(IO.ComfyNode):
 
         response_poll = await poll_op(
             cls,
-            ApiEndpoint(path=f"/proxy/pixverse/video/result/{response_api.Resp.video_id}"),
+            ApiEndpoint(
+                path=f"/proxy/pixverse/video/result/{response_api.Resp.video_id}"
+            ),
             response_model=PixverseGenerationStatusResponse,
             completed_statuses=[PixverseStatus.successful],
             failed_statuses=[
@@ -383,7 +391,9 @@ class PixverseTransitionVideoNode(IO.ComfyNode):
 
         response_api = await sync_op(
             cls,
-            ApiEndpoint(path="/proxy/pixverse/video/transition/generate", method="POST"),
+            ApiEndpoint(
+                path="/proxy/pixverse/video/transition/generate", method="POST"
+            ),
             response_model=PixverseVideoResponse,
             data=PixverseTransitionVideoRequest(
                 first_frame_img=first_frame_id,
@@ -402,7 +412,9 @@ class PixverseTransitionVideoNode(IO.ComfyNode):
 
         response_poll = await poll_op(
             cls,
-            ApiEndpoint(path=f"/proxy/pixverse/video/result/{response_api.Resp.video_id}"),
+            ApiEndpoint(
+                path=f"/proxy/pixverse/video/result/{response_api.Resp.video_id}"
+            ),
             response_model=PixverseGenerationStatusResponse,
             completed_statuses=[PixverseStatus.successful],
             failed_statuses=[

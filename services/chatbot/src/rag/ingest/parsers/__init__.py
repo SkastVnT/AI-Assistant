@@ -3,6 +3,7 @@ src.rag.ingest.parsers — Document format parsers.
 
 Auto-selects the right parser based on MIME type or file extension.
 """
+
 from __future__ import annotations
 
 from .base import DocumentParser, PageContent, ParsedDocument

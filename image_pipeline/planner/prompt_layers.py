@@ -46,49 +46,59 @@ logger = logging.getLogger(__name__)
 # Vietnamese → English visual vocabulary (fast, no API cost)
 _VI_TO_EN: list[tuple[str, str]] = [
     # Hair
-    (r"\btóc hồng\b",  "pink hair"),   (r"\btóc vàng\b",  "blonde hair"),
-    (r"\btóc đen\b",   "black hair"),  (r"\btóc trắng\b", "white hair"),
-    (r"\btóc xanh\b",  "blue hair"),   (r"\btóc đỏ\b",    "red hair"),
-    (r"\btóc nâu\b",   "brown hair"),  (r"\btóc bạc\b",   "silver hair"),
+    (r"\btóc hồng\b", "pink hair"),
+    (r"\btóc vàng\b", "blonde hair"),
+    (r"\btóc đen\b", "black hair"),
+    (r"\btóc trắng\b", "white hair"),
+    (r"\btóc xanh\b", "blue hair"),
+    (r"\btóc đỏ\b", "red hair"),
+    (r"\btóc nâu\b", "brown hair"),
+    (r"\btóc bạc\b", "silver hair"),
     # Subjects
-    (r"\bcô gái\b",                "girl"),
+    (r"\bcô gái\b", "girl"),
     (r"\bcậu bé\b|\bchàng trai\b", "young man"),
-    (r"\bngười phụ nữ\b",         "woman"),
-    (r"\bngười đàn ông\b",        "man"),
-    (r"\bcon mèo\b",  "cat"),    (r"\bcon chó\b",  "dog"),
-    (r"\bcon rồng\b", "dragon"), (r"\bcon ngựa\b", "horse"),
+    (r"\bngười phụ nữ\b", "woman"),
+    (r"\bngười đàn ông\b", "man"),
+    (r"\bcon mèo\b", "cat"),
+    (r"\bcon chó\b", "dog"),
+    (r"\bcon rồng\b", "dragon"),
+    (r"\bcon ngựa\b", "horse"),
     # Settings
-    (r"\bthành phố\b",              "city"),
-    (r"\bbiển\b|\bbãi biển\b",      "beach"),
-    (r"\bnúi\b",                    "mountains"),
-    (r"\brừng\b",                   "forest"),
-    (r"\bvũ trụ\b",                 "outer space"),
+    (r"\bthành phố\b", "city"),
+    (r"\bbiển\b|\bbãi biển\b", "beach"),
+    (r"\bnúi\b", "mountains"),
+    (r"\brừng\b", "forest"),
+    (r"\bvũ trụ\b", "outer space"),
     # Actions
-    (r"\bngồi\b", "sitting"), (r"\bđứng\b", "standing"),
-    (r"\bchạy\b", "running"), (r"\bbay\b",   "flying"),
+    (r"\bngồi\b", "sitting"),
+    (r"\bđứng\b", "standing"),
+    (r"\bchạy\b", "running"),
+    (r"\bbay\b", "flying"),
     # Lighting
-    (r"\bánh trăng\b", "moonlight"),  (r"\bhoàng hôn\b", "sunset"),
-    (r"\bbình minh\b", "sunrise"),    (r"\bban đêm\b",   "night"),
+    (r"\bánh trăng\b", "moonlight"),
+    (r"\bhoàng hôn\b", "sunset"),
+    (r"\bbình minh\b", "sunrise"),
+    (r"\bban đêm\b", "night"),
 ]
 
 # Style preset prompt fragments (compatible with existing PromptBuilder)
 STYLE_FRAGMENTS: dict[str, str] = {
     "photorealistic": "photorealistic, DSLR quality, natural lighting, 8K resolution",
-    "anime":          "anime art style, vibrant colors, clean linework",
-    "cinematic":      "cinematic composition, dramatic lighting, film grain",
-    "watercolor":     "watercolor painting, soft washes, paper texture",
-    "digital_art":    "digital art, artstation trending, concept art, highly detailed",
-    "oil_painting":   "oil painting, rich impasto texture, classical composition",
-    "sketch":         "pencil sketch, detailed cross-hatching, graphite on paper",
-    "3d_render":      "3D render, octane render, ray tracing, PBR materials",
-    "fantasy":        "fantasy art, magical atmosphere, ethereal glow",
-    "studio_photo":   "professional studio photography, softbox lighting",
+    "anime": "anime art style, vibrant colors, clean linework",
+    "cinematic": "cinematic composition, dramatic lighting, film grain",
+    "watercolor": "watercolor painting, soft washes, paper texture",
+    "digital_art": "digital art, artstation trending, concept art, highly detailed",
+    "oil_painting": "oil painting, rich impasto texture, classical composition",
+    "sketch": "pencil sketch, detailed cross-hatching, graphite on paper",
+    "3d_render": "3D render, octane render, ray tracing, PBR materials",
+    "fantasy": "fantasy art, magical atmosphere, ethereal glow",
+    "studio_photo": "professional studio photography, softbox lighting",
 }
 
 QUALITY_FRAGMENTS: dict[str, str] = {
     "quality": "highly detailed, sharp focus, 4K, masterpiece",
-    "fast":    "simple composition, clean, well-lit",
-    "auto":    "highly detailed, sharp focus",
+    "fast": "simple composition, clean, well-lit",
+    "auto": "highly detailed, sharp focus",
 }
 
 _UNIVERSAL_NEGATIVE = (
@@ -204,6 +214,7 @@ def build_planning_prompt(job: ImageJob) -> str:
 # LAYER 2 — Semantic execution prompt
 # ─────────────────────────────────────────────────────────────────────
 
+
 def build_execution_prompt(job: ImageJob) -> str:
     """
     Layer 2 — The prompt sent to the primary gen/edit model
@@ -243,7 +254,11 @@ def build_execution_prompt(job: ImageJob) -> str:
     # ── 4. Quality ───────────────────────────────────────────────────
     quality_key = "auto"
     if spec.quality_tags:
-        quality_key = spec.quality_tags[0] if spec.quality_tags[0] in QUALITY_FRAGMENTS else "auto"
+        quality_key = (
+            spec.quality_tags[0]
+            if spec.quality_tags[0] in QUALITY_FRAGMENTS
+            else "auto"
+        )
     parts.append(QUALITY_FRAGMENTS.get(quality_key, QUALITY_FRAGMENTS["auto"]))
 
     # ── 5. Assemble + trim ───────────────────────────────────────────
@@ -291,7 +306,7 @@ def build_composition_prompt(job: ImageJob) -> str:
         weight_note = f" (weight={ref.weight})" if ref.weight != 1.0 else ""
         crop_note = f" [crop={ref.crop_region}]" if ref.crop_region else ""
         assignment_lines.append(
-            f"  ref_{i}: role={ref.role.value}, source=\"{label}\"{weight_note}{crop_note}"
+            f'  ref_{i}: role={ref.role.value}, source="{label}"{weight_note}{crop_note}'
         )
     ref_assignments = "\n".join(assignment_lines)
 
@@ -343,7 +358,9 @@ def build_refinement_prompt(
 
     identity_note = ""
     if job.prompt_spec.identity_anchors:
-        identity_note = "Preserve identity: " + ", ".join(job.prompt_spec.identity_anchors)
+        identity_note = "Preserve identity: " + ", ".join(
+            job.prompt_spec.identity_anchors
+        )
 
     prompt = _REFINEMENT_TEMPLATE.format(
         region=target.region,
@@ -358,14 +375,14 @@ def build_refinement_prompt(
 def _auto_refinement_prompt(region: str, job: ImageJob) -> str:
     """Generate reasonable default refinement instructions per region."""
     defaults: dict[str, str] = {
-        "face":       "fix facial features, correct eye symmetry, natural skin texture",
-        "hands":      "fix hand anatomy, correct finger count, natural hand pose",
-        "eyes":       "fix eye detail, correct iris shape, natural reflection",
-        "text":       "sharpen text rendering, crisp legible characters",
-        "fingers":    "correct finger anatomy, five fingers per hand, natural joints",
+        "face": "fix facial features, correct eye symmetry, natural skin texture",
+        "hands": "fix hand anatomy, correct finger count, natural hand pose",
+        "eyes": "fix eye detail, correct iris shape, natural reflection",
+        "text": "sharpen text rendering, crisp legible characters",
+        "fingers": "correct finger anatomy, five fingers per hand, natural joints",
         "accessories": "fix accessory details, clean edges, proper proportions",
         "background": "fix background consistency, clean transitions, proper perspective",
-        "full":       "overall detail improvement, fix any visible artifacts",
+        "full": "overall detail improvement, fix any visible artifacts",
     }
     base = defaults.get(region, f"fix {region} details, improve quality")
 
@@ -417,7 +434,9 @@ def build_correction_prompt(
 
     identity_note = ""
     if job.prompt_spec.identity_anchors:
-        identity_note = "PRESERVE identity: " + ", ".join(job.prompt_spec.identity_anchors)
+        identity_note = "PRESERVE identity: " + ", ".join(
+            job.prompt_spec.identity_anchors
+        )
 
     feedback_text = ""
     if judge_feedback:
@@ -536,7 +555,9 @@ def build_verification_prompt(
     dim_lines = []
     for dim in applicable_dims:
         dim_name = dim.value if hasattr(dim, "value") else dim
-        threshold = job.eval_result.thresholds.get(dim_name, 0.7) if job.eval_result else 0.7
+        threshold = (
+            job.eval_result.thresholds.get(dim_name, 0.7) if job.eval_result else 0.7
+        )
         dim_lines.append(f"  - {dim_name} (threshold={threshold})")
     dimensions_text = "\n".join(dim_lines)
 
@@ -565,6 +586,7 @@ def build_verification_prompt(
 # Negative prompt builder
 # ═════════════════════════════════════════════════════════════════════
 
+
 def build_negative_prompt(job: ImageJob) -> str:
     """
     Build the negative prompt from job state.
@@ -579,8 +601,9 @@ def build_negative_prompt(job: ImageJob) -> str:
 
     # Universal negatives (minus text-related if text is wanted)
     universal = _UNIVERSAL_NEGATIVE
-    wants_text = any("text" in c.lower() for c in job.may_change) or \
-                 "text_rendering" in (job.prompt_spec.quality_tags or [])
+    wants_text = any(
+        "text" in c.lower() for c in job.may_change
+    ) or "text_rendering" in (job.prompt_spec.quality_tags or [])
     if wants_text:
         universal = universal.replace("watermark, signature", "").replace("  ", " ")
     parts.append(universal)
@@ -588,11 +611,11 @@ def build_negative_prompt(job: ImageJob) -> str:
     # Style-conflict negatives
     style = job.generation_params.style_preset or ""
     _STYLE_CONFLICTS: dict[str, str] = {
-        "anime":          "realistic, photorealistic, photograph, 3d render",
-        "photorealistic":  "cartoon, anime, illustration, painting, sketch",
-        "sketch":          "color, painted, photo, photorealistic",
-        "3d_render":       "flat 2d, cartoon, anime, sketch",
-        "pixel_art":       "smooth gradients, photorealistic, blurry",
+        "anime": "realistic, photorealistic, photograph, 3d render",
+        "photorealistic": "cartoon, anime, illustration, painting, sketch",
+        "sketch": "color, painted, photo, photorealistic",
+        "3d_render": "flat 2d, cartoon, anime, sketch",
+        "pixel_art": "smooth gradients, photorealistic, blurry",
     }
     if style in _STYLE_CONFLICTS:
         parts.append(_STYLE_CONFLICTS[style])
@@ -603,6 +626,7 @@ def build_negative_prompt(job: ImageJob) -> str:
 # ═════════════════════════════════════════════════════════════════════
 # PromptLayerEngine — unified interface
 # ═════════════════════════════════════════════════════════════════════
+
 
 class PromptLayerEngine:
     """
@@ -654,7 +678,11 @@ class PromptLayerEngine:
         """Stage 5: Build region-scoped refinement prompt."""
         prompt = build_refinement_prompt(job, target)
         job.prompt_spec.refinement_prompt = prompt
-        logger.debug("[PromptLayer] Refinement prompt for %s: %d chars", target.region, len(prompt))
+        logger.debug(
+            "[PromptLayer] Refinement prompt for %s: %d chars",
+            target.region,
+            len(prompt),
+        )
         return prompt
 
     def fill_correction(
@@ -667,8 +695,11 @@ class PromptLayerEngine:
     ) -> str:
         """Stage 7: Build correction prompt after eval failure."""
         prompt = build_correction_prompt(
-            job, failed_dimensions, correction_targets,
-            correction_strategy, judge_feedback,
+            job,
+            failed_dimensions,
+            correction_targets,
+            correction_strategy,
+            judge_feedback,
         )
         job.prompt_spec.correction_prompt = prompt
         logger.debug("[PromptLayer] Correction prompt: %d chars", len(prompt))

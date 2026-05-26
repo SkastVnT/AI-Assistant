@@ -57,7 +57,9 @@ class TaskCreationRequest(BaseModel):
     aspect_ratio: Optional[AspectRatio] = AspectRatio.r_16_9
     resolution: Optional[Resolution] = Resolution.r_1080p
     movement_amplitude: Optional[MovementAmplitude] = MovementAmplitude.auto
-    images: Optional[list[str]] = Field(None, description="Base64 encoded string or image URL")
+    images: Optional[list[str]] = Field(
+        None, description="Base64 encoded string or image URL"
+    )
 
 
 class TaskCreationResponse(BaseModel):
@@ -69,8 +71,12 @@ class TaskCreationResponse(BaseModel):
 
 class TaskResult(BaseModel):
     id: str = Field(..., description="Creation id")
-    url: str = Field(..., description="The URL of the generated results, valid for one hour")
-    cover_url: str = Field(..., description="The cover URL of the generated results, valid for one hour")
+    url: str = Field(
+        ..., description="The URL of the generated results, valid for one hour"
+    )
+    cover_url: str = Field(
+        ..., description="The cover URL of the generated results, valid for one hour"
+    )
 
 
 class TaskStatusResponse(BaseModel):
@@ -90,7 +96,11 @@ def get_video_from_response(response) -> TaskResult:
         error_msg = f"Vidu request does not contain results. State: {response.state}, Error Code: {response.err_code}"
         logging.info(error_msg)
         raise RuntimeError(error_msg)
-    logging.info("Vidu task %s succeeded. Video URL: %s", response.creations[0].id, response.creations[0].url)
+    logging.info(
+        "Vidu task %s succeeded. Video URL: %s",
+        response.creations[0].id,
+        response.creations[0].url,
+    )
     return response.creations[0]
 
 
@@ -120,7 +130,6 @@ async def execute_task(
 
 
 class ViduTextToVideoNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -217,11 +226,12 @@ class ViduTextToVideoNode(IO.ComfyNode):
             movement_amplitude=movement_amplitude,
         )
         results = await execute_task(cls, VIDU_TEXT_TO_VIDEO, payload, 320)
-        return IO.NodeOutput(await download_url_to_video_output(get_video_from_response(results).url))
+        return IO.NodeOutput(
+            await download_url_to_video_output(get_video_from_response(results).url)
+        )
 
 
 class ViduImageToVideoNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -323,11 +333,12 @@ class ViduImageToVideoNode(IO.ComfyNode):
             mime_type="image/png",
         )
         results = await execute_task(cls, VIDU_IMAGE_TO_VIDEO, payload, 120)
-        return IO.NodeOutput(await download_url_to_video_output(get_video_from_response(results).url))
+        return IO.NodeOutput(
+            await download_url_to_video_output(get_video_from_response(results).url)
+        )
 
 
 class ViduReferenceVideoNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -441,11 +452,12 @@ class ViduReferenceVideoNode(IO.ComfyNode):
             mime_type="image/png",
         )
         results = await execute_task(cls, VIDU_REFERENCE_VIDEO, payload, 120)
-        return IO.NodeOutput(await download_url_to_video_output(get_video_from_response(results).url))
+        return IO.NodeOutput(
+            await download_url_to_video_output(get_video_from_response(results).url)
+        )
 
 
 class ViduStartEndToVideoNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -533,7 +545,9 @@ class ViduStartEndToVideoNode(IO.ComfyNode):
         resolution: str,
         movement_amplitude: str,
     ) -> IO.NodeOutput:
-        validate_images_aspect_ratio_closeness(first_frame, end_frame, min_rel=0.8, max_rel=1.25, strict=False)
+        validate_images_aspect_ratio_closeness(
+            first_frame, end_frame, min_rel=0.8, max_rel=1.25, strict=False
+        )
         payload = TaskCreationRequest(
             model_name=model,
             prompt=prompt,
@@ -543,11 +557,17 @@ class ViduStartEndToVideoNode(IO.ComfyNode):
             movement_amplitude=movement_amplitude,
         )
         payload.images = [
-            (await upload_images_to_comfyapi(cls, frame, max_images=1, mime_type="image/png"))[0]
+            (
+                await upload_images_to_comfyapi(
+                    cls, frame, max_images=1, mime_type="image/png"
+                )
+            )[0]
             for frame in (first_frame, end_frame)
         ]
         results = await execute_task(cls, VIDU_START_END_VIDEO, payload, 96)
-        return IO.NodeOutput(await download_url_to_video_output(get_video_from_response(results).url))
+        return IO.NodeOutput(
+            await download_url_to_video_output(get_video_from_response(results).url)
+        )
 
 
 class ViduExtension(ComfyExtension):

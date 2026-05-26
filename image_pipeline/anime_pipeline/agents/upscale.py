@@ -31,9 +31,9 @@ def _query_available_upscale_models(base_url: str) -> list[str]:
             # Path: UpscaleModelLoader → input → required → model_name → [0] (list)
             models = (
                 info.get("UpscaleModelLoader", {})
-                    .get("input", {})
-                    .get("required", {})
-                    .get("model_name", [[]])[0]
+                .get("input", {})
+                .get("required", {})
+                .get("model_name", [[]])[0]
             )
             return models if isinstance(models, list) else []
     except Exception as e:
@@ -56,7 +56,9 @@ class UpscaleAgent:
         """
         available = _query_available_upscale_models(self._client.base_url)
         if not available:
-            logger.warning("[Upscale] No upscale models found in ComfyUI — skipping upscale")
+            logger.warning(
+                "[Upscale] No upscale models found in ComfyUI — skipping upscale"
+            )
             return None
 
         preferred = [
@@ -72,7 +74,8 @@ class UpscaleAgent:
                 if name != self._config.upscale_model:
                     logger.info(
                         "[Upscale] Configured model '%s' not found — using '%s' instead",
-                        self._config.upscale_model, name,
+                        self._config.upscale_model,
+                        name,
                     )
                 return name
 
@@ -95,7 +98,9 @@ class UpscaleAgent:
         # Pre-flight: verify a model is actually installed before submitting
         model_name = self._resolve_upscale_model()
         if not model_name:
-            logger.warning("[Upscale] No upscale model available — using non-upscaled image")
+            logger.warning(
+                "[Upscale] No upscale model available — using non-upscaled image"
+            )
             self._set_final_image(job)
             job.mark_stage("upscale", 0.0)
             return job
@@ -225,8 +230,9 @@ class UpscaleAgent:
             return job
 
         cfg_obj = self._config
-        checkpoint = (cfg_obj.beauty_model.checkpoint
-                      or cfg_obj.composition_model.checkpoint)
+        checkpoint = (
+            cfg_obj.beauty_model.checkpoint or cfg_obj.composition_model.checkpoint
+        )
         if not checkpoint:
             logger.warning("[UpscaleSDXL:%s] No SDXL checkpoint — skipping", stage_name)
             job.mark_stage(stage_name, 0.0)
@@ -236,7 +242,9 @@ class UpscaleAgent:
         # intermediate so a re-run after detection_inpaint also works.
         source_b64: Optional[str] = None
         for img in reversed(job.intermediates):
-            if img.stage in ("beauty_pass", "composition_pass") or img.stage.startswith("detail_"):
+            if img.stage in ("beauty_pass", "composition_pass") or img.stage.startswith(
+                "detail_"
+            ):
                 source_b64 = img.image_b64
                 break
         if not source_b64:
@@ -260,11 +268,16 @@ class UpscaleAgent:
                     beauty_positive = p.positive_prompt or ""
                     beauty_negative = p.negative_prompt or ""
                     break
-        positive = ", ".join(filter(None, [
-            beauty_positive,
-            cfg_obj.quality_prefix or "masterpiece, best quality",
-            job.user_prompt,
-        ]))
+        positive = ", ".join(
+            filter(
+                None,
+                [
+                    beauty_positive,
+                    cfg_obj.quality_prefix or "masterpiece, best quality",
+                    job.user_prompt,
+                ],
+            )
+        )
         negative = beauty_negative or (cfg_obj.negative_base or "lowres, worst quality")
 
         try:
@@ -284,22 +297,38 @@ class UpscaleAgent:
                 tile_height=cfg_obj.upscale_tile_size,
             )
             result = self._client.submit_workflow(
-                workflow, job_id=stage_name, pass_name=stage_name,
+                workflow,
+                job_id=stage_name,
+                pass_name=stage_name,
             )
             if not result.success or not result.images_b64:
-                err = result.error or getattr(result, "validation_error", None) or "no images"
-                logger.warning("[UpscaleSDXL:%s] %s — keeping previous image", stage_name, err)
+                err = (
+                    result.error
+                    or getattr(result, "validation_error", None)
+                    or "no images"
+                )
+                logger.warning(
+                    "[UpscaleSDXL:%s] %s — keeping previous image", stage_name, err
+                )
                 job.mark_stage(stage_name, (time.time() - t0) * 1000)
                 return job
 
             out_b64 = result.images_b64[0]
-            job.add_intermediate(stage_name, out_b64, model=f"{upscale_model}+{checkpoint}")
+            job.add_intermediate(
+                stage_name, out_b64, model=f"{upscale_model}+{checkpoint}"
+            )
             job.final_image_b64 = out_b64
 
         except Exception as exc:
-            logger.warning("[UpscaleSDXL:%s] Failed: %s — keeping previous image",
-                           stage_name, exc)
+            logger.warning(
+                "[UpscaleSDXL:%s] Failed: %s — keeping previous image", stage_name, exc
+            )
 
         job.mark_stage(stage_name, (time.time() - t0) * 1000)
-        logger.info("[UpscaleSDXL:%s] Done factor=%.2f denoise=%.2f", stage_name, factor, denoise)
+        logger.info(
+            "[UpscaleSDXL:%s] Done factor=%.2f denoise=%.2f",
+            stage_name,
+            factor,
+            denoise,
+        )
         return job

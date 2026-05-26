@@ -6,6 +6,7 @@ pre-fetched context and (future) tool calls.
 
 This is the only agent with tool-calling capability (Phase 2).
 """
+
 from __future__ import annotations
 
 import logging
@@ -162,7 +163,9 @@ class ResearcherAgent(BaseAgent):
         # Include the plan's tasks
         parts.append(f"\nPlan approach: {plan.approach}")
         for i, task in enumerate(plan.tasks):
-            tools_hint = ", ".join(task.suggested_tools) if task.suggested_tools else "none"
+            tools_hint = (
+                ", ".join(task.suggested_tools) if task.suggested_tools else "none"
+            )
             parts.append(f"  Task {i}: {task.question}  [tools: {tools_hint}]")
 
         # Include pre-gathered evidence summary for LLM reasoning
@@ -171,7 +174,9 @@ class ResearcherAgent(BaseAgent):
 
         # Include remaining pre-fetched context that wasn't parsed
         if pre and pre.web_search_context:
-            parts.append(f"\n--- Pre-fetched web context ---\n{pre.web_search_context[:3000]}")
+            parts.append(
+                f"\n--- Pre-fetched web context ---\n{pre.web_search_context[:3000]}"
+            )
 
         return "\n\n".join(parts) or "(no input)"
 
@@ -232,9 +237,7 @@ class ResearcherAgent(BaseAgent):
 
     # ── Output parsing ─────────────────────────────────────────────
 
-    def _parse_output(
-        self, raw: str, tools_used: list[str]
-    ) -> ResearcherOutput:
+    def _parse_output(self, raw: str, tools_used: list[str]) -> ResearcherOutput:
         """Parse LLM JSON into ``ResearcherOutput``.
 
         Falls back to an empty evidence list on parse failure.

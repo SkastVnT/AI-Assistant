@@ -13,13 +13,13 @@ Documented priority (see docs/CHARACTER_PROFILE_FALLBACK.md):
     5. Local cache (``services/chatbot/static/cache/character_previews/``)
     6. Inline SVG placeholder
 """
+
 from __future__ import annotations
 
 import logging
 import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -67,10 +67,10 @@ class CharacterPreview:
 
     preview_url: str = PLACEHOLDER_URL
     preview_source: str = "placeholder"  # saa_thumbnail | manual_profile | local_cache | external_cached | placeholder
-    source_url: Optional[str] = None
+    source_url: str | None = None
     display_name: str = ""
-    canonical_id: Optional[str] = None
-    provisional_id: Optional[str] = None
+    canonical_id: str | None = None
+    provisional_id: str | None = None
     series_name: str = ""
     series_slug: str = ""
     source: str = ""  # registry | saa | manual_override | selected | unknown
@@ -88,8 +88,8 @@ def build_preview(
     *,
     key: str = "",
     query: str = "",
-    selected_character: Optional[dict] = None,
-    manual_profile: Optional[dict] = None,
+    selected_character: dict | None = None,
+    manual_profile: dict | None = None,
 ) -> CharacterPreview:
     """Build a CharacterPreview using the documented priority chain.
 
@@ -104,7 +104,9 @@ def build_preview(
         url = str(selected_character["thumbnail"])
         p.preview_url = url
         p.preview_source = (
-            "saa_thumbnail" if url.startswith("/api/") or "thumbnail" in url else "manual_profile"
+            "saa_thumbnail"
+            if url.startswith("/api/") or "thumbnail" in url
+            else "manual_profile"
         )
         return _finalize(p, query=query)
 
@@ -162,17 +164,21 @@ def build_preview(
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 def _fill_metadata(
     p: CharacterPreview,
     *,
     key: str,
-    selected_character: Optional[dict],
+    selected_character: dict | None,
 ) -> None:
     """Populate identity fields from the registry (if hit) or selected payload."""
     rec = None
     if key:
         try:
-            from core.character_registry import get_registry  # local import — avoid load on import
+            from core.character_registry import (
+                get_registry,  # local import — avoid load on import
+            )
+
             rec = get_registry().get(key)
         except Exception as exc:  # pragma: no cover — defensive
             logger.debug("[character_preview] registry lookup failed: %s", exc)
@@ -221,12 +227,13 @@ def _merge_override(p: CharacterPreview, entry: dict) -> None:
     )
 
 
-def _lookup_override(*, key: str = "", query: str = "") -> Optional[dict]:
+def _lookup_override(*, key: str = "", query: str = "") -> dict | None:
     """Find a matching entry in character_overrides.json. Fail-safe."""
     if not _OVERRIDES_PATH.exists():
         return None
     try:
         import json
+
         data = json.loads(_OVERRIDES_PATH.read_text(encoding="utf-8"))
     except Exception as exc:
         logger.debug("[character_preview] overrides load failed: %s", exc)
@@ -252,13 +259,16 @@ def _lookup_override(*, key: str = "", query: str = "") -> Optional[dict]:
     return None
 
 
-def _saa_thumbnail_url(key: str) -> Optional[str]:
+def _saa_thumbnail_url(key: str) -> str | None:
     """Return the chatbot-served thumbnail URL if SAA has data for this key."""
     safe = _safe_key(key)
     if not safe:
         return None
     try:
-        from image_pipeline.anime_pipeline.saa_character_db import get_character_thumbnail
+        from image_pipeline.anime_pipeline.saa_character_db import (
+            get_character_thumbnail,
+        )
+
         tag = safe.replace("_", " ")
         data_url = get_character_thumbnail(tag)
         if data_url and data_url.startswith("data:"):
@@ -272,7 +282,7 @@ def _saa_thumbnail_url(key: str) -> Optional[str]:
 _ALLOWED_PREVIEW_EXTS = frozenset({".png", ".jpg", ".jpeg", ".webp"})
 
 
-def _local_cached_url(key: str) -> Optional[str]:
+def _local_cached_url(key: str) -> str | None:
     """Return a static URL if a manually-dropped preview exists on disk.
 
     Iterates the cache directory rather than constructing a path from user
@@ -285,9 +295,13 @@ def _local_cached_url(key: str) -> Optional[str]:
         return None
     try:
         for candidate in _LOCAL_CACHE_DIR.iterdir():
-            if (candidate.suffix.lower() in _ALLOWED_PREVIEW_EXTS
-                    and candidate.stem == safe):
-                return f"/static/cache/character_previews/{safe}{candidate.suffix.lower()}"
+            if (
+                candidate.suffix.lower() in _ALLOWED_PREVIEW_EXTS
+                and candidate.stem == safe
+            ):
+                return (
+                    f"/static/cache/character_previews/{safe}{candidate.suffix.lower()}"
+                )
     except Exception:  # pragma: no cover — defensive
         return None
     return None

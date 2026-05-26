@@ -21,7 +21,9 @@ from torch import nn
 import math
 
 
-def normalize(x: torch.Tensor, dim: Optional[List[int]] = None, eps: float = 0) -> torch.Tensor:
+def normalize(
+    x: torch.Tensor, dim: Optional[List[int]] = None, eps: float = 0
+) -> torch.Tensor:
     """
     Normalizes the input tensor along specified dimensions such that the average square norm of elements is adjusted.
 
@@ -41,16 +43,26 @@ def normalize(x: torch.Tensor, dim: Optional[List[int]] = None, eps: float = 0) 
 
 
 class VideoPositionEmb(nn.Module):
-    def forward(self, x_B_T_H_W_C: torch.Tensor, fps=Optional[torch.Tensor], device=None, dtype=None) -> torch.Tensor:
+    def forward(
+        self,
+        x_B_T_H_W_C: torch.Tensor,
+        fps=Optional[torch.Tensor],
+        device=None,
+        dtype=None,
+    ) -> torch.Tensor:
         """
         It delegates the embedding generation to generate_embeddings function.
         """
         B_T_H_W_C = x_B_T_H_W_C.shape
-        embeddings = self.generate_embeddings(B_T_H_W_C, fps=fps, device=device, dtype=dtype)
+        embeddings = self.generate_embeddings(
+            B_T_H_W_C, fps=fps, device=device, dtype=dtype
+        )
 
         return embeddings
 
-    def generate_embeddings(self, B_T_H_W_C: torch.Size, fps=Optional[torch.Tensor], device=None):
+    def generate_embeddings(
+        self, B_T_H_W_C: torch.Size, fps=Optional[torch.Tensor], device=None
+    ):
         raise NotImplementedError
 
 
@@ -81,7 +93,9 @@ class VideoRopePosition3DEmb(VideoPositionEmb):
         dim_h = dim // 6 * 2
         dim_w = dim_h
         dim_t = dim - 2 * dim_h
-        assert dim == dim_h + dim_w + dim_t, f"bad dim: {dim} != {dim_h} + {dim_w} + {dim_t}"
+        assert dim == dim_h + dim_w + dim_t, (
+            f"bad dim: {dim} != {dim_h} + {dim_w} + {dim_t}"
+        )
         self.register_buffer(
             "dim_spatial_range",
             torch.arange(0, dim_h, 2, device=device)[: (dim_h // 2)].float() / dim_h,
@@ -128,16 +142,18 @@ class VideoRopePosition3DEmb(VideoPositionEmb):
         w_theta = 10000.0 * w_ntk_factor
         t_theta = 10000.0 * t_ntk_factor
 
-        h_spatial_freqs = 1.0 / (h_theta**self.dim_spatial_range.to(device=device))
-        w_spatial_freqs = 1.0 / (w_theta**self.dim_spatial_range.to(device=device))
-        temporal_freqs = 1.0 / (t_theta**self.dim_temporal_range.to(device=device))
+        h_spatial_freqs = 1.0 / (h_theta ** self.dim_spatial_range.to(device=device))
+        w_spatial_freqs = 1.0 / (w_theta ** self.dim_spatial_range.to(device=device))
+        temporal_freqs = 1.0 / (t_theta ** self.dim_temporal_range.to(device=device))
 
         B, T, H, W, _ = B_T_H_W_C
         seq = torch.arange(max(H, W, T), dtype=torch.float, device=device)
-        uniform_fps = (fps is None) or isinstance(fps, (int, float)) or (fps.min() == fps.max())
-        assert (
-            uniform_fps or B == 1 or T == 1
-        ), "For video batch, batch size should be 1 for non-uniform fps. For image batch, T should be 1"
+        uniform_fps = (
+            (fps is None) or isinstance(fps, (int, float)) or (fps.min() == fps.max())
+        )
+        assert uniform_fps or B == 1 or T == 1, (
+            "For video batch, batch size should be 1 for non-uniform fps. For image batch, T should be 1"
+        )
         half_emb_h = torch.outer(seq[:H].to(device=device), h_spatial_freqs)
         half_emb_w = torch.outer(seq[:W].to(device=device), w_spatial_freqs)
 
@@ -145,19 +161,45 @@ class VideoRopePosition3DEmb(VideoPositionEmb):
         if fps is None or self.enable_fps_modulation is False:  # image case
             half_emb_t = torch.outer(seq[:T].to(device=device), temporal_freqs)
         else:
-            half_emb_t = torch.outer(seq[:T].to(device=device) / fps * self.base_fps, temporal_freqs)
+            half_emb_t = torch.outer(
+                seq[:T].to(device=device) / fps * self.base_fps, temporal_freqs
+            )
 
-        half_emb_h = torch.stack([torch.cos(half_emb_h), -torch.sin(half_emb_h), torch.sin(half_emb_h), torch.cos(half_emb_h)], dim=-1)
-        half_emb_w = torch.stack([torch.cos(half_emb_w), -torch.sin(half_emb_w), torch.sin(half_emb_w), torch.cos(half_emb_w)], dim=-1)
-        half_emb_t = torch.stack([torch.cos(half_emb_t), -torch.sin(half_emb_t), torch.sin(half_emb_t), torch.cos(half_emb_t)], dim=-1)
+        half_emb_h = torch.stack(
+            [
+                torch.cos(half_emb_h),
+                -torch.sin(half_emb_h),
+                torch.sin(half_emb_h),
+                torch.cos(half_emb_h),
+            ],
+            dim=-1,
+        )
+        half_emb_w = torch.stack(
+            [
+                torch.cos(half_emb_w),
+                -torch.sin(half_emb_w),
+                torch.sin(half_emb_w),
+                torch.cos(half_emb_w),
+            ],
+            dim=-1,
+        )
+        half_emb_t = torch.stack(
+            [
+                torch.cos(half_emb_t),
+                -torch.sin(half_emb_t),
+                torch.sin(half_emb_t),
+                torch.cos(half_emb_t),
+            ],
+            dim=-1,
+        )
 
         em_T_H_W_D = torch.cat(
             [
                 repeat(half_emb_t, "t d x -> t h w d x", h=H, w=W),
                 repeat(half_emb_h, "h d x -> t h w d x", t=T, w=W),
                 repeat(half_emb_w, "w d x -> t h w d x", t=T, h=H),
-            ]
-            , dim=-2,
+            ],
+            dim=-2,
         )
 
         return rearrange(em_T_H_W_D, "t h w d (i j) -> (t h w) d i j", i=2, j=2).float()
@@ -183,13 +225,23 @@ class LearnablePosEmbAxis(VideoPositionEmb):
         del kwargs  # unused
         super().__init__()
         self.interpolation = interpolation
-        assert self.interpolation in ["crop"], f"Unknown interpolation method {self.interpolation}"
+        assert self.interpolation in ["crop"], (
+            f"Unknown interpolation method {self.interpolation}"
+        )
 
-        self.pos_emb_h = nn.Parameter(torch.empty(len_h, model_channels, device=device, dtype=dtype))
-        self.pos_emb_w = nn.Parameter(torch.empty(len_w, model_channels, device=device, dtype=dtype))
-        self.pos_emb_t = nn.Parameter(torch.empty(len_t, model_channels, device=device, dtype=dtype))
+        self.pos_emb_h = nn.Parameter(
+            torch.empty(len_h, model_channels, device=device, dtype=dtype)
+        )
+        self.pos_emb_w = nn.Parameter(
+            torch.empty(len_w, model_channels, device=device, dtype=dtype)
+        )
+        self.pos_emb_t = nn.Parameter(
+            torch.empty(len_t, model_channels, device=device, dtype=dtype)
+        )
 
-    def generate_embeddings(self, B_T_H_W_C: torch.Size, fps=Optional[torch.Tensor], device=None, dtype=None) -> torch.Tensor:
+    def generate_embeddings(
+        self, B_T_H_W_C: torch.Size, fps=Optional[torch.Tensor], device=None, dtype=None
+    ) -> torch.Tensor:
         B, T, H, W, _ = B_T_H_W_C
         if self.interpolation == "crop":
             emb_h_H = self.pos_emb_h[:H].to(device=device, dtype=dtype)
@@ -200,7 +252,9 @@ class LearnablePosEmbAxis(VideoPositionEmb):
                 + repeat(emb_h_H, "h d-> b t h w d", b=B, t=T, w=W)
                 + repeat(emb_w_W, "w d-> b t h w d", b=B, t=T, h=H)
             )
-            assert list(emb.shape)[:4] == [B, T, H, W], f"bad shape: {list(emb.shape)[:4]} != {B, T, H, W}"
+            assert list(emb.shape)[:4] == [B, T, H, W], (
+                f"bad shape: {list(emb.shape)[:4]} != {B, T, H, W}"
+            )
         else:
             raise ValueError(f"Unknown interpolation method {self.interpolation}")
 

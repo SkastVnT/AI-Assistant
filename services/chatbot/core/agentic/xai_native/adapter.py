@@ -18,17 +18,18 @@ Security notes
 * Hidden chain-of-thought / encrypted sub-agent state is never exposed.
 * Only the leader agent's final text and annotations are surfaced.
 """
+
 from __future__ import annotations
 
 import json
 import logging
 import time
-from typing import Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 
 import httpx
 
 from core.agentic.xai_native.contracts import (
-    ReasoningEffort,
     XaiAnnotation,
     XaiNativeConfig,
     XaiNativeResult,
@@ -97,7 +98,9 @@ class XaiResponsesAdapter:
     ) -> XaiNativeResult:
         """Call xAI Responses API (non-streaming) and return normalized result."""
         payload = self._build_payload(
-            message=message, config=config, system_prompt=system_prompt,
+            message=message,
+            config=config,
+            system_prompt=system_prompt,
         )
         start = time.monotonic()
         try:
@@ -113,7 +116,9 @@ class XaiResponsesAdapter:
 
             if resp.status_code != 200:
                 logger.error(
-                    "[XaiAdapter] HTTP %d: %s", resp.status_code, resp.text[:500],
+                    "[XaiAdapter] HTTP %d: %s",
+                    resp.status_code,
+                    resp.text[:500],
                 )
                 return XaiNativeResult(
                     status=XaiNativeStatus.failed,
@@ -160,7 +165,10 @@ class XaiResponsesAdapter:
           - ``error``: str (for error)
         """
         payload = self._build_payload(
-            message=message, config=config, system_prompt=system_prompt, stream=True,
+            message=message,
+            config=config,
+            system_prompt=system_prompt,
+            stream=True,
         )
         start = time.monotonic()
         accumulated_text = ""
@@ -170,70 +178,72 @@ class XaiResponsesAdapter:
         model_used = config.model
 
         try:
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(config.timeout_seconds, connect=15.0),
-            ) as client:
-                async with client.stream(
+            async with (
+                httpx.AsyncClient(
+                    timeout=httpx.Timeout(config.timeout_seconds, connect=15.0),
+                ) as client,
+                client.stream(
                     "POST",
                     f"{_BASE_URL}/responses",
                     headers=self._headers,
                     json=payload,
-                ) as resp:
-                    if resp.status_code != 200:
-                        body = await resp.aread()
-                        yield {
-                            "type": "error",
-                            "error": f"HTTP {resp.status_code}: {body.decode()[:200]}",
-                        }
-                        return
+                ) as resp,
+            ):
+                if resp.status_code != 200:
+                    body = await resp.aread()
+                    yield {
+                        "type": "error",
+                        "error": f"HTTP {resp.status_code}: {body.decode()[:200]}",
+                    }
+                    return
 
-                    async for line in resp.aiter_lines():
-                        if not line.startswith("data: "):
-                            continue
-                        raw = line[6:]
-                        if raw.strip() == "[DONE]":
-                            break
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    raw = line[6:]
+                    if raw.strip() == "[DONE]":
+                        break
 
-                        try:
-                            chunk = json.loads(raw)
-                        except json.JSONDecodeError:
-                            continue
+                    try:
+                        chunk = json.loads(raw)
+                    except json.JSONDecodeError:
+                        continue
 
-                        # Extract response ID and model
-                        if chunk.get("id"):
-                            response_id = chunk["id"]
-                        if chunk.get("model"):
-                            model_used = chunk["model"]
+                    # Extract response ID and model
+                    if chunk.get("id"):
+                        response_id = chunk["id"]
+                    if chunk.get("model"):
+                        model_used = chunk["model"]
 
-                        # Usage updates (reasoning progress)
-                        if "usage" in chunk:
-                            last_usage = chunk["usage"]
-                            reasoning_tokens = (
-                                last_usage
-                                .get("completion_tokens_details", {})
-                                .get("reasoning_tokens", 0)
-                            ) or last_usage.get("output_tokens_details", {}).get(
+                    # Usage updates (reasoning progress)
+                    if "usage" in chunk:
+                        last_usage = chunk["usage"]
+                        reasoning_tokens = (
+                            last_usage.get("completion_tokens_details", {}).get(
                                 "reasoning_tokens", 0
                             )
-                            if reasoning_tokens:
-                                yield {
-                                    "type": "thinking",
-                                    "reasoning_tokens": reasoning_tokens,
-                                }
-
-                        # Content deltas — Responses API format
-                        content_delta = self._extract_content_delta(chunk)
-                        if content_delta:
-                            accumulated_text += content_delta
+                        ) or last_usage.get("output_tokens_details", {}).get(
+                            "reasoning_tokens", 0
+                        )
+                        if reasoning_tokens:
                             yield {
-                                "type": "content",
-                                "text": content_delta,
+                                "type": "thinking",
+                                "reasoning_tokens": reasoning_tokens,
                             }
 
-                        # Collect annotations from this chunk
-                        chunk_annotations = self._extract_annotations_from_chunk(chunk)
-                        if chunk_annotations:
-                            accumulated_annotations.extend(chunk_annotations)
+                    # Content deltas — Responses API format
+                    content_delta = self._extract_content_delta(chunk)
+                    if content_delta:
+                        accumulated_text += content_delta
+                        yield {
+                            "type": "content",
+                            "text": content_delta,
+                        }
+
+                    # Collect annotations from this chunk
+                    chunk_annotations = self._extract_annotations_from_chunk(chunk)
+                    if chunk_annotations:
+                        accumulated_annotations.extend(chunk_annotations)
 
         except httpx.TimeoutException:
             elapsed = time.monotonic() - start
@@ -265,7 +275,11 @@ class XaiResponsesAdapter:
         response_id = data.get("id", "")
         model_used = data.get("model", "")
         status_str = data.get("status", "completed")
-        status = XaiNativeStatus.completed if status_str == "completed" else XaiNativeStatus.failed
+        status = (
+            XaiNativeStatus.completed
+            if status_str == "completed"
+            else XaiNativeStatus.failed
+        )
 
         # Extract text from output items
         content = ""
@@ -276,13 +290,15 @@ class XaiResponsesAdapter:
                     if c.get("type") == "output_text":
                         content += c.get("text", "")
                         for ann in c.get("annotations", []):
-                            annotations.append(XaiAnnotation(
-                                type=ann.get("type", ""),
-                                url=ann.get("url"),
-                                title=ann.get("title"),
-                                start_index=ann.get("start_index"),
-                                end_index=ann.get("end_index"),
-                            ))
+                            annotations.append(
+                                XaiAnnotation(
+                                    type=ann.get("type", ""),
+                                    url=ann.get("url"),
+                                    title=ann.get("title"),
+                                    start_index=ann.get("start_index"),
+                                    end_index=ann.get("end_index"),
+                                )
+                            )
             # Skip "reasoning" items — do not expose hidden chain-of-thought
 
         # Error from API
@@ -308,19 +324,26 @@ class XaiResponsesAdapter:
     def _parse_usage(self, raw: dict[str, Any]) -> XaiUsage:
         """Normalize usage from either Chat Completions or Responses format."""
         reasoning_tokens = 0
-        details = raw.get("completion_tokens_details") or raw.get("output_tokens_details") or {}
+        details = (
+            raw.get("completion_tokens_details")
+            or raw.get("output_tokens_details")
+            or {}
+        )
         reasoning_tokens = details.get("reasoning_tokens", 0)
 
         return XaiUsage(
             input_tokens=raw.get("input_tokens", 0) or raw.get("prompt_tokens", 0),
-            output_tokens=raw.get("output_tokens", 0) or raw.get("completion_tokens", 0),
+            output_tokens=raw.get("output_tokens", 0)
+            or raw.get("completion_tokens", 0),
             total_tokens=raw.get("total_tokens", 0),
             reasoning_tokens=reasoning_tokens,
             num_sources_used=raw.get("num_sources_used", 0),
             num_server_side_tools_used=raw.get("num_server_side_tools_used", 0),
         )
 
-    def _extract_annotations_from_chunk(self, chunk: dict[str, Any]) -> list[XaiAnnotation]:
+    def _extract_annotations_from_chunk(
+        self, chunk: dict[str, Any]
+    ) -> list[XaiAnnotation]:
         """Extract annotations from a streaming SSE chunk.
 
         Annotations appear in ``output`` items (output_text.annotations) and
@@ -334,24 +357,28 @@ class XaiResponsesAdapter:
                 for c in item.get("content", []):
                     if c.get("type") == "output_text":
                         for ann in c.get("annotations", []):
-                            annotations.append(XaiAnnotation(
-                                type=ann.get("type", ""),
-                                url=ann.get("url"),
-                                title=ann.get("title"),
-                                start_index=ann.get("start_index"),
-                                end_index=ann.get("end_index"),
-                            ))
+                            annotations.append(
+                                XaiAnnotation(
+                                    type=ann.get("type", ""),
+                                    url=ann.get("url"),
+                                    title=ann.get("title"),
+                                    start_index=ann.get("start_index"),
+                                    end_index=ann.get("end_index"),
+                                )
+                            )
 
         # Responses API: annotations in delta (streaming annotation deltas)
         if "delta" in chunk and isinstance(chunk["delta"], dict):
             for ann in chunk["delta"].get("annotations", []):
-                annotations.append(XaiAnnotation(
-                    type=ann.get("type", ""),
-                    url=ann.get("url"),
-                    title=ann.get("title"),
-                    start_index=ann.get("start_index"),
-                    end_index=ann.get("end_index"),
-                ))
+                annotations.append(
+                    XaiAnnotation(
+                        type=ann.get("type", ""),
+                        url=ann.get("url"),
+                        title=ann.get("title"),
+                        start_index=ann.get("start_index"),
+                        end_index=ann.get("end_index"),
+                    )
+                )
 
         return annotations
 

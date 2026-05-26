@@ -22,16 +22,16 @@ Reference image input is passed through ``ImageRequest.extra``:
 
 from __future__ import annotations
 
-import base64
 import json
 import logging
 import time
-from typing import Optional
 
 import httpx
 
 from .base import (
-    BaseImageProvider, ImageRequest, ImageResult,
+    BaseImageProvider,
+    ImageRequest,
+    ImageResult,
     ProviderTier,
 )
 
@@ -44,7 +44,18 @@ NANO_BANANA_COST_PER_IMAGE = 0.039
 # Max reference images Google currently accepts in a single multimodal call.
 MAX_REFERENCE_IMAGES = 6
 
-VALID_ASPECT_RATIOS = {"1:1", "9:16", "16:9", "3:4", "4:3", "2:3", "3:2", "4:5", "5:4", "21:9"}
+VALID_ASPECT_RATIOS = {
+    "1:1",
+    "9:16",
+    "16:9",
+    "3:4",
+    "4:3",
+    "2:3",
+    "3:2",
+    "4:5",
+    "5:4",
+    "21:9",
+}
 VALID_IMAGE_SIZES = {"1K", "2K", "4K"}
 
 # Maximum retries when Gemini returns a safety-filter rejection (IMAGE_SAFETY / PROHIBITED_CONTENT).
@@ -63,8 +74,13 @@ class NanoBananaProvider(BaseImageProvider):
     DEFAULT_MODEL = "gemini-2.5-flash-image"
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 
-    def __init__(self, api_key: str = "", api_keys: Optional[list[str]] = None,
-                 default_model: str = "", **kwargs):
+    def __init__(
+        self,
+        api_key: str = "",
+        api_keys: list[str] | None = None,
+        default_model: str = "",
+        **kwargs,
+    ):
         super().__init__(api_key=api_key, **kwargs)
         # Support a rotation pool of keys to spread per-key quota.
         self._api_keys: list[str] = [k for k in (api_keys or [api_key]) if k]
@@ -88,7 +104,9 @@ class NanoBananaProvider(BaseImageProvider):
         """Generate ONE image. The route layer loops for num_images > 1."""
         t0 = time.time()
         if not self._api_keys:
-            return ImageResult(success=False, error="GEMINI_API_KEY not configured", provider=self.name)
+            return ImageResult(
+                success=False, error="GEMINI_API_KEY not configured", provider=self.name
+            )
 
         extra = req.extra or {}
         model = extra.get("model") or self.default_model
@@ -107,7 +125,8 @@ class NanoBananaProvider(BaseImageProvider):
 
         logger.info(
             "[NanoBanana] generate model=%s refs=%d ar=%s size=%s prompt_len=%d",
-            model, len(ref_b64s[:MAX_REFERENCE_IMAGES]),
+            model,
+            len(ref_b64s[:MAX_REFERENCE_IMAGES]),
             extra.get("aspect_ratio") or "auto",
             extra.get("image_size") or "default",
             len(req.prompt or ""),
@@ -156,7 +175,10 @@ class NanoBananaProvider(BaseImageProvider):
                     logger.warning("[NanoBanana] network error: %s", e)
                     continue
 
-                if resp.status_code in (429, 500, 502, 503, 504) and len(self._api_keys) > 1:
+                if (
+                    resp.status_code in (429, 500, 502, 503, 504)
+                    and len(self._api_keys) > 1
+                ):
                     last_err = f"HTTP {resp.status_code}"
                     logger.warning("[NanoBanana] %s, rotating key", last_err)
                     continue
@@ -166,7 +188,9 @@ class NanoBananaProvider(BaseImageProvider):
                     return ImageResult(
                         success=False,
                         error=f"Gemini API HTTP {resp.status_code}: {snippet}",
-                        provider=self.name, model=model, prompt_used=req.prompt,
+                        provider=self.name,
+                        model=model,
+                        prompt_used=req.prompt,
                         metadata={"attempt": safety_attempt},
                     )
 
@@ -192,31 +216,46 @@ class NanoBananaProvider(BaseImageProvider):
                         c.get("safetyRatings") or c.get("safety_ratings") or []
                         for c in data.get("candidates", [])
                     ]
-                    is_safety = any(fr in SAFETY_FINISH_REASONS for fr in finish_reasons)
+                    is_safety = any(
+                        fr in SAFETY_FINISH_REASONS for fr in finish_reasons
+                    )
                     logger.warning(
                         "[NanoBanana] no image | attempt=%d/%d | model=%s | finish=%s "
                         "| block=%s | safety=%s | text=%r | raw=%s",
-                        safety_attempt, MAX_SAFETY_RETRIES,
-                        model, finish_reasons, block_reason, safety_ratings,
+                        safety_attempt,
+                        MAX_SAFETY_RETRIES,
+                        model,
+                        finish_reasons,
+                        block_reason,
+                        safety_ratings,
                         "\n".join(text_chunks)[:300],
                         json.dumps(data)[:1500],
                     )
                     if is_safety and safety_attempt < MAX_SAFETY_RETRIES:
                         logger.info(
                             "[NanoBanana] safety filter — retrying %d/%d",
-                            safety_attempt + 1, MAX_SAFETY_RETRIES,
+                            safety_attempt + 1,
+                            MAX_SAFETY_RETRIES,
                         )
                         got_safety_block = True
                         break  # break key loop → next safety_attempt
 
-                    msg = "; ".join(t.strip() for t in text_chunks if t.strip()) \
-                          or block_reason \
-                          or (finish_reasons and f"finish={finish_reasons[0]}") \
-                          or "no image returned"
+                    msg = (
+                        "; ".join(t.strip() for t in text_chunks if t.strip())
+                        or block_reason
+                        or (finish_reasons and f"finish={finish_reasons[0]}")
+                        or "no image returned"
+                    )
                     return ImageResult(
-                        success=False, error=f"nano-banana: {msg[:300]}",
-                        provider=self.name, model=model, prompt_used=req.prompt,
-                        metadata={"attempt": safety_attempt, "finish_reasons": finish_reasons},
+                        success=False,
+                        error=f"nano-banana: {msg[:300]}",
+                        provider=self.name,
+                        model=model,
+                        prompt_used=req.prompt,
+                        metadata={
+                            "attempt": safety_attempt,
+                            "finish_reasons": finish_reasons,
+                        },
                     )
 
                 latency = (time.time() - t0) * 1000.0
@@ -245,7 +284,9 @@ class NanoBananaProvider(BaseImageProvider):
         return ImageResult(
             success=False,
             error=f"nano-banana exhausted {MAX_SAFETY_RETRIES} safety retries: {last_err or 'unknown'}",
-            provider=self.name, model=model, prompt_used=req.prompt,
+            provider=self.name,
+            model=model,
+            prompt_used=req.prompt,
             metadata={"attempt": MAX_SAFETY_RETRIES},
         )
 
@@ -256,11 +297,16 @@ class NanoBananaProvider(BaseImageProvider):
             return "1:1"
         ratio = w / float(h)
         candidates = {
-            "1:1":  1.0, "16:9": 16/9, "9:16": 9/16,
-            "4:3":  4/3, "3:4":  3/4,
-            "3:2":  3/2, "2:3":  2/3,
-            "4:5":  4/5, "5:4":  5/4,
-            "21:9": 21/9,
+            "1:1": 1.0,
+            "16:9": 16 / 9,
+            "9:16": 9 / 16,
+            "4:3": 4 / 3,
+            "3:4": 3 / 4,
+            "3:2": 3 / 2,
+            "2:3": 2 / 3,
+            "4:5": 4 / 5,
+            "5:4": 5 / 4,
+            "21:9": 21 / 9,
         }
         return min(candidates.items(), key=lambda kv: abs(kv[1] - ratio))[0]
 

@@ -8,6 +8,7 @@ Scope:
   * _latest_intermediate_b64 honours the detail_* prefix fallback for
     the detection_inpaint stage.
 """
+
 from __future__ import annotations
 
 import base64
@@ -36,9 +37,12 @@ def _b64_png() -> str:
 
 def test_layer_stages_cover_expected_four_passes():
     from core.anime_pipeline_service import _LAYER_STAGES
+
     assert set(_LAYER_STAGES.keys()) == {
-        "composition_pass", "structure_lock",
-        "beauty_pass", "detection_inpaint",
+        "composition_pass",
+        "structure_lock",
+        "beauty_pass",
+        "detection_inpaint",
     }
     # Layer numbers must be 1..4 in pipeline order.
     nums = sorted(meta[0] for meta in _LAYER_STAGES.values())
@@ -47,6 +51,7 @@ def test_layer_stages_cover_expected_four_passes():
 
 def test_persist_intermediate_preview_writes_stable_filename(tmp_path, monkeypatch):
     import core.anime_pipeline_service as svc
+
     monkeypatch.setattr(svc, "_IMAGE_STORAGE_DIR", tmp_path)
     url = svc._persist_intermediate_preview("job_abc123", "beauty_pass", _b64_png())
     assert url is not None
@@ -62,10 +67,13 @@ def test_persist_intermediate_preview_writes_stable_filename(tmp_path, monkeypat
 
 def test_persist_intermediate_preview_strips_unsafe_chars(tmp_path, monkeypatch):
     import core.anime_pipeline_service as svc
+
     monkeypatch.setattr(svc, "_IMAGE_STORAGE_DIR", tmp_path)
     # Path-traversal style payloads must be reduced to safe characters.
     url = svc._persist_intermediate_preview(
-        "../../etc/passwd", "beauty_pass; rm -rf /", _b64_png(),
+        "../../etc/passwd",
+        "beauty_pass; rm -rf /",
+        _b64_png(),
     )
     assert url is not None
     # No '..' should leak into the filename.
@@ -77,8 +85,11 @@ def test_persist_intermediate_preview_strips_unsafe_chars(tmp_path, monkeypatch)
     assert saved[0].name.startswith("preview_")
 
 
-def test_persist_intermediate_preview_returns_none_on_empty_input(tmp_path, monkeypatch):
+def test_persist_intermediate_preview_returns_none_on_empty_input(
+    tmp_path, monkeypatch
+):
     import core.anime_pipeline_service as svc
+
     monkeypatch.setattr(svc, "_IMAGE_STORAGE_DIR", tmp_path)
     assert svc._persist_intermediate_preview("", "beauty_pass", _b64_png()) is None
     assert svc._persist_intermediate_preview("jx", "", _b64_png()) is None
@@ -90,11 +101,13 @@ def test_latest_intermediate_b64_matches_detail_prefix_for_detection_inpaint():
     detail_eye etc. _latest_intermediate_b64 must accept that prefix."""
     from core.anime_pipeline_service import _latest_intermediate_b64
 
-    fake_job = SimpleNamespace(intermediates=[
-        SimpleNamespace(stage="beauty_pass",  image_b64="beauty_b64"),
-        SimpleNamespace(stage="detail_face",  image_b64="face_b64"),
-        SimpleNamespace(stage="detail_eye",   image_b64="eye_b64"),
-    ])
+    fake_job = SimpleNamespace(
+        intermediates=[
+            SimpleNamespace(stage="beauty_pass", image_b64="beauty_b64"),
+            SimpleNamespace(stage="detail_face", image_b64="face_b64"),
+            SimpleNamespace(stage="detail_eye", image_b64="eye_b64"),
+        ]
+    )
     # Exact match for beauty_pass
     assert _latest_intermediate_b64(fake_job, "beauty_pass") == "beauty_b64"
     # Prefix match for detection_inpaint -> picks the most recent detail_*
@@ -105,11 +118,14 @@ def test_latest_intermediate_b64_matches_detail_prefix_for_detection_inpaint():
 
 def test_latest_intermediate_b64_skips_empty_b64():
     from core.anime_pipeline_service import _latest_intermediate_b64
-    fake_job = SimpleNamespace(intermediates=[
-        SimpleNamespace(stage="beauty_pass", image_b64=""),
-        SimpleNamespace(stage="beauty_pass", image_b64=None),
-        SimpleNamespace(stage="beauty_pass", image_b64="real_b64"),
-    ])
+
+    fake_job = SimpleNamespace(
+        intermediates=[
+            SimpleNamespace(stage="beauty_pass", image_b64=""),
+            SimpleNamespace(stage="beauty_pass", image_b64=None),
+            SimpleNamespace(stage="beauty_pass", image_b64="real_b64"),
+        ]
+    )
     assert _latest_intermediate_b64(fake_job, "beauty_pass") == "real_b64"
 
 
@@ -122,20 +138,24 @@ def test_latest_any_intermediate_b64_returns_most_recent_nonempty():
     assert _latest_any_intermediate_b64(SimpleNamespace(intermediates=[])) is None
 
     # Returns the most recent non-empty entry across any stage.
-    fake_job = SimpleNamespace(intermediates=[
-        SimpleNamespace(stage="composition_pass", image_b64="comp"),
-        SimpleNamespace(stage="structure_lock",   image_b64=""),
-        SimpleNamespace(stage="beauty_pass",      image_b64="beauty"),
-        SimpleNamespace(stage="critique",         image_b64=None),
-    ])
+    fake_job = SimpleNamespace(
+        intermediates=[
+            SimpleNamespace(stage="composition_pass", image_b64="comp"),
+            SimpleNamespace(stage="structure_lock", image_b64=""),
+            SimpleNamespace(stage="beauty_pass", image_b64="beauty"),
+            SimpleNamespace(stage="critique", image_b64=None),
+        ]
+    )
     assert _latest_any_intermediate_b64(fake_job) == "beauty"
 
     # Skips empty/None entries from the tail.
-    only_empties = SimpleNamespace(intermediates=[
-        SimpleNamespace(stage="composition_pass", image_b64="real"),
-        SimpleNamespace(stage="structure_lock",   image_b64=None),
-        SimpleNamespace(stage="beauty_pass",      image_b64=""),
-    ])
+    only_empties = SimpleNamespace(
+        intermediates=[
+            SimpleNamespace(stage="composition_pass", image_b64="real"),
+            SimpleNamespace(stage="structure_lock", image_b64=None),
+            SimpleNamespace(stage="beauty_pass", image_b64=""),
+        ]
+    )
     assert _latest_any_intermediate_b64(only_empties) == "real"
 
 
@@ -144,7 +164,9 @@ def test_make_thumb_b64_returns_smaller_jpeg():
     frame stays small even when the source PNG is multi-MB."""
     import base64 as _b64
     from io import BytesIO
+
     from PIL import Image
+
     from core.anime_pipeline_service import _make_thumb_b64
 
     # Build a real-ish 1024x1024 PNG so thumbnail() actually downscales.
@@ -165,5 +187,6 @@ def test_make_thumb_b64_returns_smaller_jpeg():
 
 def test_make_thumb_b64_handles_garbage_input():
     from core.anime_pipeline_service import _make_thumb_b64
+
     assert _make_thumb_b64("") is None
     assert _make_thumb_b64("not-base64-at-all!!") is None

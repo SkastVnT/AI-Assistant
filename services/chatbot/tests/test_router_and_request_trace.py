@@ -14,7 +14,13 @@ def test_router_pipeline_selection():
 
 
 def test_request_trace_lifecycle():
-    tr = RequestTrace(request_id="r1", conversation_id="c1", message_id="m1", selected_pipeline="hermes", selected_model="hermes3")
+    tr = RequestTrace(
+        request_id="r1",
+        conversation_id="c1",
+        message_id="m1",
+        selected_pipeline="hermes",
+        selected_model="hermes3",
+    )
     tr.mark_tool("web_search", status="completed")
     tr.mark_step("planner", status="done")
     tr.finish()

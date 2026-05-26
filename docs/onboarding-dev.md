@@ -179,7 +179,7 @@ Example: `feat(stream): add conversation_id to SSE complete payload`
 - MongoDB setup: `services/chatbot/config/mongodb_config.py` (separate from `core/config.py`)
 - Env loader: `services/shared_env.py` → call `load_shared_env(__file__)` once per service
 
-Full architecture: [AGENTS.md](../AGENTS.md)
+Full architecture: [AGENTS.md](../.claude/skills/repo-guidelines/AGENTS.md)
 
 ---
 

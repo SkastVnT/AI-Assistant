@@ -54,7 +54,7 @@ class BenchmarkRunner:
         self,
         benchmark_path: str | Path | None = None,
         scorer: Scorer | None = None,
-        pipeline_fn: Any = None,   # async (ImageJob) -> (output_path, RunMetadata)
+        pipeline_fn: Any = None,  # async (ImageJob) -> (output_path, RunMetadata)
     ):
         self._benchmark_path = Path(benchmark_path or _BENCHMARK_YAML)
         self._test_cases = self._load_test_cases()
@@ -95,13 +95,20 @@ class BenchmarkRunner:
         cases = self._filter_cases(case_ids, categories)
         logger.info(
             "Running %d/%d test cases (run_id=%s, dry_run=%s)",
-            len(cases), len(self._test_cases),
-            experiment.run_id, dry_run,
+            len(cases),
+            len(self._test_cases),
+            experiment.run_id,
+            dry_run,
         )
 
         for case in cases:
             case_id = case["id"]
-            logger.info("── Case %s (%s, %s) ──", case_id, case.get("category"), case.get("difficulty"))
+            logger.info(
+                "── Case %s (%s, %s) ──",
+                case_id,
+                case.get("category"),
+                case.get("difficulty"),
+            )
 
             try:
                 job = self._case_to_job(case)
@@ -210,7 +217,11 @@ class BenchmarkRunner:
         if source:
             job.source_image_url = source
             # Set intent to semantic_edit if not already an edit-like mode
-            if job.intent and "edit" not in job.intent and "correction" not in job.intent:
+            if (
+                job.intent
+                and "edit" not in job.intent
+                and "correction" not in job.intent
+            ):
                 pass  # Keep the setup-provided mode
 
         # Reference images
@@ -220,11 +231,13 @@ class BenchmarkRunner:
                 role = ReferenceRole(role_str)
             except ValueError:
                 role = ReferenceRole.FULL
-            job.reference_images.append(ReferenceImage(
-                role=role,
-                image_url=ref_cfg.get("image", ""),
-                label=ref_cfg.get("note", ""),
-            ))
+            job.reference_images.append(
+                ReferenceImage(
+                    role=role,
+                    image_url=ref_cfg.get("image", ""),
+                    label=ref_cfg.get("note", ""),
+                )
+            )
 
         # Expected constraints
         expected = case.get("expected", {})
@@ -256,7 +269,10 @@ class BenchmarkRunner:
             scores={dim: base for dim in dims},
             evaluated=dims,
             judge_model="dry-run-stub",
-            judge_reasoning={dim: f"Stub score for {case.get('difficulty', 'medium')} difficulty" for dim in dims},
+            judge_reasoning={
+                dim: f"Stub score for {case.get('difficulty', 'medium')} difficulty"
+                for dim in dims
+            },
         )
         result.evaluate()
         return result
@@ -299,25 +315,33 @@ class BenchmarkRunner:
 
 # ── CLI entry point ───────────────────────────────────────────────
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="Run image pipeline benchmark suite",
     )
     parser.add_argument("--run-id", default=None, help="Run identifier")
     parser.add_argument(
-        "--cases", nargs="*", default=None,
+        "--cases",
+        nargs="*",
+        default=None,
         help="Specific case IDs to run (e.g. IA-001 SE-002)",
     )
     parser.add_argument(
-        "--categories", nargs="*", default=None,
+        "--categories",
+        nargs="*",
+        default=None,
         help="Filter by category",
     )
     parser.add_argument(
-        "--dry-run", action="store_true",
+        "--dry-run",
+        action="store_true",
         help="Generate stub scores without calling models",
     )
     parser.add_argument(
-        "--verbose", "-v", action="store_true",
+        "--verbose",
+        "-v",
+        action="store_true",
         help="Enable debug logging",
     )
 
@@ -330,12 +354,14 @@ def main():
 
     runner = BenchmarkRunner()
 
-    summary = asyncio.run(runner.run_suite(
-        run_id=args.run_id,
-        case_ids=args.cases,
-        categories=args.categories,
-        dry_run=args.dry_run,
-    ))
+    summary = asyncio.run(
+        runner.run_suite(
+            run_id=args.run_id,
+            case_ids=args.cases,
+            categories=args.categories,
+            dry_run=args.dry_run,
+        )
+    )
 
     sys.exit(0 if summary.nano_banana_qualified else 1)
 

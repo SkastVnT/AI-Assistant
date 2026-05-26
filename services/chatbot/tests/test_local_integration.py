@@ -19,42 +19,40 @@ Run:
 
 from __future__ import annotations
 
-import sys
 import base64
+import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 # ── Make imports work ────────────────────────────────────────────────
 _root = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(_root))
 sys.path.insert(0, str(_root / "services" / "chatbot"))
 
-from image_pipeline.anime_pipeline import lora_manager  # noqa: E402
-from image_pipeline.anime_pipeline.lora_manager import (  # noqa: E402
-    LoRAVerificationResult,
-    lora_file_exists,
-)
-from image_pipeline.anime_pipeline import character_references  # noqa: E402
-from image_pipeline.anime_pipeline.character_references import (  # noqa: E402
-    CharacterRefSet,
-    get_character_ref_set,
+from image_pipeline.anime_pipeline import (
+    character_references,  # noqa: E402
+    lora_manager,  # noqa: E402
 )
 from image_pipeline.anime_pipeline.agents.detection_inpaint import (  # noqa: E402
     DetectionInpaintAgent,
 )
+from image_pipeline.anime_pipeline.character_references import (  # noqa: E402
+    get_character_ref_set,
+)
+from image_pipeline.anime_pipeline.lora_manager import (  # noqa: E402
+    LoRAVerificationResult,
+    lora_file_exists,
+)
 from image_pipeline.anime_pipeline.schemas import (  # noqa: E402
     AnimePipelineJob,
-    AnimePipelineStatus,
     LayerPlan,
     PassConfig,
 )
 
-
 # ════════════════════════════════════════════════════════════════════
 # lora_file_exists
 # ════════════════════════════════════════════════════════════════════
+
 
 def test_lora_file_exists_returns_false_for_empty():
     assert lora_file_exists("") is False
@@ -85,6 +83,7 @@ def test_lora_file_exists_detects_file(tmp_path, monkeypatch):
 # ════════════════════════════════════════════════════════════════════
 # Character references — local cache
 # ════════════════════════════════════════════════════════════════════
+
 
 def _make_png_bytes() -> bytes:
     # 1x1 transparent PNG
@@ -133,12 +132,15 @@ def test_get_character_ref_set_loads_cached_images(tmp_path, monkeypatch):
 # Orchestrator helpers — inject & augment
 # ════════════════════════════════════════════════════════════════════
 
+
 def _make_orchestrator_stub():
     """Import and instantiate the orchestrator with minimal mocking so we
     can exercise the helper methods without wiring the whole pipeline."""
     from image_pipeline.anime_pipeline import orchestrator as orch_mod
 
-    inst = orch_mod.AnimePipelineOrchestrator.__new__(orch_mod.AnimePipelineOrchestrator)
+    inst = orch_mod.AnimePipelineOrchestrator.__new__(
+        orch_mod.AnimePipelineOrchestrator
+    )
     inst._verified_lora = None
     inst._research = None
     inst._detected_character = None
@@ -146,26 +148,40 @@ def _make_orchestrator_stub():
 
 
 def _make_job_with_plan(user_loras=None):
-    plan = LayerPlan(passes=[
-        PassConfig(
-            pass_name="composition",
-            model_slot="composition",
-            checkpoint="x.safetensors",
-            width=832, height=1216,
-            sampler="euler", scheduler="normal",
-            steps=30, cfg=7.0, denoise=1.0, seed=42,
-            positive_prompt="p", negative_prompt="n",
-        ),
-        PassConfig(
-            pass_name="beauty",
-            model_slot="final",
-            checkpoint="x.safetensors",
-            width=832, height=1216,
-            sampler="euler", scheduler="normal",
-            steps=30, cfg=7.0, denoise=1.0, seed=43,
-            positive_prompt="p", negative_prompt="n",
-        ),
-    ])
+    plan = LayerPlan(
+        passes=[
+            PassConfig(
+                pass_name="composition",
+                model_slot="composition",
+                checkpoint="x.safetensors",
+                width=832,
+                height=1216,
+                sampler="euler",
+                scheduler="normal",
+                steps=30,
+                cfg=7.0,
+                denoise=1.0,
+                seed=42,
+                positive_prompt="p",
+                negative_prompt="n",
+            ),
+            PassConfig(
+                pass_name="beauty",
+                model_slot="final",
+                checkpoint="x.safetensors",
+                width=832,
+                height=1216,
+                sampler="euler",
+                scheduler="normal",
+                steps=30,
+                cfg=7.0,
+                denoise=1.0,
+                seed=43,
+                positive_prompt="p",
+                negative_prompt="n",
+            ),
+        ]
+    )
     job = AnimePipelineJob(
         user_prompt="Kurumi from Date A Live",
         user_loras=list(user_loras or []),
@@ -178,9 +194,12 @@ def test_inject_character_lora_skipped_when_file_missing(monkeypatch):
     inst, orch_mod = _make_orchestrator_stub()
     monkeypatch.setattr(orch_mod, "lora_file_exists", lambda name: False)
     inst._verified_lora = LoRAVerificationResult(
-        accepted=True, vision_score=8.0, test_image_b64=None,
+        accepted=True,
+        vision_score=8.0,
+        test_image_b64=None,
         lora_filename="characters/kurumi/kurumi.safetensors",
-        lora_path=None, trigger_words=["kurumi"],
+        lora_path=None,
+        trigger_words=["kurumi"],
     )
     job = _make_job_with_plan()
 
@@ -191,7 +210,10 @@ def test_inject_character_lora_skipped_when_file_missing(monkeypatch):
         names = [l.get("name") for l in (pc.lora_models or [])]
         assert "characters/kurumi/kurumi.safetensors" not in names
     # Metadata records the miss, verified slot cleared
-    assert job.metadata.get("character_lora_missing") == "characters/kurumi/kurumi.safetensors"
+    assert (
+        job.metadata.get("character_lora_missing")
+        == "characters/kurumi/kurumi.safetensors"
+    )
     assert inst._verified_lora is None
 
 
@@ -199,9 +221,12 @@ def test_inject_character_lora_injects_when_file_present(monkeypatch):
     inst, orch_mod = _make_orchestrator_stub()
     monkeypatch.setattr(orch_mod, "lora_file_exists", lambda name: True)
     inst._verified_lora = LoRAVerificationResult(
-        accepted=True, vision_score=8.0, test_image_b64=None,
+        accepted=True,
+        vision_score=8.0,
+        test_image_b64=None,
         lora_filename="characters/kurumi/kurumi.safetensors",
-        lora_path=None, trigger_words=["kurumi"],
+        lora_path=None,
+        trigger_words=["kurumi"],
     )
     job = _make_job_with_plan()
 
@@ -220,10 +245,12 @@ def test_inject_user_loras_filters_missing_files(monkeypatch):
         "lora_file_exists",
         lambda name: name == "real.safetensors",
     )
-    job = _make_job_with_plan(user_loras=[
-        {"name": "real.safetensors", "strength_model": 0.8, "strength_clip": 0.7},
-        {"name": "ghost.safetensors", "strength_model": 0.8, "strength_clip": 0.7},
-    ])
+    job = _make_job_with_plan(
+        user_loras=[
+            {"name": "real.safetensors", "strength_model": 0.8, "strength_clip": 0.7},
+            {"name": "ghost.safetensors", "strength_model": 0.8, "strength_clip": 0.7},
+        ]
+    )
 
     inst._inject_user_loras(job)
 
@@ -240,14 +267,19 @@ def test_inject_user_loras_filters_missing_files(monkeypatch):
 def test_inject_user_loras_all_missing_is_graceful(monkeypatch):
     inst, orch_mod = _make_orchestrator_stub()
     monkeypatch.setattr(orch_mod, "lora_file_exists", lambda name: False)
-    job = _make_job_with_plan(user_loras=[
-        {"name": "a.safetensors", "strength_model": 0.8, "strength_clip": 0.7},
-        {"name": "b.safetensors", "strength_model": 0.8, "strength_clip": 0.7},
-    ])
+    job = _make_job_with_plan(
+        user_loras=[
+            {"name": "a.safetensors", "strength_model": 0.8, "strength_clip": 0.7},
+            {"name": "b.safetensors", "strength_model": 0.8, "strength_clip": 0.7},
+        ]
+    )
 
     inst._inject_user_loras(job)
 
-    assert sorted(job.metadata.get("user_loras_missing", [])) == ["a.safetensors", "b.safetensors"]
+    assert sorted(job.metadata.get("user_loras_missing", [])) == [
+        "a.safetensors",
+        "b.safetensors",
+    ]
     # No pass gets injected with anything
     for pc in job.layer_plan.passes:
         names = [l.get("name") for l in (pc.lora_models or [])]
@@ -255,7 +287,9 @@ def test_inject_user_loras_all_missing_is_graceful(monkeypatch):
         assert "b.safetensors" not in names
 
 
-def test_augment_references_from_cache_injects_refs_and_eye_detail(tmp_path, monkeypatch):
+def test_augment_references_from_cache_injects_refs_and_eye_detail(
+    tmp_path, monkeypatch
+):
     inst, _orch_mod = _make_orchestrator_stub()
     monkeypatch.setattr(character_references, "_CACHE_DIR", tmp_path / "refs")
 
@@ -293,6 +327,7 @@ def test_augment_references_does_not_override_existing(tmp_path, monkeypatch):
 # Detection inpaint — graceful skip + region LoRA filter
 # ════════════════════════════════════════════════════════════════════
 
+
 def test_filter_existing_loras_drops_missing(monkeypatch):
     monkeypatch.setattr(
         lora_manager,
@@ -300,8 +335,16 @@ def test_filter_existing_loras_drops_missing(monkeypatch):
         Path("/___definitely_not_a_real_dir___"),
     )
     loras = [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.5, "strength_clip": 0.4},
-        {"name": "totally_missing.safetensors", "strength_model": 0.5, "strength_clip": 0.4},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.5,
+            "strength_clip": 0.4,
+        },
+        {
+            "name": "totally_missing.safetensors",
+            "strength_model": 0.5,
+            "strength_clip": 0.4,
+        },
     ]
     kept = DetectionInpaintAgent._filter_existing_loras(loras, region_type="face")
     assert kept == []  # both missing in the stub root
@@ -314,7 +357,11 @@ def test_filter_existing_loras_keeps_present(tmp_path, monkeypatch):
     monkeypatch.setattr(lora_manager, "_COMFYUI_LORA_ROOT", fake_root)
 
     loras = [
-        {"name": "Anime_artistic_2.safetensors", "strength_model": 0.5, "strength_clip": 0.4},
+        {
+            "name": "Anime_artistic_2.safetensors",
+            "strength_model": 0.5,
+            "strength_clip": 0.4,
+        },
         {"name": "not_there.safetensors", "strength_model": 0.5, "strength_clip": 0.4},
     ]
     kept = DetectionInpaintAgent._filter_existing_loras(loras, region_type="face")
@@ -360,12 +407,15 @@ def test_detection_inpaint_is_available_false_when_no_detector():
 # Parser-only LoRA fall-through
 # ════════════════════════════════════════════════════════════════════
 
+
 def test_run_lora_stage_falls_through_to_parser_identity(monkeypatch):
     """When character research fails but the parser resolved an identity,
     the LoRA stage must still attempt CivitAI search using parser fields."""
     from image_pipeline.anime_pipeline import orchestrator as orch_mod
 
-    inst = orch_mod.AnimePipelineOrchestrator.__new__(orch_mod.AnimePipelineOrchestrator)
+    inst = orch_mod.AnimePipelineOrchestrator.__new__(
+        orch_mod.AnimePipelineOrchestrator
+    )
     inst._verified_lora = None
     inst._research = None  # research did not produce a result
     inst._detected_character = None
@@ -382,8 +432,11 @@ def test_run_lora_stage_falls_through_to_parser_identity(monkeypatch):
     def _fake_find(**kwargs):
         call_args.update(kwargs)
         return LoRAVerificationResult(
-            accepted=False, vision_score=0.0, test_image_b64=None,
-            lora_filename="", lora_path=None,
+            accepted=False,
+            vision_score=0.0,
+            test_image_b64=None,
+            lora_filename="",
+            lora_path=None,
             rejection_reason="stub",
         )
 
@@ -404,7 +457,8 @@ def test_run_lora_stage_falls_through_to_parser_identity(monkeypatch):
     assert "honkai" in call_args.get("series_name", "").lower()
     # lora_search stage should have run (not skipped)
     stage_complete_events = [
-        e for e in events
+        e
+        for e in events
         if e.get("data", {}).get("stage") == "lora_search"
         and "skipped" not in e.get("data", {})
     ]
@@ -415,7 +469,9 @@ def test_run_lora_stage_skips_when_no_identity_at_all(monkeypatch):
     """With no research and no parser tag, skip cleanly."""
     from image_pipeline.anime_pipeline import orchestrator as orch_mod
 
-    inst = orch_mod.AnimePipelineOrchestrator.__new__(orch_mod.AnimePipelineOrchestrator)
+    inst = orch_mod.AnimePipelineOrchestrator.__new__(
+        orch_mod.AnimePipelineOrchestrator
+    )
     inst._verified_lora = None
     inst._research = None
     inst._detected_character = None
@@ -429,7 +485,8 @@ def test_run_lora_stage_skips_when_no_identity_at_all(monkeypatch):
 
     # Must emit stage_complete with skipped=True and reason
     completes = [
-        e for e in events
+        e
+        for e in events
         if e.get("data", {}).get("stage") == "lora_search"
         and e.get("data", {}).get("skipped") is True
     ]

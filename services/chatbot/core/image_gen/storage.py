@@ -1,21 +1,17 @@
-﻿"""
+"""
 ImageStorage â€” save, retrieve, and manage generated images.
 Supports local filesystem + optional cloud upload (ImgBB, S3, etc.)
 """
 
 from __future__ import annotations
 
-import os
-import io
-import time
 import base64
-import uuid
 import json
 import logging
-import hashlib
-from pathlib import Path
-from typing import Optional
+import os
+import uuid
 from datetime import datetime
+from pathlib import Path
 
 import httpx
 
@@ -25,7 +21,7 @@ logger = logging.getLogger(__name__)
 class ImageStorage:
     """
     Persistent image storage with metadata.
-    
+
     Directory structure:
         Storage/Image_Gen/
             2026/
@@ -41,20 +37,24 @@ class ImageStorage:
         imgbb_key: str = "",
         max_local_gb: float = 10.0,
     ):
-        self.base_dir = Path(base_dir) if base_dir else Path(__file__).resolve().parent.parent.parent / "Storage" / "Image_Gen"
+        self.base_dir = (
+            Path(base_dir)
+            if base_dir
+            else Path(__file__).resolve().parent.parent.parent / "Storage" / "Image_Gen"
+        )
         self.base_dir.mkdir(parents=True, exist_ok=True)
         self.imgbb_key = imgbb_key or os.getenv("IMGBB_API_KEY", "")
         self.max_local_bytes = int(max_local_gb * 1024 * 1024 * 1024)
 
     def save(
         self,
-        image_b64: Optional[str] = None,
-        image_url: Optional[str] = None,
+        image_b64: str | None = None,
+        image_url: str | None = None,
         prompt: str = "",
         provider: str = "",
         model: str = "",
         conversation_id: str = "",
-        metadata: Optional[dict] = None,
+        metadata: dict | None = None,
     ) -> dict:
         """
         Save an image (from base64 or URL) to local storage.
@@ -62,7 +62,7 @@ class ImageStorage:
         """
         image_id = str(uuid.uuid4())[:12]
         now = datetime.now()
-        
+
         # Create date-based directory
         day_dir = self.base_dir / str(now.year) / f"{now.month:02d}" / f"{now.day:02d}"
         day_dir.mkdir(parents=True, exist_ok=True)
@@ -96,7 +96,9 @@ class ImageStorage:
                 "local_path": str(img_path),
                 **(metadata or {}),
             }
-            meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+            meta_path.write_text(
+                json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
 
             # Upload to cloud if configured
             cloud_url = ""
@@ -110,20 +112,22 @@ class ImageStorage:
                 "file_size": len(img_bytes),
             }
 
-            logger.info(f"[ImageStorage] Saved {image_id} ({len(img_bytes)} bytes) â†’ {img_path.name}")
+            logger.info(
+                f"[ImageStorage] Saved {image_id} ({len(img_bytes)} bytes) â†’ {img_path.name}"
+            )
             return result
 
         except Exception as e:
             logger.error(f"[ImageStorage] Save failed: {e}", exc_info=True)
             return {"error": str(e)}
 
-    def get(self, image_id: str) -> Optional[bytes]:
+    def get(self, image_id: str) -> bytes | None:
         """Get image bytes by ID (search in date directories)."""
         for path in self.base_dir.rglob(f"{image_id}.png"):
             return path.read_bytes()
         return None
 
-    def get_metadata(self, image_id: str) -> Optional[dict]:
+    def get_metadata(self, image_id: str) -> dict | None:
         """Get image metadata by ID."""
         for path in self.base_dir.rglob(f"{image_id}.meta.json"):
             return json.loads(path.read_text(encoding="utf-8"))
@@ -165,7 +169,11 @@ class ImageStorage:
             "total_bytes": total_bytes,
             "total_mb": round(total_bytes / (1024 * 1024), 2),
             "limit_gb": round(self.max_local_bytes / (1024 * 1024 * 1024), 1),
-            "usage_pct": round(total_bytes / self.max_local_bytes * 100, 1) if self.max_local_bytes else 0,
+            "usage_pct": (
+                round(total_bytes / self.max_local_bytes * 100, 1)
+                if self.max_local_bytes
+                else 0
+            ),
         }
 
     def _download(self, url: str) -> bytes:

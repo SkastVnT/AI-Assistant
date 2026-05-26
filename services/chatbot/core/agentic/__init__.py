@@ -10,6 +10,7 @@ Quick-start::
     orch = CouncilOrchestrator(CouncilConfig())
     result = await orch.run(PreContext(original_message="..."))
 """
+
 from core.agentic.blackboard import BlackboardStore, create_blackboard
 from core.agentic.blackboard_memory import InMemoryBlackboard
 from core.agentic.config import CouncilConfig
@@ -30,7 +31,12 @@ from core.agentic.contracts import (
     SynthesizerOutput,
     TaskNode,
 )
-from core.agentic.events import CouncilEvent, CouncilEventEmitter, EventStage, EventStatus
+from core.agentic.events import (
+    CouncilEvent,
+    CouncilEventEmitter,
+    EventStage,
+    EventStatus,
+)
 from core.agentic.orchestrator import CouncilOrchestrator
 from core.agentic.prompts import get_system_prompt
 from core.agentic.state import AgentRunState, PreContext

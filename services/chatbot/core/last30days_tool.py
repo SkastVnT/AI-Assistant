@@ -7,6 +7,7 @@ Returns markdown string matching the existing tool response contract.
 Isolation boundary: last30days may require Python 3.12+ and Node.js,
 so it runs in a separate process, not imported directly.
 """
+
 import json
 import logging
 import re
@@ -22,8 +23,8 @@ if str(CHATBOT_DIR) not in sys.path:
 
 from core.config import (
     LAST30DAYS_ENABLED,
-    LAST30DAYS_SCRIPT_PATH,
     LAST30DAYS_PYTHON_PATH,
+    LAST30DAYS_SCRIPT_PATH,
     LAST30DAYS_TIMEOUT,
 )
 
@@ -31,10 +32,12 @@ logger = logging.getLogger(__name__)
 
 MAX_TOPIC_LENGTH = 500
 ALLOWED_DEPTHS = frozenset({"quick", "default", "deep"})
-ALLOWED_SOURCES_RE = re.compile(r'^[\w,]+$')
+ALLOWED_SOURCES_RE = re.compile(r"^[\w,]+$")
 
 # ── Default script path (auto-detect from vendor dir) ────────────────────
-_VENDOR_SCRIPT = CHATBOT_DIR / "vendor" / "last30days" / "repo" / "scripts" / "last30days.py"
+_VENDOR_SCRIPT = (
+    CHATBOT_DIR / "vendor" / "last30days" / "repo" / "scripts" / "last30days.py"
+)
 
 
 def _resolve_script_path() -> str:
@@ -146,7 +149,11 @@ def run_last30days_research(
         )
     except subprocess.TimeoutExpired:
         elapsed = round(time.monotonic() - _start, 2)
-        logger.warning("[LAST30DAYS] Research timed out after %.1fs (limit=%ds)", elapsed, LAST30DAYS_TIMEOUT)
+        logger.warning(
+            "[LAST30DAYS] Research timed out after %.1fs (limit=%ds)",
+            elapsed,
+            LAST30DAYS_TIMEOUT,
+        )
         return (
             f"❌ last30days research timeout ({LAST30DAYS_TIMEOUT}s). "
             f"Thử lại với depth=quick hoặc giảm days."
@@ -167,7 +174,9 @@ def run_last30days_research(
         elapsed = round(time.monotonic() - _start, 2)
         logger.warning(
             "[LAST30DAYS] Non-zero exit (%d) after %.1fs: %s",
-            result.returncode, elapsed, stderr_snippet,
+            result.returncode,
+            elapsed,
+            stderr_snippet,
         )
         return f"❌ last30days exited with code {result.returncode}. {stderr_snippet}"
 
@@ -183,7 +192,10 @@ def run_last30days_research(
     elapsed = round(time.monotonic() - _start, 2)
     logger.info(
         "[LAST30DAYS] Completed: topic=%r depth=%s elapsed=%.1fs report_len=%d",
-        topic[:60], depth, elapsed, len(report),
+        topic[:60],
+        depth,
+        elapsed,
+        len(report),
     )
     return report
 
@@ -260,8 +272,8 @@ def _format_raw_report(raw: str, topic: str) -> str:
 
 # ── Inline‑command parameter parser (used by stream.py) ─────────────────
 
-_DAYS_RE = re.compile(r'--days=(\d+)')
-_SOURCES_RE = re.compile(r'--sources?=([\w,]+)')
+_DAYS_RE = re.compile(r"--days=(\d+)")
+_SOURCES_RE = re.compile(r"--sources?=([\w,]+)")
 
 
 def parse_research_params(raw_text: str) -> dict:
@@ -284,11 +296,11 @@ def parse_research_params(raw_text: str) -> dict:
     m = _DAYS_RE.search(text)
     if m:
         days = max(1, min(90, int(m.group(1))))
-        text = text[:m.start()] + text[m.end():]
+        text = text[: m.start()] + text[m.end() :]
 
     m = _SOURCES_RE.search(text)
     if m:
         sources = m.group(1)
-        text = text[:m.start()] + text[m.end():]
+        text = text[: m.start()] + text[m.end() :]
 
     return {"topic": text.strip(), "depth": depth, "days": days, "sources": sources}

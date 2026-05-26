@@ -92,8 +92,12 @@ class EmbeddingService:
         """
         if not chunks:
             return EmbedResult(
-                total_chunks=0, embedded=0, skipped=0, failed=0,
-                model=self._model_name, version=self._model_version,
+                total_chunks=0,
+                embedded=0,
+                skipped=0,
+                failed=0,
+                model=self._model_name,
+                version=self._model_version,
             )
 
         # Filter to those needing embedding
@@ -107,8 +111,12 @@ class EmbeddingService:
 
         if not to_embed:
             return EmbedResult(
-                total_chunks=len(chunks), embedded=0, skipped=skipped, failed=0,
-                model=self._model_name, version=self._model_version,
+                total_chunks=len(chunks),
+                embedded=0,
+                skipped=skipped,
+                failed=0,
+                model=self._model_name,
+                version=self._model_version,
             )
 
         # Process in batches
@@ -123,7 +131,8 @@ class EmbeddingService:
                 failed += len(batch)
                 logger.error(
                     "Batch %d-%d failed after all retries",
-                    i, i + len(batch),
+                    i,
+                    i + len(batch),
                 )
                 continue
 
@@ -135,7 +144,11 @@ class EmbeddingService:
 
         logger.info(
             "Embedding complete: %d embedded, %d skipped, %d failed (model=%s, version=%s)",
-            embedded, skipped, failed, self._model_name, self._model_version,
+            embedded,
+            skipped,
+            failed,
+            self._model_name,
+            self._model_version,
         )
 
         return EmbedResult(
@@ -160,9 +173,7 @@ class EmbeddingService:
             all_embeddings.extend(embeddings)
         return all_embeddings
 
-    async def _embed_with_retry(
-        self, texts: list[str]
-    ) -> list[list[float]] | None:
+    async def _embed_with_retry(self, texts: list[str]) -> list[list[float]] | None:
         """Call provider.embed with exponential backoff retry."""
         for attempt in range(1, self._max_retries + 1):
             try:
@@ -171,13 +182,16 @@ class EmbeddingService:
                 if attempt == self._max_retries:
                     logger.exception(
                         "Embed failed after %d attempts (%d texts)",
-                        attempt, len(texts),
+                        attempt,
+                        len(texts),
                     )
                     return None
-                wait = min(2 ** attempt, 30)
+                wait = min(2**attempt, 30)
                 logger.warning(
                     "Embed attempt %d/%d failed, retrying in %ds",
-                    attempt, self._max_retries, wait,
+                    attempt,
+                    self._max_retries,
+                    wait,
                 )
                 await asyncio.sleep(wait)
         return None

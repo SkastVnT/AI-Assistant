@@ -1,5 +1,5 @@
-#original code from https://github.com/genmoai/models under apache 2.0 license
-#adapted to ComfyUI
+# original code from https://github.com/genmoai/models under apache 2.0 license
+# adapted to ComfyUI
 
 from typing import Dict, List, Optional, Tuple
 
@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
+
 # from flash_attn import flash_attn_varlen_qkvpacked_func
 from comfy.ldm.modules.attention import optimized_attention
 
@@ -50,6 +51,7 @@ def residual_tanh_gated_rmsnorm(x, x_res, gate, eps=1e-6):
 
     return output
 
+
 class AsymmetricAttention(nn.Module):
     def __init__(
         self,
@@ -83,19 +85,33 @@ class AsymmetricAttention(nn.Module):
 
         # Input layers.
         self.qkv_bias = qkv_bias
-        self.qkv_x = operations.Linear(dim_x, 3 * dim_x, bias=qkv_bias, device=device, dtype=dtype)
+        self.qkv_x = operations.Linear(
+            dim_x, 3 * dim_x, bias=qkv_bias, device=device, dtype=dtype
+        )
         # Project text features to match visual features (dim_y -> dim_x)
-        self.qkv_y = operations.Linear(dim_y, 3 * dim_x, bias=qkv_bias, device=device, dtype=dtype)
+        self.qkv_y = operations.Linear(
+            dim_y, 3 * dim_x, bias=qkv_bias, device=device, dtype=dtype
+        )
 
         # Query and key normalization for stability.
         assert qk_norm
-        self.q_norm_x = operations.RMSNorm(self.head_dim, eps=1e-5, device=device, dtype=dtype)
-        self.k_norm_x = operations.RMSNorm(self.head_dim, eps=1e-5, device=device, dtype=dtype)
-        self.q_norm_y = operations.RMSNorm(self.head_dim, eps=1e-5, device=device, dtype=dtype)
-        self.k_norm_y = operations.RMSNorm(self.head_dim, eps=1e-5, device=device, dtype=dtype)
+        self.q_norm_x = operations.RMSNorm(
+            self.head_dim, eps=1e-5, device=device, dtype=dtype
+        )
+        self.k_norm_x = operations.RMSNorm(
+            self.head_dim, eps=1e-5, device=device, dtype=dtype
+        )
+        self.q_norm_y = operations.RMSNorm(
+            self.head_dim, eps=1e-5, device=device, dtype=dtype
+        )
+        self.k_norm_y = operations.RMSNorm(
+            self.head_dim, eps=1e-5, device=device, dtype=dtype
+        )
 
         # Output layers. y features go back down from dim_x -> dim_y.
-        self.proj_x = operations.Linear(dim_x, dim_x, bias=out_bias, device=device, dtype=dtype)
+        self.proj_x = operations.Linear(
+            dim_x, dim_x, bias=out_bias, device=device, dtype=dtype
+        )
         self.proj_y = (
             operations.Linear(dim_x, dim_y, bias=out_bias, device=device, dtype=dtype)
             if update_y
@@ -126,13 +142,17 @@ class AsymmetricAttention(nn.Module):
 
         # Process text features
         y = modulated_rmsnorm(y, scale_y)  # (B, L, dim_y)
-        q_y, k_y, v_y = self.qkv_y(y).view(y.shape[0], y.shape[1], 3, self.num_heads, -1).unbind(2)  # (B, N, local_h, head_dim)
+        q_y, k_y, v_y = (
+            self.qkv_y(y).view(y.shape[0], y.shape[1], 3, self.num_heads, -1).unbind(2)
+        )  # (B, N, local_h, head_dim)
 
         q_y = self.q_norm_y(q_y)
         k_y = self.k_norm_y(k_y)
 
         # Split qkv_x into q, k, v
-        q_x, k_x, v_x = self.qkv_x(x).view(x.shape[0], x.shape[1], 3, self.num_heads, -1).unbind(2)  # (B, N, local_h, head_dim)
+        q_x, k_x, v_x = (
+            self.qkv_x(x).view(x.shape[0], x.shape[1], 3, self.num_heads, -1).unbind(2)
+        )  # (B, N, local_h, head_dim)
         q_x = self.q_norm_x(q_x)
         q_x = apply_rotary_emb_qk_real(q_x, rope_cos, rope_sin)
         k_x = self.k_norm_x(k_x)
@@ -142,14 +162,21 @@ class AsymmetricAttention(nn.Module):
         k = torch.cat([k_x, k_y[:, :crop_y]], dim=1).transpose(1, 2)
         v = torch.cat([v_x, v_y[:, :crop_y]], dim=1).transpose(1, 2)
 
-        xy = optimized_attention(q,
-                                 k,
-                                 v, self.num_heads, skip_reshape=True, transformer_options=transformer_options)
+        xy = optimized_attention(
+            q,
+            k,
+            v,
+            self.num_heads,
+            skip_reshape=True,
+            transformer_options=transformer_options,
+        )
 
         x, y = torch.tensor_split(xy, (q_x.shape[1],), dim=1)
         x = self.proj_x(x)
-        o = torch.zeros(y.shape[0], q_y.shape[1], y.shape[-1], device=y.device, dtype=y.dtype)
-        o[:, :y.shape[1]] = y
+        o = torch.zeros(
+            y.shape[0], q_y.shape[1], y.shape[-1], device=y.device, dtype=y.dtype
+        )
+        o[:, : y.shape[1]] = y
 
         y = self.proj_y(o)
         # print("ox", x)
@@ -176,11 +203,17 @@ class AsymmetricJointBlock(nn.Module):
         self.update_y = update_y
         self.hidden_size_x = hidden_size_x
         self.hidden_size_y = hidden_size_y
-        self.mod_x = operations.Linear(hidden_size_x, 4 * hidden_size_x, device=device, dtype=dtype)
+        self.mod_x = operations.Linear(
+            hidden_size_x, 4 * hidden_size_x, device=device, dtype=dtype
+        )
         if self.update_y:
-            self.mod_y = operations.Linear(hidden_size_x, 4 * hidden_size_y, device=device, dtype=dtype)
+            self.mod_y = operations.Linear(
+                hidden_size_x, 4 * hidden_size_y, device=device, dtype=dtype
+            )
         else:
-            self.mod_y = operations.Linear(hidden_size_x, hidden_size_y, device=device, dtype=dtype)
+            self.mod_y = operations.Linear(
+                hidden_size_x, hidden_size_y, device=device, dtype=dtype
+            )
 
         # Self-attention:
         self.attn = AsymmetricAttention(
@@ -305,9 +338,14 @@ class FinalLayer(nn.Module):
         self.norm_final = operations.LayerNorm(
             hidden_size, elementwise_affine=False, eps=1e-6, device=device, dtype=dtype
         )
-        self.mod = operations.Linear(hidden_size, 2 * hidden_size, device=device, dtype=dtype)
+        self.mod = operations.Linear(
+            hidden_size, 2 * hidden_size, device=device, dtype=dtype
+        )
         self.linear = operations.Linear(
-            hidden_size, patch_size * patch_size * out_channels, device=device, dtype=dtype
+            hidden_size,
+            patch_size * patch_size * out_channels,
+            device=device,
+            dtype=dtype,
         )
 
     def forward(self, x, c):
@@ -383,18 +421,28 @@ class AsymmDiTJoint(nn.Module):
             bias=patch_embed_bias,
             dtype=dtype,
             device=device,
-            operations=operations
+            operations=operations,
         )
         # Conditionings
         # Timestep
         self.t_embedder = TimestepEmbedder(
-            hidden_size_x, bias=timestep_mlp_bias, timestep_scale=timestep_scale, dtype=dtype, device=device, operations=operations
+            hidden_size_x,
+            bias=timestep_mlp_bias,
+            timestep_scale=timestep_scale,
+            dtype=dtype,
+            device=device,
+            operations=operations,
         )
 
         if self.use_t5:
             # Caption Pooling (T5)
             self.t5_y_embedder = AttentionPool(
-                t5_feat_dim, num_heads=8, output_dim=hidden_size_x, dtype=dtype, device=device, operations=operations
+                t5_feat_dim,
+                num_heads=8,
+                output_dim=hidden_size_x,
+                dtype=dtype,
+                device=device,
+                operations=operations,
             )
 
             # Dense Embedding Projection (T5)
@@ -404,7 +452,9 @@ class AsymmDiTJoint(nn.Module):
 
         # Initialize pos_frequencies as an empty parameter.
         self.pos_frequencies = nn.Parameter(
-            torch.empty(3, self.num_heads, self.head_dim // 2, dtype=dtype, device=device)
+            torch.empty(
+                3, self.num_heads, self.head_dim // 2, dtype=dtype, device=device
+            )
         )
 
         assert not self.attend_to_padding
@@ -437,7 +487,12 @@ class AsymmDiTJoint(nn.Module):
         self.blocks = nn.ModuleList(blocks)
 
         self.final_layer = FinalLayer(
-            hidden_size_x, patch_size, self.out_channels, dtype=dtype, device=device, operations=operations
+            hidden_size_x,
+            patch_size,
+            self.out_channels,
+            dtype=dtype,
+            device=device,
+            operations=operations,
         )
 
     def embed_x(self, x: torch.Tensor) -> torch.Tensor:
@@ -471,7 +526,10 @@ class AsymmDiTJoint(nn.Module):
             T, pH=pH, pW=pW, device=x.device, dtype=torch.float32
         )  # (N, 3)
         rope_cos, rope_sin = compute_mixed_rotation(
-            freqs=comfy.ops.cast_to(self.pos_frequencies, dtype=x.dtype, device=x.device), pos=pos
+            freqs=comfy.ops.cast_to(
+                self.pos_frequencies, dtype=x.dtype, device=x.device
+            ),
+            pos=pos,
         )  # Each are (N, num_heads, dim // 2)
 
         c_t = self.t_embedder(1 - sigma, out_dtype=x.dtype)  # (B, D)
@@ -494,7 +552,9 @@ class AsymmDiTJoint(nn.Module):
         packed_indices: Dict[str, torch.Tensor] = None,
         rope_cos: torch.Tensor = None,
         rope_sin: torch.Tensor = None,
-        control=None, transformer_options={}, **kwargs
+        control=None,
+        transformer_options={},
+        **kwargs,
     ):
         patches_replace = transformer_options.get("patches_replace", {})
         y_feat = context
@@ -511,27 +571,38 @@ class AsymmDiTJoint(nn.Module):
         """
         B, _, T, H, W = x.shape
 
-        x, c, y_feat, rope_cos, rope_sin = self.prepare(
-            x, sigma, y_feat, y_mask
-        )
+        x, c, y_feat, rope_cos, rope_sin = self.prepare(x, sigma, y_feat, y_mask)
         del y_mask
 
         blocks_replace = patches_replace.get("dit", {})
         for i, block in enumerate(self.blocks):
             if ("double_block", i) in blocks_replace:
+
                 def block_wrap(args):
                     out = {}
                     out["img"], out["txt"] = block(
-                                                    args["img"],
-                                                    args["vec"],
-                                                    args["txt"],
-                                                    rope_cos=args["rope_cos"],
-                                                    rope_sin=args["rope_sin"],
-                                                    crop_y=args["num_tokens"],
-                                                    transformer_options=args["transformer_options"]
-                                                    )
+                        args["img"],
+                        args["vec"],
+                        args["txt"],
+                        rope_cos=args["rope_cos"],
+                        rope_sin=args["rope_sin"],
+                        crop_y=args["num_tokens"],
+                        transformer_options=args["transformer_options"],
+                    )
                     return out
-                out = blocks_replace[("double_block", i)]({"img": x, "txt": y_feat, "vec": c, "rope_cos": rope_cos, "rope_sin": rope_sin, "num_tokens": num_tokens, "transformer_options": transformer_options}, {"original_block": block_wrap})
+
+                out = blocks_replace[("double_block", i)](
+                    {
+                        "img": x,
+                        "txt": y_feat,
+                        "vec": c,
+                        "rope_cos": rope_cos,
+                        "rope_sin": rope_sin,
+                        "num_tokens": num_tokens,
+                        "transformer_options": transformer_options,
+                    },
+                    {"original_block": block_wrap},
+                )
                 y_feat = out["txt"]
                 x = out["img"]
             else:

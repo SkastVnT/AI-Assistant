@@ -13,6 +13,7 @@ try:
 except:
     logging.warning("torchaudio missing, MMAudio VAE model will be broken")
 
+
 def dynamic_range_compression_torch(x, C=1, clip_val=1e-5, *, norm_fn):
     return norm_fn(torch.clamp(x, min=clip_val) * C)
 
@@ -21,8 +22,8 @@ def spectral_normalize_torch(magnitudes, norm_fn):
     output = dynamic_range_compression_torch(magnitudes, norm_fn=norm_fn)
     return output
 
-class MelConverter(nn.Module):
 
+class MelConverter(nn.Module):
     def __init__(
         self,
         *,
@@ -54,33 +55,38 @@ class MelConverter(nn.Module):
         mel_basis = torch.empty((num_mels, 1 + n_fft // 2))
         hann_window = torch.hann_window(self.win_size)
 
-        self.register_buffer('mel_basis', mel_basis)
-        self.register_buffer('hann_window', hann_window)
+        self.register_buffer("mel_basis", mel_basis)
+        self.register_buffer("hann_window", hann_window)
 
     @property
     def device(self):
         return self.mel_basis.device
 
     def forward(self, waveform: torch.Tensor, center: bool = False) -> torch.Tensor:
-        waveform = waveform.clamp(min=-1., max=1.).to(self.device)
+        waveform = waveform.clamp(min=-1.0, max=1.0).to(self.device)
 
         waveform = torch.nn.functional.pad(
             waveform.unsqueeze(1),
-            [int((self.n_fft - self.hop_size) / 2),
-             int((self.n_fft - self.hop_size) / 2)],
-            mode='reflect')
+            [
+                int((self.n_fft - self.hop_size) / 2),
+                int((self.n_fft - self.hop_size) / 2),
+            ],
+            mode="reflect",
+        )
         waveform = waveform.squeeze(1)
 
-        spec = torch.stft(waveform,
-                          self.n_fft,
-                          hop_length=self.hop_size,
-                          win_length=self.win_size,
-                          window=self.hann_window,
-                          center=center,
-                          pad_mode='reflect',
-                          normalized=False,
-                          onesided=True,
-                          return_complex=True)
+        spec = torch.stft(
+            waveform,
+            self.n_fft,
+            hop_length=self.hop_size,
+            win_length=self.win_size,
+            window=self.hann_window,
+            center=center,
+            pad_mode="reflect",
+            normalized=False,
+            onesided=True,
+            return_complex=True,
+        )
 
         spec = torch.view_as_real(spec)
         spec = torch.sqrt(spec.pow(2).sum(-1) + (1e-9))
@@ -89,26 +95,28 @@ class MelConverter(nn.Module):
 
         return spec
 
-class AudioAutoencoder(nn.Module):
 
+class AudioAutoencoder(nn.Module):
     def __init__(
         self,
         *,
         # ckpt_path: str,
-        mode=Literal['16k', '44k'],
+        mode=Literal["16k", "44k"],
         need_vae_encoder: bool = True,
     ):
         super().__init__()
 
         assert mode == "16k", "Only 16k mode is supported currently."
-        self.mel_converter = MelConverter(sampling_rate=16_000,
-                            n_fft=1024,
-                            num_mels=80,
-                            hop_size=256,
-                            win_size=1024,
-                            fmin=0,
-                            fmax=8_000,
-                            norm_fn=torch.log10)
+        self.mel_converter = MelConverter(
+            sampling_rate=16_000,
+            n_fft=1024,
+            num_mels=80,
+            hop_size=256,
+            win_size=1024,
+            fmin=0,
+            fmax=8_000,
+            norm_fn=torch.log10,
+        )
 
         self.vae = VAE_16k().eval()
 
@@ -128,9 +136,7 @@ class AudioAutoencoder(nn.Module):
             "snake_logscale": True,
         }
 
-        self.vocoder = BigVGANVocoder(
-            bigvgan_config
-        ).eval()
+        self.vocoder = BigVGANVocoder(bigvgan_config).eval()
 
     @torch.inference_mode()
     def encode_audio(self, x) -> DiagonalGaussianDistribution:

@@ -140,8 +140,7 @@ async def _authenticate_jwt(
     """
     raise HTTPException(
         501,
-        "JWT authentication is not yet implemented. "
-        "Set AUTH_BACKEND=api_key or AUTH_BACKEND=none.",
+        "JWT authentication is not yet implemented. Set AUTH_BACKEND=api_key or AUTH_BACKEND=none.",
     )
 
 
@@ -166,7 +165,10 @@ async def get_auth_context(
         if not x_tenant_id:
             raise HTTPException(400, "x-tenant-id header is required")
         ctx = await _authenticate_none(
-            x_tenant_id, x_user_id, settings, db,
+            x_tenant_id,
+            x_user_id,
+            settings,
+            db,
         )
     elif settings.backend == "api_key":
         ctx = await _authenticate_api_key(x_api_key, settings, db)

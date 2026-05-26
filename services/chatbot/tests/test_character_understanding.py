@@ -5,6 +5,7 @@ These tests exercise the resolver in isolation. The local
 the seeded ``storage/character_db/`` JSON content. SAA is exercised
 both as "missing" and as a stub.
 """
+
 from __future__ import annotations
 
 import sys
@@ -12,15 +13,13 @@ import types
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import pytest
-
 # Ensure chatbot root is importable
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core import character_understanding as cu  # noqa: E402
 
-
 # ── Helpers ──────────────────────────────────────────────────────────────────
+
 
 def _empty_registry(monkeypatch):
     """Patch get_registry to return a stub with no hits and no collisions."""
@@ -35,20 +34,29 @@ def _disable_saa(monkeypatch):
     """Force the SAA lazy import to fail."""
     # Insert a sentinel that raises on attribute access.
     fake = types.ModuleType("image_pipeline.anime_pipeline.saa_character_db")
+
     def _boom(*a, **kw):
         raise RuntimeError("SAA not installed in this test")
+
     fake.lookup_character = _boom  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, "image_pipeline.anime_pipeline.saa_character_db", fake)
+    monkeypatch.setitem(
+        sys.modules, "image_pipeline.anime_pipeline.saa_character_db", fake
+    )
 
 
 # ── Canonical ID stability ───────────────────────────────────────────────────
 
+
 class TestCanonicalId:
     def test_basic(self):
-        assert cu.make_canonical_id("hu_tao", "genshin_impact") == "hu_tao@genshin_impact"
+        assert (
+            cu.make_canonical_id("hu_tao", "genshin_impact") == "hu_tao@genshin_impact"
+        )
 
     def test_slugifies_inputs(self):
-        assert cu.make_canonical_id("Hu Tao", "Genshin Impact") == "hu_tao@genshin_impact"
+        assert (
+            cu.make_canonical_id("Hu Tao", "Genshin Impact") == "hu_tao@genshin_impact"
+        )
 
     def test_strips_diacritics(self):
         assert cu.make_canonical_id("Élise", "café") == "elise@cafe"
@@ -63,6 +71,7 @@ class TestCanonicalId:
 
 
 # ── selected_character priority ──────────────────────────────────────────────
+
 
 class TestSelectedCharacterWins:
     def test_selected_wins_over_alias_table(self, monkeypatch):
@@ -90,13 +99,17 @@ class TestSelectedCharacterWins:
         _disable_saa(monkeypatch)
         result = cu.resolve_character(
             "",
-            selected_character={"character_slug": "kafka", "series_slug": "honkai_star_rail"},
+            selected_character={
+                "character_slug": "kafka",
+                "series_slug": "honkai_star_rail",
+            },
         )
         assert result.resolved is True
         assert result.best.canonical_id == "kafka@honkai_star_rail"
 
 
 # ── Alias table ──────────────────────────────────────────────────────────────
+
 
 class TestAliasTable:
     def test_unique_alias_resolves(self, monkeypatch):
@@ -143,6 +156,7 @@ class TestAliasTable:
 
 
 # ── Registry path ────────────────────────────────────────────────────────────
+
 
 class TestRegistryPath:
     def test_registry_hit_short_circuits(self, monkeypatch):
@@ -192,6 +206,7 @@ class TestRegistryPath:
 
 # ── SAA fail-safe ────────────────────────────────────────────────────────────
 
+
 class TestSaaFailSafe:
     def test_missing_saa_does_not_crash(self, monkeypatch):
         _empty_registry(monkeypatch)
@@ -217,6 +232,7 @@ class TestSaaFailSafe:
 
 # ── Empty / no-op ────────────────────────────────────────────────────────────
 
+
 class TestEmpty:
     def test_empty_query_no_selection(self, monkeypatch):
         _empty_registry(monkeypatch)
@@ -235,6 +251,7 @@ class TestEmpty:
 
 
 # ── Prompt entity extraction ─────────────────────────────────────────────────
+
 
 class TestExtractPromptEntities:
     def test_iroha_kaguya_phrase(self):
@@ -270,6 +287,7 @@ class TestExtractPromptEntities:
 
 # ── Unknown / low-data fallback ──────────────────────────────────────────────
 
+
 class TestUnknownCharacterFallback:
     """Behavior when no known source recognises the character."""
 
@@ -290,7 +308,10 @@ class TestUnknownCharacterFallback:
         assert result.safe_to_attach_lora is False
         # Provisional id is stable & namespaced.
         assert result.unknown_profile is not None
-        assert result.unknown_profile.provisional_id == "unknown:iroha@cosmic_princess_kaguya"
+        assert (
+            result.unknown_profile.provisional_id
+            == "unknown:iroha@cosmic_princess_kaguya"
+        )
         assert result.unknown_profile.possible_series == "cosmic_princess_kaguya"
         assert result.unknown_profile.needs_user_confirmation is True
         # Identity block tells downstream not to attach LoRA.
@@ -340,6 +361,7 @@ class TestUnknownCharacterFallback:
 
     def test_result_is_json_serializable(self, monkeypatch):
         import json
+
         _empty_registry(monkeypatch)
         _disable_saa(monkeypatch)
         monkeypatch.setattr(cu, "_load_manual_overrides", lambda path=None: [])
@@ -352,6 +374,7 @@ class TestUnknownCharacterFallback:
 
 
 # ── Manual override → low_data_profile ───────────────────────────────────────
+
 
 class TestManualOverride:
     def _make_override(self):
@@ -409,6 +432,7 @@ class TestManualOverride:
 
 # ── Phase 4: override priority + collision safety ────────────────────────────
 
+
 class TestOverridePriority:
     """Manual override must beat registry/SAA/alias for the same name."""
 
@@ -429,13 +453,19 @@ class TestOverridePriority:
         monkeypatch.setattr("core.character_registry.get_registry", lambda: stub)
         _disable_saa(monkeypatch)
 
-        monkeypatch.setattr(cu, "_load_manual_overrides", lambda path=None: [{
-            "canonical_id": "newchar@correct_series",
-            "display_name": "Newchar",
-            "aliases": ["newchar"],
-            "series_slug": "correct_series",
-            "visual_traits": ["short blue hair"],
-        }])
+        monkeypatch.setattr(
+            cu,
+            "_load_manual_overrides",
+            lambda path=None: [
+                {
+                    "canonical_id": "newchar@correct_series",
+                    "display_name": "Newchar",
+                    "aliases": ["newchar"],
+                    "series_slug": "correct_series",
+                    "visual_traits": ["short blue hair"],
+                }
+            ],
+        )
         result = cu.resolve_character("Newchar")
         assert result.mode == "low_data_profile"
         assert result.best.canonical_id == "newchar@correct_series"
@@ -445,14 +475,20 @@ class TestOverridePriority:
     def test_override_with_explicit_lora_attaches(self, monkeypatch):
         _empty_registry(monkeypatch)
         _disable_saa(monkeypatch)
-        monkeypatch.setattr(cu, "_load_manual_overrides", lambda path=None: [{
-            "canonical_id": "verified_char@verified_series",
-            "display_name": "Verified Char",
-            "aliases": ["verified"],
-            "series_slug": "verified_series",
-            "lora_hint": "verified_char_v1.safetensors",
-            "safe_to_attach_lora": True,
-        }])
+        monkeypatch.setattr(
+            cu,
+            "_load_manual_overrides",
+            lambda path=None: [
+                {
+                    "canonical_id": "verified_char@verified_series",
+                    "display_name": "Verified Char",
+                    "aliases": ["verified"],
+                    "series_slug": "verified_series",
+                    "lora_hint": "verified_char_v1.safetensors",
+                    "safe_to_attach_lora": True,
+                }
+            ],
+        )
         result = cu.resolve_character("Verified")
         assert result.mode == "low_data_profile"
         assert result.safe_to_attach_lora is True
@@ -461,14 +497,20 @@ class TestOverridePriority:
     def test_override_with_lora_but_not_marked_safe_stays_unsafe(self, monkeypatch):
         _empty_registry(monkeypatch)
         _disable_saa(monkeypatch)
-        monkeypatch.setattr(cu, "_load_manual_overrides", lambda path=None: [{
-            "canonical_id": "untrusted@series",
-            "display_name": "Untrusted",
-            "aliases": ["untrusted"],
-            "series_slug": "series",
-            "lora_hint": "untrusted.safetensors",
-            # safe_to_attach_lora omitted (defaults to False)
-        }])
+        monkeypatch.setattr(
+            cu,
+            "_load_manual_overrides",
+            lambda path=None: [
+                {
+                    "canonical_id": "untrusted@series",
+                    "display_name": "Untrusted",
+                    "aliases": ["untrusted"],
+                    "series_slug": "series",
+                    "lora_hint": "untrusted.safetensors",
+                    # safe_to_attach_lora omitted (defaults to False)
+                }
+            ],
+        )
         result = cu.resolve_character("Untrusted")
         assert result.mode == "low_data_profile"
         assert result.safe_to_attach_lora is False
@@ -500,7 +542,10 @@ class TestCollisionSafety:
         assert result.safe_to_attach_lora is False
         if result.mode == "unresolved_unknown":
             assert result.unknown_profile.possible_series == "honkai_star_rail"
-            assert result.unknown_profile.provisional_id == "unknown:firefly@honkai_star_rail"
+            assert (
+                result.unknown_profile.provisional_id
+                == "unknown:firefly@honkai_star_rail"
+            )
         else:
             # If a future alias is added, it MUST be the HSR firefly.
             assert result.best is not None
@@ -535,13 +580,19 @@ class TestProfileSchema:
     def test_override_profile_data_status(self, monkeypatch):
         _empty_registry(monkeypatch)
         _disable_saa(monkeypatch)
-        monkeypatch.setattr(cu, "_load_manual_overrides", lambda path=None: [{
-            "canonical_id": "x@y",
-            "display_name": "X",
-            "aliases": ["x"],
-            "series_slug": "y",
-            "data_status": "manual_override",
-        }])
+        monkeypatch.setattr(
+            cu,
+            "_load_manual_overrides",
+            lambda path=None: [
+                {
+                    "canonical_id": "x@y",
+                    "display_name": "X",
+                    "aliases": ["x"],
+                    "series_slug": "y",
+                    "data_status": "manual_override",
+                }
+            ],
+        )
         result = cu.resolve_character("X")
         assert result.unknown_profile is not None
         assert result.unknown_profile.to_dict()["data_status"] == "manual_override"

@@ -1,6 +1,7 @@
-﻿"""
+"""
 Core package for chatbot
 """
+
 import sys
 from pathlib import Path
 

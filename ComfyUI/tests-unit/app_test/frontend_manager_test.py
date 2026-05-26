@@ -271,7 +271,9 @@ def test_get_installed_templates_version():
 
 def test_get_installed_templates_version_not_installed():
     # Act
-    with patch("app.frontend_management.version", side_effect=Exception("Package not found")):
+    with patch(
+        "app.frontend_management.version", side_effect=Exception("Package not found")
+    ):
         version = FrontendManager.get_installed_templates_version()
 
     # Assert

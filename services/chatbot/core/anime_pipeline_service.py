@@ -18,10 +18,10 @@ import logging
 import os
 import threading as _threading
 import time
-import uuid
+from collections.abc import Generator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Generator, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ _IMAGE_STORAGE_DIR = Path(__file__).parent.parent / "Storage" / "Image_Gen"
 _COMFYUI_FINAL_DIR = Path(__file__).resolve().parents[3] / "ComfyUI" / "final"
 
 
-def _mirror_final_to_comfyui(b64: str, filename: str) -> Optional[str]:
+def _mirror_final_to_comfyui(b64: str, filename: str) -> str | None:
     """Write the final image bytes into ComfyUI/final/ alongside the canonical
     Storage/Image_Gen copy. Also overwrites ``latest.png`` for quick access.
 
@@ -65,6 +65,7 @@ def _mirror_final_to_comfyui(b64: str, filename: str) -> Optional[str]:
         logger.debug("[AnimePipelineService] ComfyUI/final mirror failed: %s", exc)
         return None
 
+
 # ── Concurrency control ─────────────────────────────────────────────────────
 # Limit concurrent ComfyUI pipeline jobs on local GPU.
 # Override via ANIME_PIPELINE_MAX_CONCURRENT env var (default 2).
@@ -76,9 +77,7 @@ _PIPELINE_WAITING_COUNT = 0
 # failing fast with ap_error. Prevents the "second tab stalls forever"
 # bug when an earlier pipeline hangs and never releases its semaphore
 # permit. Override via ANIME_PIPELINE_QUEUE_TIMEOUT_SEC env var.
-_PIPELINE_QUEUE_TIMEOUT_SEC = float(
-    os.getenv("ANIME_PIPELINE_QUEUE_TIMEOUT_SEC", "60")
-)
+_PIPELINE_QUEUE_TIMEOUT_SEC = float(os.getenv("ANIME_PIPELINE_QUEUE_TIMEOUT_SEC", "60"))
 
 
 def pipeline_enabled() -> bool:
@@ -103,6 +102,7 @@ def comfyui_reachable(timeout: float = 3.0) -> bool:
     """Quick connectivity probe against the ComfyUI /system_stats endpoint."""
     try:
         import httpx
+
         with httpx.Client(timeout=timeout) as client:
             r = client.get(f"{comfyui_url()}/system_stats")
             return r.status_code == 200
@@ -111,6 +111,7 @@ def comfyui_reachable(timeout: float = 3.0) -> bool:
 
 
 # ── Availability check (returned to frontend as JSON) ───────────────────
+
 
 @dataclass
 class AvailabilityResult:
@@ -162,6 +163,7 @@ _MAX_REFS = 4
 @dataclass
 class PipelineRequest:
     """Validated request parameters for a pipeline run."""
+
     prompt: str = ""
     reference_images_b64: list[str] = field(default_factory=list)
     preset: str = "anime_quality"
@@ -185,7 +187,7 @@ class PipelineRequest:
     batch_size: int = 1
 
 
-def validate_request(data: dict) -> tuple[Optional[PipelineRequest], Optional[str]]:
+def validate_request(data: dict) -> tuple[PipelineRequest | None, str | None]:
     """Parse and validate incoming JSON.  Returns (request, None) or (None, error)."""
     prompt = (data.get("prompt") or "").strip()
     if not prompt:
@@ -229,6 +231,7 @@ def validate_request(data: dict) -> tuple[Optional[PipelineRequest], Optional[st
 
 # ── Job construction ────────────────────────────────────────────────────
 
+
 def build_job(req: PipelineRequest) -> Any:
     """Create an AnimePipelineJob from validated request params."""
     from image_pipeline.anime_pipeline import AnimePipelineJob
@@ -264,9 +267,9 @@ _STAGE_LABELS = {
 # Each entry: stage_key -> (layer_num, short_vi_label).
 # Order matches the canonical pipeline pass order.
 _LAYER_STAGES: dict[str, tuple[int, str]] = {
-    "composition_pass":  (1, "Bố cục"),
-    "structure_lock":    (2, "Khoá nét"),
-    "beauty_pass":       (3, "Tô màu"),
+    "composition_pass": (1, "Bố cục"),
+    "structure_lock": (2, "Khoá nét"),
+    "beauty_pass": (3, "Tô màu"),
     "detection_inpaint": (4, "Tinh chỉnh"),
 }
 
@@ -276,7 +279,7 @@ def _sse_line(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
-def _persist_intermediate_preview(job_id: str, stage: str, b64: str) -> Optional[str]:
+def _persist_intermediate_preview(job_id: str, stage: str, b64: str) -> str | None:
     """Persist a per-stage preview PNG to Storage/Image_Gen and return its
     local URL. Returns None on any failure (caller should fall back to
     embedding the b64 directly in the SSE frame).
@@ -297,7 +300,7 @@ def _persist_intermediate_preview(job_id: str, stage: str, b64: str) -> Optional
         return None
 
 
-def _make_thumb_b64(b64: str, max_dim: int = 192) -> Optional[str]:
+def _make_thumb_b64(b64: str, max_dim: int = 192) -> str | None:
     """Decode a full PNG b64 and return a small JPEG b64 thumbnail.
 
     Used to ship a tiny inline preview inside the SSE frame so the browser
@@ -310,7 +313,9 @@ def _make_thumb_b64(b64: str, max_dim: int = 192) -> Optional[str]:
         return None
     try:
         from io import BytesIO
+
         from PIL import Image
+
         raw = base64.b64decode(b64)
         with Image.open(BytesIO(raw)) as im:
             im = im.convert("RGB")
@@ -321,7 +326,6 @@ def _make_thumb_b64(b64: str, max_dim: int = 192) -> Optional[str]:
     except Exception as exc:
         logger.debug("[AnimePipelineService] thumb b64 failed: %s", exc)
         return None
-
 
 
 def persist_pipeline_result(job: Any, req: PipelineRequest) -> dict[str, Any]:
@@ -355,7 +359,9 @@ def persist_pipeline_result(job: Any, req: PipelineRequest) -> dict[str, Any]:
         # ComfyUI/input and ComfyUI/output. Best-effort, never blocks.
         _mirror_final_to_comfyui(job.final_image_b64, filename)
     except Exception as save_err:
-        logger.warning("[AnimePipelineService] Could not save image locally: %s", save_err)
+        logger.warning(
+            "[AnimePipelineService] Could not save image locally: %s", save_err
+        )
 
     # Persist canonical record for gallery/admin (generated_images + optional Firebase/Drive).
     try:
@@ -393,7 +399,9 @@ def persist_pipeline_result(job: Any, req: PipelineRequest) -> dict[str, Any]:
             "firebase": bool(storage_result.get("saved_to_firebase")),
         }
     except Exception as storage_err:
-        logger.warning("[AnimePipelineService] Cloud/DB persistence failed: %s", storage_err)
+        logger.warning(
+            "[AnimePipelineService] Cloud/DB persistence failed: %s", storage_err
+        )
         persisted["share_url"] = local_url
 
     return persisted
@@ -422,11 +430,14 @@ def stream_pipeline(req: PipelineRequest) -> Generator[str, None, None]:
     job = build_job(req)
     orchestrator = AnimePipelineOrchestrator()
 
-    yield _sse_line("ap_status", {
-        "job_id": job.job_id,
-        "message": "Pipeline started",
-        "stages": list(_STAGE_LABELS.keys()),
-    })
+    yield _sse_line(
+        "ap_status",
+        {
+            "job_id": job.job_id,
+            "message": "Pipeline started",
+            "stages": list(_STAGE_LABELS.keys()),
+        },
+    )
 
     # ── Concurrency gate: at most _PIPELINE_MAX_CONCURRENT jobs on GPU ──
     global _PIPELINE_WAITING_COUNT
@@ -434,11 +445,14 @@ def stream_pipeline(req: PipelineRequest) -> Generator[str, None, None]:
         with _PIPELINE_QUEUE_LOCK:
             _PIPELINE_WAITING_COUNT += 1
             _queue_pos = _PIPELINE_WAITING_COUNT
-        yield _sse_line("ap_queued", {
-            "job_id": job.job_id,
-            "position": _queue_pos,
-            "message": f"Pipeline queued — vị trí {_queue_pos}. Đang chờ GPU…",
-        })
+        yield _sse_line(
+            "ap_queued",
+            {
+                "job_id": job.job_id,
+                "position": _queue_pos,
+                "message": f"Pipeline queued — vị trí {_queue_pos}. Đang chờ GPU…",
+            },
+        )
         _wait_start = time.time()
         _last_keepalive = 0.0
         _acquired = False
@@ -458,17 +472,21 @@ def stream_pipeline(req: PipelineRequest) -> Generator[str, None, None]:
         if not _acquired:
             logger.warning(
                 "[AnimePipelineService] queue timeout after %.0fs for job=%s",
-                _PIPELINE_QUEUE_TIMEOUT_SEC, job.job_id,
+                _PIPELINE_QUEUE_TIMEOUT_SEC,
+                job.job_id,
             )
-            yield _sse_line("ap_error", {
-                "job_id": job.job_id,
-                "stage": "queue",
-                "error": (
-                    f"Pipeline đang bận — không xin được GPU sau "
-                    f"{int(_PIPELINE_QUEUE_TIMEOUT_SEC)}s. Hãy thử lại sau."
-                ),
-                "recoverable": False,
-            })
+            yield _sse_line(
+                "ap_error",
+                {
+                    "job_id": job.job_id,
+                    "stage": "queue",
+                    "error": (
+                        f"Pipeline đang bận — không xin được GPU sau "
+                        f"{int(_PIPELINE_QUEUE_TIMEOUT_SEC)}s. Hãy thử lại sau."
+                    ),
+                    "recoverable": False,
+                },
+            )
             yield _sse_line("ap_done", {"job_id": job.job_id})
             return
 
@@ -479,8 +497,10 @@ def stream_pipeline(req: PipelineRequest) -> Generator[str, None, None]:
 
 
 def _run_pipeline_inner(
-    orchestrator: Any, job: Any, req: "PipelineRequest",
-) -> "Generator[str, None, None]":
+    orchestrator: Any,
+    job: Any,
+    req: PipelineRequest,
+) -> Generator[str, None, None]:
     """Inner generator: run the pipeline event loop and yield SSE frames.
 
     Called by stream_pipeline() inside a try/finally that always releases
@@ -492,21 +512,27 @@ def _run_pipeline_inner(
             edata = event.get("data", {})
 
             if etype == "anime_pipeline_pipeline_start":
-                yield _sse_line("ap_status", {
-                    "job_id": job.job_id,
-                    "message": "Pipeline initialised",
-                    "stages": edata.get("stages", []),
-                })
+                yield _sse_line(
+                    "ap_status",
+                    {
+                        "job_id": job.job_id,
+                        "message": "Pipeline initialised",
+                        "stages": edata.get("stages", []),
+                    },
+                )
 
             elif etype == "anime_pipeline_stage_start":
                 stage = edata.get("stage", "")
-                yield _sse_line("ap_stage_start", {
-                    "stage": stage,
-                    "stage_num": edata.get("stage_num", 0),
-                    "total_stages": edata.get("total_stages", 7),
-                    "label": _STAGE_LABELS.get(stage, stage),
-                    "vram_profile": edata.get("vram_profile", ""),
-                })
+                yield _sse_line(
+                    "ap_stage_start",
+                    {
+                        "stage": stage,
+                        "stage_num": edata.get("stage_num", 0),
+                        "total_stages": edata.get("total_stages", 7),
+                        "label": _STAGE_LABELS.get(stage, stage),
+                        "vram_profile": edata.get("vram_profile", ""),
+                    },
+                )
                 # ChatGPT-style: surface a placeholder "Layer N" card the
                 # moment the stage starts. We reuse the previous layer's
                 # pixels so the user sees the image-being-worked-on right
@@ -516,11 +542,13 @@ def _run_pipeline_inner(
                 layer_meta_start = _LAYER_STAGES.get(stage)
                 if layer_meta_start is not None:
                     placeholder_b64 = _latest_any_intermediate_b64(job)
-                    placeholder_url: Optional[str] = None
-                    placeholder_thumb: Optional[str] = None
+                    placeholder_url: str | None = None
+                    placeholder_thumb: str | None = None
                     if placeholder_b64:
                         placeholder_url = _persist_intermediate_preview(
-                            job.job_id, f"{stage}_pending", placeholder_b64,
+                            job.job_id,
+                            f"{stage}_pending",
+                            placeholder_b64,
                         )
                         # Inline thumb so the UI never depends on the
                         # /storage/images route during pipeline run (the
@@ -545,31 +573,40 @@ def _run_pipeline_inner(
 
             elif etype == "anime_pipeline_stage_complete":
                 stage = edata.get("stage", "")
-                yield _sse_line("ap_stage_done", {
-                    "stage": stage,
-                    "stage_num": edata.get("stage_num", 0),
-                    "latency_ms": edata.get("latency_ms", 0),
-                })
+                yield _sse_line(
+                    "ap_stage_done",
+                    {
+                        "stage": stage,
+                        "stage_num": edata.get("stage_num", 0),
+                        "latency_ms": edata.get("latency_ms", 0),
+                    },
+                )
                 # After critique, emit critique result for UI score badge
                 if stage == "critique" and job.critique_results:
                     cr = job.critique_results[-1]
-                    yield _sse_line("ap_critique_result", {
-                        "stage": "critique",
-                        "round": len(job.critique_results) - 1,
-                        "score": round(cr.overall_score, 1),
-                        "passed": cr.passed,
-                        "retry": cr.retry_recommendation,
-                        "issues": (cr.all_issues or [])[:4],
-                        "suggestions": (cr.prompt_patch or [])[:3],
-                        "model_used": cr.model_used or "",
-                    })
+                    yield _sse_line(
+                        "ap_critique_result",
+                        {
+                            "stage": "critique",
+                            "round": len(job.critique_results) - 1,
+                            "score": round(cr.overall_score, 1),
+                            "passed": cr.passed,
+                            "retry": cr.retry_recommendation,
+                            "issues": (cr.all_issues or [])[:4],
+                            "suggestions": (cr.prompt_patch or [])[:3],
+                            "model_used": cr.model_used or "",
+                        },
+                    )
 
                 # After layer planning, emit the full pass plan for UI chips
                 if stage == "layer_planning" and job.layer_plan:
                     plan = job.layer_plan
                     _PASS_ICONS = {
-                        "composition": "🎨", "cleanup": "🧹", "beauty": "✨",
-                        "structure_lock": "🔒", "upscale": "📐",
+                        "composition": "🎨",
+                        "cleanup": "🧹",
+                        "beauty": "✨",
+                        "structure_lock": "🔒",
+                        "upscale": "📐",
                     }
                     passes_summary = [
                         {
@@ -580,12 +617,17 @@ def _run_pipeline_inner(
                         }
                         for p in plan.passes[:5]
                     ]
-                    yield _sse_line("ap_layer_plan", {
-                        "passes": passes_summary,
-                        "total_passes": len(plan.passes),
-                        "resolution": f"{plan.resolution_width}\u00d7{plan.resolution_height}",
-                        "subject": plan.subject_list[0] if plan.subject_list else "",
-                    })
+                    yield _sse_line(
+                        "ap_layer_plan",
+                        {
+                            "passes": passes_summary,
+                            "total_passes": len(plan.passes),
+                            "resolution": f"{plan.resolution_width}\u00d7{plan.resolution_height}",
+                            "subject": (
+                                plan.subject_list[0] if plan.subject_list else ""
+                            ),
+                        },
+                    )
                 # Auto-emit a "Layer N" preview for visually-meaningful
                 # stages (composition, structure, beauty, detection_inpaint).
                 # In debug mode we additionally surface previews for any
@@ -604,7 +646,9 @@ def _run_pipeline_inner(
                         preview_b64 = _latest_any_intermediate_b64(job)
                     if preview_b64:
                         local_url = _persist_intermediate_preview(
-                            job.job_id, stage, preview_b64,
+                            job.job_id,
+                            stage,
+                            preview_b64,
                         )
                         thumb_b64 = _make_thumb_b64(preview_b64)
                         frame = {
@@ -627,95 +671,126 @@ def _run_pipeline_inner(
                             yield _sse_line("ap_preview", frame)
 
             elif etype == "anime_pipeline_refine_start":
-                yield _sse_line("ap_refine", {
-                    "round": edata.get("round", 0),
-                    "max_rounds": edata.get("max_rounds", 0),
-                    "previous_score": edata.get("previous_score", 0),
-                })
+                yield _sse_line(
+                    "ap_refine",
+                    {
+                        "round": edata.get("round", 0),
+                        "max_rounds": edata.get("max_rounds", 0),
+                        "previous_score": edata.get("previous_score", 0),
+                    },
+                )
 
             elif etype == "anime_pipeline_refine_reasoning":
-                yield _sse_line("ap_refine_reasoning", {
-                    "round": edata.get("round", 0),
-                    "reason": edata.get("reason", ""),
-                    "worst_dimensions": edata.get("worst_dimensions", []),
-                    "actions": edata.get("actions", []),
-                    "score_history": edata.get("score_history", []),
-                })
+                yield _sse_line(
+                    "ap_refine_reasoning",
+                    {
+                        "round": edata.get("round", 0),
+                        "reason": edata.get("reason", ""),
+                        "worst_dimensions": edata.get("worst_dimensions", []),
+                        "actions": edata.get("actions", []),
+                        "score_history": edata.get("score_history", []),
+                    },
+                )
 
             elif etype == "anime_pipeline_full_restart":
-                yield _sse_line("ap_full_restart", {
-                    "restart_num": edata.get("restart_num", 0),
-                    "best_score": edata.get("best_score", 0),
-                    "reason": edata.get("reason", ""),
-                })
+                yield _sse_line(
+                    "ap_full_restart",
+                    {
+                        "restart_num": edata.get("restart_num", 0),
+                        "best_score": edata.get("best_score", 0),
+                        "reason": edata.get("reason", ""),
+                    },
+                )
 
             elif etype == "anime_pipeline_research_status":
                 # 2026-04-29: relay character_research diagnostics to UI so
                 # the user sees "Đã dùng N ảnh local cache + K ảnh web" or
                 # "Bỏ qua web search (đủ ref local)" instead of a silent
                 # stage_done. Read by anime-pipeline.js → ap_research_status.
-                yield _sse_line("ap_research_status", {
-                    "stage": edata.get("stage", "character_research"),
-                    "danbooru_tag": edata.get("danbooru_tag", ""),
-                    "display_name": edata.get("display_name", ""),
-                    "local_refs": int(edata.get("local_refs", 0)),
-                    "web_refs": int(edata.get("web_refs", 0)),
-                    "web_search_skipped": bool(edata.get("web_search_skipped", False)),
-                    "nsfw_intent": bool(edata.get("nsfw_intent", False)),
-                    "cached": bool(edata.get("cached", False)),
-                    "confidence": float(edata.get("confidence", 0.0)),
-                    "latency_ms": float(edata.get("latency_ms", 0.0)),
-                })
+                yield _sse_line(
+                    "ap_research_status",
+                    {
+                        "stage": edata.get("stage", "character_research"),
+                        "danbooru_tag": edata.get("danbooru_tag", ""),
+                        "display_name": edata.get("display_name", ""),
+                        "local_refs": int(edata.get("local_refs", 0)),
+                        "web_refs": int(edata.get("web_refs", 0)),
+                        "web_search_skipped": bool(
+                            edata.get("web_search_skipped", False)
+                        ),
+                        "nsfw_intent": bool(edata.get("nsfw_intent", False)),
+                        "cached": bool(edata.get("cached", False)),
+                        "confidence": float(edata.get("confidence", 0.0)),
+                        "latency_ms": float(edata.get("latency_ms", 0.0)),
+                    },
+                )
 
             elif etype == "anime_pipeline_vision_reasoning":
                 # 2026-04-29: surface which vision provider answered so
                 # the UI can show e.g. "Vision: grok-2-vision-1212 (NSFW
                 # chain)" instead of leaving the chain opaque.
-                yield _sse_line("ap_vision_status", {
-                    "stage": "vision_analysis",
-                    "model_used": edata.get("model_used", "unknown"),
-                    "confidence": float(edata.get("confidence", 0.0)),
-                    "nsfw_level": edata.get("nsfw_level", "unknown"),
-                    "character_detected": bool(edata.get("character_detected", False)),
-                    "character_name": edata.get("character_name") or "",
-                    "tag_count": len(edata.get("anime_tags", []) or []),
-                })
+                yield _sse_line(
+                    "ap_vision_status",
+                    {
+                        "stage": "vision_analysis",
+                        "model_used": edata.get("model_used", "unknown"),
+                        "confidence": float(edata.get("confidence", 0.0)),
+                        "nsfw_level": edata.get("nsfw_level", "unknown"),
+                        "character_detected": bool(
+                            edata.get("character_detected", False)
+                        ),
+                        "character_name": edata.get("character_name") or "",
+                        "tag_count": len(edata.get("anime_tags", []) or []),
+                    },
+                )
 
             elif etype == "anime_pipeline_stage_error":
-                yield _sse_line("ap_error", {
-                    "stage": edata.get("stage", ""),
-                    "error": edata.get("error", "Unknown error"),
-                    "recoverable": True,
-                })
+                yield _sse_line(
+                    "ap_error",
+                    {
+                        "stage": edata.get("stage", ""),
+                        "error": edata.get("error", "Unknown error"),
+                        "recoverable": True,
+                    },
+                )
 
             elif etype == "anime_pipeline_pipeline_error":
-                yield _sse_line("ap_error", {
-                    "error": edata.get("error", "Pipeline failed"),
-                    "recoverable": False,
-                    "has_fallback": edata.get("has_fallback_image", False),
-                })
+                yield _sse_line(
+                    "ap_error",
+                    {
+                        "error": edata.get("error", "Pipeline failed"),
+                        "recoverable": False,
+                        "has_fallback": edata.get("has_fallback_image", False),
+                    },
+                )
 
             elif etype == "anime_pipeline_pipeline_cancelled":
                 # User pressed "Stop & export" — orchestrator already set
                 # job.final_image_b64 to the best-so-far snapshot. Forward a
                 # dedicated frame so the UI can swap labels; the regular
                 # ap_result with the partial image still flows below.
-                yield _sse_line("ap_cancelled", {
-                    "job_id": job.job_id,
-                    "stage": edata.get("stage", ""),
-                    "has_image": edata.get("has_image", False),
-                    "message": edata.get("message", "Đã ngưng pipeline"),
-                })
+                yield _sse_line(
+                    "ap_cancelled",
+                    {
+                        "job_id": job.job_id,
+                        "stage": edata.get("stage", ""),
+                        "has_image": edata.get("has_image", False),
+                        "message": edata.get("message", "Đã ngưng pipeline"),
+                    },
+                )
 
             elif etype == "anime_pipeline_pipeline_complete":
                 pass  # Handled below after loop
 
     except Exception as exc:
         logger.error("[AnimePipelineService] Error: %s", exc, exc_info=True)
-        yield _sse_line("ap_error", {
-            "error": str(exc),
-            "recoverable": False,
-        })
+        yield _sse_line(
+            "ap_error",
+            {
+                "error": str(exc),
+                "recoverable": False,
+            },
+        )
 
     # ── Final result ────────────────────────────────────────────────
     manifest = job.to_dict()
@@ -758,20 +833,27 @@ def _run_pipeline_inner(
                     # last write also refreshes latest.png so it points at
                     # the most recent image-only batch tile.
                     _mirror_final_to_comfyui(b64, fname)
-                    gallery.append({
-                        "index": idx,
-                        "local_url": f"/storage/images/{fname}",
-                        "filename": fname,
-                    })
+                    gallery.append(
+                        {
+                            "index": idx,
+                            "local_url": f"/storage/images/{fname}",
+                            "filename": fname,
+                        }
+                    )
                 except Exception as save_err:
                     logger.warning(
                         "[AnimePipelineService] image_only save %d failed: %s",
-                        idx, save_err,
+                        idx,
+                        save_err,
                     )
                     gallery.append({"index": idx, "image_b64": b64})
         except Exception as exc:
-            logger.warning("[AnimePipelineService] image_only gallery setup failed: %s", exc)
-            gallery = [{"index": i, "image_b64": b} for i, b in enumerate(extra_images) if b]
+            logger.warning(
+                "[AnimePipelineService] image_only gallery setup failed: %s", exc
+            )
+            gallery = [
+                {"index": i, "image_b64": b} for i, b in enumerate(extra_images) if b
+            ]
         if gallery:
             result_data["images"] = gallery
             result_data["image_only"] = True
@@ -781,7 +863,7 @@ def _run_pipeline_inner(
     yield _sse_line("ap_done", {"job_id": job.job_id})
 
 
-def _latest_intermediate_b64(job: Any, stage: str) -> Optional[str]:
+def _latest_intermediate_b64(job: Any, stage: str) -> str | None:
     """Return the most recent intermediate image b64 for *stage*, if any.
 
     For ``detection_inpaint`` the orchestrator stores per-region snapshots
@@ -799,7 +881,7 @@ def _latest_intermediate_b64(job: Any, stage: str) -> Optional[str]:
     return None
 
 
-def _latest_any_intermediate_b64(job: Any) -> Optional[str]:
+def _latest_any_intermediate_b64(job: Any) -> str | None:
     """Return the most recent intermediate b64 of any stage, if any.
 
     Used as a placeholder image for layer stages that are *about to start*

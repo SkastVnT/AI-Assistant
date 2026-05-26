@@ -68,7 +68,8 @@ def _append_download_manifest(entry: dict[str, Any]) -> None:
                 except (json.JSONDecodeError, OSError) as e:
                     logger.warning(
                         "[LoRAMgr] download_manifest.json unreadable, starting "
-                        "fresh: %s", e,
+                        "fresh: %s",
+                        e,
                     )
             existing.append(entry)
             tmp = _DOWNLOAD_MANIFEST_PATH.with_suffix(".json.tmp")
@@ -78,10 +79,12 @@ def _append_download_manifest(entry: dict[str, Any]) -> None:
     except Exception as e:
         logger.warning("[LoRAMgr] Failed to append download manifest: %s", e)
 
+
 # 2026-04-26 user spec: SAA / local registry must be consulted BEFORE
 # any CivitAI call.  Cache the parsed character-section once per process.
 _CHAR_REGISTRY_CACHE: Optional[list[dict[str, Any]]] = None
 _CHAR_REGISTRY_LOCK = __import__("threading").Lock()
+
 
 def lora_file_exists(lora_rel_path: str) -> bool:
     """Return True if the LoRA file is present under ComfyUI/models/loras/.
@@ -118,6 +121,7 @@ def _normalise_lora_name(name: str) -> str:
 def _fetch_comfy_lora_list(base_url: str) -> Optional[set[str]]:
     try:
         import httpx
+
         with httpx.Client(timeout=8) as client:
             resp = client.get(f"{base_url.rstrip('/')}/object_info/LoraLoader")
             if resp.status_code != 200:
@@ -125,9 +129,9 @@ def _fetch_comfy_lora_list(base_url: str) -> Optional[set[str]]:
             info = resp.json()
             raw = (
                 info.get("LoraLoader", {})
-                    .get("input", {})
-                    .get("required", {})
-                    .get("lora_name", [[]])[0]
+                .get("input", {})
+                .get("required", {})
+                .get("lora_name", [[]])[0]
             )
             if not isinstance(raw, list):
                 return None
@@ -187,6 +191,7 @@ def lora_known_to_comfyui(lora_rel_path: str) -> bool:
             return True
     return False
 
+
 _CIVITAI_API = "https://civitai.com/api/v1"
 _CIVITAI_DOWNLOAD = "https://civitai.com/api/download/models"
 
@@ -198,9 +203,11 @@ _MAX_CANDIDATES = 3
 
 # ── Data classes ─────────────────────────────────────────────────────
 
+
 @dataclass
 class LoRACandidate:
     """A single CivitAI LoRA candidate."""
+
     model_id: int
     version_id: int
     name: str
@@ -216,6 +223,7 @@ class LoRACandidate:
 @dataclass
 class LoRAVerificationResult:
     """Result of vision-based LoRA quality check."""
+
     accepted: bool
     vision_score: float
     test_image_b64: Optional[str]
@@ -229,6 +237,7 @@ class LoRAVerificationResult:
 # ════════════════════════════════════════════════════════════════════════
 # CivitAI search
 # ════════════════════════════════════════════════════════════════════════
+
 
 def _civitai_search(
     display_name: str,
@@ -297,7 +306,9 @@ def _civitai_search(
                     k in base_model.lower()
                     for k in ["sdxl", "illustrious", "noobai", "xl", "pony"]
                 ):
-                    logger.debug("[LoRAMgr] Skip %s — base=%s", item.get("name"), base_model)
+                    logger.debug(
+                        "[LoRAMgr] Skip %s — base=%s", item.get("name"), base_model
+                    )
                     continue
 
                 # Get the safetensors file info
@@ -309,24 +320,28 @@ def _civitai_search(
                 if not st_file:
                     continue
 
-                dl_url = st_file.get("downloadUrl") or f"{_CIVITAI_DOWNLOAD}/{version_id}"
+                dl_url = (
+                    st_file.get("downloadUrl") or f"{_CIVITAI_DOWNLOAD}/{version_id}"
+                )
                 size_bytes = st_file.get("sizeKB", 0) * 1024
 
                 trigger_words = ver.get("trainedWords", [])
                 stats = item.get("stats", {})
 
-                candidates.append(LoRACandidate(
-                    model_id=model_id,
-                    version_id=version_id,
-                    name=item.get("name", ""),
-                    filename=st_file.get("name", f"char_{version_id}.safetensors"),
-                    download_url=dl_url,
-                    trigger_words=trigger_words,
-                    base_model=base_model,
-                    download_count=stats.get("downloadCount", 0),
-                    rating=stats.get("rating", 0.0),
-                    size_bytes=int(size_bytes),
-                ))
+                candidates.append(
+                    LoRACandidate(
+                        model_id=model_id,
+                        version_id=version_id,
+                        name=item.get("name", ""),
+                        filename=st_file.get("name", f"char_{version_id}.safetensors"),
+                        download_url=dl_url,
+                        trigger_words=trigger_words,
+                        base_model=base_model,
+                        download_count=stats.get("downloadCount", 0),
+                        rating=stats.get("rating", 0.0),
+                        size_bytes=int(size_bytes),
+                    )
+                )
 
         except Exception as e:
             logger.warning("[LoRAMgr] CivitAI search failed for '%s': %s", query, e)
@@ -339,6 +354,7 @@ def _civitai_search(
 # ════════════════════════════════════════════════════════════════════════
 # Download
 # ════════════════════════════════════════════════════════════════════════
+
 
 def _download_lora(candidate: LoRACandidate, danbooru_tag: str) -> Optional[Path]:
     """Download a LoRA safetensors file to local cache.
@@ -357,8 +373,11 @@ def _download_lora(candidate: LoRACandidate, danbooru_tag: str) -> Optional[Path
 
     # Size guard: skip files > 1 GB
     if candidate.size_bytes > 1_000_000_000:
-        logger.warning("[LoRAMgr] Skip %s — too large (%.1f MB)",
-                       candidate.filename, candidate.size_bytes / 1_000_000)
+        logger.warning(
+            "[LoRAMgr] Skip %s — too large (%.1f MB)",
+            candidate.filename,
+            candidate.size_bytes / 1_000_000,
+        )
         return None
 
     civitai_key = os.getenv("CIVITAI_API_KEY", "")
@@ -366,8 +385,11 @@ def _download_lora(candidate: LoRACandidate, danbooru_tag: str) -> Optional[Path
     if civitai_key:
         headers["Authorization"] = f"Bearer {civitai_key}"
 
-    logger.info("[LoRAMgr] Downloading %s from CivitAI (~%.1f MB)...",
-                candidate.filename, candidate.size_bytes / 1_000_000)
+    logger.info(
+        "[LoRAMgr] Downloading %s from CivitAI (~%.1f MB)...",
+        candidate.filename,
+        candidate.size_bytes / 1_000_000,
+    )
 
     # Retry on transient network failures (timeouts, connection errors, 5xx).
     # CivitAI is known to flake under load; without retry a single hiccup
@@ -393,8 +415,13 @@ def _download_lora(candidate: LoRACandidate, danbooru_tag: str) -> Optional[Path
             last_exc = e
             if attempt < _MAX_ATTEMPTS:
                 wait = 2 ** (attempt - 1)
-                logger.warning("[LoRAMgr] Download attempt %d/%d failed (%s); retrying in %ds",
-                               attempt, _MAX_ATTEMPTS, e, wait)
+                logger.warning(
+                    "[LoRAMgr] Download attempt %d/%d failed (%s); retrying in %ds",
+                    attempt,
+                    _MAX_ATTEMPTS,
+                    e,
+                    wait,
+                )
                 # Clean partial file before retry
                 if dest.exists():
                     try:
@@ -403,7 +430,9 @@ def _download_lora(candidate: LoRACandidate, danbooru_tag: str) -> Optional[Path
                         pass
                 time.sleep(wait)
             else:
-                logger.error("[LoRAMgr] Download failed after %d attempts: %s", _MAX_ATTEMPTS, e)
+                logger.error(
+                    "[LoRAMgr] Download failed after %d attempts: %s", _MAX_ATTEMPTS, e
+                )
                 if dest.exists():
                     try:
                         dest.unlink()
@@ -417,8 +446,13 @@ def _download_lora(candidate: LoRACandidate, danbooru_tag: str) -> Optional[Path
                 last_exc = e
                 if attempt < _MAX_ATTEMPTS:
                     wait = 2 ** (attempt - 1)
-                    logger.warning("[LoRAMgr] HTTP %d on attempt %d/%d; retrying in %ds",
-                                   status, attempt, _MAX_ATTEMPTS, wait)
+                    logger.warning(
+                        "[LoRAMgr] HTTP %d on attempt %d/%d; retrying in %ds",
+                        status,
+                        attempt,
+                        _MAX_ATTEMPTS,
+                        wait,
+                    )
                     if dest.exists():
                         try:
                             dest.unlink()
@@ -435,7 +469,9 @@ def _download_lora(candidate: LoRACandidate, danbooru_tag: str) -> Optional[Path
             return None
         except Exception as e:
             # Unexpected error — don't retry, surface and bail.
-            logger.error("[LoRAMgr] Unexpected download error for %s: %s", candidate.filename, e)
+            logger.error(
+                "[LoRAMgr] Unexpected download error for %s: %s", candidate.filename, e
+            )
             if dest.exists():
                 dest.unlink(missing_ok=True)
             return None
@@ -451,27 +487,30 @@ def _download_lora(candidate: LoRACandidate, danbooru_tag: str) -> Optional[Path
         file_path_rel = str(dest.relative_to(_WORKSPACE_ROOT)).replace("\\", "/")
     except ValueError:
         file_path_rel = str(dest)
-    _append_download_manifest({
-        "event": "download",
-        "character_tag": danbooru_tag,
-        "filename": candidate.filename,
-        "file_path": file_path_rel,
-        "size_mb": round(size_mb, 2),
-        "civitai_model_id": candidate.model_id,
-        "civitai_version_id": candidate.version_id,
-        "candidate_name": candidate.name,
-        "base_model": candidate.base_model,
-        "trigger_words": candidate.trigger_words,
-        "download_count": candidate.download_count,
-        "source": "civitai",
-        "source_url": candidate.download_url,
-    })
+    _append_download_manifest(
+        {
+            "event": "download",
+            "character_tag": danbooru_tag,
+            "filename": candidate.filename,
+            "file_path": file_path_rel,
+            "size_mb": round(size_mb, 2),
+            "civitai_model_id": candidate.model_id,
+            "civitai_version_id": candidate.version_id,
+            "candidate_name": candidate.name,
+            "base_model": candidate.base_model,
+            "trigger_words": candidate.trigger_words,
+            "download_count": candidate.download_count,
+            "source": "civitai",
+            "source_url": candidate.download_url,
+        }
+    )
     return dest
 
 
 # ════════════════════════════════════════════════════════════════════════
 # Quick ComfyUI test generation
 # ════════════════════════════════════════════════════════════════════════
+
 
 def _lora_relative_path(lora_abs: Path) -> str:
     """Return ComfyUI-relative LoRA path (from models/loras/)."""
@@ -631,7 +670,8 @@ def _run_test_generation(
             time.sleep(2)
             try:
                 hist_resp = httpx.get(
-                    f"{comfyui_url}/history/{prompt_id}", timeout=10,
+                    f"{comfyui_url}/history/{prompt_id}",
+                    timeout=10,
                 )
                 if hist_resp.status_code == 200:
                     hist = hist_resp.json()
@@ -652,7 +692,9 @@ def _run_test_generation(
                                     timeout=15,
                                 )
                                 if img_resp.status_code == 200:
-                                    b64 = base64.b64encode(img_resp.content).decode("ascii")
+                                    b64 = base64.b64encode(img_resp.content).decode(
+                                        "ascii"
+                                    )
                                     logger.info("[LoRAMgr] Test generation complete")
                                     return b64
             except Exception as e:
@@ -725,14 +767,14 @@ def _verify_lora_with_vision(
         appearance_description=appearance_description,
     )
 
-    raw_test = test_image_b64.split(",", 1)[-1] if "," in test_image_b64 else test_image_b64
+    raw_test = (
+        test_image_b64.split(",", 1)[-1] if "," in test_image_b64 else test_image_b64
+    )
 
     # Gemini vision
     if gemini_key:
         parts = [{"text": prompt}]
-        parts.append({
-            "inline_data": {"mime_type": "image/png", "data": raw_test}
-        })
+        parts.append({"inline_data": {"mime_type": "image/png", "data": raw_test}})
         # Optionally include first reference image for comparison
         if reference_images:
             raw_ref = (
@@ -740,11 +782,14 @@ def _verify_lora_with_vision(
                 if "," in reference_images[0]
                 else reference_images[0]
             )
-            parts.append({
-                "inline_data": {"mime_type": "image/png", "data": raw_ref}
-            })
+            parts.append({"inline_data": {"mime_type": "image/png", "data": raw_ref}})
             parts.insert(1, {"text": "This is the reference image of the character:"})
-            parts.insert(3, {"text": "This is the generated image (check if it matches the character above):"})
+            parts.insert(
+                3,
+                {
+                    "text": "This is the generated image (check if it matches the character above):"
+                },
+            )
 
         try:
             resp = httpx.post(
@@ -775,8 +820,12 @@ def _verify_lora_with_vision(
                 verdict = result.get("verdict", "")
                 if verdict == "reject":
                     score = min(score, _VISION_ACCEPT_THRESHOLD - 0.1)
-                logger.info("[LoRAMgr] Vision verify: score=%.1f verdict=%s issues=%s",
-                            score, verdict, result.get("issues", []))
+                logger.info(
+                    "[LoRAMgr] Vision verify: score=%.1f verdict=%s issues=%s",
+                    score,
+                    verdict,
+                    result.get("issues", []),
+                )
                 return score
         except Exception as e:
             logger.warning("[LoRAMgr] Gemini verify failed: %s", e)
@@ -785,22 +834,37 @@ def _verify_lora_with_vision(
     openai_key = os.getenv("OPENAI_API_KEY", "")
     if openai_key:
         content: list[dict] = [{"type": "text", "text": prompt}]
-        content.append({
-            "type": "image_url",
-            "image_url": {"url": f"data:image/png;base64,{raw_test}", "detail": "low"},
-        })
+        content.append(
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{raw_test}",
+                    "detail": "low",
+                },
+            }
+        )
         if reference_images:
             raw_ref = (
                 reference_images[0].split(",", 1)[-1]
                 if "," in reference_images[0]
                 else reference_images[0]
             )
-            content.insert(1, {"type": "text", "text": "Reference (correct character):"})
-            content.insert(2, {
-                "type": "image_url",
-                "image_url": {"url": f"data:image/png;base64,{raw_ref}", "detail": "low"},
-            })
-            content.append({"type": "text", "text": "Generated image (check if it matches):"})
+            content.insert(
+                1, {"type": "text", "text": "Reference (correct character):"}
+            )
+            content.insert(
+                2,
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{raw_ref}",
+                        "detail": "low",
+                    },
+                },
+            )
+            content.append(
+                {"type": "text", "text": "Generated image (check if it matches):"}
+            )
 
         try:
             resp = httpx.post(
@@ -846,6 +910,7 @@ def _parse_verify_json(text: str) -> Optional[dict]:
 # Metadata cache
 # ════════════════════════════════════════════════════════════════════════
 
+
 def _load_lora_cache(danbooru_tag: str) -> Optional[dict]:
     """Load cached LoRA metadata."""
     meta_file = _LORA_META_DIR / danbooru_tag / "lora_meta.json"
@@ -867,7 +932,9 @@ def _save_lora_cache(danbooru_tag: str, meta: dict) -> None:
     meta_file = cache_dir / "lora_meta.json"
     meta["timestamp"] = time.time()
     try:
-        meta_file.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+        meta_file.write_text(
+            json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
     except Exception as e:
         logger.warning("[LoRAMgr] Cache save failed: %s", e)
 
@@ -875,6 +942,7 @@ def _save_lora_cache(danbooru_tag: str, meta: dict) -> None:
 # ════════════════════════════════════════════════════════════════════════
 # Local registry (SAA-first lookup before CivitAI)
 # ════════════════════════════════════════════════════════════════════════
+
 
 def _load_character_registry() -> list[dict[str, Any]]:
     """Parse the ``character:`` section of configs/lora_registry.yaml once."""
@@ -890,15 +958,20 @@ def _load_character_registry() -> list[dict[str, Any]]:
             return entries
         try:
             import yaml  # type: ignore
+
             data = yaml.safe_load(_LORA_REGISTRY_YAML.read_text(encoding="utf-8"))
             if isinstance(data, dict):
                 section = data.get("character") or []
                 if isinstance(section, list):
-                    entries = [e for e in section if isinstance(e, dict) and e.get("name")]
+                    entries = [
+                        e for e in section if isinstance(e, dict) and e.get("name")
+                    ]
         except Exception as exc:  # noqa: BLE001
             logger.warning("[LoRAMgr] Failed to load lora_registry.yaml: %s", exc)
         _CHAR_REGISTRY_CACHE = entries
-        logger.info("[LoRAMgr] Local character registry loaded: %d entries", len(entries))
+        logger.info(
+            "[LoRAMgr] Local character registry loaded: %d entries", len(entries)
+        )
         return entries
 
 
@@ -958,8 +1031,14 @@ def _local_registry_lookup(
             cn = _norm(c)
             if not cn:
                 continue
-            if cn == tag_n or cn == display_n or (tag_n and (tag_n in cn or cn in tag_n)):
-                path = _resolve_local_lora_path(entry.get("name", ""), entry.get("location", ""))
+            if (
+                cn == tag_n
+                or cn == display_n
+                or (tag_n and (tag_n in cn or cn in tag_n))
+            ):
+                path = _resolve_local_lora_path(
+                    entry.get("name", ""), entry.get("location", "")
+                )
                 if path:
                     triggers = entry.get("trigger_words") or []
                     if not isinstance(triggers, list):
@@ -978,7 +1057,9 @@ def _local_registry_lookup(
         for entry in entries:
             name = (entry.get("name") or "").lower()
             if series_n in name:
-                path = _resolve_local_lora_path(entry.get("name", ""), entry.get("location", ""))
+                path = _resolve_local_lora_path(
+                    entry.get("name", ""), entry.get("location", "")
+                )
                 if path:
                     triggers = entry.get("trigger_words") or []
                     if not isinstance(triggers, list):
@@ -992,6 +1073,7 @@ def _local_registry_lookup(
 # ════════════════════════════════════════════════════════════════════════
 # Public API
 # ════════════════════════════════════════════════════════════════════════
+
 
 def find_and_verify_character_lora(
     danbooru_tag: str,
@@ -1027,8 +1109,11 @@ def find_and_verify_character_lora(
         if cached and cached.get("accepted"):
             lora_path = Path(cached["lora_path"]) if cached.get("lora_path") else None
             if lora_path and lora_path.exists():
-                logger.info("[LoRAMgr] Cached accepted LoRA for %s: %s",
-                            danbooru_tag, lora_path.name)
+                logger.info(
+                    "[LoRAMgr] Cached accepted LoRA for %s: %s",
+                    danbooru_tag,
+                    lora_path.name,
+                )
                 return LoRAVerificationResult(
                     accepted=True,
                     vision_score=cached.get("vision_score", 8.0),
@@ -1051,7 +1136,8 @@ def find_and_verify_character_lora(
         local_path, local_triggers, local_meta = local_hit
         logger.info(
             "[LoRAMgr] Local registry hit for %s: %s (skipping CivitAI)",
-            danbooru_tag, local_path.name,
+            danbooru_tag,
+            local_path.name,
         )
         result = LoRAVerificationResult(
             accepted=True,
@@ -1063,20 +1149,24 @@ def find_and_verify_character_lora(
             latency_ms=(time.time() - t0) * 1000,
         )
         try:
-            _save_lora_cache(danbooru_tag, {
-                "accepted": True,
-                "lora_path": str(local_path),
-                "vision_score": 8.0,
-                "trigger_words": local_triggers,
-                "source": "local_registry",
-                "registry_entry": local_meta.get("name"),
-            })
+            _save_lora_cache(
+                danbooru_tag,
+                {
+                    "accepted": True,
+                    "lora_path": str(local_path),
+                    "vision_score": 8.0,
+                    "trigger_words": local_triggers,
+                    "source": "local_registry",
+                    "registry_entry": local_meta.get("name"),
+                },
+            )
         except Exception as exc:  # noqa: BLE001
             logger.debug("[LoRAMgr] cache save (local hit) failed: %s", exc)
         return result
 
-    logger.info("[LoRAMgr] Searching CivitAI for %s (%s) LoRAs...",
-                display_name, series_name)
+    logger.info(
+        "[LoRAMgr] Searching CivitAI for %s (%s) LoRAs...", display_name, series_name
+    )
 
     # Step 1: CivitAI search
     candidates = _civitai_search(display_name, series_name, danbooru_tag)
@@ -1101,7 +1191,7 @@ def find_and_verify_character_lora(
     if not force_refresh:
         _prev = _load_lora_cache(danbooru_tag)
         if _prev and not _prev.get("accepted"):
-            for entry in (_prev.get("tried_candidates") or []):
+            for entry in _prev.get("tried_candidates") or []:
                 fn = entry.get("filename")
                 if fn:
                     prior_tried[fn] = entry
@@ -1119,25 +1209,37 @@ def find_and_verify_character_lora(
             prev = prior_tried[candidate.filename]
             logger.info(
                 "[LoRAMgr] Skip %s \u2014 previously rejected (score=%.1f)",
-                candidate.filename, float(prev.get("vision_score", 0.0)),
+                candidate.filename,
+                float(prev.get("vision_score", 0.0)),
             )
             continue
 
-        logger.info("[LoRAMgr] Trying: %s (downloads=%d, base=%s, size=%.1fMB)",
-                    candidate.name, candidate.download_count,
-                    candidate.base_model, candidate.size_bytes / 1_000_000)
+        logger.info(
+            "[LoRAMgr] Trying: %s (downloads=%d, base=%s, size=%.1fMB)",
+            candidate.name,
+            candidate.download_count,
+            candidate.base_model,
+            candidate.size_bytes / 1_000_000,
+        )
 
         # Step 2: Download
         lora_path = _download_lora(candidate, danbooru_tag)
         if not lora_path:
-            logger.warning("[LoRAMgr] Download failed for %s, trying next", candidate.filename)
+            logger.warning(
+                "[LoRAMgr] Download failed for %s, trying next", candidate.filename
+            )
             continue
 
         # Step 3: Build ComfyUI test workflow
         lora_rel = _lora_relative_path(lora_path)
-        trigger_str = ", ".join(candidate.trigger_words[:3]) if candidate.trigger_words else ""
+        trigger_str = (
+            ", ".join(candidate.trigger_words[:3]) if candidate.trigger_words else ""
+        )
         test_prompt = _build_test_prompt(
-            display_name, danbooru_tag, trigger_str, appearance_description,
+            display_name,
+            danbooru_tag,
+            trigger_str,
+            appearance_description,
         )
 
         workflow = _build_test_workflow(
@@ -1149,8 +1251,10 @@ def find_and_verify_character_lora(
         # Step 4: Run test generation
         if not comfyui_url:
             # No ComfyUI available — keep the LoRA with a provisional accept
-            logger.warning("[LoRAMgr] No ComfyUI URL, skipping test generation. Provisionally accepting %s",
-                           candidate.filename)
+            logger.warning(
+                "[LoRAMgr] No ComfyUI URL, skipping test generation. Provisionally accepting %s",
+                candidate.filename,
+            )
             result = LoRAVerificationResult(
                 accepted=True,
                 vision_score=6.5,
@@ -1160,14 +1264,17 @@ def find_and_verify_character_lora(
                 trigger_words=candidate.trigger_words,
                 latency_ms=(time.time() - t0) * 1000,
             )
-            _save_lora_cache(danbooru_tag, {
-                "accepted": True,
-                "vision_score": result.vision_score,
-                "lora_path": str(lora_path),
-                "lora_filename": lora_rel,
-                "trigger_words": candidate.trigger_words,
-                "candidate_name": candidate.name,
-            })
+            _save_lora_cache(
+                danbooru_tag,
+                {
+                    "accepted": True,
+                    "vision_score": result.vision_score,
+                    "lora_path": str(lora_path),
+                    "lora_filename": lora_rel,
+                    "trigger_words": candidate.trigger_words,
+                    "candidate_name": candidate.name,
+                },
+            )
             return result
 
         try:
@@ -1180,23 +1287,28 @@ def find_and_verify_character_lora(
             logger.error(
                 "[LoRAMgr] ComfyUI infrastructure error testing %s \u2014 keeping "
                 "downloaded file, aborting verification (will retry next run): %s",
-                candidate.filename, exc,
+                candidate.filename,
+                exc,
             )
             infra_aborted = True
             break
 
         if not test_image_b64:
-            logger.warning("[LoRAMgr] Test generation produced no image for %s", candidate.filename)
+            logger.warning(
+                "[LoRAMgr] Test generation produced no image for %s", candidate.filename
+            )
             # Keep the file on disk \u2014 user may want to use it manually, and
             # an empty result is often a transient ComfyUI hiccup.  Mark as
             # tried so we don't waste time on a re-test next run.
-            tried_candidates.append({
-                "filename": candidate.filename,
-                "lora_path": str(lora_path),
-                "vision_score": 0.0,
-                "reason": "test_no_image",
-                "candidate_name": candidate.name,
-            })
+            tried_candidates.append(
+                {
+                    "filename": candidate.filename,
+                    "lora_path": str(lora_path),
+                    "vision_score": 0.0,
+                    "reason": "test_no_image",
+                    "candidate_name": candidate.name,
+                }
+            )
             continue
 
         # Step 5: Vision verification
@@ -1208,12 +1320,18 @@ def find_and_verify_character_lora(
             reference_images=reference_images,
         )
 
-        logger.info("[LoRAMgr] Vision score for %s: %.1f (threshold=%.1f)",
-                    candidate.filename, vision_score, _VISION_ACCEPT_THRESHOLD)
+        logger.info(
+            "[LoRAMgr] Vision score for %s: %.1f (threshold=%.1f)",
+            candidate.filename,
+            vision_score,
+            _VISION_ACCEPT_THRESHOLD,
+        )
 
         if vision_score >= _VISION_ACCEPT_THRESHOLD:
             # Accept this LoRA
-            logger.info("[LoRAMgr] ACCEPTED LoRA: %s (score=%.1f)", lora_path.name, vision_score)
+            logger.info(
+                "[LoRAMgr] ACCEPTED LoRA: %s (score=%.1f)", lora_path.name, vision_score
+            )
             result = LoRAVerificationResult(
                 accepted=True,
                 vision_score=vision_score,
@@ -1223,22 +1341,27 @@ def find_and_verify_character_lora(
                 trigger_words=candidate.trigger_words,
                 latency_ms=(time.time() - t0) * 1000,
             )
-            _save_lora_cache(danbooru_tag, {
-                "accepted": True,
-                "vision_score": vision_score,
-                "lora_path": str(lora_path),
-                "lora_filename": lora_rel,
-                "trigger_words": candidate.trigger_words,
-                "candidate_name": candidate.name,
-            })
-            _append_download_manifest({
-                "event": "verdict",
-                "character_tag": danbooru_tag,
-                "filename": candidate.filename,
-                "vision_score": round(vision_score, 2),
-                "accepted": True,
-                "reason": "vision_accepted",
-            })
+            _save_lora_cache(
+                danbooru_tag,
+                {
+                    "accepted": True,
+                    "vision_score": vision_score,
+                    "lora_path": str(lora_path),
+                    "lora_filename": lora_rel,
+                    "trigger_words": candidate.trigger_words,
+                    "candidate_name": candidate.name,
+                },
+            )
+            _append_download_manifest(
+                {
+                    "event": "verdict",
+                    "character_tag": danbooru_tag,
+                    "filename": candidate.filename,
+                    "vision_score": round(vision_score, 2),
+                    "accepted": True,
+                    "reason": "vision_accepted",
+                }
+            )
             return result
 
         else:
@@ -1248,23 +1371,29 @@ def find_and_verify_character_lora(
             # so future runs skip it.
             logger.info(
                 "[LoRAMgr] REJECTED LoRA: %s (score=%.1f < %.1f) \u2014 keeping file on disk",
-                candidate.filename, vision_score, _VISION_ACCEPT_THRESHOLD,
+                candidate.filename,
+                vision_score,
+                _VISION_ACCEPT_THRESHOLD,
             )
-            tried_candidates.append({
-                "filename": candidate.filename,
-                "lora_path": str(lora_path),
-                "vision_score": vision_score,
-                "reason": "vision_rejected",
-                "candidate_name": candidate.name,
-            })
-            _append_download_manifest({
-                "event": "verdict",
-                "character_tag": danbooru_tag,
-                "filename": candidate.filename,
-                "vision_score": round(vision_score, 2),
-                "accepted": False,
-                "reason": "vision_rejected",
-            })
+            tried_candidates.append(
+                {
+                    "filename": candidate.filename,
+                    "lora_path": str(lora_path),
+                    "vision_score": vision_score,
+                    "reason": "vision_rejected",
+                    "candidate_name": candidate.name,
+                }
+            )
+            _append_download_manifest(
+                {
+                    "event": "verdict",
+                    "character_tag": danbooru_tag,
+                    "filename": candidate.filename,
+                    "vision_score": round(vision_score, 2),
+                    "accepted": False,
+                    "reason": "vision_rejected",
+                }
+            )
 
     # All candidates rejected (or infra error aborted before completion)
     if infra_aborted:
@@ -1284,14 +1413,19 @@ def find_and_verify_character_lora(
 
     logger.info(
         "[LoRAMgr] No acceptable LoRA found for %s (tried %d, rejected %d)",
-        display_name, len(candidates), len(tried_candidates),
+        display_name,
+        len(candidates),
+        len(tried_candidates),
     )
-    _save_lora_cache(danbooru_tag, {
-        "accepted": False,
-        "vision_score": 0.0,
-        "candidates_tried": len(candidates),
-        "tried_candidates": tried_candidates,
-    })
+    _save_lora_cache(
+        danbooru_tag,
+        {
+            "accepted": False,
+            "vision_score": 0.0,
+            "candidates_tried": len(candidates),
+            "tried_candidates": tried_candidates,
+        },
+    )
 
     return LoRAVerificationResult(
         accepted=False,

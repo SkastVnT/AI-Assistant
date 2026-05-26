@@ -101,7 +101,8 @@ _PANEL_COUNT_RE = re.compile(
     re.IGNORECASE,
 )
 _PANEL_LABEL_RE = re.compile(
-    r"\bpanel\s*([0-9]{1,2})\b", re.IGNORECASE,
+    r"\bpanel\s*([0-9]{1,2})\b",
+    re.IGNORECASE,
 )
 
 # Edit / instruction keywords (ChatGPT Images + Grok natural-language editing).
@@ -226,7 +227,9 @@ def classify(request: CapabilityRequest) -> CapabilityDecision:
     # 6./7. Image edit.
     edit_match = _EDIT_KEYWORDS_RE.search(text)
     has_prior_image = bool(request.prior_image_ref)
-    if (request.attached_images == 1) or (request.is_followup and has_prior_image and edit_match):
+    if (request.attached_images == 1) or (
+        request.is_followup and has_prior_image and edit_match
+    ):
         if edit_match:
             reasons.append(f"edit keyword: {edit_match.group(0).lower()!r}")
         if request.attached_images == 1:

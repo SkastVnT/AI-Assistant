@@ -7,12 +7,14 @@ from enum import Enum
 from abc import ABC
 from tqdm import tqdm
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from comfy_execution.graph import DynamicPrompt
 from protocol import BinaryEventTypes
 from comfy_api import feature_flags
 
 PreviewImageTuple = Tuple[str, Image.Image, Optional[int]]
+
 
 class NodeState(Enum):
     Pending = "pending"
@@ -183,7 +185,9 @@ class WebUIProgressHandler(ProgressHandler):
         # Send a combined progress_state message with all node states
         # Include client_id to ensure message is only sent to the initiating client
         self.server_instance.send_sync(
-            "progress_state", {"prompt_id": prompt_id, "nodes": active_nodes}, self.server_instance.client_id
+            "progress_state",
+            {"prompt_id": prompt_id, "nodes": active_nodes},
+            self.server_instance.client_id,
         )
 
     @override
@@ -234,6 +238,7 @@ class WebUIProgressHandler(ProgressHandler):
         # Send progress state of all nodes
         if self.registry:
             self._send_progress_state(prompt_id, self.registry.nodes)
+
 
 class ProgressRegistry:
     """
@@ -288,7 +293,11 @@ class ProgressRegistry:
                 handler.start_handler(node_id, entry, self.prompt_id)
 
     def update_progress(
-        self, node_id: str, value: float, max_value: float, image: PreviewImageTuple | None = None
+        self,
+        node_id: str,
+        value: float,
+        max_value: float,
+        image: PreviewImageTuple | None = None,
     ) -> None:
         """Update progress for a node"""
         entry = self.ensure_entry(node_id)
@@ -319,8 +328,10 @@ class ProgressRegistry:
         for handler in self.handlers.values():
             handler.reset()
 
+
 # Global registry instance
 global_progress_registry: ProgressRegistry | None = None
+
 
 def reset_progress_state(prompt_id: str, dynprompt: "DynamicPrompt") -> None:
     global global_progress_registry

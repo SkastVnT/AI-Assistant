@@ -23,7 +23,7 @@ description: "Work safely with provider configuration, API keys, model routing, 
 | Shared env loading contract | `services/shared_env.py` | `services/chatbot/run.py` (secondary load) |
 | Tool API key requirements | `core/tools.py` lines 13-16 (imports) | `core/config.py`, `.env.example` |
 | Search key usage in stream route | `routes/stream.py` lines 75-152 (`_run_web_search`) | `core/tools.py` (parallel code path) |
-| Documented env vars | `README.md` lines 142-186 | `app/scripts/README.md`, `AGENTS.md` |
+| Documented env vars | `README.md` lines 142-186 | `app/scripts/README.md`, `.claude/skills/repo-guidelines/AGENTS.md` |
 
 ## Provider registry
 
@@ -103,7 +103,7 @@ Before making any provider change, classify it:
 | **Chatbot-only** | New LLM provider or model change | `config.py`, `chatbot.py` or `chatbot_v2.py`, `.env.example`, `README.md` |
 | **Tool-related** | New or changed search/image tool key | `config.py`, `tools.py`, `stream.py` (if auto-trigger changes), `.env.example`, `README.md` |
 | **MCP-related** | MCP server needs a new env var | `services/mcp-server/server.py`, `services/mcp-server/README.md`, `README.md` |
-| **Multi-service** | Shared env var or port change | `shared_env.py`, `app/config/.env*`, all affected `.env*`, `README.md`, `AGENTS.md` |
+| **Multi-service** | Shared env var or port change | `shared_env.py`, `app/config/.env*`, all affected `.env*`, `README.md`, `.claude/skills/repo-guidelines/AGENTS.md` |
 
 ## Good patterns
 

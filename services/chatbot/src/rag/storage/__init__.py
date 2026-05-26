@@ -8,6 +8,7 @@ RagFileStore
     Attempts to use MinIO when the ``minio`` package is installed and
     the endpoint is reachable; falls back to local disk storage otherwise.
 """
+
 from .minio_client import RagFileStore
 
 __all__ = ["RagFileStore"]

@@ -11,6 +11,7 @@ Note:
     These tests execute actual image generation and wait for completion.
     Tests verify preview image transmission based on preview_method setting.
 """
+
 import os
 import json
 import pytest
@@ -27,7 +28,9 @@ SERVER_URL = os.environ.get("COMFYUI_SERVER", "http://localhost:8988")
 SERVER_HOST = SERVER_URL.replace("http://", "").replace("https://", "")
 
 # Use existing inference graph fixture
-GRAPH_FILE = Path(__file__).parent.parent / "inference" / "graphs" / "default_graph_sdxl1_0.json"
+GRAPH_FILE = (
+    Path(__file__).parent.parent / "inference" / "graphs" / "default_graph_sdxl1_0.json"
+)
 
 
 def is_server_running() -> bool:
@@ -84,12 +87,12 @@ class PreviewMethodClient:
         data = {
             "prompt": prompt,
             "client_id": self.client_id,
-            "extra_data": extra_data or {}
+            "extra_data": extra_data or {},
         }
         req = urllib.request.Request(
             f"http://{self.server_address}/prompt",
             data=json.dumps(data).encode("utf-8"),
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
         return json.loads(urllib.request.urlopen(req).read())
 
@@ -104,7 +107,7 @@ class PreviewMethodClient:
             "completed": False,
             "error": None,
             "preview_count": 0,
-            "execution_time": 0.0
+            "execution_time": 0.0,
         }
 
         start_time = time.time()
@@ -160,8 +163,7 @@ def load_graph() -> dict:
 # Skip all tests if server is not running
 pytestmark = [
     pytest.mark.skipif(
-        not is_server_running(),
-        reason=f"ComfyUI server not running at {SERVER_URL}"
+        not is_server_running(), reason=f"ComfyUI server not running at {SERVER_URL}"
     ),
     pytest.mark.preview_method,
     pytest.mark.execution,
@@ -202,9 +204,13 @@ class TestPreviewMethodExecution:
         assert result["completed"] or result["error"] is not None
         # Execution should take some time (sampling)
         if result["completed"]:
-            assert result["execution_time"] > 0.5, "Execution too fast - likely didn't run"
+            assert result["execution_time"] > 0.5, (
+                "Execution too fast - likely didn't run"
+            )
             # latent2rgb should produce previews
-            print(f"latent2rgb: {result['preview_count']} previews in {result['execution_time']:.2f}s")  # noqa: T201
+            print(
+                f"latent2rgb: {result['preview_count']} previews in {result['execution_time']:.2f}s"
+            )  # noqa: T201
 
     def test_execution_with_taesd(self, client, graph):
         """
@@ -222,7 +228,9 @@ class TestPreviewMethodExecution:
         if result["completed"]:
             assert result["execution_time"] > 0.5
             # taesd should also produce previews
-            print(f"taesd: {result['preview_count']} previews in {result['execution_time']:.2f}s")  # noqa: T201
+            print(
+                f"taesd: {result['preview_count']} previews in {result['execution_time']:.2f}s"
+            )  # noqa: T201
 
     def test_execution_with_none_preview(self, client, graph):
         """
@@ -239,9 +247,12 @@ class TestPreviewMethodExecution:
         assert result["completed"] or result["error"] is not None
         if result["completed"]:
             # With "none", should receive no preview images
-            assert result["preview_count"] == 0, \
+            assert result["preview_count"] == 0, (
                 f"Expected no previews with 'none', got {result['preview_count']}"
-            print(f"none: {result['preview_count']} previews in {result['execution_time']:.2f}s")  # noqa: T201
+            )
+            print(
+                f"none: {result['preview_count']} previews in {result['execution_time']:.2f}s"
+            )  # noqa: T201
 
     def test_execution_with_default(self, client, graph):
         """
@@ -257,7 +268,9 @@ class TestPreviewMethodExecution:
 
         assert result["completed"] or result["error"] is not None
         if result["completed"]:
-            print(f"default: {result['preview_count']} previews in {result['execution_time']:.2f}s")  # noqa: T201
+            print(
+                f"default: {result['preview_count']} previews in {result['execution_time']:.2f}s"
+            )  # noqa: T201
 
     def test_execution_without_preview_method(self, client, graph):
         """
@@ -273,7 +286,9 @@ class TestPreviewMethodExecution:
 
         assert result["completed"] or result["error"] is not None
         if result["completed"]:
-            print(f"(no override): {result['preview_count']} previews in {result['execution_time']:.2f}s")  # noqa: T201
+            print(
+                f"(no override): {result['preview_count']} previews in {result['execution_time']:.2f}s"
+            )  # noqa: T201
 
 
 class TestPreviewMethodComparison:
@@ -299,16 +314,22 @@ class TestPreviewMethodComparison:
         results["latent2rgb"] = client.wait_for_execution(response["prompt_id"])
 
         # Verify both completed
-        assert results["none"]["completed"], f"'none' execution failed: {results['none']['error']}"
-        assert results["latent2rgb"]["completed"], f"'latent2rgb' execution failed: {results['latent2rgb']['error']}"
+        assert results["none"]["completed"], (
+            f"'none' execution failed: {results['none']['error']}"
+        )
+        assert results["latent2rgb"]["completed"], (
+            f"'latent2rgb' execution failed: {results['latent2rgb']['error']}"
+        )
 
         # Key assertion: 'none' should have 0 previews
-        assert results["none"]["preview_count"] == 0, \
+        assert results["none"]["preview_count"] == 0, (
             f"'none' should have 0 previews, got {results['none']['preview_count']}"
+        )
 
         # 'latent2rgb' should have at least 1 preview (depends on steps)
-        assert results["latent2rgb"]["preview_count"] > 0, \
+        assert results["latent2rgb"]["preview_count"] > 0, (
             f"'latent2rgb' should have >0 previews, got {results['latent2rgb']['preview_count']}"
+        )
 
         print("\nPreview count comparison:")  # noqa: T201
         print(f"  none: {results['none']['preview_count']} previews")  # noqa: T201
@@ -333,26 +354,32 @@ class TestPreviewMethodSequential:
             response = client.queue_prompt(graph_run, extra_data)
 
             result = client.wait_for_execution(response["prompt_id"])
-            results.append({
-                "method": method,
-                "completed": result["completed"],
-                "preview_count": result["preview_count"],
-                "execution_time": result["execution_time"],
-                "error": result["error"]
-            })
+            results.append(
+                {
+                    "method": method,
+                    "completed": result["completed"],
+                    "preview_count": result["preview_count"],
+                    "execution_time": result["execution_time"],
+                    "error": result["error"],
+                }
+            )
 
         # All should complete or have clear errors
         for r in results:
-            assert r["completed"] or r["error"] is not None, \
+            assert r["completed"] or r["error"] is not None, (
                 f"Method {r['method']} neither completed nor errored"
+            )
 
         # "none" should have zero previews if completed
         none_result = next(r for r in results if r["method"] == "none")
         if none_result["completed"]:
-            assert none_result["preview_count"] == 0, \
+            assert none_result["preview_count"] == 0, (
                 f"'none' should have 0 previews, got {none_result['preview_count']}"
+            )
 
         print("\nSequential execution results:")  # noqa: T201
         for r in results:
             status = "✓" if r["completed"] else f"✗ ({r['error']})"
-            print(f"  {r['method']}: {status}, {r['preview_count']} previews, {r['execution_time']:.2f}s")  # noqa: T201
+            print(
+                f"  {r['method']}: {status}, {r['preview_count']} previews, {r['execution_time']:.2f}s"
+            )  # noqa: T201

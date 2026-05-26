@@ -43,7 +43,9 @@ class TextToVideoNode(IO.ComfyNode):
                     multiline=True,
                     default="",
                 ),
-                IO.Combo.Input("duration", options=[6, 8, 10, 12, 14, 16, 18, 20], default=8),
+                IO.Combo.Input(
+                    "duration", options=[6, 8, 10, 12, 14, 16, 18, 20], default=8
+                ),
                 IO.Combo.Input(
                     "resolution",
                     options=[
@@ -82,7 +84,9 @@ class TextToVideoNode(IO.ComfyNode):
         generate_audio: bool = False,
     ) -> IO.NodeOutput:
         validate_string(prompt, min_length=1, max_length=10000)
-        if duration > 10 and (model != "LTX-2 (Fast)" or resolution != "1920x1080" or fps != 25):
+        if duration > 10 and (
+            model != "LTX-2 (Fast)" or resolution != "1920x1080" or fps != 25
+        ):
             raise ValueError(
                 "Durations over 10s are only available for the Fast model at 1920x1080 resolution and 25 FPS."
             )
@@ -112,14 +116,18 @@ class ImageToVideoNode(IO.ComfyNode):
             category="api node/video/LTXV",
             description="Professional-quality videos with customizable duration and resolution based on start image.",
             inputs=[
-                IO.Image.Input("image", tooltip="First frame to be used for the video."),
+                IO.Image.Input(
+                    "image", tooltip="First frame to be used for the video."
+                ),
                 IO.Combo.Input("model", options=list(MODELS_MAP.keys())),
                 IO.String.Input(
                     "prompt",
                     multiline=True,
                     default="",
                 ),
-                IO.Combo.Input("duration", options=[6, 8, 10, 12, 14, 16, 18, 20], default=8),
+                IO.Combo.Input(
+                    "duration", options=[6, 8, 10, 12, 14, 16, 18, 20], default=8
+                ),
                 IO.Combo.Input(
                     "resolution",
                     options=[
@@ -159,7 +167,9 @@ class ImageToVideoNode(IO.ComfyNode):
         generate_audio: bool = False,
     ) -> IO.NodeOutput:
         validate_string(prompt, min_length=1, max_length=10000)
-        if duration > 10 and (model != "LTX-2 (Fast)" or resolution != "1920x1080" or fps != 25):
+        if duration > 10 and (
+            model != "LTX-2 (Fast)" or resolution != "1920x1080" or fps != 25
+        ):
             raise ValueError(
                 "Durations over 10s are only available for the Fast model at 1920x1080 resolution and 25 FPS."
             )
@@ -169,7 +179,11 @@ class ImageToVideoNode(IO.ComfyNode):
             cls,
             ApiEndpoint("/proxy/ltx/v1/image-to-video", "POST"),
             data=ExecuteTaskRequest(
-                image_uri=(await upload_images_to_comfyapi(cls, image, max_images=1, mime_type="image/png"))[0],
+                image_uri=(
+                    await upload_images_to_comfyapi(
+                        cls, image, max_images=1, mime_type="image/png"
+                    )
+                )[0],
                 prompt=prompt,
                 model=MODELS_MAP[model],
                 duration=duration,

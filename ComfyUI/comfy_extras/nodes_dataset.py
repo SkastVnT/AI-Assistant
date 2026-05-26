@@ -1217,7 +1217,9 @@ class ResolutionBucket(io.ComfyNode):
                 f"Resolution bucket ({h}x{w}): {len(bucket_data['latents'])} samples"
             )
 
-        logging.info(f"Created {len(buckets)} resolution buckets from {len(flat_latents)} samples")
+        logging.info(
+            f"Created {len(buckets)} resolution buckets from {len(flat_latents)} samples"
+        )
         return io.NodeOutput(output_latents, output_conditions)
 
 

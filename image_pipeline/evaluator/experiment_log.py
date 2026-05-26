@@ -38,9 +38,11 @@ _BENCHMARK_DIR = _STORAGE_DIR / "metadata" / "benchmark"
 
 # ── Data classes ──────────────────────────────────────────────────
 
+
 @dataclass
 class CaseRecord:
     """Single test case result."""
+
     run_id: str
     case_id: str
     timestamp: str
@@ -88,6 +90,7 @@ class CaseRecord:
 @dataclass
 class CategorySummary:
     """Aggregated results for one evaluation category."""
+
     category: str
     total_cases: int = 0
     passed_cases: int = 0
@@ -96,13 +99,14 @@ class CategorySummary:
     avg_score: float = 0.0
     min_score: float = 1.0
     max_score: float = 0.0
-    category_passed: bool = False       # vs category_pass_rate threshold
+    category_passed: bool = False  # vs category_pass_rate threshold
     failed_case_ids: list[str] = field(default_factory=list)
 
 
 @dataclass
 class RunSummary:
     """Suite-level benchmark summary."""
+
     run_id: str
     timestamp: str
     stack_version: str
@@ -112,7 +116,7 @@ class RunSummary:
     overall_pass_rate: float = 0.0
     overall_avg_score: float = 0.0
     categories: dict[str, CategorySummary] = field(default_factory=dict)
-    nano_banana_qualified: bool = False     # meets §13 threshold
+    nano_banana_qualified: bool = False  # meets §13 threshold
     critical_failures: list[str] = field(default_factory=list)
     total_cost_usd: float = 0.0
     total_latency_ms: float = 0.0
@@ -123,6 +127,7 @@ class RunSummary:
 
 
 # ── Experiment log ────────────────────────────────────────────────
+
 
 class ExperimentLog:
     """
@@ -203,7 +208,8 @@ class ExperimentLog:
             scores=dict(eval_result.scores),
             thresholds=dict(eval_result.thresholds),
             passed_dimensions=[
-                d for d in eval_result.evaluated
+                d
+                for d in eval_result.evaluated
                 if d not in eval_result.failed_dimensions
             ],
             failed_dimensions=list(eval_result.failed_dimensions),
@@ -230,7 +236,9 @@ class ExperimentLog:
         self._records.append(record)
         logger.info(
             "Recorded case %s: passed=%s, score=%.3f",
-            case_id, record.case_passed, record.overall_score,
+            case_id,
+            record.case_passed,
+            record.overall_score,
         )
         return record
 
@@ -351,7 +359,8 @@ class ExperimentLog:
 
         logger.info(
             "Saved %d case records + summary to %s",
-            len(self._records), self._output_dir,
+            len(self._records),
+            self._output_dir,
         )
         return self._output_dir
 
@@ -395,7 +404,8 @@ class ExperimentLog:
                 case_deltas[cid] = {
                     "score_a": rec_a.get("overall_score", 0),
                     "score_b": rec_b.get("overall_score", 0),
-                    "delta": rec_b.get("overall_score", 0) - rec_a.get("overall_score", 0),
+                    "delta": rec_b.get("overall_score", 0)
+                    - rec_a.get("overall_score", 0),
                     "passed_a": rec_a.get("case_passed", False),
                     "passed_b": rec_b.get("case_passed", False),
                 }
@@ -421,6 +431,7 @@ class ExperimentLog:
         """Best-effort git SHA detection."""
         try:
             import subprocess
+
             result = subprocess.run(
                 ["git", "rev-parse", "--short", "HEAD"],
                 capture_output=True,

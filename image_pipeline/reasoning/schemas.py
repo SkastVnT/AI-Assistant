@@ -277,7 +277,9 @@ def _to_jsonable(value: Any) -> Any:
         return {str(k): _to_jsonable(v) for k, v in value.items()}
     if isinstance(value, (list, tuple, set)):
         return [_to_jsonable(v) for v in value]
-    raise SchemaValidationError(f"Value of type {type(value).__name__} is not JSON-safe")
+    raise SchemaValidationError(
+        f"Value of type {type(value).__name__} is not JSON-safe"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -295,7 +297,7 @@ class CharacterAppearance:
     face_shape: str = ""
     skin_tone: str = ""
     age_presentation: str = ""  # e.g. "teen", "adult", "elderly"
-    height_class: str = ""      # e.g. "petite", "tall"
+    height_class: str = ""  # e.g. "petite", "tall"
     body_type: str = ""
     distinguishing_marks: tuple[str, ...] = ()
 
@@ -357,7 +359,9 @@ class CharacterState:
     accessories: tuple[str, ...] = ()
     must_keep: tuple[str, ...] = ()
     forbidden_drift: tuple[str, ...] = ()
-    lora_hints: tuple[str, ...] = ()  # Optional LoRA names known to render this character.
+    lora_hints: tuple[
+        str, ...
+    ] = ()  # Optional LoRA names known to render this character.
     reference_image_keys: tuple[str, ...] = ()  # IDs into the run's reference store.
     revision: int = 0
     created_at: str = field(default_factory=_now_iso)
@@ -372,7 +376,9 @@ class CharacterState:
                 "CharacterState.appearance must be a CharacterAppearance"
             )
         if not isinstance(self.revision, int) or self.revision < 0:
-            raise SchemaValidationError("CharacterState.revision must be a non-negative int")
+            raise SchemaValidationError(
+                "CharacterState.revision must be a non-negative int"
+            )
         for name in (
             "canonical_tags",
             "accessories",
@@ -450,8 +456,8 @@ class PropState:
     label: str
     canonical_tags: tuple[str, ...] = ()
     color: str = ""
-    size_class: str = ""              # e.g. "small", "medium", "large".
-    text_content: str = ""            # For props that carry text, e.g. ID card.
+    size_class: str = ""  # e.g. "small", "medium", "large".
+    text_content: str = ""  # For props that carry text, e.g. ID card.
     material: str = ""
     forbidden_drift: tuple[str, ...] = ()
     must_keep: tuple[str, ...] = ()
@@ -533,7 +539,9 @@ class SceneState:
 
     def __post_init__(self) -> None:
         if not isinstance(self.revision, int) or self.revision < 0:
-            raise SchemaValidationError("SceneState.revision must be a non-negative int")
+            raise SchemaValidationError(
+                "SceneState.revision must be a non-negative int"
+            )
         for name in ("camera_defaults", "palette_hints"):
             object.__setattr__(self, name, _as_str_tuple(getattr(self, name), name))
 
@@ -590,7 +598,9 @@ class PropRequirement:
 
     def __post_init__(self) -> None:
         _check_id(self.prop_key, "PropRequirement.prop_key")
-        if self.expected_zone is not None and not isinstance(self.expected_zone, ZoneRef):
+        if self.expected_zone is not None and not isinstance(
+            self.expected_zone, ZoneRef
+        ):
             raise SchemaValidationError(
                 "PropRequirement.expected_zone must be a ZoneRef or None"
             )
@@ -618,8 +628,12 @@ class PropRequirement:
         return {
             "prop_key": self.prop_key,
             "must_appear": self.must_appear,
-            "expected_zone": self.expected_zone.to_dict() if self.expected_zone else None,
-            "expected_bbox": self.expected_bbox.to_dict() if self.expected_bbox else None,
+            "expected_zone": self.expected_zone.to_dict()
+            if self.expected_zone
+            else None,
+            "expected_bbox": self.expected_bbox.to_dict()
+            if self.expected_bbox
+            else None,
             "state_overrides": [list(item) for item in self.state_overrides],
             "notes": self.notes,
         }
@@ -648,16 +662,20 @@ class OverlayElement:
     kind: OverlayKind
     text: str = ""
     bbox: BoundingBox | None = None  # If None, compositor uses kind-default placement.
-    style_key: str = "default"        # Reference into configs/overlay.yaml templates.
+    style_key: str = "default"  # Reference into configs/overlay.yaml templates.
     z_order: int = 0
     locale: str = "en"
     extra: tuple[tuple[str, str], ...] = ()  # JSON-safe key/value pairs.
 
     def __post_init__(self) -> None:
         _check_id(self.element_id, "OverlayElement.element_id")
-        object.__setattr__(self, "kind", _enum_from(self.kind, OverlayKind, "OverlayElement.kind"))
+        object.__setattr__(
+            self, "kind", _enum_from(self.kind, OverlayKind, "OverlayElement.kind")
+        )
         if self.bbox is not None and not isinstance(self.bbox, BoundingBox):
-            raise SchemaValidationError("OverlayElement.bbox must be a BoundingBox or None")
+            raise SchemaValidationError(
+                "OverlayElement.bbox must be a BoundingBox or None"
+            )
         if not isinstance(self.z_order, int):
             raise SchemaValidationError("OverlayElement.z_order must be an int")
         cleaned: list[tuple[str, str]] = []
@@ -759,15 +777,17 @@ class SinglePanelSpec:
     expression: str = ""
     eye_state: EyeState = EyeState.UNSPECIFIED
     panel_role: PanelRole = PanelRole.BEAT
-    character_keys: tuple[str, ...] = ()        # IDs into ComicSequenceSpec.character_states.
+    character_keys: tuple[str, ...] = ()  # IDs into ComicSequenceSpec.character_states.
     primary_character_key: str | None = None
     prop_requirements: tuple[PropRequirement, ...] = ()
-    continuity_must_keep: tuple[str, ...] = ()  # Free-form bullets, e.g. "same red phone".
+    continuity_must_keep: tuple[
+        str, ...
+    ] = ()  # Free-form bullets, e.g. "same red phone".
     forbidden_drift: tuple[str, ...] = ()
     overlay_plan: OverlayPlan = field(default_factory=OverlayPlan)
     nsfw_flag: bool = False
-    aspect_ratio: str = "1:1"                   # "1:1", "4:5", "16:9", ...
-    seed: int | None = None                     # Optional fixed seed.
+    aspect_ratio: str = "1:1"  # "1:1", "4:5", "16:9", ...
+    seed: int | None = None  # Optional fixed seed.
     extra_positive_tags: tuple[str, ...] = ()
     extra_negative_tags: tuple[str, ...] = ()
     revision: int = 0
@@ -776,10 +796,14 @@ class SinglePanelSpec:
     def __post_init__(self) -> None:
         _check_id(self.panel_id, "SinglePanelSpec.panel_id")
         object.__setattr__(
-            self, "shot_type", _enum_from(self.shot_type, ShotType, "SinglePanelSpec.shot_type")
+            self,
+            "shot_type",
+            _enum_from(self.shot_type, ShotType, "SinglePanelSpec.shot_type"),
         )
         object.__setattr__(
-            self, "eye_state", _enum_from(self.eye_state, EyeState, "SinglePanelSpec.eye_state")
+            self,
+            "eye_state",
+            _enum_from(self.eye_state, EyeState, "SinglePanelSpec.eye_state"),
         )
         object.__setattr__(
             self,
@@ -809,7 +833,9 @@ class SinglePanelSpec:
                 )
             prop_keys_seen.add(req.prop_key)
         if self.primary_character_key is not None:
-            _check_id(self.primary_character_key, "SinglePanelSpec.primary_character_key")
+            _check_id(
+                self.primary_character_key, "SinglePanelSpec.primary_character_key"
+            )
             if self.primary_character_key not in self.character_keys:
                 raise SchemaValidationError(
                     "SinglePanelSpec.primary_character_key must be in character_keys"
@@ -819,9 +845,13 @@ class SinglePanelSpec:
                 "SinglePanelSpec.overlay_plan must be an OverlayPlan"
             )
         if self.seed is not None and (not isinstance(self.seed, int) or self.seed < 0):
-            raise SchemaValidationError("SinglePanelSpec.seed must be a non-negative int")
+            raise SchemaValidationError(
+                "SinglePanelSpec.seed must be a non-negative int"
+            )
         if not isinstance(self.revision, int) or self.revision < 0:
-            raise SchemaValidationError("SinglePanelSpec.revision must be a non-negative int")
+            raise SchemaValidationError(
+                "SinglePanelSpec.revision must be a non-negative int"
+            )
         if not isinstance(self.aspect_ratio, str) or ":" not in self.aspect_ratio:
             raise SchemaValidationError(
                 f"SinglePanelSpec.aspect_ratio must look like 'W:H', got {self.aspect_ratio!r}"
@@ -883,7 +913,8 @@ class SinglePanelSpec:
                 else None
             ),
             prop_requirements=tuple(
-                PropRequirement.from_dict(r) for r in data.get("prop_requirements", ()) or ()
+                PropRequirement.from_dict(r)
+                for r in data.get("prop_requirements", ()) or ()
             ),
             continuity_must_keep=tuple(data.get("continuity_must_keep", ()) or ()),
             forbidden_drift=tuple(data.get("forbidden_drift", ()) or ()),
@@ -924,13 +955,18 @@ class ComicSequenceSpec:
         object.__setattr__(
             self,
             "output_layout",
-            _enum_from(self.output_layout, OutputLayout, "ComicSequenceSpec.output_layout"),
+            _enum_from(
+                self.output_layout, OutputLayout, "ComicSequenceSpec.output_layout"
+            ),
         )
         if not isinstance(self.scene_state, SceneState):
             raise SchemaValidationError(
                 "ComicSequenceSpec.scene_state must be a SceneState"
             )
-        if not isinstance(self.max_correction_rounds, int) or self.max_correction_rounds < 0:
+        if (
+            not isinstance(self.max_correction_rounds, int)
+            or self.max_correction_rounds < 0
+        ):
             raise SchemaValidationError(
                 "ComicSequenceSpec.max_correction_rounds must be a non-negative int"
             )
@@ -1020,7 +1056,9 @@ class ComicSequenceSpec:
     @staticmethod
     def _check_layout_compat(layout: OutputLayout, panel_count: int) -> None:
         if panel_count == 0:
-            raise SchemaValidationError("ComicSequenceSpec must contain at least one panel")
+            raise SchemaValidationError(
+                "ComicSequenceSpec must contain at least one panel"
+            )
         rules: dict[OutputLayout, tuple[int, ...] | None] = {
             OutputLayout.SINGLE: (1,),
             OutputLayout.HORIZONTAL_STRIP: None,
@@ -1100,7 +1138,9 @@ class ComicSequenceSpec:
         )
         scene_raw = data.get("scene_state") or {}
         scene = (
-            scene_raw if isinstance(scene_raw, SceneState) else SceneState.from_dict(scene_raw)
+            scene_raw
+            if isinstance(scene_raw, SceneState)
+            else SceneState.from_dict(scene_raw)
         )
         panels = tuple(
             SinglePanelSpec.from_dict(p) for p in data.get("ordered_panels", ()) or ()
@@ -1112,7 +1152,9 @@ class ComicSequenceSpec:
             prop_states=props,
             scene_state=scene,
             ordered_panels=panels,
-            output_layout=OutputLayout(data.get("output_layout", OutputLayout.SINGLE.value)),
+            output_layout=OutputLayout(
+                data.get("output_layout", OutputLayout.SINGLE.value)
+            ),
             max_correction_rounds=int(data.get("max_correction_rounds", 2)),
             revision=int(data.get("revision", 0)),
             created_at=str(data.get("created_at") or _now_iso()),

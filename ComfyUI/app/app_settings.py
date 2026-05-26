@@ -4,15 +4,14 @@ from aiohttp import web
 import logging
 
 
-class AppSettings():
+class AppSettings:
     def __init__(self, user_manager):
         self.user_manager = user_manager
 
     def get_settings(self, request):
         try:
             file = self.user_manager.get_request_user_filepath(
-                request,
-                "comfy.settings.json"
+                request, "comfy.settings.json"
             )
         except KeyError as e:
             logging.error("User settings not found.")
@@ -29,7 +28,8 @@ class AppSettings():
 
     def save_settings(self, request, settings):
         file = self.user_manager.get_request_user_filepath(
-            request, "comfy.settings.json")
+            request, "comfy.settings.json"
+        )
         with open(file, "w") as f:
             f.write(json.dumps(settings, indent=4))
 

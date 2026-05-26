@@ -10,6 +10,7 @@ from ._input_impl import VideoFromFile, VideoFromComponents
 from ._util import VideoCodec, VideoContainer, VideoComponents, MESH, VOXEL
 from . import _io_public as io
 from . import _ui_public as ui
+
 # from comfy_api.latest._resources import _RESOURCES as resources  #noqa: F401
 from comfy_execution.utils import get_executing_context
 from comfy_execution.progress import get_progress_state, PreviewImageTuple
@@ -46,7 +47,9 @@ class ComfyAPI_latest(ComfyAPIBase):
                 raise ValueError("node_id must be provided if not in executing context")
 
             # Convert preview_image to PreviewImageTuple if needed
-            to_display: PreviewImageTuple | Image.Image | ImageInput | None = preview_image
+            to_display: PreviewImageTuple | Image.Image | ImageInput | None = (
+                preview_image
+            )
             if to_display is not None:
                 # First convert to PIL Image if needed
                 if isinstance(to_display, ImageInput):
@@ -76,6 +79,7 @@ class ComfyAPI_latest(ComfyAPIBase):
 
     execution: Execution
 
+
 class ComfyExtension(ABC):
     async def on_load(self) -> None:
         """
@@ -89,6 +93,7 @@ class ComfyExtension(ABC):
         Returns a list of nodes that this extension provides.
         """
 
+
 class Input:
     Image = ImageInput
     Audio = AudioInput
@@ -96,9 +101,11 @@ class Input:
     Latent = LatentInput
     Video = VideoInput
 
+
 class InputImpl:
     VideoFromFile = VideoFromFile
     VideoFromComponents = VideoFromComponents
+
 
 class Types:
     VideoCodec = VideoCodec
@@ -106,6 +113,7 @@ class Types:
     VideoComponents = VideoComponents
     MESH = MESH
     VOXEL = VOXEL
+
 
 ComfyAPI = ComfyAPI_latest
 

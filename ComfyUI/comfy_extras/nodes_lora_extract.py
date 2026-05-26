@@ -10,8 +10,9 @@ from comfy_api.latest import ComfyExtension, io
 
 CLAMP_QUANTILE = 0.99
 
+
 def extract_lora(diff, rank):
-    conv2d = (len(diff.shape) == 4)
+    conv2d = len(diff.shape) == 4
     kernel_size = None if not conv2d else diff.size()[2:4]
     conv2d_3x3 = conv2d and kernel_size != (1, 1)
     out_dim, in_dim = diff.size()[0:2]
@@ -22,7 +23,6 @@ def extract_lora(diff, rank):
             diff = diff.flatten(start_dim=1)
         else:
             diff = diff.squeeze()
-
 
     U, S, Vh = torch.linalg.svd(diff.float())
     U = U[:, :rank]
@@ -41,14 +41,18 @@ def extract_lora(diff, rank):
         Vh = Vh.reshape(rank, in_dim, kernel_size[0], kernel_size[1])
     return (U, Vh)
 
+
 class LORAType(Enum):
     STANDARD = 0
     FULL_DIFF = 1
 
-LORA_TYPES = {"standard": LORAType.STANDARD,
-              "full_diff": LORAType.FULL_DIFF}
 
-def calc_lora_model(model_diff, rank, prefix_model, prefix_lora, output_sd, lora_type, bias_diff=False):
+LORA_TYPES = {"standard": LORAType.STANDARD, "full_diff": LORAType.FULL_DIFF}
+
+
+def calc_lora_model(
+    model_diff, rank, prefix_model, prefix_lora, output_sd, lora_type, bias_diff=False
+):
     comfy.model_management.load_models_gpu([model_diff], force_patch_weights=True)
     sd = model_diff.model_state_dict(filter_prefix=prefix_model)
 
@@ -58,20 +62,39 @@ def calc_lora_model(model_diff, rank, prefix_model, prefix_lora, output_sd, lora
             if lora_type == LORAType.STANDARD:
                 if weight_diff.ndim < 2:
                     if bias_diff:
-                        output_sd["{}{}.diff".format(prefix_lora, k[len(prefix_model):-7])] = weight_diff.contiguous().half().cpu()
+                        output_sd[
+                            "{}{}.diff".format(prefix_lora, k[len(prefix_model) : -7])
+                        ] = weight_diff.contiguous().half().cpu()
                     continue
                 try:
                     out = extract_lora(weight_diff, rank)
-                    output_sd["{}{}.lora_up.weight".format(prefix_lora, k[len(prefix_model):-7])] = out[0].contiguous().half().cpu()
-                    output_sd["{}{}.lora_down.weight".format(prefix_lora, k[len(prefix_model):-7])] = out[1].contiguous().half().cpu()
+                    output_sd[
+                        "{}{}.lora_up.weight".format(
+                            prefix_lora, k[len(prefix_model) : -7]
+                        )
+                    ] = out[0].contiguous().half().cpu()
+                    output_sd[
+                        "{}{}.lora_down.weight".format(
+                            prefix_lora, k[len(prefix_model) : -7]
+                        )
+                    ] = out[1].contiguous().half().cpu()
                 except:
-                    logging.warning("Could not generate lora weights for key {}, is the weight difference a zero?".format(k))
+                    logging.warning(
+                        "Could not generate lora weights for key {}, is the weight difference a zero?".format(
+                            k
+                        )
+                    )
             elif lora_type == LORAType.FULL_DIFF:
-                output_sd["{}{}.diff".format(prefix_lora, k[len(prefix_model):-7])] = weight_diff.contiguous().half().cpu()
+                output_sd[
+                    "{}{}.diff".format(prefix_lora, k[len(prefix_model) : -7])
+                ] = weight_diff.contiguous().half().cpu()
 
         elif bias_diff and k.endswith(".bias"):
-            output_sd["{}{}.diff_b".format(prefix_lora, k[len(prefix_model):-5])] = sd[k].contiguous().half().cpu()
+            output_sd["{}{}.diff_b".format(prefix_lora, k[len(prefix_model) : -5])] = (
+                sd[k].contiguous().half().cpu()
+            )
     return output_sd
+
 
 class LoraSave(io.ComfyNode):
     @classmethod
@@ -81,7 +104,9 @@ class LoraSave(io.ComfyNode):
             display_name="Extract and Save Lora",
             category="_for_testing",
             inputs=[
-                io.String.Input("filename_prefix", default="loras/ComfyUI_extracted_lora"),
+                io.String.Input(
+                    "filename_prefix", default="loras/ComfyUI_extracted_lora"
+                ),
                 io.Int.Input("rank", default=8, min=1, max=4096, step=1),
                 io.Combo.Input("lora_type", options=tuple(LORA_TYPES.keys())),
                 io.Boolean.Input("bias_diff", default=True),
@@ -91,7 +116,7 @@ class LoraSave(io.ComfyNode):
                     optional=True,
                 ),
                 io.Clip.Input(
-                  "text_encoder_diff",
+                    "text_encoder_diff",
                     tooltip="The CLIPSubtract output to be converted to a lora.",
                     optional=True,
                 ),
@@ -101,18 +126,46 @@ class LoraSave(io.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, filename_prefix, rank, lora_type, bias_diff, model_diff=None, text_encoder_diff=None) -> io.NodeOutput:
+    def execute(
+        cls,
+        filename_prefix,
+        rank,
+        lora_type,
+        bias_diff,
+        model_diff=None,
+        text_encoder_diff=None,
+    ) -> io.NodeOutput:
         if model_diff is None and text_encoder_diff is None:
             return io.NodeOutput()
 
         lora_type = LORA_TYPES.get(lora_type)
-        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, folder_paths.get_output_directory())
+        full_output_folder, filename, counter, subfolder, filename_prefix = (
+            folder_paths.get_save_image_path(
+                filename_prefix, folder_paths.get_output_directory()
+            )
+        )
 
         output_sd = {}
         if model_diff is not None:
-            output_sd = calc_lora_model(model_diff, rank, "diffusion_model.", "diffusion_model.", output_sd, lora_type, bias_diff=bias_diff)
+            output_sd = calc_lora_model(
+                model_diff,
+                rank,
+                "diffusion_model.",
+                "diffusion_model.",
+                output_sd,
+                lora_type,
+                bias_diff=bias_diff,
+            )
         if text_encoder_diff is not None:
-            output_sd = calc_lora_model(text_encoder_diff.patcher, rank, "", "text_encoders.", output_sd, lora_type, bias_diff=bias_diff)
+            output_sd = calc_lora_model(
+                text_encoder_diff.patcher,
+                rank,
+                "",
+                "text_encoders.",
+                output_sd,
+                lora_type,
+                bias_diff=bias_diff,
+            )
 
         output_checkpoint = f"{filename}_{counter:05}_.safetensors"
         output_checkpoint = os.path.join(full_output_folder, output_checkpoint)

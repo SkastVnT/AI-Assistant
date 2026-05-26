@@ -4,7 +4,6 @@ Tests for document parsers and chunking.
 Run from services/chatbot/:
     python -m pytest tests/test_ingest.py -v
 """
-import textwrap
 
 import pytest
 
@@ -69,7 +68,6 @@ class TestPDFParser:
     def test_parse_simple_pdf(self):
         """Build a minimal single-page PDF in memory and verify parsing."""
         import fitz
-
         from src.rag.ingest.parsers import PDFParser
 
         # Create a 1-page PDF with known text
@@ -87,7 +85,6 @@ class TestPDFParser:
 
     def test_multi_page(self):
         import fitz
-
         from src.rag.ingest.parsers import PDFParser
 
         pdf_doc = fitz.open()
@@ -178,7 +175,9 @@ class TestRecursiveTextChunker:
     def test_chunk_index_sequential(self):
         from src.rag.ingest.chunking_pkg import RecursiveTextChunker
 
-        chunks = RecursiveTextChunker(max_chars=30, overlap_chars=5).chunk("hello " * 50)
+        chunks = RecursiveTextChunker(max_chars=30, overlap_chars=5).chunk(
+            "hello " * 50
+        )
         indices = [c.chunk_index for c in chunks]
         assert indices == list(range(len(chunks)))
 
@@ -215,7 +214,7 @@ class TestParseAndChunk:
         from src.rag.ingest.chunking_pkg import chunk_pages
         from src.rag.ingest.parsers import PlainTextParser
 
-        text = ("This is paragraph one. " * 20 + "\n\n" + "Second paragraph. " * 20)
+        text = "This is paragraph one. " * 20 + "\n\n" + "Second paragraph. " * 20
         parsed = PlainTextParser().parse(text.encode(), source="doc.txt")
         pages = [
             {

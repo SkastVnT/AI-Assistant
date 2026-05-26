@@ -28,12 +28,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from config.mongodb_config import get_db, test_connection, DATABASE_NAME
-
+from config.mongodb_config import DATABASE_NAME, get_db, test_connection
 
 # ============================================================================
 # Validation helpers
 # ============================================================================
+
 
 def _uid():
     return str(uuid.uuid4())
@@ -51,7 +51,7 @@ def _parse_date(value):
 
 
 def _load_json(path):
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         data = json.load(f)
     if not isinstance(data, list):
         print(f"ERROR: {path} root must be a JSON array")
@@ -62,6 +62,7 @@ def _load_json(path):
 # ============================================================================
 # Document validation
 # ============================================================================
+
 
 def validate_documents(records, tenant_id):
     """Validate rag_documents records. Returns (clean_docs, errors)."""
@@ -79,7 +80,9 @@ def validate_documents(records, tenant_id):
 
         # Types
         if "document_id" in rec and not isinstance(rec["document_id"], str):
-            errs.append(f"document_id must be string, got {type(rec['document_id']).__name__}")
+            errs.append(
+                f"document_id must be string, got {type(rec['document_id']).__name__}"
+            )
 
         # Duplicate check within batch
         did = rec.get("document_id")
@@ -120,6 +123,7 @@ def validate_documents(records, tenant_id):
 # Chunk validation
 # ============================================================================
 
+
 def validate_chunks(records, tenant_id, valid_doc_ids):
     """Validate rag_chunks records. Returns (clean_chunks, errors)."""
     clean = []
@@ -140,13 +144,17 @@ def validate_chunks(records, tenant_id, valid_doc_ids):
 
         # chunk_index must be int
         if "chunk_index" in rec and not isinstance(rec["chunk_index"], int):
-            errs.append(f"chunk_index must be int, got {type(rec['chunk_index']).__name__}")
+            errs.append(
+                f"chunk_index must be int, got {type(rec['chunk_index']).__name__}"
+            )
 
         # embedding validation
         embedding = rec.get("embedding")
         if embedding is not None:
             if not isinstance(embedding, list):
-                errs.append(f"embedding must be an array, got {type(embedding).__name__}")
+                errs.append(
+                    f"embedding must be an array, got {type(embedding).__name__}"
+                )
             elif embedding and not all(isinstance(v, (int, float)) for v in embedding):
                 errs.append("embedding must contain only numbers")
 
@@ -177,6 +185,7 @@ def validate_chunks(records, tenant_id, valid_doc_ids):
 # ============================================================================
 # Job validation
 # ============================================================================
+
 
 def validate_jobs(records, tenant_id, valid_doc_ids):
     """Validate rag_ingestion_jobs records. Returns (clean_jobs, errors)."""
@@ -222,6 +231,7 @@ def validate_jobs(records, tenant_id, valid_doc_ids):
 # ============================================================================
 # Upsert logic
 # ============================================================================
+
 
 def upsert_documents(db, docs, dry_run):
     inserted = updated = skipped = 0
@@ -290,6 +300,7 @@ def upsert_jobs(db, jobs, dry_run):
 # Print helpers
 # ============================================================================
 
+
 def _print_errors(label, errors):
     if not errors:
         return
@@ -300,20 +311,29 @@ def _print_errors(label, errors):
 
 
 def _print_stats(label, stats):
-    print(f"  {label:25s}  inserted={stats['inserted']}  updated={stats['updated']}  skipped={stats['skipped']}")
+    print(
+        f"  {label:25s}  inserted={stats['inserted']}  updated={stats['updated']}  skipped={stats['skipped']}"
+    )
 
 
 # ============================================================================
 # Main
 # ============================================================================
 
+
 def main():
     parser = argparse.ArgumentParser(description="Import RAG data into MongoDB")
     parser.add_argument("--tenant-id", required=True, help="Tenant identifier")
-    parser.add_argument("--documents-file", required=True, help="Path to rag_documents.json")
+    parser.add_argument(
+        "--documents-file", required=True, help="Path to rag_documents.json"
+    )
     parser.add_argument("--chunks-file", required=True, help="Path to rag_chunks.json")
-    parser.add_argument("--jobs-file", default=None, help="Path to rag_ingestion_jobs.json (optional)")
-    parser.add_argument("--dry-run", action="store_true", help="Validate only, do not write")
+    parser.add_argument(
+        "--jobs-file", default=None, help="Path to rag_ingestion_jobs.json (optional)"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Validate only, do not write"
+    )
     args = parser.parse_args()
 
     # Load files
@@ -362,7 +382,9 @@ def main():
     print(f"  documents: {len(clean_docs)} valid, {len(doc_errors)} rejected")
 
     # 2. Validate chunks (cross-ref against documents)
-    clean_chunks, chunk_errors = validate_chunks(raw_chunks, args.tenant_id, valid_doc_ids)
+    clean_chunks, chunk_errors = validate_chunks(
+        raw_chunks, args.tenant_id, valid_doc_ids
+    )
     print(f"  chunks:    {len(clean_chunks)} valid, {len(chunk_errors)} rejected")
 
     # 3. Validate jobs

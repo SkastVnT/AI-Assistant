@@ -7,6 +7,7 @@ Usage:
 Cross-references entries against configs/lora_registry.yaml and flags
 LoRAs that are present on disk but not yet registered.
 """
+
 from __future__ import annotations
 
 import json
@@ -45,7 +46,10 @@ def load_registered_names() -> set[str]:
     try:
         import yaml  # type: ignore
     except ImportError:
-        print("[warn] PyYAML not installed; skipping registry cross-reference", file=sys.stderr)
+        print(
+            "[warn] PyYAML not installed; skipping registry cross-reference",
+            file=sys.stderr,
+        )
         return set()
     data = yaml.safe_load(REGISTRY.read_text(encoding="utf-8")) or {}
     names: set[str] = set()
@@ -67,13 +71,15 @@ def main() -> int:
         for p in walk(root):
             rel = str(p.relative_to(ROOT)).replace("\\", "/")
             name = p.name
-            items.append({
-                "name": name,
-                "rel_path": rel,
-                "size_mb": round(p.stat().st_size / (1024 * 1024), 1),
-                "location": src_label,
-                "registered": name in registered,
-            })
+            items.append(
+                {
+                    "name": name,
+                    "rel_path": rel,
+                    "size_mb": round(p.stat().st_size / (1024 * 1024), 1),
+                    "location": src_label,
+                    "registered": name in registered,
+                }
+            )
             seen_names.add(name)
 
     items.sort(key=lambda x: (x["location"], x["rel_path"].lower()))
