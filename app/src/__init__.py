@@ -33,6 +33,4 @@ def __getattr__(name: str):
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-cache = None
-
 __all__ = ["utils", "security", "database", "cache", "health", "errors"]

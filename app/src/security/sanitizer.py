@@ -19,9 +19,7 @@ class Sanitizer:
     # Characters to remove/escape
     SQL_CHARS = [";", "--", "/*", "*/", "xp_", "EXEC", "EXECUTE"]
     HTML_TAGS = re.compile(r"<[^>]+>")
-    SCRIPT_PATTERN = re.compile(
-        r"<script\b[^>]*>.*?</script\b[^>]*>", re.IGNORECASE | re.DOTALL
-    )
+
 
     def __init__(self, allow_html: bool = False, max_length: int = 10000):
         """
@@ -62,12 +60,20 @@ class Sanitizer:
         if len(value) > self.max_length:
             value = value[: self.max_length]
 
-        # Remove script tags even if allowing HTML
-        value = self.SCRIPT_PATTERN.sub("", value)
-
-        # Escape HTML if not allowing it
+        # Escape HTML when not allowing raw HTML — this is the primary XSS
+        # defence and must run before any tag-based filtering so that
+        # angle-brackets can never reach the browser unencoded.
         if escape_html and not self.allow_html:
             value = html.escape(value)
+        else:
+            # When HTML is intentionally allowed, strip script tags using a
+            # permissive pattern that handles whitespace and attribute variants.
+            value = re.sub(
+                r"<\s*script[^>]*>.*?<\s*/\s*script[^>]*>",
+                "",
+                value,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
 
         return value
 

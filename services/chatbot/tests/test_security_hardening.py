@@ -171,7 +171,7 @@ def test_code_interpreter_block_present_in_source():
     assert "code-execution requests are refused" in src
     # The dangerous subprocess call must still be wrapped by the flag check.
     flag_idx = src.find("ENABLE_CODE_INTERPRETER")
-    subproc_idx = src.find("subprocess.run(['node'", flag_idx)
+    subproc_idx = src.find('["node"', flag_idx)
     assert subproc_idx != -1, "subprocess.run for node must follow the flag check"
 
 
