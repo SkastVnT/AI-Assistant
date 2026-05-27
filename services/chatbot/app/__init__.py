@@ -39,6 +39,10 @@ def _get_app():
     return _app
 
 
+# Explicit export for __all__; remains lazy because this is a callable proxy.
+app = _get_app
+
+
 def __getattr__(name):
     if name == "app":
         return _get_app()
