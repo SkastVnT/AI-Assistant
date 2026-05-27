@@ -12,7 +12,9 @@ def get_embedding_provider() -> EmbeddingProvider:
 
             return OpenAIEmbeddingProvider()
         case _:
-            raise ValueError(f"Unknown embedding provider: {settings.embedding.provider}")
+            raise ValueError(
+                f"Unknown embedding provider: {settings.embedding.provider}"
+            )
 
 
 def get_llm_provider() -> LLMProvider:

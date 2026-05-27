@@ -441,7 +441,9 @@ class HunyuanVideo(nn.Module):
         if (self.time_r_in is not None) and (not disable_time_r):
             w = torch.where(
                 transformer_options["sigmas"][0] == transformer_options["sample_sigmas"]
-            )[0]  # This most likely could be improved
+            )[
+                0
+            ]  # This most likely could be improved
             if len(w) > 0:
                 timesteps_r = transformer_options["sample_sigmas"][w[0] + 1]
                 timesteps_r = timesteps_r.unsqueeze(0).to(

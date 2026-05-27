@@ -296,7 +296,7 @@ class MessageRepository(BaseRepository):
         messages = self.get_recent_messages(conversation_id, limit * 2)
 
         history = []
-        for msg in messages[-limit * 2:]:
+        for msg in messages[-limit * 2 :]:
             history.append(
                 {"role": msg.get("role", "user"), "content": msg.get("content", "")}
             )

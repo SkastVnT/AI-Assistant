@@ -551,7 +551,9 @@ def precompute_freqs_cis(
             torch.stack([sin_vals, cos_vals], dim=-1),
         ],
         dim=-2,
-    ).unsqueeze(1)  # [B, 1, N, dim//2, 2, 2]
+    ).unsqueeze(
+        1
+    )  # [B, 1, N, dim//2, 2, 2]
 
     return freqs_cis
 

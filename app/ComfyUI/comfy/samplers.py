@@ -1351,9 +1351,9 @@ class CFGGuider:
         extra_model_options = comfy.model_patcher.create_model_options_clone(
             self.model_options
         )
-        extra_model_options.setdefault("transformer_options", {})["sample_sigmas"] = (
-            sigmas
-        )
+        extra_model_options.setdefault("transformer_options", {})[
+            "sample_sigmas"
+        ] = sigmas
         extra_args = {"model_options": extra_model_options, "seed": seed}
 
         executor = comfy.patcher_extension.WrapperExecutor.new_class_executor(

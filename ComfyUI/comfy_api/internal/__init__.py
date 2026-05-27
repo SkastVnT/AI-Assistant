@@ -42,7 +42,8 @@ def first_real_override(
 class _ComfyNodeInternal:
     """Class that all V3-based APIs inherit from for ComfyNode.
 
-    This is intended to only be referenced within execution.py, as it has to handle all V3 APIs going forward."""
+    This is intended to only be referenced within execution.py, as it has to handle all V3 APIs going forward.
+    """
 
     @classmethod
     def GET_NODE_INFO_V1(cls): ...
@@ -51,7 +52,8 @@ class _ComfyNodeInternal:
 class _NodeOutputInternal:
     """Class that all V3-based APIs inherit from for NodeOutput.
 
-    This is intended to only be referenced within execution.py, as it has to handle all V3 APIs going forward."""
+    This is intended to only be referenced within execution.py, as it has to handle all V3 APIs going forward.
+    """
 
     ...
 

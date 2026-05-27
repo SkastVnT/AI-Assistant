@@ -13,7 +13,6 @@ from typing import Protocol, runtime_checkable
 
 from libs.ingestion.parsers.base import ParseResult
 
-
 # ---------------------------------------------------------------------------
 # Token estimation
 # ---------------------------------------------------------------------------
@@ -70,7 +69,9 @@ class ChunkMeta:
             "heading_path": self.heading_path,
             "page_number": self.page_number,
             "token_count": self.token_count,
-            "parent_chunk_id": str(self.parent_chunk_id) if self.parent_chunk_id else None,
+            "parent_chunk_id": (
+                str(self.parent_chunk_id) if self.parent_chunk_id else None
+            ),
             "is_parent": self.is_parent,
         }
 

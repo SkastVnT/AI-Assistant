@@ -1082,22 +1082,26 @@ class ConformerEncoder(torch.nn.Module):
                         device=device,
                         operations=operations,
                     ),
-                    PositionwiseFeedForward(
-                        *positionwise_layer_args,
-                        dtype=dtype,
-                        device=device,
-                        operations=operations,
-                    )
-                    if macaron_style
-                    else None,
-                    ConvolutionModule(
-                        *convolution_layer_args,
-                        dtype=dtype,
-                        device=device,
-                        operations=operations,
-                    )
-                    if use_cnn_module
-                    else None,
+                    (
+                        PositionwiseFeedForward(
+                            *positionwise_layer_args,
+                            dtype=dtype,
+                            device=device,
+                            operations=operations,
+                        )
+                        if macaron_style
+                        else None
+                    ),
+                    (
+                        ConvolutionModule(
+                            *convolution_layer_args,
+                            dtype=dtype,
+                            device=device,
+                            operations=operations,
+                        )
+                        if use_cnn_module
+                        else None
+                    ),
                     dropout_rate,
                     normalize_before,
                     dtype=dtype,

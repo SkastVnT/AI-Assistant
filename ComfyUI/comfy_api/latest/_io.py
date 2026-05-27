@@ -546,9 +546,9 @@ class Combo(ComfyTypeIO):
                     "options": self.options,
                     "control_after_generate": self.control_after_generate,
                     **({self.upload.value: True} if self.upload is not None else {}),
-                    "image_folder": self.image_folder.value
-                    if self.image_folder
-                    else None,
+                    "image_folder": (
+                        self.image_folder.value if self.image_folder else None
+                    ),
                     "remote": self.remote.as_dict() if self.remote else None,
                 }
             )
@@ -1873,7 +1873,8 @@ class _ComfyNodeBaseInternal(_ComfyNodeInternal):
     def fingerprint_inputs(cls, **kwargs) -> Any:
         """Optionally, define this function to fingerprint inputs; equivalent to V1's IS_CHANGED.
 
-        If this function returns the same value as last run, the node will not be executed."""
+        If this function returns the same value as last run, the node will not be executed.
+        """
         raise NotImplementedError
 
     @classmethod

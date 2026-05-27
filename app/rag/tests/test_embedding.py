@@ -16,7 +16,6 @@ import pytest
 from libs.core.models import DocumentChunk, DocumentVersion, VersionStatus
 from libs.embedding.service import EmbeddingService, EmbedResult
 
-
 # ---------------------------------------------------------------------------
 # Fake embedding provider
 # ---------------------------------------------------------------------------
@@ -131,8 +130,11 @@ class TestEmbeddingService:
         """With batch_size=3, 5 chunks should make 2 API calls."""
         provider = FakeEmbeddingProvider(dimensions=8)
         service = EmbeddingService(
-            provider, batch_size=3, max_retries=1,
-            model_name="test-model", model_version="v1",
+            provider,
+            batch_size=3,
+            max_retries=1,
+            model_name="test-model",
+            model_version="v1",
         )
         chunks = [_make_chunk(content=f"Chunk {i}") for i in range(5)]
         result = await service.embed_chunks(chunks)
@@ -210,6 +212,7 @@ class TestEmbeddingService:
     @pytest.mark.asyncio
     async def test_all_retries_exhausted(self):
         """When all retries fail, chunks are marked failed."""
+
         async def always_fail(texts):
             raise RuntimeError("Permanent error")
 
@@ -253,8 +256,12 @@ class TestEmbeddingService:
 class TestEmbedResult:
     def test_fields(self):
         r = EmbedResult(
-            total_chunks=10, embedded=8, skipped=1, failed=1,
-            model="m", version="v",
+            total_chunks=10,
+            embedded=8,
+            skipped=1,
+            failed=1,
+            model="m",
+            version="v",
         )
         assert r.total_chunks == 10
         assert r.embedded + r.skipped + r.failed == 10
@@ -276,8 +283,11 @@ class TestIndexingServiceUnit:
         db = AsyncMock()
         provider = FakeEmbeddingProvider()
         embed_svc = EmbeddingService(
-            provider, model_name="m", model_version="v1",
-            batch_size=10, max_retries=1,
+            provider,
+            model_name="m",
+            model_version="v1",
+            batch_size=10,
+            max_retries=1,
         )
 
         with patch(
@@ -302,8 +312,11 @@ class TestIndexingServiceUnit:
         db.flush = AsyncMock()
         provider = FakeEmbeddingProvider(dimensions=8)
         embed_svc = EmbeddingService(
-            provider, model_name="m", model_version="v1",
-            batch_size=10, max_retries=1,
+            provider,
+            model_name="m",
+            model_version="v1",
+            batch_size=10,
+            max_retries=1,
         )
 
         chunks = [_make_chunk(content=f"text {i}") for i in range(3)]
@@ -329,13 +342,14 @@ class TestIndexingServiceUnit:
         db = AsyncMock()
         provider = FakeEmbeddingProvider()
         embed_svc = EmbeddingService(
-            provider, model_name="m", model_version="v1",
-            batch_size=10, max_retries=1,
+            provider,
+            model_name="m",
+            model_version="v1",
+            batch_size=10,
+            max_retries=1,
         )
 
-        with patch(
-            "libs.embedding.indexer.SqlDocumentChunkRepository"
-        ), patch(
+        with patch("libs.embedding.indexer.SqlDocumentChunkRepository"), patch(
             "libs.embedding.indexer.SqlDocumentVersionRepository"
         ) as mock_ver_repo_cls:
             mock_ver_repo = mock_ver_repo_cls.return_value
@@ -352,22 +366,21 @@ class TestIndexingServiceUnit:
         db = AsyncMock()
         provider = FakeEmbeddingProvider()
         embed_svc = EmbeddingService(
-            provider, model_name="m", model_version="v1",
-            batch_size=10, max_retries=1,
+            provider,
+            model_name="m",
+            model_version="v1",
+            batch_size=10,
+            max_retries=1,
         )
 
-        with patch(
-            "libs.embedding.indexer.SqlDocumentChunkRepository"
-        ), patch(
+        with patch("libs.embedding.indexer.SqlDocumentChunkRepository"), patch(
             "libs.embedding.indexer.SqlDocumentVersionRepository"
         ) as mock_ver_repo_cls:
             mock_ver_repo = mock_ver_repo_cls.return_value
             mock_ver_repo.mark_superseded = AsyncMock(return_value=2)
 
             indexer = IndexingService(db, embed_svc)
-            count = await indexer.mark_old_versions_superseded(
-                DOC_ID, VER_ID
-            )
+            count = await indexer.mark_old_versions_superseded(DOC_ID, VER_ID)
             assert count == 2
 
     @pytest.mark.asyncio
@@ -378,8 +391,11 @@ class TestIndexingServiceUnit:
         db.flush = AsyncMock()
         provider = FakeEmbeddingProvider()
         embed_svc = EmbeddingService(
-            provider, model_name="m", model_version="v1",
-            batch_size=10, max_retries=1,
+            provider,
+            model_name="m",
+            model_version="v1",
+            batch_size=10,
+            max_retries=1,
         )
 
         with patch(
@@ -404,8 +420,11 @@ class TestIndexingServiceUnit:
         db.flush = AsyncMock()
         provider = FakeEmbeddingProvider(dimensions=8)
         embed_svc = EmbeddingService(
-            provider, model_name="m", model_version="v1",
-            batch_size=10, max_retries=1,
+            provider,
+            model_name="m",
+            model_version="v1",
+            batch_size=10,
+            max_retries=1,
         )
 
         chunks = [_make_chunk(content=f"text {i}") for i in range(3)]
@@ -414,9 +433,7 @@ class TestIndexingServiceUnit:
         version.id = VER_ID
         version.metadata_ = {}
 
-        with patch(
-            "libs.embedding.indexer.SqlDocumentChunkRepository"
-        ), patch(
+        with patch("libs.embedding.indexer.SqlDocumentChunkRepository"), patch(
             "libs.embedding.indexer.SqlDocumentVersionRepository"
         ) as mock_ver_repo_cls:
             mock_ver_repo = mock_ver_repo_cls.return_value
@@ -440,8 +457,11 @@ class TestIndexingServiceUnit:
         provider.embed = AsyncMock(side_effect=RuntimeError("fail"))
 
         embed_svc = EmbeddingService(
-            provider, model_name="m", model_version="v1",
-            batch_size=10, max_retries=1,
+            provider,
+            model_name="m",
+            model_version="v1",
+            batch_size=10,
+            max_retries=1,
         )
 
         chunks = [_make_chunk(content="fail")]
@@ -450,9 +470,7 @@ class TestIndexingServiceUnit:
         version.id = VER_ID
         version.metadata_ = {}
 
-        with patch(
-            "libs.embedding.indexer.SqlDocumentChunkRepository"
-        ), patch(
+        with patch("libs.embedding.indexer.SqlDocumentChunkRepository"), patch(
             "libs.embedding.indexer.SqlDocumentVersionRepository"
         ):
             indexer = IndexingService(db, embed_svc)

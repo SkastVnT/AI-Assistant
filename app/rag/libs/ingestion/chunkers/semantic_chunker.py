@@ -178,7 +178,11 @@ class SemanticChunker:
                 start = offset
             last_sent = group[-1]
             end_search = full_text.find(last_sent, start)
-            end = (end_search + len(last_sent)) if end_search != -1 else start + len(chunk_text)
+            end = (
+                (end_search + len(last_sent))
+                if end_search != -1
+                else start + len(chunk_text)
+            )
 
             results.append(
                 ChunkResult(
@@ -192,7 +196,9 @@ class SemanticChunker:
                         end_offset=end,
                         heading_path="",
                         page_number=None,
-                        token_count=estimate_tokens(chunk_text, chars_per_token=self._cpt),
+                        token_count=estimate_tokens(
+                            chunk_text, chars_per_token=self._cpt
+                        ),
                     ),
                 )
             )

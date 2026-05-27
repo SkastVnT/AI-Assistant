@@ -5,7 +5,6 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-
 pixverse_templates = {
     "Microwave": 324641385496960,
     "Suit Swagger": 328545151283968,

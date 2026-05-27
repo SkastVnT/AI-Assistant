@@ -154,7 +154,9 @@ class SqlDocumentRepository(DocumentRepository):
         return list(result.scalars().all()), total
 
     async def count_by_tenant(self, tenant_id: UUID) -> int:
-        result = await self._db.scalar(select(func.count()).where(Document.tenant_id == tenant_id))
+        result = await self._db.scalar(
+            select(func.count()).where(Document.tenant_id == tenant_id)
+        )
         return result or 0
 
 
@@ -203,7 +205,9 @@ class SqlDocumentVersionRepository(DocumentVersionRepository):
         )
         return (max_ver or 0) + 1
 
-    async def find_by_checksum(self, tenant_id: UUID, checksum: str) -> DocumentVersion | None:
+    async def find_by_checksum(
+        self, tenant_id: UUID, checksum: str
+    ) -> DocumentVersion | None:
         result = await self._db.execute(
             select(DocumentVersion).where(
                 DocumentVersion.tenant_id == tenant_id,
@@ -212,7 +216,9 @@ class SqlDocumentVersionRepository(DocumentVersionRepository):
         )
         return result.scalar_one_or_none()
 
-    async def mark_superseded(self, document_id: UUID, *, exclude_version_id: UUID) -> int:
+    async def mark_superseded(
+        self, document_id: UUID, *, exclude_version_id: UUID
+    ) -> int:
         result = await self._db.execute(
             update(DocumentVersion)
             .where(
@@ -354,7 +360,9 @@ class SqlRetrievalTraceRepository(RetrievalTraceRepository):
     async def get_by_id(self, trace_id: UUID) -> RetrievalTrace | None:
         return await self._db.get(RetrievalTrace, trace_id)
 
-    async def update_feedback(self, trace_id: UUID, score: float) -> RetrievalTrace | None:
+    async def update_feedback(
+        self, trace_id: UUID, score: float
+    ) -> RetrievalTrace | None:
         trace = await self._db.get(RetrievalTrace, trace_id)
         if trace:
             trace.feedback_score = score

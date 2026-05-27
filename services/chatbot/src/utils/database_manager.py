@@ -53,9 +53,12 @@ class DatabaseManager:
         Args:
             connection_string: MongoDB URI (default: from env)
         """
-        self.connection_string = connection_string or os.getenv(
-            "MONGODB_URI",
-            "mongodb://localhost:27017",  # Default to localhost - NEVER hardcode credentials!
+        self.connection_string = (
+            connection_string
+            or os.getenv(
+                "MONGODB_URI",
+                "mongodb://localhost:27017",  # Default to localhost - NEVER hardcode credentials!
+            )
         )
 
         try:

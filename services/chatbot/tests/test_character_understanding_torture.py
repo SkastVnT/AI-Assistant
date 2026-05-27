@@ -242,9 +242,9 @@ class TestLoraSafetyInvariants:
         r = cu.resolve_character(query)
         assert r.safe_to_attach_lora is False
         for cand in r.candidates:
-            assert (
-                cand.lora_hint is None
-            ), f"unsafe candidate {cand.canonical_id} carries lora_hint"
+            assert cand.lora_hint is None, (
+                f"unsafe candidate {cand.canonical_id} carries lora_hint"
+            )
 
 
 # ── 8. Serialization invariants ──────────────────────────────────────────────

@@ -36,13 +36,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from flask import Blueprint, jsonify, request
-
-from core import mongo_store
-from core.config import (
-    REASONING_PIPELINE_COMFY_URL,
-    REASONING_PIPELINE_MAX_CORRECTION_PASSES,
-    REASONING_PIPELINE_MAX_PANELS,
-)
 from image_pipeline.reasoning import (
     ComicSequenceSpec,
     OutputLayout,
@@ -56,6 +49,13 @@ from image_pipeline.reasoning.execution import (
     run_panel,
 )
 from image_pipeline.reasoning.state import default_resolver
+
+from core import mongo_store
+from core.config import (
+    REASONING_PIPELINE_COMFY_URL,
+    REASONING_PIPELINE_MAX_CORRECTION_PASSES,
+    REASONING_PIPELINE_MAX_PANELS,
+)
 
 logger = logging.getLogger(__name__)
 

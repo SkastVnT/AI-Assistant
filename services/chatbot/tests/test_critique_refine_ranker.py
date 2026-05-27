@@ -47,7 +47,6 @@ sys.path.insert(0, str(_root / "services" / "chatbot"))
 
 
 import pytest
-
 from image_pipeline.anime_pipeline.config import AnimePipelineConfig
 from image_pipeline.anime_pipeline.schemas import (
     AnimePipelineJob,

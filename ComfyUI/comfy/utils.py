@@ -75,7 +75,9 @@ def load_torch_file(ckpt, safe_load=False, device=None, return_metadata=False):
                 sd = {}
                 for k in f.keys():
                     tensor = f.get_tensor(k)
-                    if DISABLE_MMAP:  # TODO: Not sure if this is the best way to bypass the mmap issues
+                    if (
+                        DISABLE_MMAP
+                    ):  # TODO: Not sure if this is the best way to bypass the mmap issues
                         tensor = tensor.to(device=device, copy=True)
                     sd[k] = tensor
                 if return_metadata:
@@ -1290,9 +1292,11 @@ def tiled_scale_multidim(
         )
 
         positions = [
-            range(0, s.shape[d + 2] - overlap[d], tile[d] - overlap[d])
-            if s.shape[d + 2] > tile[d]
-            else [0]
+            (
+                range(0, s.shape[d + 2] - overlap[d], tile[d] - overlap[d])
+                if s.shape[d + 2] > tile[d]
+                else [0]
+            )
             for d in range(dims)
         ]
 

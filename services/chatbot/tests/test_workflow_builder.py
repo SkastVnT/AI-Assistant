@@ -25,7 +25,6 @@ sys.path.insert(0, str(_root))
 sys.path.insert(0, str(_root / "services" / "chatbot"))
 
 import pytest
-
 from image_pipeline.anime_pipeline.config import StructureLayerConfig
 from image_pipeline.anime_pipeline.schemas import ControlInput, PassConfig
 from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder

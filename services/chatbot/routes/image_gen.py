@@ -1267,6 +1267,7 @@ def _load_lora_inventory() -> dict:
     """
     global _LORA_INVENTORY_CACHE, _LORA_INVENTORY_MTIME
     import json as _json
+
     from core.project_paths import STORAGE_DIR
 
     p = STORAGE_DIR / "lora_inventory.json"

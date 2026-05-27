@@ -143,7 +143,7 @@ class SelfAttentionGuidance(io.ComfyNode):
             if 1 in cond_or_uncond:
                 uncond_index = cond_or_uncond.index(1)
                 # do the entire attention operation, but save the attention scores to attn_scores
-                (out, sim) = attention_basic_with_sim(
+                out, sim = attention_basic_with_sim(
                     q, k, v, heads=heads, attn_precision=extra_options["attn_precision"]
                 )
                 # when using a higher batch size, I BELIEVE the result batch dimension is [uc1, ... ucn, c1, ... cn]

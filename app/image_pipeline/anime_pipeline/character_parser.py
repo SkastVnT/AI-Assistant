@@ -28,7 +28,6 @@ from typing import Optional
 # authoritative consumer and keeps ownership in character_research.
 from .character_research import _CHARACTER_ALIASES, _SERIES_HINTS
 
-
 # ── Preposition tokens ──────────────────────────────────────────────────
 # Vietnamese + English. Order matters only for regex compile determinism.
 # Word prepositions: require \b boundaries. Slash separator handled

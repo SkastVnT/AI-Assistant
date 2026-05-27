@@ -140,7 +140,9 @@ def get_stop_reason_for_budget(state: AgentState, config: AgentConfig) -> StopRe
 
 # Patterns that indicate unsafe / out-of-scope tasks
 _BLOCKED_PATTERNS: list[re.Pattern] = [
-    re.compile(r"ignore\s+(all\s+)?(previous|prior|above)\s+instructions", re.IGNORECASE),
+    re.compile(
+        r"ignore\s+(all\s+)?(previous|prior|above)\s+instructions", re.IGNORECASE
+    ),
     re.compile(r"(system|admin)\s+prompt", re.IGNORECASE),
     re.compile(r"bypass\s+(security|auth|guardrail)", re.IGNORECASE),
     re.compile(r"execute\s+(shell|bash|cmd|powershell)", re.IGNORECASE),
@@ -164,7 +166,9 @@ def screen_task(query: str) -> ScreeningResult:
     """
     for pattern in _BLOCKED_PATTERNS:
         if pattern.search(query):
-            logger.warning("task_blocked: pattern=%s query=%r", pattern.pattern, query[:100])
+            logger.warning(
+                "task_blocked: pattern=%s query=%r", pattern.pattern, query[:100]
+            )
             return ScreeningResult(
                 allowed=False,
                 blocked_reason=f"Task matches blocked pattern: {pattern.pattern}",

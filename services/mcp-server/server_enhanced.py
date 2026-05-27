@@ -472,9 +472,7 @@ def list_directory(dir_path: str = ".", include_hidden: bool = False) -> dict[st
             return {"error": f"ThÆ° má»¥c khÃ´ng tá»“n táº¡i: {dir_path}"}
 
         if not full_path.is_dir():
-            return {
-                "error": f"ÄÆ°á»ng dáº«n khÃ´ng pháº£i lÃ  thÆ° má»¥c: {dir_path}"
-            }
+            return {"error": f"ÄÆ°á»ng dáº«n khÃ´ng pháº£i lÃ  thÆ° má»¥c: {dir_path}"}
 
         files = []
         folders = []

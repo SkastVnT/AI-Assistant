@@ -188,7 +188,9 @@ async def generate_hyde_document(
                 "ms": elapsed,
             }
         )
-        logger.info("hyde: generated %d chars from %r (%dms)", len(result), query, elapsed)
+        logger.info(
+            "hyde: generated %d chars from %r (%dms)", len(result), query, elapsed
+        )
     else:
         ctx.transform_log.append(
             {
@@ -240,7 +242,12 @@ async def decompose_query(
                 "ms": elapsed,
             }
         )
-        logger.info("decomposition: %r → %d sub-queries (%dms)", query, len(sub_queries), elapsed)
+        logger.info(
+            "decomposition: %r → %d sub-queries (%dms)",
+            query,
+            len(sub_queries),
+            elapsed,
+        )
     else:
         ctx.transform_log.append(
             {

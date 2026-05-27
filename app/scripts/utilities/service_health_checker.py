@@ -3,12 +3,11 @@ AI-Powered Service Health Checker
 Uses Gemini 2.0 Flash (or Grok as fallback) to verify dependencies and fix issues
 """
 
-import os
-import sys
 import json
+import os
 import subprocess
+import sys
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -122,13 +121,13 @@ class ServiceHealthChecker:
             return ""
 
         try:
-            with open(self.requirements_path, "r", encoding="utf-8") as f:
+            with open(self.requirements_path, encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
             print(f"[ERROR] Failed to read requirements: {e}")
             return ""
 
-    def ask_ai(self, prompt: str) -> Optional[str]:
+    def ask_ai(self, prompt: str) -> str | None:
         """Ask AI for analysis"""
         if not self.ai_client:
             return None
@@ -150,7 +149,7 @@ class ServiceHealthChecker:
             print(f"[ERROR] AI request failed: {e}")
             return None
 
-    def check_dependencies(self) -> Tuple[bool, List[str]]:
+    def check_dependencies(self) -> tuple[bool, list[str]]:
         """Check if all dependencies are installed"""
         print(f"\n[CHECK] Analyzing dependencies for {self.service_name}...")
 
@@ -211,7 +210,7 @@ Return ONLY valid JSON, no markdown, no explanation."""
 
     def _basic_dependency_check(
         self, pip_list: str, requirements: str
-    ) -> Tuple[bool, List[str]]:
+    ) -> tuple[bool, list[str]]:
         """Basic dependency check without AI"""
         installed = set()
         for line in pip_list.split("\n"):
@@ -233,7 +232,7 @@ Return ONLY valid JSON, no markdown, no explanation."""
 
         return len(missing) == 0, missing
 
-    def test_service(self, test_command: str) -> Tuple[bool, str]:
+    def test_service(self, test_command: str) -> tuple[bool, str]:
         """Test run the service"""
         print(f"\n[TEST] Running service test: {test_command}")
 
@@ -259,7 +258,7 @@ Return ONLY valid JSON, no markdown, no explanation."""
         except Exception as e:
             return False, str(e)
 
-    def diagnose_error(self, error_output: str) -> Optional[Dict]:
+    def diagnose_error(self, error_output: str) -> dict | None:
         """Use AI to diagnose error and suggest fix"""
         if not self.ai_client:
             return None
@@ -306,7 +305,7 @@ Return ONLY valid JSON, no markdown."""
 
         return None
 
-    def auto_fix(self, fix_commands: List[str]) -> bool:
+    def auto_fix(self, fix_commands: list[str]) -> bool:
         """Execute auto-fix commands or install packages"""
         print("\n[FIX] Attempting auto-fix...")
 
@@ -358,7 +357,7 @@ Return ONLY valid JSON, no markdown."""
 
         return True
 
-    def full_health_check(self, test_command: Optional[str] = None) -> bool:
+    def full_health_check(self, test_command: str | None = None) -> bool:
         """Run complete health check with auto-fix"""
         print(f"\n{'=' * 80}")
         print(f"SERVICE HEALTH CHECK: {self.service_name}")
@@ -368,7 +367,7 @@ Return ONLY valid JSON, no markdown."""
         deps_ok, missing = self.check_dependencies()
 
         if not deps_ok:
-            print(f"\n[ACTION] Installing missing dependencies...")
+            print("\n[ACTION] Installing missing dependencies...")
             for cmd in missing:
                 print(f"  → {cmd}")
 

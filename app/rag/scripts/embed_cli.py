@@ -62,7 +62,9 @@ async def cmd_embed_pending(
         embed_svc = EmbeddingService(provider)
         indexer = IndexingService(db, embed_svc)
 
-        result = await indexer.embed_pending(tenant_id=tenant_id, batch_limit=batch_limit)
+        result = await indexer.embed_pending(
+            tenant_id=tenant_id, batch_limit=batch_limit
+        )
         await db.commit()
 
         logger.info("Result: %s", result.summary())
@@ -117,7 +119,10 @@ async def cmd_full_reindex(
         from libs.core.models import DocumentChunk
 
         total = (
-            await db.scalar(select(func.count()).where(DocumentChunk.tenant_id == tenant_id)) or 0
+            await db.scalar(
+                select(func.count()).where(DocumentChunk.tenant_id == tenant_id)
+            )
+            or 0
         )
 
         if total == 0:
@@ -153,19 +158,27 @@ def main() -> None:
     ep = sub.add_parser("embed-pending", help="Embed all unembedded chunks")
     ep.add_argument("--tenant-id", type=str, default=None, help="Scope to tenant UUID")
     ep.add_argument("--batch-limit", type=int, default=500, help="Max chunks per run")
-    ep.add_argument("--dry-run", action="store_true", help="Show counts without embedding")
+    ep.add_argument(
+        "--dry-run", action="store_true", help="Show counts without embedding"
+    )
 
     # reembed-version
     rv = sub.add_parser("reembed-version", help="Re-embed chunks for a version")
     rv.add_argument("version_id", type=str, help="DocumentVersion UUID")
-    rv.add_argument("--no-force", action="store_true", help="Skip already-matching embeddings")
-    rv.add_argument("--dry-run", action="store_true", help="Show counts without embedding")
+    rv.add_argument(
+        "--no-force", action="store_true", help="Skip already-matching embeddings"
+    )
+    rv.add_argument(
+        "--dry-run", action="store_true", help="Show counts without embedding"
+    )
 
     # full-reindex
     fr = sub.add_parser("full-reindex", help="Re-embed all chunks for a tenant")
     fr.add_argument("tenant_id", type=str, help="Tenant UUID")
     fr.add_argument("--batch-size", type=int, default=500, help="Chunks per page")
-    fr.add_argument("--dry-run", action="store_true", help="Show counts without embedding")
+    fr.add_argument(
+        "--dry-run", action="store_true", help="Show counts without embedding"
+    )
 
     args = parser.parse_args()
 

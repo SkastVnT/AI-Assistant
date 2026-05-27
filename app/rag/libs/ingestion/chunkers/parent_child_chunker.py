@@ -62,7 +62,9 @@ class ParentChildChunker:
             chunk_overlap=0,
             chars_per_token=self._cpt,
         )
-        parent_chunks = parent_chunker.chunk(text, document_id=document_id, version_id=version_id)
+        parent_chunks = parent_chunker.chunk(
+            text, document_id=document_id, version_id=version_id
+        )
 
         # Mark parents
         parents: list[ChunkResult] = []

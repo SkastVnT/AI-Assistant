@@ -75,13 +75,17 @@ class HtmlParser:
                 text = child.get_text(strip=True)
                 if text:
                     elements.append(
-                        ContentElement(type=ElementType.HEADING, content=text, level=level)
+                        ContentElement(
+                            type=ElementType.HEADING, content=text, level=level
+                        )
                     )
 
             elif tag == "table":
                 table_text = self._extract_table(child)
                 if table_text:
-                    elements.append(ContentElement(type=ElementType.TABLE, content=table_text))
+                    elements.append(
+                        ContentElement(type=ElementType.TABLE, content=table_text)
+                    )
 
             elif tag in ("pre", "code"):
                 code_text = child.get_text()
@@ -105,20 +109,28 @@ class HtmlParser:
             elif tag == "blockquote":
                 text = child.get_text(strip=True)
                 if text:
-                    elements.append(ContentElement(type=ElementType.BLOCKQUOTE, content=text))
+                    elements.append(
+                        ContentElement(type=ElementType.BLOCKQUOTE, content=text)
+                    )
 
             elif tag in ("ul", "ol"):
                 for li in child.find_all("li", recursive=False):
                     li_text = li.get_text(strip=True)
                     if li_text:
-                        elements.append(ContentElement(type=ElementType.LIST_ITEM, content=li_text))
+                        elements.append(
+                            ContentElement(type=ElementType.LIST_ITEM, content=li_text)
+                        )
 
             elif tag in _BLOCK_TAGS:
                 # Check if this block has nested block-level children
                 has_block_children = any(
                     isinstance(c, Tag)
                     and c.name.lower()
-                    in (_HEADING_TAGS | _BLOCK_TAGS | {"table", "pre", "ul", "ol", "blockquote"})
+                    in (
+                        _HEADING_TAGS
+                        | _BLOCK_TAGS
+                        | {"table", "pre", "ul", "ol", "blockquote"}
+                    )
                     for c in child.children
                 )
                 if has_block_children:
@@ -126,7 +138,9 @@ class HtmlParser:
                 else:
                     text = child.get_text(strip=True)
                     if text:
-                        elements.append(ContentElement(type=ElementType.PARAGRAPH, content=text))
+                        elements.append(
+                            ContentElement(type=ElementType.PARAGRAPH, content=text)
+                        )
             else:
                 # Recurse into unknown containers (e.g., <main>, <nav>, <aside>)
                 self._walk(child, elements)

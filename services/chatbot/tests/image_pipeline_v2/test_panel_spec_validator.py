@@ -10,7 +10,6 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import pytest
-
 from image_pipeline.reasoning.panel_spec_validator import (
     validate_panel,
     validate_sequence,

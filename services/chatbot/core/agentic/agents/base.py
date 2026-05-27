@@ -175,7 +175,7 @@ class BaseAgent(ABC):
         end = text.rfind("}")
         if start != -1 and end > start:
             try:
-                return json.loads(text[start: end + 1])
+                return json.loads(text[start : end + 1])
             except json.JSONDecodeError:
                 pass
 

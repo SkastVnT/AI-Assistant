@@ -82,8 +82,7 @@ def check_frontend_version():
         required_frontend_str = get_required_frontend_version()
         required_frontend = parse_version(required_frontend_str)
         if frontend_version < required_frontend:
-            app.logger.log_startup_warning(
-                f"""
+            app.logger.log_startup_warning(f"""
 ________________________________________________________________________
 WARNING WARNING WARNING WARNING WARNING
 
@@ -91,8 +90,7 @@ Installed frontend version {".".join(map(str, frontend_version))} is lower than 
 
 {frontend_install_warning_message()}
 ________________________________________________________________________
-""".strip()
-            )
+""".strip())
         else:
             logging.info("ComfyUI frontend version: {}".format(frontend_version_str))
     except Exception as e:
@@ -257,8 +255,7 @@ class FrontendManager:
 
             return str(importlib.resources.files(comfyui_frontend_package) / "static")
         except ImportError:
-            logging.error(
-                f"""
+            logging.error(f"""
 ********** ERROR ***********
 
 comfyui-frontend-package is not installed.
@@ -266,8 +263,7 @@ comfyui-frontend-package is not installed.
 {frontend_install_warning_message()}
 
 ********** ERROR ***********
-""".strip()
-            )
+""".strip())
             sys.exit(-1)
 
     @classmethod
@@ -279,8 +275,7 @@ comfyui-frontend-package is not installed.
                 iter_templates,
             )
         except ImportError:
-            logging.error(
-                f"""
+            logging.error(f"""
 ********** ERROR ***********
 
 comfyui-workflow-templates is not installed.
@@ -288,8 +283,7 @@ comfyui-workflow-templates is not installed.
 {frontend_install_warning_message()}
 
 ********** ERROR ***********
-""".strip()
-            )
+""".strip())
             return None
 
         try:
@@ -327,8 +321,7 @@ comfyui-workflow-templates is not installed.
                 importlib.resources.files(comfyui_workflow_templates) / "templates"
             )
         except ImportError:
-            logging.error(
-                f"""
+            logging.error(f"""
 ********** ERROR ***********
 
 comfyui-workflow-templates is not installed.
@@ -336,8 +329,7 @@ comfyui-workflow-templates is not installed.
 {frontend_install_warning_message()}
 
 ********** ERROR ***********
-""".strip()
-            )
+""".strip())
             return None
 
     @classmethod

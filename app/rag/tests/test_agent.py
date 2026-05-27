@@ -30,7 +30,6 @@ from libs.agent.types import (
     Turn,
 )
 
-
 # ════════════════════════════════════════════════════════════════════
 # Helpers — fake AuthContext & LLM
 # ════════════════════════════════════════════════════════════════════
@@ -74,7 +73,15 @@ def _make_llm(responses: list[str] | None = None) -> AsyncMock:
 class TestAgentPhase:
     def test_all_phases(self):
         phases = {p.value for p in AgentPhase}
-        assert phases == {"plan", "act", "observe", "reflect", "answer", "done", "error"}
+        assert phases == {
+            "plan",
+            "act",
+            "observe",
+            "reflect",
+            "answer",
+            "done",
+            "error",
+        }
 
     def test_value_roundtrip(self):
         assert AgentPhase("plan") is AgentPhase.PLAN
@@ -122,7 +129,9 @@ class TestToolResult:
         assert tr.error is None
 
     def test_failure(self):
-        tr = ToolResult(call_id="abc", tool_name="retriever", success=False, error="boom")
+        tr = ToolResult(
+            call_id="abc", tool_name="retriever", success=False, error="boom"
+        )
         assert tr.success is False
         assert tr.error == "boom"
 
@@ -255,7 +264,9 @@ class TestRetrieverTool:
         )
         tool = RetrieverTool(retrieve_fn)
         auth = _make_auth()
-        call = ToolCall(tool_name="retriever", arguments={"query": "revenue", "top_k": 3})
+        call = ToolCall(
+            tool_name="retriever", arguments={"query": "revenue", "top_k": 3}
+        )
         result = await tool.execute(call, auth)
         assert result.success is True
         assert "[Source 1]" in result.output
@@ -414,7 +425,12 @@ class TestBuildToolRegistry:
             enable_web=True,
             enable_python=True,
         )
-        assert set(reg.tool_names) == {"retriever", "policy_check", "web_search", "python"}
+        assert set(reg.tool_names) == {
+            "retriever",
+            "policy_check",
+            "web_search",
+            "python",
+        }
 
     def test_no_web_no_python_by_default(self):
         reg = build_tool_registry(retrieve_fn=AsyncMock())
@@ -700,7 +716,9 @@ class TestPlanTask:
 class TestSelectTool:
     @pytest.mark.asyncio
     async def test_selects_tool(self):
-        llm = _make_llm(['{"tool_name":"retriever","arguments":{"query":"q"},"rationale":"r"}'])
+        llm = _make_llm(
+            ['{"tool_name":"retriever","arguments":{"query":"q"},"rationale":"r"}']
+        )
         state = AgentState(query="q")
         mem = ShortTermMemory()
         tc = await select_tool(llm, state, mem, tool_descriptions=[])
@@ -728,7 +746,9 @@ class TestSelectTool:
 class TestReflect:
     @pytest.mark.asyncio
     async def test_sufficient(self):
-        llm = _make_llm(['{"sufficient":true,"confidence":0.9,"gaps":[],"notes":"good"}'])
+        llm = _make_llm(
+            ['{"sufficient":true,"confidence":0.9,"gaps":[],"notes":"good"}']
+        )
         state = AgentState(query="q")
         mem = ShortTermMemory()
         sufficient, confidence, notes = await reflect(llm, state, mem)
@@ -739,7 +759,9 @@ class TestReflect:
     @pytest.mark.asyncio
     async def test_insufficient(self):
         llm = _make_llm(
-            ['{"sufficient":false,"confidence":0.3,"gaps":["missing data"],"notes":"need more"}']
+            [
+                '{"sufficient":false,"confidence":0.3,"gaps":["missing data"],"notes":"need more"}'
+            ]
         )
         state = AgentState(query="q")
         mem = ShortTermMemory()
@@ -794,7 +816,9 @@ class TestAgentControllerRun:
 
         retrieve_fn = AsyncMock(
             return_value={
-                "chunks": [{"filename": "doc.pdf", "content": "X is cool", "score": 0.9}],
+                "chunks": [
+                    {"filename": "doc.pdf", "content": "X is cool", "score": 0.9}
+                ],
             }
         )
         registry = build_tool_registry(retrieve_fn=retrieve_fn)

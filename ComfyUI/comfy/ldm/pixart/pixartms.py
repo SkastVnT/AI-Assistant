@@ -235,9 +235,11 @@ class PixArtMS(nn.Module):
                     mlp_ratio=mlp_ratio,
                     drop_path=drop_path[i],
                     sampling=kv_compress_config["sampling"],
-                    sr_ratio=int(kv_compress_config["scale_factor"])
-                    if i in kv_compress_config["kv_compress_layer"]
-                    else 1,
+                    sr_ratio=(
+                        int(kv_compress_config["scale_factor"])
+                        if i in kv_compress_config["kv_compress_layer"]
+                        else 1
+                    ),
                     qk_norm=qk_norm,
                     dtype=dtype,
                     device=device,

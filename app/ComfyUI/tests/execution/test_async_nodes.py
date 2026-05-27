@@ -123,9 +123,9 @@ class TestAsyncNodes:
 
         # Should take ~0.5s (max duration) not 1.2s (sum of durations)
         if not skip_timing_checks:
-            assert elapsed_time < 0.8, (
-                f"Parallel execution took {elapsed_time}s, expected < 0.8s"
-            )
+            assert (
+                elapsed_time < 0.8
+            ), f"Parallel execution took {elapsed_time}s, expected < 0.8s"
 
         # Verify all nodes executed
         assert (
@@ -247,9 +247,9 @@ class TestAsyncNodes:
             assert False, "Should have raised an error"
         except Exception as e:
             assert "prompt_id" in e.args[0], f"Did not get proper error message: {e}"
-            assert e.args[0]["node_id"] == error_node.id, (
-                "Error should be from async error node"
-            )
+            assert (
+                e.args[0]["node_id"] == error_node.id
+            ), "Error should be from async error node"
 
     def test_async_validation_error(self, client: ComfyClient, builder: GraphBuilder):
         """Test async validation error handling."""
@@ -406,9 +406,9 @@ class TestAsyncNodes:
 
         assert not result2.did_run(sleep_node), "Should be cached"
         if not skip_timing_checks:
-            assert elapsed_time < 0.1, (
-                f"Cached run took {elapsed_time}s, should be instant"
-            )
+            assert (
+                elapsed_time < 0.1
+            ), f"Cached run took {elapsed_time}s, should be instant"
 
     def test_async_with_dynamic_prompts(
         self, client: ComfyClient, builder: GraphBuilder, skip_timing_checks

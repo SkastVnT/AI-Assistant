@@ -78,7 +78,9 @@ class FixedTokenChunker:
                             end_offset=end,
                             heading_path="",
                             page_number=None,
-                            token_count=estimate_tokens(chunk_text, chars_per_token=self._cpt),
+                            token_count=estimate_tokens(
+                                chunk_text, chars_per_token=self._cpt
+                            ),
                         ),
                     )
                 )

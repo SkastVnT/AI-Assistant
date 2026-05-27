@@ -32,12 +32,11 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import pytest
-from PIL import Image
-
 from image_pipeline.reasoning.execution import (
     assemble_comic,
 )
 from image_pipeline.reasoning.schemas import OutputLayout
+from PIL import Image
 
 # ---------------------------------------------------------------------------
 # Helpers

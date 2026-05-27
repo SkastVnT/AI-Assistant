@@ -148,12 +148,12 @@ class PointCrossAttention(nn.Module):
         )
 
         # assert statements
-        assert random_pc.shape[1] <= self.pc_size, (
-            "Random surface points size must be less than or equal to pc_size"
-        )
-        assert sharpedge_pc.shape[1] <= self.pc_sharpedge_size, (
-            "Sharpedge surface points size must be less than or equal to pc_sharpedge_size"
-        )
+        assert (
+            random_pc.shape[1] <= self.pc_size
+        ), "Random surface points size must be less than or equal to pc_size"
+        assert (
+            sharpedge_pc.shape[1] <= self.pc_sharpedge_size
+        ), "Sharpedge surface points size must be less than or equal to pc_sharpedge_size"
 
         input_random_pc_size = int(num_random_query * self.downsample_ratio)
         random_query_pc, random_input_pc, random_idx_pc, random_idx_query = (

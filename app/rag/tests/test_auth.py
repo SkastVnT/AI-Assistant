@@ -522,7 +522,9 @@ class TestAuthConstants:
 
     def test_role_ceilings_valid_values(self):
         for role, ceiling in ROLE_SENSITIVITY_CEILING.items():
-            assert ceiling in _SENSITIVITY_RANK, f"Role {role} has invalid ceiling {ceiling}"
+            assert (
+                ceiling in _SENSITIVITY_RANK
+            ), f"Role {role} has invalid ceiling {ceiling}"
 
     def test_allowed_levels_consistency(self):
         for ceiling, allowed in _ALLOWED_LEVELS.items():

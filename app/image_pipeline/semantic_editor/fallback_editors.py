@@ -558,9 +558,12 @@ class FallbackChain:
             )
 
         # All failed
-        return EditResponse(
-            success=False,
-            error=f"All {len(self._editors)} fallback editors failed",
-            model="",
-            provider="",
-        ), attempts
+        return (
+            EditResponse(
+                success=False,
+                error=f"All {len(self._editors)} fallback editors failed",
+                model="",
+                provider="",
+            ),
+            attempts,
+        )

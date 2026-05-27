@@ -1023,8 +1023,7 @@ def _image_search_character(
     # Note: deliberately omit "x" and "+" (too many false positives in
     # urls/titles like "1500x2000" or hashtags). "&amp;" handled via "&".
     _DUO_RE = re.compile(
-        r"\b(?:and|ft\.?|feat\.?|featuring|with|vs\.?)\b\s+[A-Z]"
-        r"|\s[&×]\s+[A-Z]",
+        r"\b(?:and|ft\.?|feat\.?|featuring|with|vs\.?)\b\s+[A-Z]" r"|\s[&×]\s+[A-Z]",
         re.IGNORECASE,
     )
 

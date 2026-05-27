@@ -1582,7 +1582,7 @@ class StyleModelApply:
         n = cond.shape[1]
         c_out = []
         for t in conditioning:
-            (txt, keys) = t
+            txt, keys = t
             keys = keys.copy()
             # even if the strength is 1.0 (i.e, no change), if there's already a mask, we have to add to it
             if "attention_mask" in keys or (

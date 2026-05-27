@@ -366,7 +366,9 @@ class AnimePipelineConfig:
     unload_between_passes: bool = True
 
     # Prompts
-    quality_prefix: str = "masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest, highly detailed, vivid colors"
+    quality_prefix: str = (
+        "masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest, highly detailed, vivid colors"
+    )
     negative_base: str = (
         "embedding:easynegative, "
         "lowres, bad anatomy, bad hands, text, error, missing fingers, "

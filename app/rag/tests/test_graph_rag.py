@@ -253,8 +253,16 @@ class TestExtraction:
         mock_llm.complete.return_value = json.dumps(
             {
                 "entities": [
-                    {"name": "Python", "type": "TECHNOLOGY", "description": "A language"},
-                    {"name": "Django", "type": "TECHNOLOGY", "description": "A framework"},
+                    {
+                        "name": "Python",
+                        "type": "TECHNOLOGY",
+                        "description": "A language",
+                    },
+                    {
+                        "name": "Django",
+                        "type": "TECHNOLOGY",
+                        "description": "A framework",
+                    },
                 ],
                 "relationships": [
                     {
@@ -363,7 +371,12 @@ class TestExtraction:
                     {"name": "A", "type": "CONCEPT", "description": "desc"},
                 ],
                 "relationships": [
-                    {"source": "A", "target": "MISSING", "type": "RELATED_TO", "description": ""},
+                    {
+                        "source": "A",
+                        "target": "MISSING",
+                        "type": "RELATED_TO",
+                        "description": "",
+                    },
                 ],
             }
         )
@@ -376,7 +389,9 @@ class TestExtraction:
     async def test_extract_respects_max_entities(self, mock_llm):
         from libs.graph_rag.extraction import extract_entities_and_relationships
 
-        entities = [{"name": f"E{i}", "type": "CONCEPT", "description": ""} for i in range(50)]
+        entities = [
+            {"name": f"E{i}", "type": "CONCEPT", "description": ""} for i in range(50)
+        ]
         mock_llm.complete.return_value = json.dumps(
             {
                 "entities": entities,
@@ -811,7 +826,11 @@ class TestIndexer:
         llm.complete.return_value = json.dumps(
             {
                 "entities": [
-                    {"name": "Python", "type": "TECHNOLOGY", "description": "A language"},
+                    {
+                        "name": "Python",
+                        "type": "TECHNOLOGY",
+                        "description": "A language",
+                    },
                 ],
                 "relationships": [],
             }

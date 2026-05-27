@@ -157,7 +157,9 @@ async def seed(session: AsyncSession) -> None:
     session.add(doc2)
 
     await session.commit()
-    print(f"Seed data created: tenant={TENANT_ID}, user={USER_ID}, docs=[{DOC1_ID}, {DOC2_ID}]")
+    print(
+        f"Seed data created: tenant={TENANT_ID}, user={USER_ID}, docs=[{DOC1_ID}, {DOC2_ID}]"
+    )
 
 
 async def main() -> None:

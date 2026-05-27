@@ -201,6 +201,7 @@ def apply_sorting(jobs: list[dict], sort_by: str, sort_order: str) -> list[dict]
             start = job.get("execution_start_time", 0)
             end = job.get("execution_end_time", 0)
             return end - start if end and start else 0
+
     else:
 
         def get_sort_key(job):

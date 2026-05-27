@@ -135,7 +135,9 @@ class HybridRetrievalPipeline:
         rerank_ms = 0
         if s.enable_reranking and self._reranker and fused_results:
             t_rerank = time.perf_counter()
-            reranked = await self._reranker.rerank(query, fused_results, top_n=s.rerank_top_n)
+            reranked = await self._reranker.rerank(
+                query, fused_results, top_n=s.rerank_top_n
+            )
             rerank_ms = int((time.perf_counter() - t_rerank) * 1000)
             strategy += "+rerank"
 

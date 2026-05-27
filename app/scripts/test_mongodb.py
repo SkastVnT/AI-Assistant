@@ -4,9 +4,10 @@ Test MongoDB Connection and Insert Sample Chat Data
 
 import os
 from datetime import datetime
+
+from dotenv import load_dotenv
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
-from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
@@ -67,7 +68,7 @@ def test_mongodb_connection():
         # Insert sample data
         result = collection.insert_one(sample_chat)
 
-        print(f"✅ Data inserted successfully!")
+        print("✅ Data inserted successfully!")
         print(f"   Inserted ID: {result.inserted_id}")
         print()
 
@@ -87,7 +88,7 @@ def test_mongodb_connection():
 
         # Show collection stats
         count = collection.count_documents({})
-        print(f"📊 Collection Statistics:")
+        print("📊 Collection Statistics:")
         print(f"   Total documents: {count}")
         print()
 
@@ -108,7 +109,7 @@ def test_mongodb_connection():
         return True
 
     except Exception as e:
-        print(f"❌ MongoDB Connection Test: FAILED")
+        print("❌ MongoDB Connection Test: FAILED")
         print(f"Error: {str(e)}")
         print()
         import traceback

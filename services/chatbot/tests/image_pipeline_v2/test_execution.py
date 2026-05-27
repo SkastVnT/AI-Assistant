@@ -26,7 +26,6 @@ if str(_ROOT) not in sys.path:
 from dataclasses import dataclass
 
 import pytest
-
 from image_pipeline.reasoning.execution import (
     ExecutionPlan,
     ExecutionStep,

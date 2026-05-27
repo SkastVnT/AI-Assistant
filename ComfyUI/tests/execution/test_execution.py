@@ -311,13 +311,13 @@ class TestExecution:
         result2 = client.run(g)
         for node_id, node in g.nodes.items():
             if server["should_cache_results"]:
-                assert not result2.did_run(node), (
-                    f"Node {node_id} ran, but should have been cached"
-                )
+                assert not result2.did_run(
+                    node
+                ), f"Node {node_id} ran, but should have been cached"
             else:
-                assert result2.did_run(node), (
-                    f"Node {node_id} was cached, but should have been run"
-                )
+                assert result2.did_run(
+                    node
+                ), f"Node {node_id} was cached, but should have been run"
 
     def test_partial_cache(self, client: ComfyClient, builder: GraphBuilder, server):
         g = builder
@@ -370,9 +370,9 @@ class TestExecution:
             client.run(g)
             assert False, "Should have raised an error"
         except Exception as e:
-            assert "prompt_id" in e.args[0], (
-                f"Did not get back a proper error message: {e}"
-            )
+            assert (
+                "prompt_id" in e.args[0]
+            ), f"Did not get back a proper error message: {e}"
 
     @pytest.mark.parametrize(
         "test_value, expect_error",
@@ -543,12 +543,12 @@ class TestExecution:
             client.run(g)
             assert False, "Should have raised an error"
         except Exception as e:
-            assert "prompt_id" in e.args[0], (
-                f"Did not get back a proper error message: {e}"
-            )
-            assert e.args[0]["node_id"] == generator.id, (
-                "Error should have been on the generator node"
-            )
+            assert (
+                "prompt_id" in e.args[0]
+            ), f"Did not get back a proper error message: {e}"
+            assert (
+                e.args[0]["node_id"] == generator.id
+            ), "Error should have been on the generator node"
 
     def test_missing_node_error(self, client: ComfyClient, builder: GraphBuilder):
         g = builder
@@ -797,9 +797,9 @@ class TestExecution:
             numpy.array(images[0]).min() == 63 and numpy.array(images[0]).max() == 63
         ), "Image should have value 0.25"
         if server["should_cache_results"]:
-            assert not result.did_run(test_node), (
-                "The execution should have been cached"
-            )
+            assert not result.did_run(
+                test_node
+            ), "The execution should have been cached"
         else:
             assert result.did_run(test_node), "The execution should have been re-run"
 
@@ -831,9 +831,9 @@ class TestExecution:
         # The test should take around 3.0 seconds (the longest sleep duration)
         # plus some overhead, but definitely less than the sum of all sleeps (9.0s)
         if not skip_timing_checks:
-            assert elapsed_time < 8.9, (
-                f"Parallel execution took {elapsed_time}s, expected less than 8.9s"
-            )
+            assert (
+                elapsed_time < 8.9
+            ), f"Parallel execution took {elapsed_time}s, expected less than 8.9s"
 
         # Verify that all nodes executed
         assert result.did_run(sleep_node1), "Sleep node 1 should have run"
@@ -962,22 +962,22 @@ class TestExecution:
         # Run with partial execution targeting only output1
         result = client.run(g, partial_execution_targets=[output1.id])
 
-        assert result.was_executed(input1), (
-            "Input1 should have been executed (run or cached)"
-        )
-        assert result.was_executed(output1), (
-            "Output1 should have been executed (run or cached)"
-        )
+        assert result.was_executed(
+            input1
+        ), "Input1 should have been executed (run or cached)"
+        assert result.was_executed(
+            output1
+        ), "Output1 should have been executed (run or cached)"
         assert not result.did_run(input2), "Input2 should not have run"
         assert not result.did_run(output2), "Output2 should not have run"
 
         # Verify only output1 produced results
-        assert len(result.get_images(output1)) == 1, (
-            "Output1 should have produced an image"
-        )
-        assert len(result.get_images(output2)) == 0, (
-            "Output2 should not have produced an image"
-        )
+        assert (
+            len(result.get_images(output1)) == 1
+        ), "Output1 should have produced an image"
+        assert (
+            len(result.get_images(output2)) == 0
+        ), "Output2 should not have produced an image"
 
     # Output nodes NOT included in the partial execution list are NOT executed
     def test_partial_execution_excluded_outputs(
@@ -1041,15 +1041,15 @@ class TestExecution:
 
         # All nodes should have been executed because they're dependencies
         assert result.was_executed(input1), "Input1 should have been executed"
-        assert result.was_executed(output_with_socket), (
-            "Output with socket should have been executed (dependency)"
-        )
-        assert result.was_executed(dependent_node), (
-            "Dependent node should have been executed"
-        )
-        assert result.was_executed(final_output), (
-            "Final output should have been executed"
-        )
+        assert result.was_executed(
+            output_with_socket
+        ), "Output with socket should have been executed (dependency)"
+        assert result.was_executed(
+            dependent_node
+        ), "Dependent node should have been executed"
+        assert result.was_executed(
+            final_output
+        ), "Final output should have been executed"
 
     # Lazy execution works with partial execution
     def test_partial_execution_with_lazy_nodes(
@@ -1096,9 +1096,9 @@ class TestExecution:
 
         # For output1 path - only input1 should run due to lazy evaluation (mask=0.0)
         assert result.was_executed(input1), "Input1 should have been executed"
-        assert not result.did_run(input2), (
-            "Input2 should not have run (lazy evaluation)"
-        )
+        assert not result.did_run(
+            input2
+        ), "Input2 should not have run (lazy evaluation)"
         assert result.was_executed(mask1), "Mask1 should have been executed"
         assert result.was_executed(lazy_mix1), "Lazy mix1 should have been executed"
         assert result.was_executed(output1), "Output1 should have been executed"
@@ -1139,12 +1139,12 @@ class TestExecution:
 
         # Should run: input1, output_node1, output_node2, save2
         assert result.was_executed(input1), "Input1 should have been executed"
-        assert result.was_executed(output_node1), (
-            "Output node 1 should have been executed (dependency)"
-        )
-        assert result.was_executed(output_node2), (
-            "Output node 2 should have been executed (dependency)"
-        )
+        assert result.was_executed(
+            output_node1
+        ), "Output node 1 should have been executed (dependency)"
+        assert result.was_executed(
+            output_node2
+        ), "Output node 2 should have been executed (dependency)"
         assert result.was_executed(save2), "Save2 should have been executed"
 
         # Should NOT run: input2, save1, save3
@@ -1188,9 +1188,9 @@ class TestExecution:
         first_two = client.get_all_history(max_items=2, offset=0)
         next_two = client.get_all_history(max_items=2, offset=2)
 
-        assert set(first_two.keys()).isdisjoint(set(next_two.keys())), (
-            "Offset should skip initial items"
-        )
+        assert set(first_two.keys()).isdisjoint(
+            set(next_two.keys())
+        ), "Offset should skip initial items"
 
     def test_offset_beyond_history_length_returns_empty(
         self, client: ComfyClient, builder: GraphBuilder
@@ -1233,9 +1233,9 @@ class TestExecution:
         all_items = client.get_all_history()
         offset_items = client.get_all_history(offset=2)
 
-        assert len(offset_items) == len(all_items) - 2, (
-            "Offset should skip specified number of items"
-        )
+        assert (
+            len(offset_items) == len(all_items) - 2
+        ), "Offset should skip specified number of items"
 
     def test_offset_with_max_items_returns_correct_window(
         self, client: ComfyClient, builder: GraphBuilder
@@ -1319,9 +1319,9 @@ class TestExecution:
             ]
             asc_times = [j["create_time"] for j in asc_jobs["jobs"] if j["create_time"]]
             if len(desc_times) >= 2:
-                assert desc_times == sorted(desc_times, reverse=True), (
-                    "Desc should be newest first"
-                )
+                assert desc_times == sorted(
+                    desc_times, reverse=True
+                ), "Desc should be newest first"
             if len(asc_times) >= 2:
                 assert asc_times == sorted(asc_times), "Asc should be oldest first"
 
@@ -1330,9 +1330,9 @@ class TestExecution:
         self._create_history_item(client, builder)
 
         completed_jobs = client.get_jobs(status="completed")
-        assert len(completed_jobs["jobs"]) > 0, (
-            "Should have completed jobs from history"
-        )
+        assert (
+            len(completed_jobs["jobs"]) > 0
+        ), "Should have completed jobs from history"
 
         for job in completed_jobs["jobs"]:
             assert job["status"] == "completed", "Should only return completed jobs"

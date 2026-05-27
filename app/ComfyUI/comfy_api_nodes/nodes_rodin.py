@@ -31,7 +31,6 @@ from comfy_api_nodes.util import (
 )
 from comfy_api.latest import ComfyExtension, IO
 
-
 COMMON_PARAMETERS = [
     IO.Int.Input(
         "Seed",
@@ -149,9 +148,11 @@ async def create_generate_task(
         files=[
             (
                 "images",
-                open(image, "rb")
-                if isinstance(image, str)
-                else tensor_to_filelike(image),
+                (
+                    open(image, "rb")
+                    if isinstance(image, str)
+                    else tensor_to_filelike(image)
+                ),
             )
             for image in images
             if image is not None

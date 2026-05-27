@@ -508,6 +508,7 @@ class ControlLora(ControlNet):
 
             class control_lora_ops(ControlLoraOps, comfy.ops.disable_weight_init):
                 pass
+
         else:
 
             class control_lora_ops(ControlLoraOps, comfy.ops.manual_cast):
@@ -566,7 +567,9 @@ class ControlLora(ControlNet):
             self.control_weights
         ) * comfy.model_management.dtype_size(
             dtype
-        ) + ControlBase.inference_memory_requirements(self, dtype)
+        ) + ControlBase.inference_memory_requirements(
+            self, dtype
+        )
 
 
 def controlnet_config(sd, model_options={}):

@@ -8,12 +8,6 @@ Isolation boundary: last30days may require Python 3.12+ and Node.js,
 so it runs in a separate process, not imported directly.
 """
 
-from core.config import (
-    LAST30DAYS_ENABLED,
-    LAST30DAYS_PYTHON_PATH,
-    LAST30DAYS_SCRIPT_PATH,
-    LAST30DAYS_TIMEOUT,
-)
 import json
 import logging
 import re
@@ -21,6 +15,13 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+from core.config import (
+    LAST30DAYS_ENABLED,
+    LAST30DAYS_PYTHON_PATH,
+    LAST30DAYS_SCRIPT_PATH,
+    LAST30DAYS_TIMEOUT,
+)
 
 # Setup path (same pattern as core/tools.py)
 CHATBOT_DIR = Path(__file__).parent.parent.resolve()
@@ -296,11 +297,11 @@ def parse_research_params(raw_text: str) -> dict:
     m = _DAYS_RE.search(text)
     if m:
         days = max(1, min(90, int(m.group(1))))
-        text = text[: m.start()] + text[m.end():]
+        text = text[: m.start()] + text[m.end() :]
 
     m = _SOURCES_RE.search(text)
     if m:
         sources = m.group(1)
-        text = text[: m.start()] + text[m.end():]
+        text = text[: m.start()] + text[m.end() :]
 
     return {"topic": text.strip(), "depth": depth, "days": days, "sources": sources}

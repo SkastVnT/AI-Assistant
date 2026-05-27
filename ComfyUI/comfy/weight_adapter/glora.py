@@ -103,7 +103,9 @@ class GLoRAAdapter(WeightAdapterBase):
                         ),
                         a1,
                     )
-                ).reshape(weight.shape)  # old lycoris glora
+                ).reshape(
+                    weight.shape
+                )  # old lycoris glora
             else:
                 if weight.dim() > 2:
                     lora_diff = torch.einsum(

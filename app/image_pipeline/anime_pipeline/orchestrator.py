@@ -849,9 +849,9 @@ class AnimePipelineOrchestrator:
                                 "round": round_num,
                                 "eye_score_before": eye_score_before,
                                 "eye_score_after": latest_critique.eye_consistency_score,
-                                "overall_before": score_history[-1]
-                                if score_history
-                                else 0,
+                                "overall_before": (
+                                    score_history[-1] if score_history else 0
+                                ),
                                 "overall_after": round(score, 2),
                             },
                         )
@@ -2262,16 +2262,16 @@ class AnimePipelineOrchestrator:
             if isinstance(result, dict) and result.get("response"):
                 return {
                     "content": result["response"],
-                    "key_points": result.get("agent_trace_summary", {}).get(
-                        "key_points", []
-                    )
-                    if isinstance(result.get("agent_trace_summary"), dict)
-                    else [],
-                    "confidence": result.get("agent_trace_summary", {}).get(
-                        "confidence", 0.0
-                    )
-                    if isinstance(result.get("agent_trace_summary"), dict)
-                    else 0.5,
+                    "key_points": (
+                        result.get("agent_trace_summary", {}).get("key_points", [])
+                        if isinstance(result.get("agent_trace_summary"), dict)
+                        else []
+                    ),
+                    "confidence": (
+                        result.get("agent_trace_summary", {}).get("confidence", 0.0)
+                        if isinstance(result.get("agent_trace_summary"), dict)
+                        else 0.5
+                    ),
                 }
             return None
 
@@ -2340,11 +2340,13 @@ class AnimePipelineOrchestrator:
             "regions": regions_fixed,
             "models_used": len(regions_fixed),
             "reasoning": (
-                f"YOLO detected and inpainted {len(regions_fixed)} regions: "
-                + ", ".join(r["region_type"] for r in regions_fixed[:10])
-            )
-            if regions_fixed
-            else "No regions detected for inpainting",
+                (
+                    f"YOLO detected and inpainted {len(regions_fixed)} regions: "
+                    + ", ".join(r["region_type"] for r in regions_fixed[:10])
+                )
+                if regions_fixed
+                else "No regions detected for inpainting"
+            ),
         }
 
     @staticmethod

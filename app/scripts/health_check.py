@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 AI-Assistant Service Health Check
 Tests all services and reports their status.
@@ -7,15 +7,11 @@ Usage:
     python app/scripts/health_check.py
 """
 
-import os
-import sys
-import time
-import socket
 import logging
-import subprocess
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+import socket
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -50,7 +46,7 @@ def check_port(port: int, host: str = "localhost", timeout: float = 2.0) -> bool
         return False
 
 
-def test_import(module_path: str) -> Tuple[bool, str]:
+def test_import(module_path: str) -> tuple[bool, str]:
     """Test if a module can be imported."""
     try:
         import importlib
@@ -71,14 +67,12 @@ def check_chatbot() -> ServiceStatus:
         chatbot_dir = PROJECT_ROOT / "services" / "chatbot"
         sys.path.insert(0, str(chatbot_dir))
 
-        import importlib.util
-
         app_py = chatbot_dir / "app.py"
 
         # Just check syntax
         import ast
 
-        with open(app_py, "r", encoding="utf-8") as f:
+        with open(app_py, encoding="utf-8") as f:
             ast.parse(f.read())
 
         import_ok = True
@@ -107,8 +101,6 @@ def check_edit_image() -> ServiceStatus:
         edit_dir = PROJECT_ROOT / "services" / "edit-image"
         sys.path.insert(0, str(edit_dir))
 
-        from app.core import Settings, get_settings
-
         import_ok = True
         msg = "Core config import OK"
     except Exception as e:
@@ -134,9 +126,6 @@ def check_mcp_server() -> ServiceStatus:
     try:
         mcp_dir = PROJECT_ROOT / "services" / "mcp-server"
         sys.path.insert(0, str(mcp_dir))
-
-        import mcp
-        from server import mcp as mcp_server
 
         import_ok = True
         msg = "MCP library and server import OK"
@@ -175,7 +164,7 @@ def check_stable_diffusion() -> ServiceStatus:
         return ServiceStatus(name, port, "error", msg, import_ok)
 
 
-def print_report(services: List[ServiceStatus]) -> None:
+def print_report(services: list[ServiceStatus]) -> None:
     """Print service status report."""
     print("\n" + "=" * 70)
     print("ðŸ¥ AI-ASSISTANT SERVICE HEALTH CHECK REPORT")

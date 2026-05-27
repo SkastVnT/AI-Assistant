@@ -375,7 +375,9 @@ class AnswerRequest(BaseModel):
 class CitationRef(BaseModel):
     """A single citation reference to a source chunk."""
 
-    source_index: int = Field(..., description="1-based index matching [Source N] in the answer.")
+    source_index: int = Field(
+        ..., description="1-based index matching [Source N] in the answer."
+    )
     chunk_id: UUID
     document_id: UUID
     version_id: UUID
@@ -395,7 +397,9 @@ class AnswerResponse(BaseModel):
     citations: list[CitationRef]
     query: str
     mode: str
-    evidence_used: int = Field(..., description="Number of evidence chunks fed to the LLM.")
+    evidence_used: int = Field(
+        ..., description="Number of evidence chunks fed to the LLM."
+    )
     trace_id: UUID | None = None
     retrieval_ms: int = 0
     generation_ms: int = 0

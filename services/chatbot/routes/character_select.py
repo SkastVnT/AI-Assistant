@@ -1,4 +1,4 @@
-﻿"""
+"""
 Flask blueprint â€” Character Select SAA sidecar status route.
 
 Endpoints:

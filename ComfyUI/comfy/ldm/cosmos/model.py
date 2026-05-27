@@ -253,9 +253,7 @@ class GeneralDIT(nn.Module):
         if self.extra_per_block_abs_pos_emb:
             assert self.extra_per_block_abs_pos_emb_type in [
                 "learnable",
-            ], (
-                f"Unknown extra_per_block_abs_pos_emb_type {self.extra_per_block_abs_pos_emb_type}"
-            )
+            ], f"Unknown extra_per_block_abs_pos_emb_type {self.extra_per_block_abs_pos_emb_type}"
             kwargs["h_extrapolation_ratio"] = self.extra_h_extrapolation_ratio
             kwargs["w_extrapolation_ratio"] = self.extra_w_extrapolation_ratio
             kwargs["t_extrapolation_ratio"] = self.extra_t_extrapolation_ratio
@@ -410,9 +408,9 @@ class GeneralDIT(nn.Module):
             crossattn_mask: (B, N) tensor of cross-attention masks
         """
         del kwargs
-        assert isinstance(data_type, DataType), (
-            f"Expected DataType, got {type(data_type)}. We need discuss this flag later."
-        )
+        assert isinstance(
+            data_type, DataType
+        ), f"Expected DataType, got {type(data_type)}. We need discuss this flag later."
         original_shape = x.shape
         x_B_T_H_W_D, rope_emb_L_1_1_D, extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D = (
             self.prepare_embedded_sequence(
@@ -589,15 +587,15 @@ class GeneralDIT(nn.Module):
         del inputs
 
         if extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D is not None:
-            assert x.shape == extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D.shape, (
-                f"{x.shape} != {extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D.shape} {original_shape}"
-            )
+            assert (
+                x.shape == extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D.shape
+            ), f"{x.shape} != {extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D.shape} {original_shape}"
 
         transformer_options = kwargs.get("transformer_options", {})
         for _, block in self.blocks.items():
-            assert self.blocks["block0"].x_format == block.x_format, (
-                f"First block has x_format {self.blocks[0].x_format}, got {block.x_format}"
-            )
+            assert (
+                self.blocks["block0"].x_format == block.x_format
+            ), f"First block has x_format {self.blocks[0].x_format}, got {block.x_format}"
 
             if extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D is not None:
                 x += extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D

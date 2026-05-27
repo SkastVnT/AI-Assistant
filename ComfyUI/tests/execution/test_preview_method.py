@@ -22,7 +22,6 @@ import websocket
 import urllib.request
 from pathlib import Path
 
-
 # Server configuration
 SERVER_URL = os.environ.get("COMFYUI_SERVER", "http://localhost:8988")
 SERVER_HOST = SERVER_URL.replace("http://", "").replace("https://", "")
@@ -204,9 +203,9 @@ class TestPreviewMethodExecution:
         assert result["completed"] or result["error"] is not None
         # Execution should take some time (sampling)
         if result["completed"]:
-            assert result["execution_time"] > 0.5, (
-                "Execution too fast - likely didn't run"
-            )
+            assert (
+                result["execution_time"] > 0.5
+            ), "Execution too fast - likely didn't run"
             # latent2rgb should produce previews
             print(
                 f"latent2rgb: {result['preview_count']} previews in {result['execution_time']:.2f}s"
@@ -247,9 +246,9 @@ class TestPreviewMethodExecution:
         assert result["completed"] or result["error"] is not None
         if result["completed"]:
             # With "none", should receive no preview images
-            assert result["preview_count"] == 0, (
-                f"Expected no previews with 'none', got {result['preview_count']}"
-            )
+            assert (
+                result["preview_count"] == 0
+            ), f"Expected no previews with 'none', got {result['preview_count']}"
             print(
                 f"none: {result['preview_count']} previews in {result['execution_time']:.2f}s"
             )  # noqa: T201
@@ -314,26 +313,28 @@ class TestPreviewMethodComparison:
         results["latent2rgb"] = client.wait_for_execution(response["prompt_id"])
 
         # Verify both completed
-        assert results["none"]["completed"], (
-            f"'none' execution failed: {results['none']['error']}"
-        )
-        assert results["latent2rgb"]["completed"], (
-            f"'latent2rgb' execution failed: {results['latent2rgb']['error']}"
-        )
+        assert results["none"][
+            "completed"
+        ], f"'none' execution failed: {results['none']['error']}"
+        assert results["latent2rgb"][
+            "completed"
+        ], f"'latent2rgb' execution failed: {results['latent2rgb']['error']}"
 
         # Key assertion: 'none' should have 0 previews
-        assert results["none"]["preview_count"] == 0, (
-            f"'none' should have 0 previews, got {results['none']['preview_count']}"
-        )
+        assert (
+            results["none"]["preview_count"] == 0
+        ), f"'none' should have 0 previews, got {results['none']['preview_count']}"
 
         # 'latent2rgb' should have at least 1 preview (depends on steps)
-        assert results["latent2rgb"]["preview_count"] > 0, (
-            f"'latent2rgb' should have >0 previews, got {results['latent2rgb']['preview_count']}"
-        )
+        assert (
+            results["latent2rgb"]["preview_count"] > 0
+        ), f"'latent2rgb' should have >0 previews, got {results['latent2rgb']['preview_count']}"
 
         print("\nPreview count comparison:")  # noqa: T201
         print(f"  none: {results['none']['preview_count']} previews")  # noqa: T201
-        print(f"  latent2rgb: {results['latent2rgb']['preview_count']} previews")  # noqa: T201
+        print(
+            f"  latent2rgb: {results['latent2rgb']['preview_count']} previews"
+        )  # noqa: T201
 
 
 class TestPreviewMethodSequential:
@@ -366,16 +367,16 @@ class TestPreviewMethodSequential:
 
         # All should complete or have clear errors
         for r in results:
-            assert r["completed"] or r["error"] is not None, (
-                f"Method {r['method']} neither completed nor errored"
-            )
+            assert (
+                r["completed"] or r["error"] is not None
+            ), f"Method {r['method']} neither completed nor errored"
 
         # "none" should have zero previews if completed
         none_result = next(r for r in results if r["method"] == "none")
         if none_result["completed"]:
-            assert none_result["preview_count"] == 0, (
-                f"'none' should have 0 previews, got {none_result['preview_count']}"
-            )
+            assert (
+                none_result["preview_count"] == 0
+            ), f"'none' should have 0 previews, got {none_result['preview_count']}"
 
         print("\nSequential execution results:")  # noqa: T201
         for r in results:

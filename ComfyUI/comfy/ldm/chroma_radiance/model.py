@@ -221,9 +221,9 @@ class ChromaRadiance(Chroma):
 
         # Reshape for per-patch processing
         nerf_hidden = img_out.reshape(B * num_patches, params.hidden_size)
-        nerf_pixels = nerf_pixels.reshape(B * num_patches, C, patch_size**2).transpose(
-            1, 2
-        )
+        nerf_pixels = nerf_pixels.reshape(
+            B * num_patches, C, patch_size**2
+        ).transpose(1, 2)
 
         if params.nerf_tile_size > 0 and num_patches > params.nerf_tile_size:
             # Enable tiling if nerf_tile_size isn't 0 and we actually have more patches than

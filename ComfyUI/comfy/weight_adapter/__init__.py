@@ -6,7 +6,6 @@ from .glora import GLoRAAdapter
 from .oft import OFTAdapter
 from .boft import BOFTAdapter
 
-
 adapters: list[type[WeightAdapterBase]] = [
     LoRAAdapter,
     LoHaAdapter,

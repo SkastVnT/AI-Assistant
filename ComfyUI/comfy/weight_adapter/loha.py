@@ -15,7 +15,7 @@ class HadaWeight(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_out):
-        (w1d, w1u, w2d, w2u, scale) = ctx.saved_tensors
+        w1d, w1u, w2d, w2u, scale = ctx.saved_tensors
         grad_out = grad_out * scale
         temp = grad_out * (w2u @ w2d)
         grad_w1u = temp @ w1d.T
@@ -41,7 +41,7 @@ class HadaWeightTucker(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_out):
-        (t1, w1d, w1u, t2, w2d, w2u, scale) = ctx.saved_tensors
+        t1, w1d, w1u, t2, w2d, w2u, scale = ctx.saved_tensors
         grad_out = grad_out * scale
 
         temp = torch.einsum("i j ..., j r -> i r ...", t2, w2d)

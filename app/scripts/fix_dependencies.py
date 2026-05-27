@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Dependency Conflict Resolver for AI-Assistant
 Handles protobuf and other version conflicts.
@@ -7,9 +7,9 @@ Usage:
     python app/scripts/fix_dependencies.py
 """
 
+import logging
 import subprocess
 import sys
-import logging
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -120,7 +120,7 @@ def verify_dependencies():
 
     import importlib
 
-    for module, attr in test_imports:
+    for module, _attr in test_imports:
         try:
             importlib.import_module(module)
             logger.info(f"âœ… {module} - OK")

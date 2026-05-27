@@ -290,9 +290,11 @@ class ResBlock(TimestepBlock):
                 nn.SiLU(),
                 operations.Linear(
                     emb_channels,
-                    2 * self.out_channels
-                    if use_scale_shift_norm
-                    else self.out_channels,
+                    (
+                        2 * self.out_channels
+                        if use_scale_shift_norm
+                        else self.out_channels
+                    ),
                     dtype=dtype,
                     device=device,
                 ),
@@ -552,9 +554,9 @@ class UNetModel(nn.Module):
         super().__init__()
 
         if context_dim is not None:
-            assert use_spatial_transformer, (
-                "Fool!! You forgot to use the spatial transformer for your cross-attention conditioning..."
-            )
+            assert (
+                use_spatial_transformer
+            ), "Fool!! You forgot to use the spatial transformer for your cross-attention conditioning..."
             # from omegaconf.listconfig import ListConfig
             # if type(context_dim) == ListConfig:
             #     context_dim = list(context_dim)
@@ -563,14 +565,14 @@ class UNetModel(nn.Module):
             num_heads_upsample = num_heads
 
         if num_heads == -1:
-            assert num_head_channels != -1, (
-                "Either num_heads or num_head_channels has to be set"
-            )
+            assert (
+                num_head_channels != -1
+            ), "Either num_heads or num_head_channels has to be set"
 
         if num_head_channels == -1:
-            assert num_heads != -1, (
-                "Either num_heads or num_head_channels has to be set"
-            )
+            assert (
+                num_heads != -1
+            ), "Either num_heads or num_head_channels has to be set"
 
         self.in_channels = in_channels
         self.model_channels = model_channels
@@ -1077,9 +1079,9 @@ class UNetModel(nn.Module):
         image_only_indicator = kwargs.get("image_only_indicator", None)
         time_context = kwargs.get("time_context", None)
 
-        assert (y is not None) == (self.num_classes is not None), (
-            "must specify y if and only if the model is class-conditional"
-        )
+        assert (y is not None) == (
+            self.num_classes is not None
+        ), "must specify y if and only if the model is class-conditional"
         hs = []
         t_emb = timestep_embedding(
             timesteps, self.model_channels, repeat_only=False

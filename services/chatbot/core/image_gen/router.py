@@ -889,7 +889,9 @@ class ImageGenerationRouter:
                 key=lambda c: (
                     0
                     if c.provider.tier == ProviderTier.FAST
-                    else 1 if c.provider.tier == ProviderTier.LOCAL else 2
+                    else 1
+                    if c.provider.tier == ProviderTier.LOCAL
+                    else 2
                 )
             )
         elif quality == QualityMode.QUALITY:
@@ -898,7 +900,9 @@ class ImageGenerationRouter:
                 key=lambda c: (
                     0
                     if c.provider.tier == ProviderTier.ULTRA
-                    else 1 if c.provider.tier == ProviderTier.HIGH else 2
+                    else 1
+                    if c.provider.tier == ProviderTier.HIGH
+                    else 2
                 )
             )
         elif quality == QualityMode.FREE:

@@ -55,6 +55,7 @@ try:
                     return torch.nn.functional.scaled_dot_product_attention(
                         q, k, v, *args, **kwargs
                     )
+
         else:
             logging.warning("Torch version too old to set sdpa backend priority.")
 except (ModuleNotFoundError, TypeError):

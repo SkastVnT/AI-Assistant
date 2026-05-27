@@ -57,9 +57,10 @@ def create_pos_embeddings(
     track_num: int = -1,  # the number of tracks to use
     t_down_strategy: str = "sample",  # the strategy for downsampling time dimension
 ):
-    assert t_down_strategy in ["sample", "average"], (
-        "Invalid strategy for downsampling time dimension."
-    )
+    assert t_down_strategy in [
+        "sample",
+        "average",
+    ], "Invalid strategy for downsampling time dimension."
 
     t, n, _ = pred_tracks.shape
     t_down, h_down, w_down = downsample_ratios

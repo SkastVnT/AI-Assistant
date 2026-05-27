@@ -973,9 +973,11 @@ def pad_pts(tr):
 
 def ind_sel(target: torch.Tensor, ind: torch.Tensor, dim: int = 1):
     """Index selection utility function"""
-    assert len(ind.shape) > dim, (
-        "Index must have the target dim, but get dim: %d, ind shape: %s"
-        % (dim, str(ind.shape))
+    assert (
+        len(ind.shape) > dim
+    ), "Index must have the target dim, but get dim: %d, ind shape: %s" % (
+        dim,
+        str(ind.shape),
     )
 
     target = target.expand(

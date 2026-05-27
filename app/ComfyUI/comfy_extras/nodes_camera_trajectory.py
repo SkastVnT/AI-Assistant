@@ -7,7 +7,6 @@ import comfy.model_management
 
 from comfy_api.latest import ComfyExtension, io
 
-
 CAMERA_DICT = {
     "base_T_norm": 1.5,
     "base_angle": np.pi / 3,

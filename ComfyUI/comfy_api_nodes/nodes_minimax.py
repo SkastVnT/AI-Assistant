@@ -441,7 +441,9 @@ class MinimaxHailuoVideoNode(IO.ComfyNode):
                         file_url, timeout=10, max_retries=2
                     )
                 )
-            except Exception:  # if we have a second URL to retrieve the result, try again using that one
+            except (
+                Exception
+            ):  # if we have a second URL to retrieve the result, try again using that one
                 return IO.NodeOutput(
                     await download_url_to_video_output(
                         file_result.file.backup_download_url, max_retries=3

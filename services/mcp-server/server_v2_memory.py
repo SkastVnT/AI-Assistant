@@ -1123,9 +1123,7 @@ def http_request(
     try:
         data = body.encode("utf-8") if body else None
         req = urllib.request.Request(url, data=data, headers=req_headers, method=method)
-        with urllib.request.urlopen(
-            req, timeout=timeout
-        ) as resp:  # nosec B310  # URL scheme and hostname validated above
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310  # URL scheme and hostname validated above
             response_body = resp.read().decode("utf-8", errors="replace")
             return {
                 "status_code": resp.status,

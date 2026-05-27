@@ -99,9 +99,7 @@ class CharacterSelectSettings:
     auto_start: bool = field(
         default_factory=lambda: _bool("CHARACTER_SELECT_AUTO_START")
     )
-    path: str = field(
-        default_factory=lambda: str(resolve_character_select_path())
-    )
+    path: str = field(default_factory=lambda: str(resolve_character_select_path()))
     timeout: int = field(default_factory=lambda: _int("CHARACTER_SELECT_TIMEOUT", 5))
 
 

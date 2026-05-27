@@ -32,7 +32,7 @@ from config.model_presets import LORA_CATALOG  # type: ignore
 try:
     from core.project_paths import STORAGE_DIR
 except ImportError:  # pragma: no cover - package import fallback
-    from ..project_paths import STORAGE_DIR
+    from core.project_paths import STORAGE_DIR
 
 from .providers.base import LoraSpec
 

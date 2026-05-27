@@ -9,7 +9,6 @@ from typing import Tuple, List
 from cv2 import imread, cvtColor, COLOR_BGR2RGB
 from skimage.metrics import structural_similarity as ssim
 
-
 """
 This test suite compares images in 2 directories by file name
 The directories are specified by the command line arguments --baseline_dir and --test_dir
@@ -84,9 +83,9 @@ class TestCompareImageMetrics:
     def test_directories_not_empty(self, args_pytest):
         baseline_dir = args_pytest["baseline_dir"]
         test_dir = args_pytest["test_dir"]
-        assert len(os.listdir(baseline_dir)) != 0, (
-            f"Baseline directory {baseline_dir} is empty"
-        )
+        assert (
+            len(os.listdir(baseline_dir)) != 0
+        ), f"Baseline directory {baseline_dir} is empty"
         assert len(os.listdir(test_dir)) != 0, f"Test directory {test_dir} is empty"
 
     def test_dir_has_all_matching_metadata(self, fname, test_file_names, args_pytest):
@@ -94,9 +93,9 @@ class TestCompareImageMetrics:
         baseline_file_path = os.path.join(args_pytest["baseline_dir"], fname)
         file_paths = [os.path.join(args_pytest["test_dir"], f) for f in test_file_names]
         file_match = self.find_file_match(baseline_file_path, file_paths)
-        assert file_match is not None, (
-            f"Could not find a file in {args_pytest['test_dir']} with matching metadata to {baseline_file_path}"
-        )
+        assert (
+            file_match is not None
+        ), f"Could not find a file in {args_pytest['test_dir']} with matching metadata to {baseline_file_path}"
 
     # For a baseline image file, finds the corresponding file name in test_dir and
     # compares the images using the metrics in METRICS

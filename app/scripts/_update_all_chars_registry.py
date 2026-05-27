@@ -12,8 +12,6 @@ try:
 
     USE_RUAMEL = True
 except ImportError:
-    import yaml
-
     USE_RUAMEL = False
 
 REGISTRY_PATH = os.path.join(
@@ -484,7 +482,7 @@ def apply_updates_ruamel(registry_path: str) -> int:
     yaml.best_sequence_indent = 4
     yaml.best_map_flow_style = False
 
-    with open(registry_path, "r", encoding="utf-8") as f:
+    with open(registry_path, encoding="utf-8") as f:
         data = yaml.load(f)
 
     updated = 0
@@ -524,7 +522,7 @@ def apply_updates_pyyaml(registry_path: str) -> int:
         ),
     )
 
-    with open(registry_path, "r", encoding="utf-8") as f:
+    with open(registry_path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
     updated = 0

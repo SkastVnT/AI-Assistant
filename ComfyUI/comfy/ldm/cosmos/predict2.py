@@ -397,9 +397,9 @@ class PatchEmbed(nn.Module):
         """
         assert x.dim() == 5
         _, _, T, H, W = x.shape
-        assert H % self.spatial_patch_size == 0 and W % self.spatial_patch_size == 0, (
-            f"H,W {(H, W)} should be divisible by spatial_patch_size {self.spatial_patch_size}"
-        )
+        assert (
+            H % self.spatial_patch_size == 0 and W % self.spatial_patch_size == 0
+        ), f"H,W {(H, W)} should be divisible by spatial_patch_size {self.spatial_patch_size}"
         assert T % self.temporal_patch_size == 0
         x = self.proj(x)
         return x
@@ -1092,9 +1092,9 @@ class MiniTrainDIT(nn.Module):
         self.crossattn_emb = crossattn_emb
 
         if extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D is not None:
-            assert x_B_T_H_W_D.shape == extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D.shape, (
-                f"{x_B_T_H_W_D.shape} != {extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D.shape}"
-            )
+            assert (
+                x_B_T_H_W_D.shape == extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D.shape
+            ), f"{x_B_T_H_W_D.shape} != {extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D.shape}"
 
         block_kwargs = {
             "rope_emb_L_1_1_D": rope_emb_L_1_1_D.unsqueeze(1).unsqueeze(0),

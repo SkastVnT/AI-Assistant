@@ -97,7 +97,8 @@ class CrossEncoderReranker:
         scores = await self._score_fn(self._model_name, pairs)
 
         scored = [
-            RerankResult(result=c, rerank_score=s) for c, s in zip(candidates, scores, strict=True)
+            RerankResult(result=c, rerank_score=s)
+            for c, s in zip(candidates, scores, strict=True)
         ]
         scored.sort(key=lambda x: x.rerank_score, reverse=True)
 
@@ -134,7 +135,9 @@ async def _default_cross_encoder_score(
         scores = await loop.run_in_executor(None, lambda: model.predict(pairs).tolist())
         return scores
     except ImportError:
-        logger.warning("sentence-transformers not installed; using word-overlap fallback")
+        logger.warning(
+            "sentence-transformers not installed; using word-overlap fallback"
+        )
         return _word_overlap_scores(pairs)
 
 
@@ -190,7 +193,8 @@ class LateInteractionReranker:
         scores = await self._score_fn(self._model_name, pairs)
 
         scored = [
-            RerankResult(result=c, rerank_score=s) for c, s in zip(candidates, scores, strict=True)
+            RerankResult(result=c, rerank_score=s)
+            for c, s in zip(candidates, scores, strict=True)
         ]
         scored.sort(key=lambda x: x.rerank_score, reverse=True)
 

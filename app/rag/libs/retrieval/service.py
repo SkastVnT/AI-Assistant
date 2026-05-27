@@ -284,7 +284,9 @@ async def retrieve(
         tenant_id=request.tenant_id,
         user_id=request.user_id,
         query_text=request.query,
-        transformed_query=transformed_query if transformed_query != request.query else None,
+        transformed_query=(
+            transformed_query if transformed_query != request.query else None
+        ),
         retrieval_strategy=retrieval_strategy,
         top_k=request.top_k,
         retrieved_chunks=[
@@ -303,7 +305,9 @@ async def retrieve(
             ),
             "lexical_count": len(hybrid_result.lexical_results) if hybrid_result else 0,
             "fused_count": len(hybrid_result.fused_results) if hybrid_result else 0,
-            "reranked_count": len(hybrid_result.reranked_results) if hybrid_result else 0,
+            "reranked_count": (
+                len(hybrid_result.reranked_results) if hybrid_result else 0
+            ),
         },
     )
     db.add(trace)
@@ -330,12 +334,16 @@ async def retrieve(
         trace_id=trace_id,
         retrieval_ms=total_ms,
         embedding_model=getattr(embedding_provider, "model", None),
-        transformed_query=transformed_query if transformed_query != request.query else None,
+        transformed_query=(
+            transformed_query if transformed_query != request.query else None
+        ),
         sub_queries=sub_queries,
         transform_log=ctx.transform_log if ctx else [],
         transform_ms=transform_ms,
         retrieval_strategy=retrieval_strategy,
-        dense_count=len(hybrid_result.dense_results) if hybrid_result else len(all_results),
+        dense_count=(
+            len(hybrid_result.dense_results) if hybrid_result else len(all_results)
+        ),
         lexical_count=len(hybrid_result.lexical_results) if hybrid_result else 0,
         fused_count=len(hybrid_result.fused_results) if hybrid_result else 0,
         reranked_count=len(hybrid_result.reranked_results) if hybrid_result else 0,

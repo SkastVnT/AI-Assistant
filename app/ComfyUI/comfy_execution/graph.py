@@ -182,9 +182,9 @@ class TopologicalSort:
             self.add_strong_link(*link)
 
     def add_external_block(self, node_id):
-        assert node_id in self.blockCount, (
-            "Can't add external block to a node that isn't pending"
-        )
+        assert (
+            node_id in self.blockCount
+        ), "Can't add external block to a node that isn't pending"
         self.externalBlocks += 1
         self.blockCount[node_id] += 1
 

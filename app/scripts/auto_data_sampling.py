@@ -3,10 +3,10 @@ Auto Data Sampling for MongoDB and Firebase
 Keeps databases active by sending 1 sample per day
 """
 
-import os
-import sys
 import json
 import logging
+import os
+import sys
 import threading
 import time
 from datetime import datetime, timedelta
@@ -43,7 +43,7 @@ def load_tracking():
     """Load tracking data"""
     if SAMPLE_TRACKING_FILE.exists():
         try:
-            with open(SAMPLE_TRACKING_FILE, "r") as f:
+            with open(SAMPLE_TRACKING_FILE) as f:
                 return json.load(f)
         except:
             pass
@@ -132,7 +132,7 @@ def sample_firebase():
         response = requests.post(firebase_url, json=sample, timeout=10)
 
         if response.status_code in [200, 201]:
-            logger.info(f"✅ Firebase sample sent successfully")
+            logger.info("✅ Firebase sample sent successfully")
             return True
         else:
             logger.warning(f"⚠️ Firebase sample response: {response.status_code}")
@@ -148,14 +148,12 @@ def run_auto_sampling():
     tracking = load_tracking()
 
     # Check MongoDB
-    if should_sample(tracking.get("last_mongodb_sample")):
-        if sample_mongodb():
-            tracking["last_mongodb_sample"] = datetime.now().isoformat()
+    if should_sample(tracking.get("last_mongodb_sample")) and sample_mongodb():
+        tracking["last_mongodb_sample"] = datetime.now().isoformat()
 
     # Check Firebase
-    if should_sample(tracking.get("last_firebase_sample")):
-        if sample_firebase():
-            tracking["last_firebase_sample"] = datetime.now().isoformat()
+    if should_sample(tracking.get("last_firebase_sample")) and sample_firebase():
+        tracking["last_firebase_sample"] = datetime.now().isoformat()
 
     save_tracking(tracking)
     return tracking

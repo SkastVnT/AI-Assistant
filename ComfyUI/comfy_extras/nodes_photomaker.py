@@ -97,9 +97,9 @@ class FuseModule(nn.Module):
         # slice out the image token embeddings
         image_token_embeds = prompt_embeds[class_tokens_mask]
         stacked_id_embeds = self.fuse_fn(image_token_embeds, valid_id_embeds)
-        assert class_tokens_mask.sum() == stacked_id_embeds.shape[0], (
-            f"{class_tokens_mask.sum()} != {stacked_id_embeds.shape[0]}"
-        )
+        assert (
+            class_tokens_mask.sum() == stacked_id_embeds.shape[0]
+        ), f"{class_tokens_mask.sum()} != {stacked_id_embeds.shape[0]}"
         prompt_embeds.masked_scatter_(
             class_tokens_mask[:, None], stacked_id_embeds.to(prompt_embeds.dtype)
         )

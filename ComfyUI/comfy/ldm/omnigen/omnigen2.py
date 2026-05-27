@@ -514,7 +514,8 @@ class OmniGen2RotaryPosEmbed(nn.Module):
             ]
             img_freqs_cis[i, :img_len] = freqs_cis[
                 i,
-                cap_seq_len + sum(ref_img_len) : cap_seq_len
+                cap_seq_len
+                + sum(ref_img_len) : cap_seq_len
                 + sum(ref_img_len)
                 + img_len,
             ]
@@ -697,12 +698,14 @@ class OmniGen2Transformer2DModel(nn.Module):
                 ]
             ] * batch_size
             l_effective_ref_img_len = [
-                [
-                    (ref_img_size[0] // p) * (ref_img_size[1] // p)
-                    for ref_img_size in _ref_img_sizes
-                ]
-                if _ref_img_sizes is not None
-                else [0]
+                (
+                    [
+                        (ref_img_size[0] // p) * (ref_img_size[1] // p)
+                        for ref_img_size in _ref_img_sizes
+                    ]
+                    if _ref_img_sizes is not None
+                    else [0]
+                )
                 for _ref_img_sizes in ref_img_sizes
             ]
         else:

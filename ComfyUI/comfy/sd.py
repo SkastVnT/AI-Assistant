@@ -1828,7 +1828,9 @@ def load_text_encoder_state_dicts(
             if "text_projection" in clip_data[i]:
                 clip_data[i]["text_projection.weight"] = clip_data[i][
                     "text_projection"
-                ].transpose(0, 1)  # old models saved with the CLIPSave node
+                ].transpose(
+                    0, 1
+                )  # old models saved with the CLIPSave node
 
     tokenizer_data = {}
     clip_target = EmptyClass()

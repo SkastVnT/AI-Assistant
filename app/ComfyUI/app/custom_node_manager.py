@@ -10,7 +10,6 @@ from functools import lru_cache
 
 from utils.json_util import merge_json_recursive
 
-
 # Extra locale files to load into main.json
 EXTRA_LOCALE_FILES = [
     "nodeDefs.json",
@@ -113,7 +112,9 @@ class CustomNodeManager:
                     matched_files = glob.glob(pattern)
                     files.extend(matched_files)
 
-            workflow_templates_dict = {}  # custom_nodes folder name -> example workflow names
+            workflow_templates_dict = (
+                {}
+            )  # custom_nodes folder name -> example workflow names
             for file in files:
                 custom_nodes_name = os.path.basename(
                     os.path.dirname(os.path.dirname(file))

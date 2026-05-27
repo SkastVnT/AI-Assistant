@@ -36,7 +36,9 @@ def _print_chunk_table(chunks: list, preset_name: str = "") -> None:
         print(f"Preset: {preset_name}")
         print(f"{'=' * 70}")
 
-    print(f"{'Idx':<5} {'Tokens':<8} {'Offset':<15} {'Page':<6} {'Heading Path':<30} {'Preview'}")
+    print(
+        f"{'Idx':<5} {'Tokens':<8} {'Offset':<15} {'Page':<6} {'Heading Path':<30} {'Preview'}"
+    )
     print("-" * 110)
 
     for c in chunks:
@@ -72,7 +74,9 @@ def _print_chunk_json(chunks: list) -> None:
             "heading_path": c.meta.heading_path,
             "page_number": c.meta.page_number,
             "is_parent": c.meta.is_parent,
-            "parent_chunk_id": str(c.meta.parent_chunk_id) if c.meta.parent_chunk_id else None,
+            "parent_chunk_id": (
+                str(c.meta.parent_chunk_id) if c.meta.parent_chunk_id else None
+            ),
             "content": c.content,
         }
         for c in chunks
@@ -101,12 +105,16 @@ def _print_full_chunks(chunks: list) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Evaluate and inspect chunking strategies")
+    parser = argparse.ArgumentParser(
+        description="Evaluate and inspect chunking strategies"
+    )
     parser.add_argument("file", help="Path to file to chunk")
     parser.add_argument(
         "--preset", default="general", help="Chunking preset name (default: general)"
     )
-    parser.add_argument("--compare", action="store_true", help="Compare all presets side by side")
+    parser.add_argument(
+        "--compare", action="store_true", help="Compare all presets side by side"
+    )
     parser.add_argument(
         "--format",
         choices=["table", "json", "full"],
@@ -114,7 +122,9 @@ def main() -> None:
         help="Output format (default: table)",
     )
     parser.add_argument(
-        "--with-parse", action="store_true", help="Parse file with document parser before chunking"
+        "--with-parse",
+        action="store_true",
+        help="Parse file with document parser before chunking",
     )
     args = parser.parse_args()
 

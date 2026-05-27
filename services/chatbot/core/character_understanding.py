@@ -584,7 +584,7 @@ def _is_subseq(needle: list[str], haystack: list[str]) -> bool:
     if not needle:
         return False
     n = len(needle)
-    return any(haystack[i: i + n] == needle for i in range(len(haystack) - n + 1))
+    return any(haystack[i : i + n] == needle for i in range(len(haystack) - n + 1))
 
 
 # â”€â”€ Unknown / low-data fallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -681,7 +681,8 @@ def _looks_named(original: str, candidate_slug: str) -> bool:
 # downstream prompt explicitly avoids that identity.
 _NEGATION_PATTERNS = (
     re.compile(
-        r"kh[oÃ´]ng\s+ph[aáº£]i\s+([A-Za-zÃ€-á»¹][A-Za-zÃ€-á»¹\s]*?)(?:[,.;!?]|$)", re.IGNORECASE
+        r"kh[oÃ´]ng\s+ph[aáº£]i\s+([A-Za-zÃ€-á»¹][A-Za-zÃ€-á»¹\s]*?)(?:[,.;!?]|$)",
+        re.IGNORECASE,
     ),
     re.compile(r"\bnot\s+([A-Za-z][A-Za-z\s]*?)(?:[,.;!?]|$)", re.IGNORECASE),
 )
@@ -736,7 +737,7 @@ def _has_phrase(tokens: list[str], phrase: tuple[str, ...]) -> bool:
     if n == 0 or n > len(tokens):
         return False
     target = list(phrase)
-    return any(tokens[i: i + n] == target for i in range(len(tokens) - n + 1))
+    return any(tokens[i : i + n] == target for i in range(len(tokens) - n + 1))
 
 
 def _word_spans(text: str) -> list[str]:
@@ -854,7 +855,7 @@ def extract_prompt_entities(prompt: str) -> dict:
         if n > len(text_tokens):
             continue
         for i in range(len(text_tokens) - n + 1):
-            if text_tokens[i: i + n] == ak_tokens:
+            if text_tokens[i : i + n] == ak_tokens:
                 series_hint = _SERIES_ALIAS_MAP[alias_key]
                 series_hint_raw = " ".join(ak_tokens)
                 series_span = (i, i + n)

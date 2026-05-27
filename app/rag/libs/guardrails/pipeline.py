@@ -90,7 +90,9 @@ async def run_ingestion_guardrails(
             kind=SecurityEventKind.INGESTION_SANITIZE,
             severity=max(
                 (f.severity for f in sanitize_result.findings),
-                key=lambda s: {"low": 0, "medium": 1, "high": 2, "critical": 3}.get(s, 0),
+                key=lambda s: {"low": 0, "medium": 1, "high": 2, "critical": 3}.get(
+                    s, 0
+                ),
             ),
             source="sanitizer",
             description=f"Sanitization found {len(sanitize_result.findings)} issues",
@@ -98,7 +100,11 @@ async def run_ingestion_guardrails(
             user_id=user_id,
             details={
                 "findings": [
-                    {"pattern": f.pattern_name, "count": f.count, "severity": f.severity}
+                    {
+                        "pattern": f.pattern_name,
+                        "count": f.count,
+                        "severity": f.severity,
+                    }
                     for f in sanitize_result.findings
                 ],
                 "removed_chars": sanitize_result.removed_char_count,
@@ -316,7 +322,8 @@ async def run_post_generation_guardrails(
             user_id=user_id,
             details={
                 "findings": [
-                    {"check": f.check_name, "severity": f.severity} for f in output_val.findings
+                    {"check": f.check_name, "severity": f.severity}
+                    for f in output_val.findings
                 ],
             },
         )

@@ -725,9 +725,9 @@ class AnimePipelineJob:
             "alias_source": self.alias_source,
             "solo_intent": self.solo_intent,
             "collision_blocks": list(self.collision_blocks),
-            "vision_analysis": self.vision_analysis.to_dict()
-            if self.vision_analysis
-            else None,
+            "vision_analysis": (
+                self.vision_analysis.to_dict() if self.vision_analysis else None
+            ),
             "layer_plan": self.layer_plan.to_dict() if self.layer_plan else None,
             "critique_results": [c.to_dict() for c in self.critique_results],
             "stages_executed": self.stages_executed,

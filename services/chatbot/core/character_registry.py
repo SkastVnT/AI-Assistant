@@ -83,7 +83,9 @@ class CharacterRegistry:
                             payload.setdefault("key", key)
                             self._records[key] = CharacterRecord(**payload)
                         except TypeError as exc:
-                            logger.warning("character_registry: skip %s â€” %s", key, exc)
+                            logger.warning(
+                                "character_registry: skip %s â€” %s", key, exc
+                            )
                 except Exception as exc:
                     logger.error(
                         "character_registry: failed to load characters.json: %s", exc

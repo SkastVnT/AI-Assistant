@@ -161,9 +161,9 @@ class TestPublicAPI:
 
         # Both should execute successfully
         assert result.did_run(sync_progress), "Sync progress node should have executed"
-        assert result.did_run(async_progress), (
-            "Async progress node should have executed"
-        )
+        assert result.did_run(
+            async_progress
+        ), "Async progress node should have executed"
         assert result.did_run(output1), "First output node should have executed"
         assert result.did_run(output2), "Second output node should have executed"
 

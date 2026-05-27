@@ -309,9 +309,9 @@ class PromptServer:
                             if first_message and data.get("type") == "feature_flags":
                                 # Store client feature flags
                                 client_flags = data.get("data", {})
-                                self.sockets_metadata[sid]["feature_flags"] = (
-                                    client_flags
-                                )
+                                self.sockets_metadata[sid][
+                                    "feature_flags"
+                                ] = client_flags
 
                                 # Send server feature flags in response
                                 await self.send(

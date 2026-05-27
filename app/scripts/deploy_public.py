@@ -11,15 +11,13 @@ Requirements:
     pip install pyngrok
 """
 
+import json
+import os
+import signal
 import subprocess
 import sys
-import os
 import time
-import signal
-import json
-import threading
 from pathlib import Path
-from typing import Dict, List, Optional
 
 # Service configuration
 SERVICES = {
@@ -134,7 +132,7 @@ def is_port_in_use(port: int) -> bool:
 def kill_port(port: int):
     """Kill process on a specific port"""
     try:
-        result = subprocess.run(
+        subprocess.run(
             f"lsof -ti :{port} | xargs kill -9 2>/dev/null",
             shell=True,
             capture_output=True,
@@ -146,9 +144,9 @@ def kill_port(port: int):
 class ServiceManager:
     def __init__(self, root_dir: Path):
         self.root_dir = root_dir
-        self.processes: Dict[str, subprocess.Popen] = {}
-        self.tunnels: Dict[str, any] = {}
-        self.public_urls: Dict[str, str] = {}
+        self.processes: dict[str, subprocess.Popen] = {}
+        self.tunnels: dict[str, any] = {}
+        self.public_urls: dict[str, str] = {}
         self.running = True
 
     def start_service(self, service_id: str) -> bool:
@@ -221,9 +219,9 @@ class ServiceManager:
             print(f"{Colors.RED}   ✗ Failed to start {config['name']}: {e}{Colors.END}")
             return False
 
-    def create_tunnel(self, service_id: str) -> Optional[str]:
+    def create_tunnel(self, service_id: str) -> str | None:
         """Create ngrok tunnel for a service"""
-        from pyngrok import ngrok, conf
+        from pyngrok import ngrok
 
         config = SERVICES.get(service_id)
         if not config:
@@ -251,7 +249,7 @@ class ServiceManager:
             print(f"{Colors.RED}   ✗ Failed to create tunnel: {e}{Colors.END}")
             return None
 
-    def start_all(self, service_list: List[str] = None):
+    def start_all(self, service_list: list[str] = None):
         """Start all specified services"""
         services_to_start = service_list or list(SERVICES.keys())
 
@@ -348,7 +346,7 @@ class ServiceManager:
             pass
 
         # Kill processes
-        for service_id, process in self.processes.items():
+        for _service_id, process in self.processes.items():
             try:
                 os.killpg(os.getpgid(process.pid), signal.SIGTERM)
             except:

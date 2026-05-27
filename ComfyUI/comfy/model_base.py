@@ -1210,7 +1210,7 @@ class Flux(BaseModel):
             if mask_ref_size is not None:
                 # the model will pad to the patch size, and then divide
                 # essentially dividing and rounding up
-                (h_tok, w_tok) = (
+                h_tok, w_tok = (
                     math.ceil(shape[2] / self.diffusion_model.patch_size),
                     math.ceil(shape[3] / self.diffusion_model.patch_size),
                 )

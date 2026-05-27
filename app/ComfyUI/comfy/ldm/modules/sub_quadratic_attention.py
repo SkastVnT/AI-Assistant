@@ -180,7 +180,9 @@ def _get_attention_scores_no_kv_chunking(
         logging.warning(
             "ran out of memory while running softmax in  _get_attention_scores_no_kv_chunking, trying slower in place softmax instead"
         )
-        attn_scores -= attn_scores.max(dim=-1, keepdim=True).values  # noqa: F821 attn_scores is not defined
+        attn_scores -= attn_scores.max(
+            dim=-1, keepdim=True
+        ).values  # noqa: F821 attn_scores is not defined
         torch.exp(attn_scores, out=attn_scores)
         summed = torch.sum(attn_scores, dim=-1, keepdim=True)
         attn_scores /= summed

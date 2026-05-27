@@ -3,21 +3,24 @@ ChatbotAgent class - Multi-model AI chatbot with streaming, retry, and fallback 
 Refactored to eliminate code duplication and add enterprise features
 """
 
-from core.extensions import (
-    LOCALMODELS_AVAILABLE,
-    MONGODB_ENABLED,
-    ConversationDB,
-    cache_response,
-    get_cached_response,
-    logger,
-    model_loader,
-    wait_for_openai_rate_limit,
-)
-from core.db_helpers import (
-    get_user_id_from_session,
-    load_conversation_history,
-    save_message_to_db,
-    set_active_conversation,
+import logging
+import sys
+from collections.abc import Generator
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Union
+
+from core.base_chat import (
+    DEFAULT_FALLBACK_CHAIN,
+    BloomVNChat,
+    ChatContext,
+    ChatResponse,
+    ContextWindowManager,
+    ModelConfig,
+    ModelFallbackManager,
+    ModelProvider,
+    OpenAICompatibleChat,
+    QwenChat,
 )
 from core.config import (
     DEEPSEEK_API_KEY,
@@ -32,24 +35,22 @@ from core.config import (
     SYSTEM_PROMPTS,
     get_system_prompts,
 )
-from core.base_chat import (
-    DEFAULT_FALLBACK_CHAIN,
-    BloomVNChat,
-    ChatContext,
-    ChatResponse,
-    ContextWindowManager,
-    ModelConfig,
-    ModelFallbackManager,
-    ModelProvider,
-    OpenAICompatibleChat,
-    QwenChat,
+from core.db_helpers import (
+    get_user_id_from_session,
+    load_conversation_history,
+    save_message_to_db,
+    set_active_conversation,
 )
-import logging
-import sys
-from collections.abc import Generator
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Union
+from core.extensions import (
+    LOCALMODELS_AVAILABLE,
+    MONGODB_ENABLED,
+    ConversationDB,
+    cache_response,
+    get_cached_response,
+    logger,
+    model_loader,
+    wait_for_openai_rate_limit,
+)
 
 # Setup path
 CHATBOT_DIR = Path(__file__).parent.parent.resolve()

@@ -22,9 +22,7 @@ def preview_to_image(latent_image, do_scale=True):
             .mul(0xFF)  # to 0..255
         )
     else:
-        latents_ubyte = (
-            latent_image.clamp(0, 1).mul(0xFF)  # to 0..255
-        )
+        latents_ubyte = latent_image.clamp(0, 1).mul(0xFF)  # to 0..255
     if comfy.model_management.directml_enabled:
         latents_ubyte = latents_ubyte.to(dtype=torch.uint8)
     latents_ubyte = latents_ubyte.to(

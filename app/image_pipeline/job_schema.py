@@ -563,9 +563,9 @@ class RunMetadata:
             "final_provider": self.final_provider,
             "final_model": self.final_model,
             "eval_passed": self.eval_passed,
-            "eval_score": round(self.eval_score, 4)
-            if self.eval_score is not None
-            else None,
+            "eval_score": (
+                round(self.eval_score, 4) if self.eval_score is not None else None
+            ),
             "tags": self.tags,
             "errors": self.errors,
         }

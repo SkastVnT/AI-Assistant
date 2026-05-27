@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """CSS/HTML class audit script."""
 
-import re
 import os
+import re
 
 BASE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 HTML_PATH = os.path.join(BASE, "services", "chatbot", "templates", "index.html")
@@ -61,7 +61,7 @@ print("=" * 70)
 print("CSS / HTML AUDIT REPORT")
 print("=" * 70)
 
-print(f"\n[STATS]")
+print("\n[STATS]")
 print(f"  HTML classes found:          {len(class_names)}")
 print(f"  CSS class selectors defined: {len(css_selectors)}")
 print(f"  Matched (HTML in CSS):       {len(class_names & css_selectors)}")

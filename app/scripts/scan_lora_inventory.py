@@ -54,7 +54,7 @@ def load_registered_names() -> set[str]:
         return set()
     data = yaml.safe_load(REGISTRY.read_text(encoding="utf-8")) or {}
     names: set[str] = set()
-    for category, entries in data.items():
+    for _category, entries in data.items():
         if not isinstance(entries, list):
             continue
         for e in entries:

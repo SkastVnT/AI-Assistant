@@ -13,9 +13,9 @@ class SingletonMetaclass(type):
         return cls._instances[cls]
 
     def inject_instance(cls: type[T], instance: T) -> None:
-        assert cls not in SingletonMetaclass._instances, (
-            "Cannot inject instance after first instantiation"
-        )
+        assert (
+            cls not in SingletonMetaclass._instances
+        ), "Cannot inject instance after first instantiation"
         SingletonMetaclass._instances[cls] = instance
 
     def get_instance(cls: type[T], *args, **kwargs) -> T:

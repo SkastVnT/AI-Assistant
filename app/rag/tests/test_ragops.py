@@ -323,7 +323,9 @@ class TestContextRelevance:
             return_value=JudgeResult(score=0.8, reasoning="Relevant", raw_output="")
         )
         result = await eval_context_relevance(
-            mock_judge, query="What is RAG?", context="RAG is retrieval augmented generation."
+            mock_judge,
+            query="What is RAG?",
+            context="RAG is retrieval augmented generation.",
         )
         assert result.score == 0.8
         mock_judge.evaluate.assert_called_once()

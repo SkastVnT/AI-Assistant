@@ -193,9 +193,7 @@ class MemoryManager:
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
 
         with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute(
-                f"DELETE FROM memory_context {where}", params
-            )  # nosec B608  # Uses parameterized query with params
+            cursor = conn.execute(f"DELETE FROM memory_context {where}", params)  # nosec B608  # Uses parameterized query with params
             deleted = cursor.rowcount
             conn.commit()
 
@@ -221,13 +219,16 @@ class MemoryManager:
                 "SELECT COUNT(*) AS c FROM memory_context WHERE expires_at IS NOT NULL AND expires_at <= ?",
                 (now_utc,),
             ).fetchone()["c"]
-            top_types = [dict(row) for row in conn.execute("""
+            top_types = [
+                dict(row)
+                for row in conn.execute("""
                     SELECT context_type, COUNT(*) AS count
                     FROM memory_context
                     GROUP BY context_type
                     ORDER BY count DESC
                     LIMIT 10
-                    """).fetchall()]
+                    """).fetchall()
+            ]
 
         return {
             "total_entries": total,
@@ -740,7 +741,9 @@ class MemoryManager:
             importance_icon = (
                 "ðŸ”´"
                 if obs["importance"] >= 8
-                else "ðŸŸ¡" if obs["importance"] >= 6 else "ðŸ”µ"
+                else "ðŸŸ¡"
+                if obs["importance"] >= 6
+                else "ðŸ”µ"
             )
             type_label = (
                 obs["observation_type"].upper()

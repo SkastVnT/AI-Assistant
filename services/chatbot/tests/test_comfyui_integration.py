@@ -27,7 +27,6 @@ from unittest.mock import patch
 
 import httpx
 import pytest
-
 from image_pipeline.anime_pipeline.comfy_client import ComfyClient
 from image_pipeline.anime_pipeline.config import AnimePipelineConfig, ModelConfig
 from image_pipeline.anime_pipeline.schemas import (

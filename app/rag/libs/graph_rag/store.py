@@ -496,8 +496,12 @@ class PostgresGraphStore:
             id_to_name = {row.id: row.name for row in name_result.all()}
 
             for r in all_relationships:
-                r.source_entity = id_to_name.get(r.source_entity_id, str(r.source_entity_id))
-                r.target_entity = id_to_name.get(r.target_entity_id, str(r.target_entity_id))
+                r.source_entity = id_to_name.get(
+                    r.source_entity_id, str(r.source_entity_id)
+                )
+                r.target_entity = id_to_name.get(
+                    r.target_entity_id, str(r.target_entity_id)
+                )
 
             # Collect source chunks
             chunk_refs: list[dict] = []
@@ -654,7 +658,9 @@ class Neo4jGraphStore:
                     auth=(self._user, self._password),
                 )
             except ImportError as exc:
-                raise RuntimeError("neo4j package not installed. Run: pip install neo4j") from exc
+                raise RuntimeError(
+                    "neo4j package not installed. Run: pip install neo4j"
+                ) from exc
         return self._driver
 
     async def upsert_entity(self, tenant_id: UUID, entity: Entity) -> Entity:
@@ -665,7 +671,9 @@ class Neo4jGraphStore:
         tenant_id: UUID,
         relationship: Relationship,
     ) -> Relationship:
-        raise NotImplementedError("Neo4j upsert_relationship — implement with Cypher MERGE")
+        raise NotImplementedError(
+            "Neo4j upsert_relationship — implement with Cypher MERGE"
+        )
 
     async def upsert_community(
         self,
@@ -706,7 +714,9 @@ class Neo4jGraphStore:
         hops: int = 2,
         max_entities: int = 20,
     ) -> GraphNeighbourhood:
-        raise NotImplementedError("Neo4j get_entity_neighbourhood — use MATCH path pattern")
+        raise NotImplementedError(
+            "Neo4j get_entity_neighbourhood — use MATCH path pattern"
+        )
 
     async def get_all_entities(self, tenant_id: UUID) -> list[Entity]:
         raise NotImplementedError("Neo4j get_all_entities")

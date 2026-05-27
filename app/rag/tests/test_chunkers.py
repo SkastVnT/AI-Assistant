@@ -62,7 +62,9 @@ SAMPLE_TEXT = (
 SAMPLE_PARSE_RESULT = ParseResult(
     elements=[
         ContentElement(
-            type=ElementType.HEADING, content="Introduction to Machine Learning", level=1
+            type=ElementType.HEADING,
+            content="Introduction to Machine Learning",
+            level=1,
         ),
         ContentElement(
             type=ElementType.PARAGRAPH,
@@ -72,7 +74,9 @@ SAMPLE_PARSE_RESULT = ParseResult(
                 "programmed, these systems improve their performance through experience."
             ),
         ),
-        ContentElement(type=ElementType.HEADING, content="Supervised Learning", level=2),
+        ContentElement(
+            type=ElementType.HEADING, content="Supervised Learning", level=2
+        ),
         ContentElement(
             type=ElementType.PARAGRAPH,
             content=(
@@ -82,7 +86,9 @@ SAMPLE_PARSE_RESULT = ParseResult(
                 "Common algorithms include linear regression, decision trees, and neural networks."
             ),
         ),
-        ContentElement(type=ElementType.HEADING, content="Unsupervised Learning", level=2),
+        ContentElement(
+            type=ElementType.HEADING, content="Unsupervised Learning", level=2
+        ),
         ContentElement(
             type=ElementType.PARAGRAPH,
             content=(
@@ -91,7 +97,9 @@ SAMPLE_PARSE_RESULT = ParseResult(
                 "Clustering and dimensionality reduction are common tasks."
             ),
         ),
-        ContentElement(type=ElementType.HEADING, content="Reinforcement Learning", level=2),
+        ContentElement(
+            type=ElementType.HEADING, content="Reinforcement Learning", level=2
+        ),
         ContentElement(
             type=ElementType.PARAGRAPH,
             content=(
@@ -183,7 +191,9 @@ class TestFixedTokenChunker:
         assert result == []
 
     def test_short_text_single_chunk(self):
-        result = self.chunker.chunk("Hello world.", document_id=DOC_ID, version_id=VER_ID)
+        result = self.chunker.chunk(
+            "Hello world.", document_id=DOC_ID, version_id=VER_ID
+        )
         assert len(result) == 1
         assert result[0].content == "Hello world."
         assert result[0].meta.chunk_index == 0
@@ -219,7 +229,9 @@ class TestFixedTokenChunker:
             # or very close
             curr_end = chunks[i].meta.end_offset
             next_start = chunks[i + 1].meta.start_offset
-            assert next_start <= curr_end + 100  # allow some flexibility for boundary snapping
+            assert (
+                next_start <= curr_end + 100
+            )  # allow some flexibility for boundary snapping
 
     def test_offsets_are_populated(self):
         chunks = self.chunker.chunk(SAMPLE_TEXT, document_id=DOC_ID, version_id=VER_ID)
@@ -394,11 +406,19 @@ class TestDocumentAwareChunker:
         """Page numbers from parse elements appear in chunk metadata."""
         pr = ParseResult(
             elements=[
-                ContentElement(type=ElementType.HEADING, content="Page 1 Title", level=1, page=1),
-                ContentElement(type=ElementType.PARAGRAPH, content="Content on page 1.", page=1),
+                ContentElement(
+                    type=ElementType.HEADING, content="Page 1 Title", level=1, page=1
+                ),
+                ContentElement(
+                    type=ElementType.PARAGRAPH, content="Content on page 1.", page=1
+                ),
                 ContentElement(type=ElementType.PAGE_BREAK, content="", page=2),
-                ContentElement(type=ElementType.HEADING, content="Page 2 Title", level=1, page=2),
-                ContentElement(type=ElementType.PARAGRAPH, content="Content on page 2.", page=2),
+                ContentElement(
+                    type=ElementType.HEADING, content="Page 2 Title", level=1, page=2
+                ),
+                ContentElement(
+                    type=ElementType.PARAGRAPH, content="Content on page 2.", page=2
+                ),
             ],
             title="Page 1 Title",
             raw_text="Page 1 Title\n\nContent on page 1.\n\nPage 2 Title\n\nContent on page 2.",
@@ -447,9 +467,9 @@ class TestParentChildChunker:
 
         for child in children:
             assert child.meta.parent_chunk_id is not None
-            assert child.meta.parent_chunk_id in parents, (
-                f"Child {child.meta.chunk_id} references unknown parent {child.meta.parent_chunk_id}"
-            )
+            assert (
+                child.meta.parent_chunk_id in parents
+            ), f"Child {child.meta.chunk_id} references unknown parent {child.meta.parent_chunk_id}"
 
     def test_parent_has_no_parent(self):
         chunks = self.chunker.chunk(SAMPLE_TEXT, document_id=DOC_ID, version_id=VER_ID)
@@ -570,7 +590,9 @@ class TestComparison:
             assert r.avg_tokens > 0
 
     def test_compare_subset(self):
-        results = compare_strategies(SAMPLE_TEXT, preset_names=["general", "code_repository"])
+        results = compare_strategies(
+            SAMPLE_TEXT, preset_names=["general", "code_repository"]
+        )
         assert len(results) == 2
         names = {r.preset_name for r in results}
         assert names == {"general", "code_repository"}

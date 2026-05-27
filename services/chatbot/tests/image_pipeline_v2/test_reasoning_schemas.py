@@ -26,7 +26,6 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(1, str(_ROOT))
 
 import pytest
-
 from image_pipeline.reasoning.schemas import (
     BoundingBox,
     CharacterAppearance,

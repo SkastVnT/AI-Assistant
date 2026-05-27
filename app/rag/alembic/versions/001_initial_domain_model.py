@@ -42,7 +42,9 @@ def upgrade() -> None:
     )
     source_type_enum.create(op.get_bind(), checkfirst=True)
 
-    document_status_enum = sa.Enum("active", "archived", "deleted", name="documentstatus")
+    document_status_enum = sa.Enum(
+        "active", "archived", "deleted", name="documentstatus"
+    )
     document_status_enum.create(op.get_bind(), checkfirst=True)
 
     version_status_enum = sa.Enum(
@@ -82,7 +84,9 @@ def upgrade() -> None:
             server_default=sa.text("'{}'::jsonb"),
             nullable=False,
         ),
-        sa.Column("is_active", sa.Boolean, server_default=sa.text("true"), nullable=False),
+        sa.Column(
+            "is_active", sa.Boolean, server_default=sa.text("true"), nullable=False
+        ),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -114,8 +118,12 @@ def upgrade() -> None:
         ),
         sa.Column("email", sa.String(320), nullable=False),
         sa.Column("display_name", sa.String(255)),
-        sa.Column("role", sa.String(50), server_default=sa.text("'member'"), nullable=False),
-        sa.Column("is_active", sa.Boolean, server_default=sa.text("true"), nullable=False),
+        sa.Column(
+            "role", sa.String(50), server_default=sa.text("'member'"), nullable=False
+        ),
+        sa.Column(
+            "is_active", sa.Boolean, server_default=sa.text("true"), nullable=False
+        ),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -129,7 +137,9 @@ def upgrade() -> None:
             nullable=False,
         ),
     )
-    op.create_unique_constraint("uq_users_tenant_email", "users", ["tenant_id", "email"])
+    op.create_unique_constraint(
+        "uq_users_tenant_email", "users", ["tenant_id", "email"]
+    )
     op.create_index("ix_users_tenant_id", "users", ["tenant_id"])
 
     # --- data_sources ---
@@ -155,7 +165,9 @@ def upgrade() -> None:
             server_default=sa.text("'{}'::jsonb"),
             nullable=False,
         ),
-        sa.Column("is_active", sa.Boolean, server_default=sa.text("true"), nullable=False),
+        sa.Column(
+            "is_active", sa.Boolean, server_default=sa.text("true"), nullable=False
+        ),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -200,7 +212,9 @@ def upgrade() -> None:
             server_default=sa.text("'internal'"),
             nullable=False,
         ),
-        sa.Column("language", sa.String(10), server_default=sa.text("'en'"), nullable=False),
+        sa.Column(
+            "language", sa.String(10), server_default=sa.text("'en'"), nullable=False
+        ),
         sa.Column(
             "tags",
             sa.dialects.postgresql.ARRAY(sa.Text),
@@ -214,7 +228,10 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column(
-            "status", document_status_enum, server_default=sa.text("'active'"), nullable=False
+            "status",
+            document_status_enum,
+            server_default=sa.text("'active'"),
+            nullable=False,
         ),
         sa.Column(
             "created_at",
@@ -232,7 +249,9 @@ def upgrade() -> None:
     op.create_index("ix_documents_tenant_id", "documents", ["tenant_id"])
     op.create_index("ix_documents_data_source_id", "documents", ["data_source_id"])
     op.create_index("ix_documents_tags", "documents", ["tags"], postgresql_using="gin")
-    op.create_index("ix_documents_sensitivity", "documents", ["tenant_id", "sensitivity_level"])
+    op.create_index(
+        "ix_documents_sensitivity", "documents", ["tenant_id", "sensitivity_level"]
+    )
 
     # --- document_versions ---
     op.create_table(
@@ -262,7 +281,10 @@ def upgrade() -> None:
         sa.Column("file_size_bytes", sa.BigInteger),
         sa.Column("checksum", sa.String(64), nullable=False),
         sa.Column(
-            "status", version_status_enum, server_default=sa.text("'pending'"), nullable=False
+            "status",
+            version_status_enum,
+            server_default=sa.text("'pending'"),
+            nullable=False,
         ),
         sa.Column("error_message", sa.Text),
         sa.Column(
@@ -271,7 +293,9 @@ def upgrade() -> None:
             server_default=sa.text("'{}'::jsonb"),
             nullable=False,
         ),
-        sa.Column("chunk_count", sa.Integer, server_default=sa.text("0"), nullable=False),
+        sa.Column(
+            "chunk_count", sa.Integer, server_default=sa.text("0"), nullable=False
+        ),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -288,8 +312,12 @@ def upgrade() -> None:
     op.create_unique_constraint(
         "uq_doc_version", "document_versions", ["document_id", "version_number"]
     )
-    op.create_index("ix_document_versions_tenant_id", "document_versions", ["tenant_id"])
-    op.create_index("ix_document_versions_document_id", "document_versions", ["document_id"])
+    op.create_index(
+        "ix_document_versions_tenant_id", "document_versions", ["tenant_id"]
+    )
+    op.create_index(
+        "ix_document_versions_document_id", "document_versions", ["document_id"]
+    )
     op.create_index("ix_document_versions_checksum", "document_versions", ["checksum"])
 
     # --- document_chunks ---
@@ -342,8 +370,12 @@ def upgrade() -> None:
     )
     op.create_index("ix_document_chunks_tenant_id", "document_chunks", ["tenant_id"])
     op.create_index("ix_document_chunks_version_id", "document_chunks", ["version_id"])
-    op.create_index("ix_document_chunks_document_id", "document_chunks", ["document_id"])
-    op.create_index("ix_document_chunks_tags", "document_chunks", ["tags"], postgresql_using="gin")
+    op.create_index(
+        "ix_document_chunks_document_id", "document_chunks", ["document_id"]
+    )
+    op.create_index(
+        "ix_document_chunks_tags", "document_chunks", ["tags"], postgresql_using="gin"
+    )
     op.create_index(
         "ix_document_chunks_embedding_hnsw",
         "document_chunks",
@@ -374,10 +406,19 @@ def upgrade() -> None:
             sa.ForeignKey("document_versions.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("status", job_status_enum, server_default=sa.text("'pending'"), nullable=False),
-        sa.Column("attempt_number", sa.Integer, server_default=sa.text("1"), nullable=False),
+        sa.Column(
+            "status",
+            job_status_enum,
+            server_default=sa.text("'pending'"),
+            nullable=False,
+        ),
+        sa.Column(
+            "attempt_number", sa.Integer, server_default=sa.text("1"), nullable=False
+        ),
         sa.Column("chunks_total", sa.Integer),
-        sa.Column("chunks_processed", sa.Integer, server_default=sa.text("0"), nullable=False),
+        sa.Column(
+            "chunks_processed", sa.Integer, server_default=sa.text("0"), nullable=False
+        ),
         sa.Column("error_message", sa.Text),
         sa.Column("started_at", sa.DateTime(timezone=True)),
         sa.Column("completed_at", sa.DateTime(timezone=True)),
@@ -455,7 +496,9 @@ def upgrade() -> None:
     )
     op.create_index("ix_retrieval_traces_tenant_id", "retrieval_traces", ["tenant_id"])
     op.create_index("ix_retrieval_traces_user_id", "retrieval_traces", ["user_id"])
-    op.create_index("ix_retrieval_traces_created_at", "retrieval_traces", ["created_at"])
+    op.create_index(
+        "ix_retrieval_traces_created_at", "retrieval_traces", ["created_at"]
+    )
 
 
 def downgrade() -> None:

@@ -114,14 +114,18 @@ class Tenant(TimestampMixin, Base):
 
     __tablename__ = "tenants"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(63), nullable=False, unique=True)
     settings: Mapped[dict] = mapped_column(JSONB, server_default="{}", nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
 
     # relationships
-    users: Mapped[list[User]] = relationship(back_populates="tenant", cascade="all, delete-orphan")
+    users: Mapped[list[User]] = relationship(
+        back_populates="tenant", cascade="all, delete-orphan"
+    )
     data_sources: Mapped[list[DataSource]] = relationship(
         back_populates="tenant", cascade="all, delete-orphan"
     )
@@ -146,13 +150,17 @@ class User(TimestampMixin, Base):
 
     __tablename__ = "users"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
     )
     email: Mapped[str] = mapped_column(String(320), nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(255))
-    role: Mapped[str] = mapped_column(String(50), server_default="member", nullable=False)
+    role: Mapped[str] = mapped_column(
+        String(50), server_default="member", nullable=False
+    )
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
 
     tenant: Mapped[Tenant] = relationship(back_populates="users")
@@ -179,7 +187,9 @@ class DataSource(TimestampMixin, Base):
 
     __tablename__ = "data_sources"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
     )
@@ -216,7 +226,9 @@ class Document(TimestampMixin, Base):
 
     __tablename__ = "documents"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
     )
@@ -231,9 +243,15 @@ class Document(TimestampMixin, Base):
         server_default=SensitivityLevel.INTERNAL.value,
         nullable=False,
     )
-    language: Mapped[str] = mapped_column(String(10), server_default="en", nullable=False)
-    tags: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default="{}", nullable=False)
-    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, server_default="{}", nullable=False)
+    language: Mapped[str] = mapped_column(
+        String(10), server_default="en", nullable=False
+    )
+    tags: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), server_default="{}", nullable=False
+    )
+    metadata_: Mapped[dict] = mapped_column(
+        "metadata", JSONB, server_default="{}", nullable=False
+    )
     status: Mapped[DocumentStatus] = mapped_column(
         Enum(DocumentStatus, name="document_status_enum"),
         server_default=DocumentStatus.ACTIVE.value,
@@ -275,7 +293,9 @@ class DocumentVersion(TimestampMixin, Base):
 
     __tablename__ = "document_versions"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
     )
@@ -298,8 +318,12 @@ class DocumentVersion(TimestampMixin, Base):
     error_message: Mapped[str | None] = mapped_column(Text)
     raw_text: Mapped[str | None] = mapped_column(Text)
     parsed_content: Mapped[dict | None] = mapped_column(JSONB)
-    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, server_default="{}", nullable=False)
-    chunk_count: Mapped[int] = mapped_column(Integer, server_default="0", nullable=False)
+    metadata_: Mapped[dict] = mapped_column(
+        "metadata", JSONB, server_default="{}", nullable=False
+    )
+    chunk_count: Mapped[int] = mapped_column(
+        Integer, server_default="0", nullable=False
+    )
 
     # relationships
     document: Mapped[Document] = relationship(back_populates="versions")
@@ -333,7 +357,9 @@ class DocumentChunk(TimestampMixin, Base):
 
     __tablename__ = "document_chunks"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
     )
@@ -360,7 +386,9 @@ class DocumentChunk(TimestampMixin, Base):
     )
     language: Mapped[str | None] = mapped_column(String(10))
     tags: Mapped[list[str] | None] = mapped_column(ARRAY(Text))
-    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, server_default="{}", nullable=False)
+    metadata_: Mapped[dict] = mapped_column(
+        "metadata", JSONB, server_default="{}", nullable=False
+    )
 
     # relationships
     version: Mapped[DocumentVersion] = relationship(back_populates="chunks")
@@ -399,7 +427,9 @@ class IngestionJob(TimestampMixin, Base):
 
     __tablename__ = "ingestion_jobs"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
     )
@@ -413,13 +443,19 @@ class IngestionJob(TimestampMixin, Base):
         server_default=JobStatus.QUEUED.value,
         nullable=False,
     )
-    attempt_number: Mapped[int] = mapped_column(SmallInteger, server_default="1", nullable=False)
+    attempt_number: Mapped[int] = mapped_column(
+        SmallInteger, server_default="1", nullable=False
+    )
     chunks_total: Mapped[int | None] = mapped_column(Integer)
-    chunks_processed: Mapped[int] = mapped_column(Integer, server_default="0", nullable=False)
+    chunks_processed: Mapped[int] = mapped_column(
+        Integer, server_default="0", nullable=False
+    )
     error_message: Mapped[str | None] = mapped_column(Text)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, server_default="{}", nullable=False)
+    metadata_: Mapped[dict] = mapped_column(
+        "metadata", JSONB, server_default="{}", nullable=False
+    )
 
     __table_args__ = (
         Index("idx_jobs_tenant_id", "tenant_id"),
@@ -449,7 +485,9 @@ class RetrievalTrace(TimestampMixin, Base):
 
     __tablename__ = "retrieval_traces"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
     )
@@ -469,7 +507,9 @@ class RetrievalTrace(TimestampMixin, Base):
     retrieval_latency_ms: Mapped[int | None] = mapped_column(Integer)
     generation_latency_ms: Mapped[int | None] = mapped_column(Integer)
     feedback_score: Mapped[float | None] = mapped_column(Float)  # -1 to 1
-    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, server_default="{}", nullable=False)
+    metadata_: Mapped[dict] = mapped_column(
+        "metadata", JSONB, server_default="{}", nullable=False
+    )
 
     __table_args__ = (
         Index("idx_traces_tenant_id", "tenant_id"),
@@ -504,7 +544,9 @@ class SecurityEvent(TimestampMixin, Base):
 
     __tablename__ = "security_events"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
     )
@@ -514,7 +556,9 @@ class SecurityEvent(TimestampMixin, Base):
     severity: Mapped[str] = mapped_column(
         String(20), server_default="medium", nullable=False
     )  # low | medium | high | critical
-    source: Mapped[str] = mapped_column(String(100), nullable=False)  # which guardrail component
+    source: Mapped[str] = mapped_column(
+        String(100), nullable=False
+    )  # which guardrail component
     description: Mapped[str] = mapped_column(Text, nullable=False)
     document_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("documents.id", ondelete="SET NULL")
@@ -555,7 +599,9 @@ class EvalRun(TimestampMixin, Base):
 
     __tablename__ = "eval_runs"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
     )
@@ -572,9 +618,15 @@ class EvalRun(TimestampMixin, Base):
     summary: Mapped[dict] = mapped_column(
         JSONB, server_default="{}", nullable=False
     )  # aggregate scores
-    total_cases: Mapped[int] = mapped_column(Integer, server_default="0", nullable=False)
-    passed_cases: Mapped[int] = mapped_column(Integer, server_default="0", nullable=False)
-    failed_cases: Mapped[int] = mapped_column(Integer, server_default="0", nullable=False)
+    total_cases: Mapped[int] = mapped_column(
+        Integer, server_default="0", nullable=False
+    )
+    passed_cases: Mapped[int] = mapped_column(
+        Integer, server_default="0", nullable=False
+    )
+    failed_cases: Mapped[int] = mapped_column(
+        Integer, server_default="0", nullable=False
+    )
 
     results: Mapped[list[EvalResult]] = relationship(
         back_populates="run", cascade="all, delete-orphan"
@@ -596,7 +648,9 @@ class EvalResult(TimestampMixin, Base):
 
     __tablename__ = "eval_results"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     run_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("eval_runs.id", ondelete="CASCADE"),
@@ -620,8 +674,12 @@ class EvalResult(TimestampMixin, Base):
     overall_score: Mapped[float | None] = mapped_column(Float)
     passed: Mapped[bool] = mapped_column(default=True, nullable=False)
     # Detailed breakdown
-    retriever_details: Mapped[dict] = mapped_column(JSONB, server_default="{}", nullable=False)
-    generator_details: Mapped[dict] = mapped_column(JSONB, server_default="{}", nullable=False)
+    retriever_details: Mapped[dict] = mapped_column(
+        JSONB, server_default="{}", nullable=False
+    )
+    generator_details: Mapped[dict] = mapped_column(
+        JSONB, server_default="{}", nullable=False
+    )
     latency_ms: Mapped[int | None] = mapped_column(Integer)
     error: Mapped[str | None] = mapped_column(Text)
 
@@ -648,7 +706,9 @@ class GraphEntity(TimestampMixin, Base):
 
     __tablename__ = "graph_entities"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("tenants.id", ondelete="CASCADE"),
@@ -711,7 +771,9 @@ class GraphRelationship(TimestampMixin, Base):
 
     __tablename__ = "graph_relationships"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("tenants.id", ondelete="CASCADE"),
@@ -769,7 +831,9 @@ class GraphCommunity(TimestampMixin, Base):
 
     __tablename__ = "graph_communities"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("tenants.id", ondelete="CASCADE"),

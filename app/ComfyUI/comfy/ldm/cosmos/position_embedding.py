@@ -93,9 +93,9 @@ class VideoRopePosition3DEmb(VideoPositionEmb):
         dim_h = dim // 6 * 2
         dim_w = dim_h
         dim_t = dim - 2 * dim_h
-        assert dim == dim_h + dim_w + dim_t, (
-            f"bad dim: {dim} != {dim_h} + {dim_w} + {dim_t}"
-        )
+        assert (
+            dim == dim_h + dim_w + dim_t
+        ), f"bad dim: {dim} != {dim_h} + {dim_w} + {dim_t}"
         self.register_buffer(
             "dim_spatial_range",
             torch.arange(0, dim_h, 2, device=device)[: (dim_h // 2)].float() / dim_h,
@@ -151,9 +151,9 @@ class VideoRopePosition3DEmb(VideoPositionEmb):
         uniform_fps = (
             (fps is None) or isinstance(fps, (int, float)) or (fps.min() == fps.max())
         )
-        assert uniform_fps or B == 1 or T == 1, (
-            "For video batch, batch size should be 1 for non-uniform fps. For image batch, T should be 1"
-        )
+        assert (
+            uniform_fps or B == 1 or T == 1
+        ), "For video batch, batch size should be 1 for non-uniform fps. For image batch, T should be 1"
         half_emb_h = torch.outer(seq[:H].to(device=device), h_spatial_freqs)
         half_emb_w = torch.outer(seq[:W].to(device=device), w_spatial_freqs)
 
@@ -225,9 +225,9 @@ class LearnablePosEmbAxis(VideoPositionEmb):
         del kwargs  # unused
         super().__init__()
         self.interpolation = interpolation
-        assert self.interpolation in ["crop"], (
-            f"Unknown interpolation method {self.interpolation}"
-        )
+        assert self.interpolation in [
+            "crop"
+        ], f"Unknown interpolation method {self.interpolation}"
 
         self.pos_emb_h = nn.Parameter(
             torch.empty(len_h, model_channels, device=device, dtype=dtype)
@@ -252,9 +252,12 @@ class LearnablePosEmbAxis(VideoPositionEmb):
                 + repeat(emb_h_H, "h d-> b t h w d", b=B, t=T, w=W)
                 + repeat(emb_w_W, "w d-> b t h w d", b=B, t=T, h=H)
             )
-            assert list(emb.shape)[:4] == [B, T, H, W], (
-                f"bad shape: {list(emb.shape)[:4]} != {B, T, H, W}"
-            )
+            assert list(emb.shape)[:4] == [
+                B,
+                T,
+                H,
+                W,
+            ], f"bad shape: {list(emb.shape)[:4]} != {B, T, H, W}"
         else:
             raise ValueError(f"Unknown interpolation method {self.interpolation}")
 

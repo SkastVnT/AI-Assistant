@@ -4,9 +4,9 @@ GPU Detection and Verification Utility
 Checks NVIDIA GPU availability, CUDA version, and PyTorch CUDA support
 """
 
-import sys
-import subprocess
 import platform
+import subprocess
+import sys
 
 
 def check_nvidia_smi():

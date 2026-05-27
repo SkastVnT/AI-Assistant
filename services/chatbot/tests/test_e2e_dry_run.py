@@ -31,7 +31,6 @@ sys.path.insert(0, str(_root / "services" / "chatbot"))
 
 
 import pytest
-
 from image_pipeline.anime_pipeline.comfy_client import ComfyJobResult
 from image_pipeline.anime_pipeline.config import (
     AnimePipelineConfig,

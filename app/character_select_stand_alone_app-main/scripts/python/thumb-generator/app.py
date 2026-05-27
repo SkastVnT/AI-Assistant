@@ -546,9 +546,11 @@ with st.sidebar:
         st.session_state.model_type = st.selectbox(
             "Model Type",
             MODEL_TYPES,
-            index=MODEL_TYPES.index(st.session_state.model_type)
-            if st.session_state.model_type in MODEL_TYPES
-            else 0,
+            index=(
+                MODEL_TYPES.index(st.session_state.model_type)
+                if st.session_state.model_type in MODEL_TYPES
+                else 0
+            ),
             disabled=st.session_state.gen_running,
             help="diffusion = Flux/SD3-style separate text encoder & VAE; checkpoint = classic all-in-one .safetensors",
         )
@@ -632,9 +634,11 @@ with st.sidebar:
             st.session_state.sampler = st.selectbox(
                 "Sampler",
                 SAMPLERS,
-                index=SAMPLERS.index(st.session_state.sampler)
-                if st.session_state.sampler in SAMPLERS
-                else 0,
+                index=(
+                    SAMPLERS.index(st.session_state.sampler)
+                    if st.session_state.sampler in SAMPLERS
+                    else 0
+                ),
                 disabled=st.session_state.gen_running,
             )
             st.session_state.steps = st.number_input(
@@ -656,9 +660,11 @@ with st.sidebar:
             st.session_state.scheduler = st.selectbox(
                 "Scheduler",
                 SCHEDULERS,
-                index=SCHEDULERS.index(st.session_state.scheduler)
-                if st.session_state.scheduler in SCHEDULERS
-                else 0,
+                index=(
+                    SCHEDULERS.index(st.session_state.scheduler)
+                    if st.session_state.scheduler in SCHEDULERS
+                    else 0
+                ),
                 disabled=st.session_state.gen_running,
             )
             st.session_state.cfg = st.number_input(
@@ -705,9 +711,11 @@ with st.sidebar:
             st.session_state.diffusion_model_type = st.selectbox(
                 "Diffusion Model Type",
                 DIFFUSION_MODEL_TYPES,
-                index=DIFFUSION_MODEL_TYPES.index(st.session_state.diffusion_model_type)
-                if st.session_state.diffusion_model_type in DIFFUSION_MODEL_TYPES
-                else 0,
+                index=(
+                    DIFFUSION_MODEL_TYPES.index(st.session_state.diffusion_model_type)
+                    if st.session_state.diffusion_model_type in DIFFUSION_MODEL_TYPES
+                    else 0
+                ),
                 disabled=st.session_state.gen_running,
                 help="Model type for diffusion-based generation (Flux, SD3, Cosmos, etc.)",
             )
@@ -1238,9 +1246,11 @@ with tab3:
             pp2.metric(
                 "WebP files found",
                 found_count,
-                delta=f"missing: {len(entries_preview) - found_count}"
-                if found_count < len(entries_preview)
-                else None,
+                delta=(
+                    f"missing: {len(entries_preview) - found_count}"
+                    if found_count < len(entries_preview)
+                    else None
+                ),
                 delta_color="inverse",
             )
         except Exception:

@@ -132,7 +132,9 @@ class PdfParser:
         pages = self._backend.extract_pages(content)
 
         if not pages:
-            return ParseResult(elements=[], title=None, raw_text="", metadata={"page_count": 0})
+            return ParseResult(
+                elements=[], title=None, raw_text="", metadata={"page_count": 0}
+            )
 
         # Determine median body font size for heading detection
         all_sizes = [b.font_size for p in pages for b in p.blocks if b.text.strip()]

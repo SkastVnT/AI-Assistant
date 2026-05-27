@@ -94,7 +94,9 @@ def _make_settings(**overrides) -> QueryTransformSettings:
     return QueryTransformSettings(**defaults)
 
 
-def _make_search_result(*, chunk_id: uuid.UUID | None = None, score: float = 0.8) -> SearchResult:
+def _make_search_result(
+    *, chunk_id: uuid.UUID | None = None, score: float = 0.8
+) -> SearchResult:
     return SearchResult(
         chunk_id=chunk_id or uuid.uuid4(),
         document_id=DOC_ID,
@@ -207,7 +209,10 @@ class TestAcronymExpansion:
     def test_expand_known_acronym(self):
         settings = _make_settings(
             enable_acronym_expansion=True,
-            acronym_dict={"ROI": "Return on Investment", "KPI": "Key Performance Indicator"},
+            acronym_dict={
+                "ROI": "Return on Investment",
+                "KPI": "Key Performance Indicator",
+            },
         )
         ctx = TransformContext(original_query="What is the ROI for Q4?")
         result = expand_acronyms(ctx, settings)
@@ -241,7 +246,10 @@ class TestAcronymExpansion:
     def test_multiple_acronyms(self):
         settings = _make_settings(
             enable_acronym_expansion=True,
-            acronym_dict={"ROI": "Return on Investment", "KPI": "Key Performance Indicator"},
+            acronym_dict={
+                "ROI": "Return on Investment",
+                "KPI": "Key Performance Indicator",
+            },
         )
         ctx = TransformContext(original_query="Show KPI and ROI metrics")
         result = expand_acronyms(ctx, settings)
@@ -265,7 +273,9 @@ class TestAcronymExpansion:
 class TestHyDE:
     @pytest.mark.asyncio
     async def test_hyde_generates_document(self):
-        llm = FakeLLM({"knowledgeable assistant": "Revenue in Q4 was $50M, up 15% YoY."})
+        llm = FakeLLM(
+            {"knowledgeable assistant": "Revenue in Q4 was $50M, up 15% YoY."}
+        )
         settings = _make_settings(enable_hyde=True)
         ctx = TransformContext(original_query="What was Q4 revenue?")
 
@@ -475,14 +485,18 @@ class TestRetrieveWithTransforms:
         settings = _make_settings(enable_rewrite=True)
         pipeline = QueryTransformPipeline(llm=llm, settings=settings)
 
-        request = RetrievalRequest(tenant_id=TENANT_ID, user_id=None, query="vague question")
+        request = RetrievalRequest(
+            tenant_id=TENANT_ID, user_id=None, query="vague question"
+        )
 
         with patch(
             "libs.retrieval.service.vector_search_from_embedding",
             new_callable=AsyncMock,
             return_value=[_make_search_result()],
         ):
-            result = await retrieve(db, provider, request, llm=llm, transform_pipeline=pipeline)
+            result = await retrieve(
+                db, provider, request, llm=llm, transform_pipeline=pipeline
+            )
 
         assert result.transformed_query == "optimized query"
         assert result.transform_ms >= 0
@@ -491,7 +505,9 @@ class TestRetrieveWithTransforms:
     @pytest.mark.asyncio
     async def test_retrieve_with_hyde(self):
         provider = FakeEmbeddingProvider()
-        llm = FakeLLM({"knowledgeable assistant": "Hypothetical document about revenue"})
+        llm = FakeLLM(
+            {"knowledgeable assistant": "Hypothetical document about revenue"}
+        )
         db = AsyncMock()
         db.add = MagicMock()
         db.flush = AsyncMock()
@@ -499,14 +515,18 @@ class TestRetrieveWithTransforms:
         settings = _make_settings(enable_hyde=True)
         pipeline = QueryTransformPipeline(llm=llm, settings=settings)
 
-        request = RetrievalRequest(tenant_id=TENANT_ID, user_id=None, query="What was Q4 revenue?")
+        request = RetrievalRequest(
+            tenant_id=TENANT_ID, user_id=None, query="What was Q4 revenue?"
+        )
 
         with patch(
             "libs.retrieval.service.vector_search_from_embedding",
             new_callable=AsyncMock,
             return_value=[_make_search_result()],
         ):
-            result = await retrieve(db, provider, request, llm=llm, transform_pipeline=pipeline)
+            result = await retrieve(
+                db, provider, request, llm=llm, transform_pipeline=pipeline
+            )
 
         assert result.total_found == 1
         # HyDE doc was used for search (logged in transform_log)
@@ -516,7 +536,9 @@ class TestRetrieveWithTransforms:
     @pytest.mark.asyncio
     async def test_retrieve_with_decomposition(self):
         provider = FakeEmbeddingProvider()
-        llm = FakeLLM({"question decomposer": "1. What was Q4 revenue?\n2. What was Q3 revenue?"})
+        llm = FakeLLM(
+            {"question decomposer": "1. What was Q4 revenue?\n2. What was Q3 revenue?"}
+        )
         db = AsyncMock()
         db.add = MagicMock()
         db.flush = AsyncMock()
@@ -544,7 +566,9 @@ class TestRetrieveWithTransforms:
             "libs.retrieval.service._embed_and_search",
             side_effect=mock_search,
         ):
-            result = await retrieve(db, provider, request, llm=llm, transform_pipeline=pipeline)
+            result = await retrieve(
+                db, provider, request, llm=llm, transform_pipeline=pipeline
+            )
 
         assert result.total_found == 2
         assert len(result.sub_queries) == 2

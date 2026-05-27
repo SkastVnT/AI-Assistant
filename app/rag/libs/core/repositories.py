@@ -118,10 +118,14 @@ class DocumentVersionRepository(ABC):
     async def get_next_version_number(self, document_id: UUID) -> int: ...
 
     @abstractmethod
-    async def find_by_checksum(self, tenant_id: UUID, checksum: str) -> DocumentVersion | None: ...
+    async def find_by_checksum(
+        self, tenant_id: UUID, checksum: str
+    ) -> DocumentVersion | None: ...
 
     @abstractmethod
-    async def mark_superseded(self, document_id: UUID, *, exclude_version_id: UUID) -> int: ...
+    async def mark_superseded(
+        self, document_id: UUID, *, exclude_version_id: UUID
+    ) -> int: ...
 
 
 class DocumentChunkRepository(ABC):
@@ -143,7 +147,9 @@ class DocumentChunkRepository(ABC):
     ) -> list[DocumentChunk]: ...
 
     @abstractmethod
-    async def get_by_version_for_reembed(self, version_id: UUID) -> list[DocumentChunk]: ...
+    async def get_by_version_for_reembed(
+        self, version_id: UUID
+    ) -> list[DocumentChunk]: ...
 
     @abstractmethod
     async def get_all_by_tenant(
@@ -185,7 +191,9 @@ class RetrievalTraceRepository(ABC):
     async def get_by_id(self, trace_id: UUID) -> RetrievalTrace | None: ...
 
     @abstractmethod
-    async def update_feedback(self, trace_id: UUID, score: float) -> RetrievalTrace | None: ...
+    async def update_feedback(
+        self, trace_id: UUID, score: float
+    ) -> RetrievalTrace | None: ...
 
     @abstractmethod
     async def list_by_tenant(

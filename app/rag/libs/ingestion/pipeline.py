@@ -214,7 +214,9 @@ async def process_ingestion_job(
         response.close()
         response.release_conn()
 
-        logger.info("Stage 1 (fetch): %d bytes from %s", len(content), version.storage_key)
+        logger.info(
+            "Stage 1 (fetch): %d bytes from %s", len(content), version.storage_key
+        )
 
         # ── Stage 2: Parse ───────────────────────────────────────
         job.metadata_ = {**job.metadata_, "current_stage": "parse"}
@@ -228,7 +230,9 @@ async def process_ingestion_job(
                 bytes_read=len(content),
             )
 
-        logger.info("Stage 1 (fetch): %d bytes from %s", len(content), version.storage_key)
+        logger.info(
+            "Stage 1 (fetch): %d bytes from %s", len(content), version.storage_key
+        )
 
         # ── Stage 2: Parse ───────────────────────────────────
         job.metadata_ = {**job.metadata_, "current_stage": "parse"}
@@ -242,7 +246,9 @@ async def process_ingestion_job(
                 duration_ms=int((time.perf_counter() - t_stage) * 1000),
                 elements=len(parse_result.elements),
             )
-        logger.info("Stage 2 (parse): %d elements extracted", len(parse_result.elements))
+        logger.info(
+            "Stage 2 (parse): %d elements extracted", len(parse_result.elements)
+        )
 
         # ── Stage 3: Normalize ───────────────────────────────────
         job.metadata_ = {**job.metadata_, "current_stage": "normalize"}
@@ -324,7 +330,9 @@ async def process_ingestion_job(
 
         # Upload structured parse result to MinIO as artifact
         artifact_key = version.storage_key.rsplit("/", 1)[0] + "/parsed.json"
-        artifact_bytes = json.dumps(parse_result.to_dict(), ensure_ascii=False).encode("utf-8")
+        artifact_bytes = json.dumps(parse_result.to_dict(), ensure_ascii=False).encode(
+            "utf-8"
+        )
         storage.put_object(
             bucket_name=settings.minio.bucket,
             object_name=artifact_key,

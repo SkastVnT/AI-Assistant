@@ -109,7 +109,9 @@ async def list_documents(
     tenant_id = uuid.UUID(x_tenant_id)
 
     total = await db.scalar(
-        select(func.count()).select_from(Document).where(Document.tenant_id == tenant_id)
+        select(func.count())
+        .select_from(Document)
+        .where(Document.tenant_id == tenant_id)
     )
     result = await db.execute(
         select(Document)

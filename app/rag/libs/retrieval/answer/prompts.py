@@ -64,7 +64,9 @@ def format_evidence(
         fname = e["filename"]
         score = e["score"]
         content = e["content"]
-        parts.append(f"[Source {idx}] (file: {fname}, relevance: {score:.2f})\n{content}")
+        parts.append(
+            f"[Source {idx}] (file: {fname}, relevance: {score:.2f})\n{content}"
+        )
     return "\n\n---\n\n".join(parts)
 
 

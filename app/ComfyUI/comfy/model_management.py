@@ -1182,9 +1182,13 @@ def device_supports_non_blocking(device):
         return True
     if is_device_mps(device):
         return False  # pytorch bug? mps doesn't support non blocking
-    if is_intel_xpu():  # xpu does support non blocking but it is slower on iGPUs for some reason so disable by default until situation changes
+    if (
+        is_intel_xpu()
+    ):  # xpu does support non blocking but it is slower on iGPUs for some reason so disable by default until situation changes
         return False
-    if args.deterministic:  # TODO: figure out why deterministic breaks non blocking from gpu to cpu (previews)
+    if (
+        args.deterministic
+    ):  # TODO: figure out why deterministic breaks non blocking from gpu to cpu (previews)
         return False
     if directml_enabled:
         return False
@@ -1476,8 +1480,8 @@ def force_upcast_attention_dtype():
     upcast = args.force_upcast_attention
 
     macos_version = mac_version()
-    if (
-        macos_version is not None and ((14, 5) <= macos_version)
+    if macos_version is not None and (
+        (14, 5) <= macos_version
     ):  # black image bug on recent versions of macOS, I don't think it's ever getting fixed
         upcast = True
 

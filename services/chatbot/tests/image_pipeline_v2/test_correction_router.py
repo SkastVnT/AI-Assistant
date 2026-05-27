@@ -30,7 +30,6 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import pytest
-
 from image_pipeline.reasoning.execution import (
     CorrectionScore,
     maybe_correct,

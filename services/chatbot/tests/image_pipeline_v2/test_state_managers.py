@@ -22,12 +22,6 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import pytest
-
-# Imported via the chatbot conftest's sys.path injection.
-from core.character_registry import (  # type: ignore[import-not-found]
-    CharacterRecord,
-    get_registry,
-)
 from image_pipeline.reasoning.panel_spec_validator import validate_sequence
 from image_pipeline.reasoning.prompt_parser import parse
 from image_pipeline.reasoning.schemas import (
@@ -40,6 +34,12 @@ from image_pipeline.reasoning.state import (
     StateResolver,
     default_resolver,
     extract_scene,
+)
+
+# Imported via the chatbot conftest's sys.path injection.
+from core.character_registry import (  # type: ignore[import-not-found]
+    CharacterRecord,
+    get_registry,
 )
 
 # ---------------------------------------------------------------------------

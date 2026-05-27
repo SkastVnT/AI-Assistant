@@ -3,7 +3,6 @@ System Check Script - Kiểm tra toàn bộ hệ thống
 Kiểm tra dependencies, file .env, và sẵn sàng chạy
 """
 
-import os
 import sys
 from pathlib import Path
 

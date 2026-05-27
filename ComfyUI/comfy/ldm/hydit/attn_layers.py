@@ -33,33 +33,37 @@ def reshape_for_broadcast(
     if isinstance(freqs_cis, tuple):
         # freqs_cis: (cos, sin) in real space
         if head_first:
-            assert freqs_cis[0].shape == (x.shape[-2], x.shape[-1]), (
-                f"freqs_cis shape {freqs_cis[0].shape} does not match x shape {x.shape}"
-            )
+            assert freqs_cis[0].shape == (
+                x.shape[-2],
+                x.shape[-1],
+            ), f"freqs_cis shape {freqs_cis[0].shape} does not match x shape {x.shape}"
             shape = [
                 d if i == ndim - 2 or i == ndim - 1 else 1
                 for i, d in enumerate(x.shape)
             ]
         else:
-            assert freqs_cis[0].shape == (x.shape[1], x.shape[-1]), (
-                f"freqs_cis shape {freqs_cis[0].shape} does not match x shape {x.shape}"
-            )
+            assert freqs_cis[0].shape == (
+                x.shape[1],
+                x.shape[-1],
+            ), f"freqs_cis shape {freqs_cis[0].shape} does not match x shape {x.shape}"
             shape = [d if i == 1 or i == ndim - 1 else 1 for i, d in enumerate(x.shape)]
         return freqs_cis[0].view(*shape), freqs_cis[1].view(*shape)
     else:
         # freqs_cis: values in complex space
         if head_first:
-            assert freqs_cis.shape == (x.shape[-2], x.shape[-1]), (
-                f"freqs_cis shape {freqs_cis.shape} does not match x shape {x.shape}"
-            )
+            assert freqs_cis.shape == (
+                x.shape[-2],
+                x.shape[-1],
+            ), f"freqs_cis shape {freqs_cis.shape} does not match x shape {x.shape}"
             shape = [
                 d if i == ndim - 2 or i == ndim - 1 else 1
                 for i, d in enumerate(x.shape)
             ]
         else:
-            assert freqs_cis.shape == (x.shape[1], x.shape[-1]), (
-                f"freqs_cis shape {freqs_cis.shape} does not match x shape {x.shape}"
-            )
+            assert freqs_cis.shape == (
+                x.shape[1],
+                x.shape[-1],
+            ), f"freqs_cis shape {freqs_cis.shape} does not match x shape {x.shape}"
             shape = [d if i == 1 or i == ndim - 1 else 1 for i, d in enumerate(x.shape)]
         return freqs_cis.view(*shape)
 
@@ -143,9 +147,9 @@ class CrossAttention(nn.Module):
         self.num_heads = num_heads
         assert self.qdim % num_heads == 0, "self.qdim must be divisible by num_heads"
         self.head_dim = self.qdim // num_heads
-        assert self.head_dim % 8 == 0 and self.head_dim <= 128, (
-            "Only support head_dim <= 128 and divisible by 8"
-        )
+        assert (
+            self.head_dim % 8 == 0 and self.head_dim <= 128
+        ), "Only support head_dim <= 128 and divisible by 8"
         self.scale = self.head_dim**-0.5
 
         self.q_proj = operations.Linear(qdim, qdim, bias=qkv_bias, **factory_kwargs)
@@ -254,9 +258,9 @@ class Attention(nn.Module):
         assert self.dim % num_heads == 0, "dim should be divisible by num_heads"
         self.head_dim = self.dim // num_heads
         # This assertion is aligned with flash attention
-        assert self.head_dim % 8 == 0 and self.head_dim <= 128, (
-            "Only support head_dim <= 128 and divisible by 8"
-        )
+        assert (
+            self.head_dim % 8 == 0 and self.head_dim <= 128
+        ), "Only support head_dim <= 128 and divisible by 8"
         self.scale = self.head_dim**-0.5
 
         # qkv --> Wqkv
@@ -304,9 +308,9 @@ class Attention(nn.Module):
         # Apply RoPE if needed
         if freqs_cis_img is not None:
             qq, kk = apply_rotary_emb(q, k, freqs_cis_img, head_first=True)
-            assert qq.shape == q.shape and kk.shape == k.shape, (
-                f"qq: {qq.shape}, q: {q.shape}, kk: {kk.shape}, k: {k.shape}"
-            )
+            assert (
+                qq.shape == q.shape and kk.shape == k.shape
+            ), f"qq: {qq.shape}, q: {q.shape}, kk: {kk.shape}, k: {k.shape}"
             q, k = qq, kk
 
         x = optimized_attention(

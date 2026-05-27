@@ -114,9 +114,7 @@ class PostImagesUploader:
                             return None
 
                     except json.JSONDecodeError as e:
-                        logger.error(
-                            f"âŒ Invalid JSON response: {response.text[:200]}"
-                        )
+                        logger.error(f"âŒ Invalid JSON response: {response.text[:200]}")
                         logger.error(f"JSON decode error: {e}")
                         return None
                 else:

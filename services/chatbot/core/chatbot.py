@@ -18,21 +18,14 @@ and are applied by both endpoints regardless of which agent class they
 resolve.
 """
 
-from core.extensions import (
-    LOCALMODELS_AVAILABLE,
-    MONGODB_ENABLED,
-    ConversationDB,
-    cache_response,
-    get_cached_response,
-    model_loader,
-    wait_for_openai_rate_limit,
-)
-from core.db_helpers import (
-    get_user_id_from_session,
-    load_conversation_history,
-    save_message_to_db,
-    set_active_conversation,
-)
+import logging
+import sys
+from datetime import datetime
+from pathlib import Path
+
+import openai
+import requests
+
 from core.config import (
     DEEPSEEK_API_KEY,
     GROK_API_KEY,
@@ -42,13 +35,21 @@ from core.config import (
     SYSTEM_PROMPTS,
     get_system_prompts,
 )
-import logging
-import sys
-from datetime import datetime
-from pathlib import Path
-
-import openai
-import requests
+from core.db_helpers import (
+    get_user_id_from_session,
+    load_conversation_history,
+    save_message_to_db,
+    set_active_conversation,
+)
+from core.extensions import (
+    LOCALMODELS_AVAILABLE,
+    MONGODB_ENABLED,
+    ConversationDB,
+    cache_response,
+    get_cached_response,
+    model_loader,
+    wait_for_openai_rate_limit,
+)
 
 # Setup path
 CHATBOT_DIR = Path(__file__).parent.parent.resolve()

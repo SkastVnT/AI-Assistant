@@ -64,7 +64,7 @@ def calc_lora_model(
                     if bias_diff:
                         output_sd[
                             "{}{}.diff".format(prefix_lora, k[len(prefix_model) : -7])
-                        ] = weight_diff.contiguous().half().cpu()
+                        ] = (weight_diff.contiguous().half().cpu())
                     continue
                 try:
                     out = extract_lora(weight_diff, rank)
@@ -72,12 +72,12 @@ def calc_lora_model(
                         "{}{}.lora_up.weight".format(
                             prefix_lora, k[len(prefix_model) : -7]
                         )
-                    ] = out[0].contiguous().half().cpu()
+                    ] = (out[0].contiguous().half().cpu())
                     output_sd[
                         "{}{}.lora_down.weight".format(
                             prefix_lora, k[len(prefix_model) : -7]
                         )
-                    ] = out[1].contiguous().half().cpu()
+                    ] = (out[1].contiguous().half().cpu())
                 except:
                     logging.warning(
                         "Could not generate lora weights for key {}, is the weight difference a zero?".format(
@@ -87,7 +87,7 @@ def calc_lora_model(
             elif lora_type == LORAType.FULL_DIFF:
                 output_sd[
                     "{}{}.diff".format(prefix_lora, k[len(prefix_model) : -7])
-                ] = weight_diff.contiguous().half().cpu()
+                ] = (weight_diff.contiguous().half().cpu())
 
         elif bias_diff and k.endswith(".bias"):
             output_sd["{}{}.diff_b".format(prefix_lora, k[len(prefix_model) : -5])] = (

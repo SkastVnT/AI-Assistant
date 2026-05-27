@@ -17,13 +17,12 @@ Designed to be idempotent: re-running cleans the venv dir and rebuilds.
 
 from __future__ import annotations
 
-import os
 import shutil
 import subprocess
 import sys
 import venv
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 
 def log(msg: str, fh) -> None:

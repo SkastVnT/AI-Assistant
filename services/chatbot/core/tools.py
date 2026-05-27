@@ -2,6 +2,14 @@
 Tool functions for chatbot
 """
 
+import logging
+import sys
+from pathlib import Path
+
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
 from core.config import (
     GITHUB_TOKEN,
     GOOGLE_CSE_ID,
@@ -10,13 +18,6 @@ from core.config import (
     SAUCENAO_API_KEY,
     SERPAPI_API_KEY,
 )
-import logging
-import sys
-from pathlib import Path
-
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 
 # Setup path
 CHATBOT_DIR = Path(__file__).parent.parent.resolve()

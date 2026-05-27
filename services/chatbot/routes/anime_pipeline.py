@@ -1,4 +1,4 @@
-﻿"""
+"""
 Anime Layered Pipeline API routes â€” Flask Blueprint.
 
 Endpoints:

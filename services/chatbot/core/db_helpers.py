@@ -2,12 +2,13 @@
 Database helpers for MongoDB integration
 """
 
-from core.extensions import MONGODB_ENABLED, ConversationDB, MemoryDB, MessageDB
 import logging
 import sys
 from pathlib import Path
 
 from flask import session
+
+from core.extensions import MONGODB_ENABLED, ConversationDB, MemoryDB, MessageDB
 
 # Setup path
 CHATBOT_DIR = Path(__file__).parent.parent.resolve()

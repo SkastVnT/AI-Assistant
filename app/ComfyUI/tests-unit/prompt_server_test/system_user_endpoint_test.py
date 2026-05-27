@@ -78,9 +78,11 @@ class TestSystemUserEndpointBlocking:
             )
 
         # Should be blocked (403 Forbidden or similar error)
-        assert resp.status in [400, 403, 500], (
-            f"System User access should be blocked, got {resp.status}"
-        )
+        assert resp.status in [
+            400,
+            403,
+            500,
+        ], f"System User access should be blocked, got {resp.status}"
 
     @pytest.mark.asyncio
     async def test_userdata_post_blocks_system_user(
@@ -99,9 +101,11 @@ class TestSystemUserEndpointBlocking:
                 data=b"malicious content",
             )
 
-        assert resp.status in [400, 403, 500], (
-            f"System User write should be blocked, got {resp.status}"
-        )
+        assert resp.status in [
+            400,
+            403,
+            500,
+        ], f"System User write should be blocked, got {resp.status}"
 
         # Verify no file was created
         assert not (mock_user_directory / "__system" / "test.txt").exists()
@@ -127,9 +131,11 @@ class TestSystemUserEndpointBlocking:
                 "/userdata/secret.txt", headers={"comfy-user": "__system"}
             )
 
-        assert resp.status in [400, 403, 500], (
-            f"System User delete should be blocked, got {resp.status}"
-        )
+        assert resp.status in [
+            400,
+            403,
+            500,
+        ], f"System User delete should be blocked, got {resp.status}"
 
         # Verify file still exists
         assert secret_file.exists()
@@ -147,9 +153,11 @@ class TestSystemUserEndpointBlocking:
             mock_args.multi_user = True
             resp = await client.get("/v2/userdata", headers={"comfy-user": "__system"})
 
-        assert resp.status in [400, 403, 500], (
-            f"System User v2 access should be blocked, got {resp.status}"
-        )
+        assert resp.status in [
+            400,
+            403,
+            500,
+        ], f"System User v2 access should be blocked, got {resp.status}"
 
     @pytest.mark.asyncio
     async def test_move_userdata_blocks_system_user(
@@ -170,9 +178,11 @@ class TestSystemUserEndpointBlocking:
                 "/userdata/source.txt/move/dest.txt", headers={"comfy-user": "__system"}
             )
 
-        assert resp.status in [400, 403, 500], (
-            f"System User move should be blocked, got {resp.status}"
-        )
+        assert resp.status in [
+            400,
+            403,
+            500,
+        ], f"System User move should be blocked, got {resp.status}"
 
         # Verify source file still exists (move was blocked)
         assert (system_user_dir / "source.txt").exists()
@@ -194,9 +204,9 @@ class TestSystemUserCreationBlocking:
 
         resp = await client.post("/users", json={"username": "__system"})
 
-        assert resp.status == 400, (
-            f"System User creation should return 400, got {resp.status}"
-        )
+        assert (
+            resp.status == 400
+        ), f"System User creation should return 400, got {resp.status}"
 
     @pytest.mark.asyncio
     async def test_post_users_blocks_system_user_prefix_variations(
@@ -209,9 +219,9 @@ class TestSystemUserCreationBlocking:
 
         for name in system_user_names:
             resp = await client.post("/users", json={"username": name})
-            assert resp.status == 400, (
-                f"System User name '{name}' should return 400, got {resp.status}"
-            )
+            assert (
+                resp.status == 400
+            ), f"System User name '{name}' should return 400, got {resp.status}"
 
 
 class TestPublicUserStillWorks:

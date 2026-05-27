@@ -762,16 +762,16 @@ class EncoderFactorized(nn.Module):
         self.num_spatial_downs = int(math.log2(spatial_compression)) - int(
             math.log2(patch_size)
         )
-        assert self.num_spatial_downs <= self.num_resolutions, (
-            f"Spatially downsample {self.num_resolutions} times at most"
-        )
+        assert (
+            self.num_spatial_downs <= self.num_resolutions
+        ), f"Spatially downsample {self.num_resolutions} times at most"
 
         self.num_temporal_downs = int(math.log2(temporal_compression)) - int(
             math.log2(patch_size)
         )
-        assert self.num_temporal_downs <= self.num_resolutions, (
-            f"Temporally downsample {self.num_resolutions} times at most"
-        )
+        assert (
+            self.num_temporal_downs <= self.num_resolutions
+        ), f"Temporally downsample {self.num_resolutions} times at most"
 
         # downsampling
         self.conv_in = nn.Sequential(
@@ -916,15 +916,15 @@ class DecoderFactorized(nn.Module):
         self.num_spatial_ups = int(math.log2(spatial_compression)) - int(
             math.log2(patch_size)
         )
-        assert self.num_spatial_ups <= self.num_resolutions, (
-            f"Spatially upsample {self.num_resolutions} times at most"
-        )
+        assert (
+            self.num_spatial_ups <= self.num_resolutions
+        ), f"Spatially upsample {self.num_resolutions} times at most"
         self.num_temporal_ups = int(math.log2(temporal_compression)) - int(
             math.log2(patch_size)
         )
-        assert self.num_temporal_ups <= self.num_resolutions, (
-            f"Temporally upsample {self.num_resolutions} times at most"
-        )
+        assert (
+            self.num_temporal_ups <= self.num_resolutions
+        ), f"Temporally upsample {self.num_resolutions} times at most"
 
         block_in = channels * channels_mult[self.num_resolutions - 1]
         curr_res = (resolution // patch_size) // 2 ** (self.num_resolutions - 1)

@@ -196,12 +196,12 @@ class TestProgressIsolation:
                 prompt_id_b
             )
 
-            assert len(client_a_messages) > 0, (
-                "Client A did not receive any progress updates for its own workflow"
-            )
-            assert len(client_b_messages) > 0, (
-                "Client B did not receive any progress updates for its own workflow"
-            )
+            assert (
+                len(client_a_messages) > 0
+            ), "Client A did not receive any progress updates for its own workflow"
+            assert (
+                len(client_b_messages) > 0
+            ), "Client B did not receive any progress updates for its own workflow"
 
             # Ensure no cross-contamination
             client_a_other = client_a.progress_tracker.get_messages_for_prompt(
@@ -211,12 +211,12 @@ class TestProgressIsolation:
                 prompt_id_a
             )
 
-            assert len(client_a_other) == 0, (
-                f"Client A incorrectly received {len(client_a_other)} progress updates for Client B's workflow"
-            )
-            assert len(client_b_other) == 0, (
-                f"Client B incorrectly received {len(client_b_other)} progress updates for Client A's workflow"
-            )
+            assert (
+                len(client_a_other) == 0
+            ), f"Client A incorrectly received {len(client_a_other)} progress updates for Client B's workflow"
+            assert (
+                len(client_b_other) == 0
+            ), f"Client B incorrectly received {len(client_b_other)} progress updates for Client A's workflow"
 
         finally:
             # Clean up connections
@@ -251,9 +251,9 @@ class TestProgressIsolation:
 
             # Should still receive progress updates for own workflow
             messages = client.progress_tracker.get_messages_for_prompt(prompt_id)
-            assert len(messages) > 0, (
-                "Client did not receive progress updates even though it initiated the workflow"
-            )
+            assert (
+                len(messages) > 0
+            ), "Client did not receive progress updates even though it initiated the workflow"
 
         finally:
             if hasattr(client, "ws"):

@@ -628,12 +628,12 @@ class PropRequirement:
         return {
             "prop_key": self.prop_key,
             "must_appear": self.must_appear,
-            "expected_zone": self.expected_zone.to_dict()
-            if self.expected_zone
-            else None,
-            "expected_bbox": self.expected_bbox.to_dict()
-            if self.expected_bbox
-            else None,
+            "expected_zone": (
+                self.expected_zone.to_dict() if self.expected_zone else None
+            ),
+            "expected_bbox": (
+                self.expected_bbox.to_dict() if self.expected_bbox else None
+            ),
             "state_overrides": [list(item) for item in self.state_overrides],
             "notes": self.notes,
         }

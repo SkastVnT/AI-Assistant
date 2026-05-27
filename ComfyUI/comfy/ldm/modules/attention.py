@@ -761,6 +761,7 @@ try:
     def flash_attn_fake(q, k, v, dropout_p=0.0, causal=False):
         # Output shape is the same as q
         return q.new_empty(q.shape)
+
 except AttributeError as error:
     FLASH_ATTN_ERROR = error
 
@@ -1399,9 +1400,9 @@ class SpatialVideoTransformer(SpatialTransformer):
             spatial_context = context
 
         if self.use_spatial_context:
-            assert context.ndim == 3, (
-                f"n dims of spatial context should be 3 but are {context.ndim}"
-            )
+            assert (
+                context.ndim == 3
+            ), f"n dims of spatial context should be 3 but are {context.ndim}"
 
             if time_context is None:
                 time_context = context

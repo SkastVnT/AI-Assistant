@@ -616,7 +616,9 @@ class DismantledBlock(nn.Module):
                     gate_msa,
                     scale_mlp,
                     gate_mlp,
-                ) = self.adaLN_modulation(c).chunk(4, dim=1)
+                ) = self.adaLN_modulation(
+                    c
+                ).chunk(4, dim=1)
             qkv = self.attn.pre_attention(modulate(self.norm1(x), shift_msa, scale_msa))
             return qkv, (
                 x,
@@ -630,7 +632,9 @@ class DismantledBlock(nn.Module):
                 (
                     shift_msa,
                     scale_msa,
-                ) = self.adaLN_modulation(c).chunk(2, dim=1)
+                ) = self.adaLN_modulation(
+                    c
+                ).chunk(2, dim=1)
             else:
                 shift_msa = None
                 scale_msa = self.adaLN_modulation(c)

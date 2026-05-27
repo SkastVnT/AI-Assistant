@@ -5,12 +5,6 @@ Proxies requests to the Hermes Gateway API (sidecar service).
 Returns markdown string matching the tool-response-contract.
 """
 
-from core.config import (
-    HERMES_API_KEY,
-    HERMES_API_URL,
-    HERMES_ENABLED,
-    HERMES_TIMEOUT,
-)
 import json
 import logging
 import sys
@@ -18,6 +12,13 @@ import time
 from pathlib import Path
 
 import requests
+
+from core.config import (
+    HERMES_API_KEY,
+    HERMES_API_URL,
+    HERMES_ENABLED,
+    HERMES_TIMEOUT,
+)
 
 CHATBOT_DIR = Path(__file__).parent.parent.resolve()
 if str(CHATBOT_DIR) not in sys.path:

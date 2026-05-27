@@ -20,7 +20,9 @@ def _build_context(results: list[SearchResult]) -> str:
 
     parts: list[str] = []
     for i, r in enumerate(results, 1):
-        parts.append(f"[Source {i}: {r.filename} (relevance: {r.score:.2f})]\n{r.content}")
+        parts.append(
+            f"[Source {i}: {r.filename} (relevance: {r.score:.2f})]\n{r.content}"
+        )
     return "\n\n---\n\n".join(parts)
 
 

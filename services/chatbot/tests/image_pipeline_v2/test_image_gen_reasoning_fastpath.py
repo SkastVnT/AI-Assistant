@@ -252,9 +252,9 @@ class TestSourceHygiene:
         # `import routes.reasoning_image_gen` at column 0.
         for line in text.splitlines():
             if line.startswith(("import ", "from ")):
-                assert (
-                    "reasoning_image_gen" not in line
-                ), f"reasoning_image_gen import must remain lazy; saw: {line}"
+                assert "reasoning_image_gen" not in line, (
+                    f"reasoning_image_gen import must remain lazy; saw: {line}"
+                )
         # But the function body MUST contain the lazy import.
         assert "from routes.reasoning_image_gen import run_pipeline_for_prompt" in text
 

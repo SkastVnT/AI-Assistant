@@ -251,7 +251,9 @@ class TestHybridPipeline:
             new_callable=AsyncMock,
             return_value=dense_results,
         ):
-            result = await pipeline.execute(db, provider, "test query", tenant_id=TENANT_ID)
+            result = await pipeline.execute(
+                db, provider, "test query", tenant_id=TENANT_ID
+            )
 
         assert result.strategy == "dense_only"
         assert len(result.dense_results) == 2

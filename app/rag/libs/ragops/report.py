@@ -76,7 +76,9 @@ def generate_markdown_report(result: EvalRunResult) -> str:
                     f"{c.context_relevance_reasoning}"
                 )
             if c.groundedness_reasoning:
-                lines.append(f"**Groundedness ({c.groundedness:.2f}):** {c.groundedness_reasoning}")
+                lines.append(
+                    f"**Groundedness ({c.groundedness:.2f}):** {c.groundedness_reasoning}"
+                )
             if c.answer_relevance_reasoning:
                 lines.append(
                     f"**Answer Relevance ({c.answer_relevance:.2f}):** "

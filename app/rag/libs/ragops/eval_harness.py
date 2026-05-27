@@ -215,7 +215,10 @@ async def evaluate_case(
             result.passed = False
         if result.groundedness is not None and result.groundedness < min_groundedness:
             result.passed = False
-        if result.answer_relevance is not None and result.answer_relevance < min_answer_relevance:
+        if (
+            result.answer_relevance is not None
+            and result.answer_relevance < min_answer_relevance
+        ):
             result.passed = False
     except Exception as exc:
         logger.exception("eval_case_error case=%s: %s", case.id, exc)

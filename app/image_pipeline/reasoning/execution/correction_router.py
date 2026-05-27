@@ -41,7 +41,6 @@ from image_pipeline.reasoning.schemas import SinglePanelSpec
 
 from .execution_plan import StageKind, normalize_stages
 
-
 # ---------------------------------------------------------------------------
 # Protocols
 # ---------------------------------------------------------------------------

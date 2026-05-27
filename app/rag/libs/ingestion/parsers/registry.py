@@ -51,7 +51,9 @@ def get_parser(filename: str) -> DocumentParser:
         return _get_pdf_parser()
 
     supported = get_supported_extensions()
-    raise ValueError(f"Unsupported file type: '{ext}'. Supported: {', '.join(sorted(supported))}")
+    raise ValueError(
+        f"Unsupported file type: '{ext}'. Supported: {', '.join(sorted(supported))}"
+    )
 
 
 def get_supported_extensions() -> set[str]:

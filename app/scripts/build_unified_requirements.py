@@ -1,14 +1,13 @@
 from __future__ import annotations
 
+import re
 import subprocess
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-import re
-from typing import Iterable
 
-from packaging.requirements import InvalidRequirement, Requirement
 import tomllib
-
+from packaging.requirements import InvalidRequirement, Requirement
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT_FILE = ROOT / "requirements" / "requirements_unified_3119.txt"

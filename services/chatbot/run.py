@@ -5,8 +5,6 @@ Desktop-only build: launches the Flask monolith (chatbot_main.py).
 FastAPI and modular-app-factory modes were removed.
 """
 
-from dotenv import load_dotenv
-from services.shared_env import load_shared_env
 import atexit
 import logging
 import os
@@ -16,6 +14,10 @@ import subprocess
 import sys
 from pathlib import Path
 from urllib.parse import urlparse
+
+from dotenv import load_dotenv
+
+from services.shared_env import load_shared_env
 
 # Tracks all background sidecar processes spawned by this session so they
 # can be killed when the chatbot exits (atexit handler below).

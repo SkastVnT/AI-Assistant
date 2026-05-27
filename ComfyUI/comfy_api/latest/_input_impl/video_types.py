@@ -249,9 +249,9 @@ class VideoFromFile(VideoInput):
                     audio = AudioInput(
                         {
                             "waveform": audio_tensor,
-                            "sample_rate": int(stream.sample_rate)
-                            if stream.sample_rate
-                            else 1,
+                            "sample_rate": (
+                                int(stream.sample_rate) if stream.sample_rate else 1
+                            ),
                         }
                     )
         except StopIteration:

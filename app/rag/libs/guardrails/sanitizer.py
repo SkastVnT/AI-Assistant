@@ -219,7 +219,8 @@ def sanitize_text(
     if settings.reject_on_hidden_text:
         has_critical = any(f.severity == "critical" for f in findings)
         high_invisible = any(
-            f.pattern_name == "invisible_chars" and f.severity == "high" for f in findings
+            f.pattern_name == "invisible_chars" and f.severity == "high"
+            for f in findings
         )
         if has_critical or high_invisible:
             should_reject = True

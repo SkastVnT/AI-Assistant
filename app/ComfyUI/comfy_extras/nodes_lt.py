@@ -211,8 +211,8 @@ class LTXVAddGuide(io.ComfyNode):
         )
         if guide_length > 1 and frame_idx != 0:
             frame_idx = (
-                (frame_idx - 1) // time_scale_factor * time_scale_factor + 1
-            )  # frame index - 1 must be divisible by 8 or frame_idx == 0
+                frame_idx - 1
+            ) // time_scale_factor * time_scale_factor + 1  # frame index - 1 must be divisible by 8 or frame_idx == 0
 
         latent_idx = (frame_idx + time_scale_factor - 1) // time_scale_factor
 
@@ -284,9 +284,9 @@ class LTXVAddGuide(io.ComfyNode):
         cls, latent_image, noise_mask, guiding_latent, latent_idx, strength
     ):
         cond_length = guiding_latent.shape[2]
-        assert latent_image.shape[2] >= latent_idx + cond_length, (
-            "Conditioning frames exceed the length of the latent sequence."
-        )
+        assert (
+            latent_image.shape[2] >= latent_idx + cond_length
+        ), "Conditioning frames exceed the length of the latent sequence."
 
         mask = torch.full(
             (noise_mask.shape[0], 1, cond_length, 1, 1),
@@ -317,9 +317,9 @@ class LTXVAddGuide(io.ComfyNode):
         frame_idx, latent_idx = cls.get_latent_index(
             positive, latent_length, len(image), frame_idx, scale_factors
         )
-        assert latent_idx + t.shape[2] <= latent_length, (
-            "Conditioning frames exceed the length of the latent sequence."
-        )
+        assert (
+            latent_idx + t.shape[2] <= latent_length
+        ), "Conditioning frames exceed the length of the latent sequence."
 
         num_prefix_frames = min(cls.NUM_PREFIX_FRAMES, t.shape[2])
 

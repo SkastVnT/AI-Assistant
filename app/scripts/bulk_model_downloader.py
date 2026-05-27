@@ -16,8 +16,6 @@ import re
 import sys
 import time
 from pathlib import Path
-from typing import Optional
-from urllib.parse import urlparse
 
 import requests
 
@@ -1075,13 +1073,13 @@ MODELS: list[dict] = [
 ]
 
 
-def _extract_model_id(url: str) -> Optional[int]:
+def _extract_model_id(url: str) -> int | None:
     """Extract CivitAI model ID from URL."""
     m = re.search(r"/models/(\d+)", url)
     return int(m.group(1)) if m else None
 
 
-def _get_model_info(model_id: int) -> Optional[dict]:
+def _get_model_info(model_id: int) -> dict | None:
     """Fetch model info from CivitAI API."""
     headers = {}
     if API_KEY:
@@ -1099,7 +1097,7 @@ def _get_model_info(model_id: int) -> Optional[dict]:
         return None
 
 
-def _pick_best_version(info: dict, version_id: Optional[int] = None) -> Optional[dict]:
+def _pick_best_version(info: dict, version_id: int | None = None) -> dict | None:
     """Pick the best version from model info."""
     versions = info.get("modelVersions", [])
     if not versions:
@@ -1122,7 +1120,7 @@ def _pick_best_version(info: dict, version_id: Optional[int] = None) -> Optional
     return versions[0]
 
 
-def _pick_best_file(version: dict) -> Optional[dict]:
+def _pick_best_file(version: dict) -> dict | None:
     """Pick the best file from a version (prefer safetensors, then .pt)."""
     files = version.get("files", [])
     if not files:
@@ -1366,12 +1364,12 @@ def process_model(entry: dict, dry_run: bool = False) -> dict:
 
     # Check if already exists
     if dest_path.exists():
-        print(f"   ✅ Already exists — skipping")
+        print("   ✅ Already exists — skipping")
         result["status"] = "exists"
         return result
 
     if dry_run:
-        print(f"   🔍 DRY RUN — would download")
+        print("   🔍 DRY RUN — would download")
         result["status"] = "dry_run"
         return result
 
@@ -1379,7 +1377,7 @@ def process_model(entry: dict, dry_run: bool = False) -> dict:
     if not download_url:
         download_url = f"https://civitai.com/api/download/models/{version['id']}"
 
-    print(f"   Downloading...")
+    print("   Downloading...")
     success = _download_file(download_url, dest_path, int(size_bytes))
 
     if success and dest_path.exists():
@@ -1436,14 +1434,14 @@ def main():
             if m["cat"] == args.category or m["cat"].startswith(args.category)
         ]
 
-    print(f"🚀 Bulk Model Downloader")
+    print("🚀 Bulk Model Downloader")
     print(f"   Models to process: {len(models)}")
     print(f"   Category filter: {args.category}")
     print(f"   Dry run: {args.dry_run}")
     if API_KEY:
-        print(f"   API key: configured")
+        print("   API key: configured")
     else:
-        print(f"   API key: not set (set CIVITAI_API_KEY for higher rate limits)")
+        print("   API key: not set (set CIVITAI_API_KEY for higher rate limits)")
 
     results = []
     for entry in models:
@@ -1454,7 +1452,7 @@ def main():
 
     # Summary
     print(f"\n{'=' * 60}")
-    print(f"📊 SUMMARY")
+    print("📊 SUMMARY")
     print(f"{'=' * 60}")
 
     by_status = {}

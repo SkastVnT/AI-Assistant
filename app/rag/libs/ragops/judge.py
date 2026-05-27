@@ -75,7 +75,9 @@ def _parse_judge_output(raw: str) -> JudgeResult:
         return JudgeResult(score=score, reasoning=reasoning, raw_output=raw)
 
     logger.warning("judge_parse_failed: could not extract score from: %s", raw[:200])
-    return JudgeResult(score=0.0, reasoning="Failed to parse judge output", raw_output=raw)
+    return JudgeResult(
+        score=0.0, reasoning="Failed to parse judge output", raw_output=raw
+    )
 
 
 # ── LLM Judge ─────────────────────────────────────────────────────────────

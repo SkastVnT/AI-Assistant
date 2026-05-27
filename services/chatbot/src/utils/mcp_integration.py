@@ -713,9 +713,7 @@ class MCPClient:
                     headers={"Content-Type": "application/json"},
                     method="POST",
                 )
-                with urllib.request.urlopen(
-                    req, timeout=8
-                ) as resp:  # nosec B310  # URL scheme validated above
+                with urllib.request.urlopen(req, timeout=8) as resp:  # nosec B310  # URL scheme validated above
                     body = resp.read().decode("utf-8", errors="replace")
                     parsed = json.loads(body) if body else {}
                     return {

@@ -293,6 +293,6 @@ def test_image_search_relevance_filter_drops_off_character_hits(tmp_storage):
     urls = [r["url"] for r in results]
     assert "https://x/hutao.png" in urls, "relevant Hu Tao hit was dropped"
     assert "https://x/aquarian.png" not in urls, "off-character Aquarian leaked through"
-    assert (
-        "https://x/group.png" not in urls
-    ), "off-character group wallpaper leaked through"
+    assert "https://x/group.png" not in urls, (
+        "off-character group wallpaper leaked through"
+    )

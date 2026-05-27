@@ -31,9 +31,9 @@ class AlphaBlender(nn.Module):
         self.merge_strategy = merge_strategy
         self.rearrange_pattern = rearrange_pattern
 
-        assert merge_strategy in self.strategies, (
-            f"merge_strategy needs to be in {self.strategies}"
-        )
+        assert (
+            merge_strategy in self.strategies
+        ), f"merge_strategy needs to be in {self.strategies}"
 
         if self.merge_strategy == "fixed":
             self.register_buffer("mix_factor", torch.Tensor([alpha]))

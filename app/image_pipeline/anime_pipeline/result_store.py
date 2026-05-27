@@ -271,9 +271,11 @@ class ResultStore:
             if layer.image_b64:
                 path = self.save_hint_layer(
                     job,
-                    layer.layer_type.value
-                    if hasattr(layer.layer_type, "value")
-                    else str(layer.layer_type),
+                    (
+                        layer.layer_type.value
+                        if hasattr(layer.layer_type, "value")
+                        else str(layer.layer_type)
+                    ),
                     layer.image_b64,
                 )
                 paths[f"hint_{layer.layer_type}"] = path

@@ -787,26 +787,28 @@ class TripoConversionNode(IO.ComfyNode):
                 force_symmetry=force_symmetry if force_symmetry else None,
                 face_limit=face_limit if face_limit != -1 else None,
                 flatten_bottom=flatten_bottom if flatten_bottom else None,
-                flatten_bottom_threshold=flatten_bottom_threshold
-                if flatten_bottom_threshold != 0.0
-                else None,
+                flatten_bottom_threshold=(
+                    flatten_bottom_threshold
+                    if flatten_bottom_threshold != 0.0
+                    else None
+                ),
                 texture_size=texture_size if texture_size != 4096 else None,
                 texture_format=texture_format if texture_format != "JPEG" else None,
-                pivot_to_center_bottom=pivot_to_center_bottom
-                if pivot_to_center_bottom
-                else None,
+                pivot_to_center_bottom=(
+                    pivot_to_center_bottom if pivot_to_center_bottom else None
+                ),
                 scale_factor=scale_factor if scale_factor != 1.0 else None,
                 with_animation=with_animation if with_animation else None,
                 pack_uv=pack_uv if pack_uv else None,
                 bake=bake if bake else None,
                 part_names=part_names_list,
                 fbx_preset=fbx_preset if fbx_preset != "blender" else None,
-                export_vertex_colors=export_vertex_colors
-                if export_vertex_colors
-                else None,
-                export_orientation=export_orientation
-                if export_orientation != "default"
-                else None,
+                export_vertex_colors=(
+                    export_vertex_colors if export_vertex_colors else None
+                ),
+                export_orientation=(
+                    export_orientation if export_orientation != "default" else None
+                ),
                 animate_in_place=animate_in_place if animate_in_place else None,
             ),
         )

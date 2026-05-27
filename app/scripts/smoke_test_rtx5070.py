@@ -1,4 +1,4 @@
-﻿"""Smoke test for the RTX 5070 12GB local profile.
+"""Smoke test for the RTX 5070 12GB local profile.
 
 Verifies the host machine is configured to run the anime pipeline with
 ``app/configs_vps/anime_pipeline_rtx5070.yaml``. Does NOT run an actual image
@@ -179,7 +179,9 @@ def check_loras_dir() -> bool:
     _hdr("4/4  ComfyUI/models/loras directory present")
     loras = REPO_ROOT / "ComfyUI" / "models" / "loras"
     if not loras.exists():
-        print(f"WARN: {loras.relative_to(REPO_ROOT)} missing â€” LoRA passes will fail.")
+        print(
+            f"WARN: {loras.relative_to(REPO_ROOT)} missing â€” LoRA passes will fail."
+        )
         return True  # not a hard failure for smoke test
     count = sum(1 for _ in loras.rglob("*.safetensors"))
     print(f"  {loras.relative_to(REPO_ROOT)} : {count} .safetensors file(s)")
@@ -209,7 +211,7 @@ def main() -> int:
 
     _hdr("Summary")
     labels = ["torch+CUDA", "rtx5070 YAML", "ComfyUI ping", "LoRA dir"]
-    for ok, label in zip(results, labels):
+    for ok, label in zip(results, labels, strict=False):
         print(f"  [{'OK  ' if ok else 'FAIL'}] {label}")
     hard_fail = not (results[0] and results[1])
     return 1 if hard_fail else 0

@@ -1864,7 +1864,9 @@ class FramePackMotioner(nn.Module):
 
         clean_latents_4x, clean_latents_2x, clean_latents_post = padd_lat[
             :, :, -sum(self.zip_frame_buckets) :, :, :
-        ].split(self.zip_frame_buckets[::-1], dim=2)  # 16, 2 ,1
+        ].split(
+            self.zip_frame_buckets[::-1], dim=2
+        )  # 16, 2 ,1
 
         # patchfy
         clean_latents_post = self.proj(clean_latents_post).flatten(2).transpose(1, 2)

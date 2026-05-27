@@ -139,7 +139,7 @@ class CacheKeySetInputSignature(CacheKeySet):
         inputs = node["inputs"]
         for key in sorted(inputs.keys()):
             if is_link(inputs[key]):
-                (ancestor_id, ancestor_socket) = inputs[key]
+                ancestor_id, ancestor_socket = inputs[key]
                 ancestor_index = ancestor_order_mapping[ancestor_id]
                 signature.append((key, ("ANCESTOR", ancestor_index, ancestor_socket)))
             else:

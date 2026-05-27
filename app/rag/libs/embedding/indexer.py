@@ -95,7 +95,9 @@ class IndexingService:
         """
         t_start = _now_ms()
 
-        chunks = await self._chunk_repo.get_unembedded(tenant_id=tenant_id, limit=batch_limit)
+        chunks = await self._chunk_repo.get_unembedded(
+            tenant_id=tenant_id, limit=batch_limit
+        )
 
         if not chunks:
             return IndexResult(

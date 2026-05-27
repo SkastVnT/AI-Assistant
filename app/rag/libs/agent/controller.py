@@ -172,7 +172,9 @@ class AgentController:
                     tool_call.tool_name,
                     delegated.role,
                 )
-                memory.add_note(f"Tool '{tool_call.tool_name}' is not permitted for your role.")
+                memory.add_note(
+                    f"Tool '{tool_call.tool_name}' is not permitted for your role."
+                )
                 if self._spans:
                     act_ctx.__exit__(None, None, None)
                 continue

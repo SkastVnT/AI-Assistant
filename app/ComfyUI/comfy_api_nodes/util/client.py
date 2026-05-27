@@ -789,9 +789,9 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
                             cfg.wait_label if cfg.monitor_progress else None,
                             start_time if cfg.monitor_progress else None,
                             cfg.estimated_total,
-                            display_callback=_display_time_progress
-                            if cfg.monitor_progress
-                            else None,
+                            display_callback=(
+                                _display_time_progress if cfg.monitor_progress else None
+                            ),
                         )
                         delay *= cfg.retry_backoff
                         continue
@@ -895,9 +895,9 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
                         operation_id=operation_id,
                         request_method=method,
                         request_url=url,
-                        request_headers=dict(payload_headers)
-                        if payload_headers
-                        else None,
+                        request_headers=(
+                            dict(payload_headers) if payload_headers else None
+                        ),
                         request_params=dict(params) if params else None,
                         request_data=request_body_log,
                         error_message=f"{type(e).__name__}: {str(e)} (will retry)",
@@ -910,9 +910,9 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
                     cfg.wait_label if cfg.monitor_progress else None,
                     start_time if cfg.monitor_progress else None,
                     cfg.estimated_total,
-                    display_callback=_display_time_progress
-                    if cfg.monitor_progress
-                    else None,
+                    display_callback=(
+                        _display_time_progress if cfg.monitor_progress else None
+                    ),
                 )
                 delay *= cfg.retry_backoff
                 continue
@@ -923,9 +923,9 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
                         operation_id=operation_id,
                         request_method=method,
                         request_url=url,
-                        request_headers=dict(payload_headers)
-                        if payload_headers
-                        else None,
+                        request_headers=(
+                            dict(payload_headers) if payload_headers else None
+                        ),
                         request_params=dict(params) if params else None,
                         request_data=request_body_log,
                         error_message=f"LocalNetworkError: {str(e)}",

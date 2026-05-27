@@ -95,7 +95,7 @@ class ImageSession:
 
         # Trim old entries
         if len(self.history) > self.MAX_HISTORY:
-            self.history = self.history[-self.MAX_HISTORY:]
+            self.history = self.history[-self.MAX_HISTORY :]
 
     def get_context_for_enhancement(self) -> str:
         """

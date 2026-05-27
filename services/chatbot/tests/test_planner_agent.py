@@ -24,7 +24,6 @@ sys.path.insert(0, str(_root / "services" / "chatbot"))
 
 
 import pytest
-
 from image_pipeline.anime_pipeline.agents.layer_planner import (
     LayerPlannerAgent,
     make_layer_plan,

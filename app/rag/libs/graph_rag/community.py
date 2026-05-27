@@ -57,7 +57,9 @@ async def detect_communities(
     relationships = await store.get_all_relationships(tenant_id)
 
     if not entities:
-        logger.info("no_entities: skipping community detection for tenant=%s", tenant_id)
+        logger.info(
+            "no_entities: skipping community detection for tenant=%s", tenant_id
+        )
         return []
 
     # Build networkx graph
@@ -220,7 +222,9 @@ async def summarize_communities(
         rel_lines = set()
         for eid in community.entity_ids:
             for r in rel_lookup.get(str(eid), []):
-                desc = f"{r.source_entity} --[{r.relationship_type}]--> {r.target_entity}"
+                desc = (
+                    f"{r.source_entity} --[{r.relationship_type}]--> {r.target_entity}"
+                )
                 rel_lines.add(desc)
         rel_text = "\n".join(f"- {r}" for r in list(rel_lines)[:30])
 

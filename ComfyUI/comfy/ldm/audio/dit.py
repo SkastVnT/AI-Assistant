@@ -98,9 +98,9 @@ class AbsolutePositionalEmbedding(nn.Module):
 
     def forward(self, x, pos=None, seq_start_pos=None):
         seq_len, device = x.shape[1], x.device
-        assert seq_len <= self.max_seq_len, (
-            f"you are passing in a sequence length of {seq_len} but your absolute positional embedding has a max sequence length of {self.max_seq_len}"
-        )
+        assert (
+            seq_len <= self.max_seq_len
+        ), f"you are passing in a sequence length of {seq_len} but your absolute positional embedding has a max sequence length of {self.max_seq_len}"
 
         if pos is None:
             pos = torch.arange(seq_len, device=device)
@@ -269,18 +269,20 @@ class FeedForward(nn.Module):
         else:
             linear_in = nn.Sequential(
                 rearrange("b n d -> b d n") if use_conv else nn.Identity(),
-                operations.Linear(
-                    dim, inner_dim, bias=not no_bias, dtype=dtype, device=device
-                )
-                if not use_conv
-                else operations.Conv1d(
-                    dim,
-                    inner_dim,
-                    conv_kernel_size,
-                    padding=(conv_kernel_size // 2),
-                    bias=not no_bias,
-                    dtype=dtype,
-                    device=device,
+                (
+                    operations.Linear(
+                        dim, inner_dim, bias=not no_bias, dtype=dtype, device=device
+                    )
+                    if not use_conv
+                    else operations.Conv1d(
+                        dim,
+                        inner_dim,
+                        conv_kernel_size,
+                        padding=(conv_kernel_size // 2),
+                        bias=not no_bias,
+                        dtype=dtype,
+                        device=device,
+                    )
                 ),
                 rearrange("b n d -> b d n") if use_conv else nn.Identity(),
                 activation,
@@ -761,9 +763,9 @@ class ContinuousTransformer(nn.Module):
         if prepend_embeds is not None:
             prepend_length, prepend_dim = prepend_embeds.shape[1:]
 
-            assert prepend_dim == x.shape[-1], (
-                "prepend dimension must match sequence dimension"
-            )
+            assert (
+                prepend_dim == x.shape[-1]
+            ), "prepend dimension must match sequence dimension"
 
             x = torch.cat((prepend_embeds, x), dim=-2)
 

@@ -16,8 +16,17 @@ from libs.ingestion.parsers.base import (
 )
 from libs.ingestion.parsers.html_parser import HtmlParser
 from libs.ingestion.parsers.markdown_parser import MarkdownParser
-from libs.ingestion.parsers.pdf_parser import PdfBackend, PdfPage, PdfParser, PdfTextBlock
-from libs.ingestion.parsers.registry import get_parser, get_supported_extensions, parse_document
+from libs.ingestion.parsers.pdf_parser import (
+    PdfBackend,
+    PdfPage,
+    PdfParser,
+    PdfTextBlock,
+)
+from libs.ingestion.parsers.registry import (
+    get_parser,
+    get_supported_extensions,
+    parse_document,
+)
 from libs.ingestion.parsers.text_parser import TextParser
 
 # ====================================================================
@@ -264,8 +273,12 @@ class TestPdfParser:
     def test_parse_single_page(self):
         blocks = [
             PdfTextBlock(text="Document Title", font_size=24.0, is_bold=True),
-            PdfTextBlock(text="This is body text in the first paragraph.", font_size=12.0),
-            PdfTextBlock(text="Another sentence continues the paragraph.", font_size=12.0),
+            PdfTextBlock(
+                text="This is body text in the first paragraph.", font_size=12.0
+            ),
+            PdfTextBlock(
+                text="Another sentence continues the paragraph.", font_size=12.0
+            ),
         ]
         page = PdfPage(
             page_number=1,
@@ -427,7 +440,9 @@ class TestMetadataExtractor:
     def test_extract_title_from_heading(self):
         result = ParseResult(
             elements=[
-                ContentElement(type=ElementType.HEADING, content="Heading Title", level=1),
+                ContentElement(
+                    type=ElementType.HEADING, content="Heading Title", level=1
+                ),
             ],
             title=None,
             raw_text="Heading Title",
@@ -441,7 +456,9 @@ class TestMetadataExtractor:
         assert meta["detected_title"] == "my_report"
 
     def test_word_count(self):
-        result = ParseResult(elements=[], title=None, raw_text="one two three four five")
+        result = ParseResult(
+            elements=[], title=None, raw_text="one two three four five"
+        )
         meta = extract_metadata(result, "f.txt")
         assert meta["word_count"] == 5
 

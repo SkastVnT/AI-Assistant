@@ -4,6 +4,13 @@ Supports FLUX.2, FLUX.1-Kontext, Seedream, Nano-Banana, and more.
 """
 
 from __future__ import annotations
+
+import logging
+import os
+import time
+
+import httpx
+
 from .base import (
     BaseImageProvider,
     ImageMode,
@@ -11,12 +18,6 @@ from .base import (
     ImageResult,
     ProviderTier,
 )
-
-import logging
-import os
-import time
-
-import httpx
 
 # Default fal.ai client timeout (seconds). Override with FAL_TIMEOUT env var.
 # Large models (FLUX.2-pro, Recraft-v4) occasionally take 150-180s end-to-end

@@ -103,7 +103,12 @@ class TestFormatEvidence:
 
     def test_single_evidence_block(self):
         blocks = [
-            {"source_index": 1, "filename": "doc.md", "content": "Hello world", "score": 0.95}
+            {
+                "source_index": 1,
+                "filename": "doc.md",
+                "content": "Hello world",
+                "score": 0.95,
+            }
         ]
         result = format_evidence(blocks)
         assert "[Source 1]" in result

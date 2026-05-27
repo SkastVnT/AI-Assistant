@@ -16,7 +16,6 @@ from comfy_execution.progress import get_progress_state
 from comfy_execution.utils import get_executing_context
 from comfy_api import feature_flags
 
-
 if __name__ == "__main__":
     # NOTE: These do not do anything on core ComfyUI, they are for custom nodes.
     os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"

@@ -374,9 +374,9 @@ class HiFiGANGenerator(nn.Module):
     ):
         super().__init__()
 
-        assert prod(upsample_rates) == hop_length, (
-            f"hop_length must be {prod(upsample_rates)}"
-        )
+        assert (
+            prod(upsample_rates) == hop_length
+        ), f"hop_length must be {prod(upsample_rates)}"
 
         self.conv_pre = torch.nn.utils.parametrizations.weight_norm(
             ops.Conv1d(

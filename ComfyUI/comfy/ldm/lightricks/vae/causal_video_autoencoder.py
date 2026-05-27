@@ -450,9 +450,9 @@ class Decoder(nn.Module):
 
         scaled_timestep = None
         if self.timestep_conditioning:
-            assert timestep is not None, (
-                "should pass timestep with timestep_conditioning=True"
-            )
+            assert (
+                timestep is not None
+            ), "should pass timestep with timestep_conditioning=True"
             scaled_timestep = timestep * self.timestep_scale_multiplier.to(
                 dtype=sample.dtype, device=sample.device
             )
@@ -576,9 +576,9 @@ class UNetMidBlock3D(nn.Module):
     ) -> torch.FloatTensor:
         timestep_embed = None
         if self.timestep_conditioning:
-            assert timestep is not None, (
-                "should pass timestep with timestep_conditioning=True"
-            )
+            assert (
+                timestep is not None
+            ), "should pass timestep with timestep_conditioning=True"
             batch_size = hidden_states.shape[0]
             timestep_embed = self.time_embedder(
                 timestep=timestep.flatten(),
@@ -842,9 +842,9 @@ class ResnetBlock3D(nn.Module):
 
         hidden_states = self.norm1(hidden_states)
         if self.timestep_conditioning:
-            assert timestep is not None, (
-                "should pass timestep with timestep_conditioning=True"
-            )
+            assert (
+                timestep is not None
+            ), "should pass timestep with timestep_conditioning=True"
             ada_values = self.scale_shift_table[None, ..., None, None, None].to(
                 device=hidden_states.device, dtype=hidden_states.dtype
             ) + timestep.reshape(

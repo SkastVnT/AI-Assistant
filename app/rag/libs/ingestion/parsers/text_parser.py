@@ -36,7 +36,9 @@ class TextParser:
                 title = block
                 elements.append(ContentElement(type=ElementType.TITLE, content=block))
             else:
-                elements.append(ContentElement(type=ElementType.PARAGRAPH, content=block))
+                elements.append(
+                    ContentElement(type=ElementType.PARAGRAPH, content=block)
+                )
 
         return ParseResult(
             elements=elements,

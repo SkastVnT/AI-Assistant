@@ -90,21 +90,21 @@ class TestConversationRoutes:
     def test_get_conversation(self, client):
         # The handler returns 404 for a non-existent ID — correct REST behavior.
         # Use URL map inspection to confirm the route IS registered.
-        assert url_map_has(
-            client, "/api/conversations/<"
-        ), "GET /api/conversations/<id> must be in URL map"
+        assert url_map_has(client, "/api/conversations/<"), (
+            "GET /api/conversations/<id> must be in URL map"
+        )
 
     def test_delete_conversation(self, client):
         r = client.delete("/api/conversations/some-id")
-        assert is_present(
-            r.status_code
-        ), "DELETE /api/conversations/<id> must not be 404"
+        assert is_present(r.status_code), (
+            "DELETE /api/conversations/<id> must not be 404"
+        )
 
     def test_archive_conversation(self, client):
         r = client.post("/api/conversations/some-id/archive")
-        assert is_present(
-            r.status_code
-        ), "POST /api/conversations/<id>/archive must not be 404"
+        assert is_present(r.status_code), (
+            "POST /api/conversations/<id>/archive must not be 404"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -120,9 +120,9 @@ class TestStreamRoutes:
             json={"message": "ping", "model": "grok"},
             headers={"Accept": "text/event-stream"},
         )
-        assert is_present(
-            r.status_code
-        ), "POST /chat/stream must not be 404 — primary SSE route"
+        assert is_present(r.status_code), (
+            "POST /chat/stream must not be 404 — primary SSE route"
+        )
 
 
 # ---------------------------------------------------------------------------

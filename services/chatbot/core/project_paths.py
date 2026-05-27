@@ -15,10 +15,13 @@ IMAGE_PIPELINE_DIR = Path(
 ).resolve()
 RAG_DIR = Path(os.getenv("RAG_DIR") or APP_ROOT / "rag").resolve()
 CHARACTER_SELECT_DIR = Path(
-    os.getenv("CHARACTER_SELECT_DIR") or APP_ROOT / "character_select_stand_alone_app-main"
+    os.getenv("CHARACTER_SELECT_DIR")
+    or APP_ROOT / "character_select_stand_alone_app-main"
 ).resolve()
 STORAGE_DIR = Path(os.getenv("STORAGE_DIR") or APP_ROOT / "storage").resolve()
-CONFIGS_VPS_DIR = Path(os.getenv("CONFIGS_VPS_DIR") or APP_ROOT / "configs_vps").resolve()
+CONFIGS_VPS_DIR = Path(
+    os.getenv("CONFIGS_VPS_DIR") or APP_ROOT / "configs_vps"
+).resolve()
 SCRIPTS_DIR = Path(os.getenv("SCRIPTS_DIR") or APP_ROOT / "scripts").resolve()
 DOCS_DIR = Path(os.getenv("DOCS_DIR") or APP_ROOT / "docs").resolve()
 ELECTRON_DIR = Path(os.getenv("ELECTRON_DIR") or APP_ROOT / "electron").resolve()
@@ -33,7 +36,9 @@ def ensure_app_root_on_path() -> None:
 
 def resolve_character_select_path(value: str | os.PathLike[str] | None = None) -> Path:
     """Resolve legacy and new Character Select filesystem paths."""
-    raw = value or os.getenv("CHARACTER_SELECT_PATH") or os.getenv("CHARACTER_SELECT_DIR")
+    raw = (
+        value or os.getenv("CHARACTER_SELECT_PATH") or os.getenv("CHARACTER_SELECT_DIR")
+    )
     if not raw:
         return CHARACTER_SELECT_DIR
 

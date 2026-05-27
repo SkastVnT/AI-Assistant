@@ -19,14 +19,12 @@ Steps
 
 from __future__ import annotations
 
-import os
 import shutil
 import subprocess
 import sys
 import venv
-from pathlib import Path
 from datetime import datetime
-
+from pathlib import Path
 
 PYTORCH_CUDA_INDEX = "https://download.pytorch.org/whl/cu128"
 TORCH_PACKAGES = [

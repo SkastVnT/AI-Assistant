@@ -5,10 +5,6 @@ This module creates and configures the Flask application
 using the factory pattern for better testability and modularity.
 """
 
-from .routes import register_blueprints
-from .extensions import init_extensions
-from .error_handlers import register_error_handlers
-from .config import get_config
 import logging
 import os
 import sys
@@ -16,6 +12,11 @@ from pathlib import Path
 
 from flask import Flask
 from flask_cors import CORS
+
+from .config import get_config
+from .error_handlers import register_error_handlers
+from .extensions import init_extensions
+from .routes import register_blueprints
 
 try:
     from services.shared_env import load_shared_env

@@ -457,9 +457,11 @@ class Encoder(nn.Module):
         if layers_per_block[0] > 0:
             self.conv_in = ops.Conv2d(
                 in_channels,
-                block_out_channels[0]
-                if layers_per_block[0] > 0
-                else block_out_channels[1],
+                (
+                    block_out_channels[0]
+                    if layers_per_block[0] > 0
+                    else block_out_channels[1]
+                ),
                 kernel_size=3,
                 stride=1,
                 padding=1,
@@ -467,9 +469,11 @@ class Encoder(nn.Module):
         else:
             self.conv_in = DCDownBlock2d(
                 in_channels=in_channels,
-                out_channels=block_out_channels[0]
-                if layers_per_block[0] > 0
-                else block_out_channels[1],
+                out_channels=(
+                    block_out_channels[0]
+                    if layers_per_block[0] > 0
+                    else block_out_channels[1]
+                ),
                 downsample=downsample_block_type == "pixel_unshuffle",
                 shortcut=False,
             )

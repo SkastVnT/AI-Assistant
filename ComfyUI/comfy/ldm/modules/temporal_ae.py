@@ -223,9 +223,9 @@ class VideoDecoder(Decoder):
         self.alpha = alpha
         self.merge_strategy = merge_strategy
         self.time_mode = time_mode
-        assert self.time_mode in self.available_time_modes, (
-            f"time_mode parameter has to be in {self.available_time_modes}"
-        )
+        assert (
+            self.time_mode in self.available_time_modes
+        ), f"time_mode parameter has to be in {self.available_time_modes}"
 
         if self.time_mode != "attn-only":
             kwargs["conv_out_op"] = partialclass(

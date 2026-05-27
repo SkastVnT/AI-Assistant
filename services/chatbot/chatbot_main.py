@@ -19,16 +19,8 @@ Structure:
 - routes/mcp.py         - MCP integration routes
 """
 
-from src.utils.mcp_integration import get_mcp_client, inject_code_context
-from core.extensions import (
-    CLOUD_UPLOAD_ENABLED,
-    LOCALMODELS_AVAILABLE,
-    logger,
-    model_loader,
-    register_monitor,
-)
-import importlib.util
 import base64
+import importlib.util
 import json
 import logging
 import os
@@ -40,6 +32,15 @@ from pathlib import Path
 
 import openai
 import requests
+from src.utils.mcp_integration import get_mcp_client, inject_code_context
+
+from core.extensions import (
+    CLOUD_UPLOAD_ENABLED,
+    LOCALMODELS_AVAILABLE,
+    logger,
+    model_loader,
+    register_monitor,
+)
 
 try:
     from services.shared_env import load_shared_env
@@ -1851,7 +1852,9 @@ def google_search_tool(query):
         return "âŒ Lá»—i káº¿t ná»‘i Ä‘áº¿n Google Search API. Vui lÃ²ng kiá»ƒm tra:\nâ€¢ Káº¿t ná»‘i Internet\nâ€¢ Proxy/Firewall settings\nâ€¢ Thá»­ láº¡i sau Ã­t phÃºt"
     except requests.exceptions.Timeout as e:
         logger.error(f"[GOOGLE SEARCH] Timeout Error: {e}")
-        return "âŒ Timeout khi káº¿t ná»‘i Ä‘áº¿n Google Search API. Vui lÃ²ng thá»­ láº¡i."
+        return (
+            "âŒ Timeout khi káº¿t ná»‘i Ä‘áº¿n Google Search API. Vui lÃ²ng thá»­ láº¡i."
+        )
     except requests.exceptions.RequestException as e:
         logger.error(f"[GOOGLE SEARCH] Request Error: {e}")
         return f"âŒ Lá»—i request: {str(e)}"
@@ -3281,9 +3284,7 @@ Respond in JSON format:
                         tool_results.append(f"## ðŸ§  Memory Manager\n\n{_mem_text}")
                 except Exception as e:
                     logger.error(f"[TOOLS] Memory Manager error: {e}")
-                    tool_results.append(
-                        f"## ðŸ§  Memory Manager\n\nâŒ Error: {str(e)}"
-                    )
+                    tool_results.append(f"## ðŸ§  Memory Manager\n\nâŒ Error: {str(e)}")
 
         # If tools were used, return tool results
         if tool_results:
@@ -3933,9 +3934,7 @@ def generate_image():
                     )
                     conversation_id = str(conversation["_id"])
                     session["conversation_id"] = conversation_id
-                    logger.info(
-                        f"Ã°Å¸â€œÂ Created new conversation: {conversation_id}"
-                    )
+                    logger.info(f"Ã°Å¸â€œÂ Created new conversation: {conversation_id}")
 
                 # Prepare images array for MongoDB
                 images_data = []
@@ -4482,9 +4481,7 @@ def img2img():
                     )
                     conversation_id = str(conversation["_id"])
                     session["conversation_id"] = conversation_id
-                    logger.info(
-                        f"Ã°Å¸â€œÂ Created new conversation: {conversation_id}"
-                    )
+                    logger.info(f"Ã°Å¸â€œÂ Created new conversation: {conversation_id}")
 
                 # Prepare images array for MongoDB
                 images_data = []
@@ -7490,9 +7487,7 @@ def external_health():
 # Main entry point
 if __name__ == "__main__":
     debug_mode = os.getenv("DEBUG", "0") == "1"
-    host = os.getenv(
-        "HOST", "0.0.0.0"
-    )  # nosec B104  # Intentional: service needs external access
+    host = os.getenv("HOST", "0.0.0.0")  # nosec B104  # Intentional: service needs external access
     port = int(os.getenv("CHATBOT_PORT", "5000"))
 
     logger.info(f"ðŸš€ Starting ChatBot on {host}:{port} (debug={debug_mode})")

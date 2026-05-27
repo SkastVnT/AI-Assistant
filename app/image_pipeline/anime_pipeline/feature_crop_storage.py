@@ -233,9 +233,11 @@ def persist_feature_crops(
                     "source": source,  # "reference" | "generated"
                     "ref_index": ref_index,
                     "path": str(fpath),
-                    "rel_path": str(fpath.relative_to(_resolve_storage_root().parent))
-                    if fpath.is_relative_to(_resolve_storage_root().parent)
-                    else str(fpath),
+                    "rel_path": (
+                        str(fpath.relative_to(_resolve_storage_root().parent))
+                        if fpath.is_relative_to(_resolve_storage_root().parent)
+                        else str(fpath)
+                    ),
                     "bbox": [x1, y1, x2, y2],
                     "width": x2 - x1,
                     "height": y2 - y1,

@@ -21,12 +21,11 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 PIL = pytest.importorskip("PIL")
-from PIL import Image  # noqa: E402
-
 from image_pipeline.anime_pipeline.feature_crop_storage import (  # noqa: E402
     _slug,
     persist_feature_crops,
 )
+from PIL import Image  # noqa: E402
 
 # ── helpers ─────────────────────────────────────────────────────────
 
