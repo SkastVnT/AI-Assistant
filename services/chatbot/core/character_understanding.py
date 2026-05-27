@@ -668,7 +668,7 @@ def _looks_named(original: str, candidate_slug: str) -> bool:
         return False
     cand_tokens = set(candidate_slug.split("_"))
     # Match Latin + extended Latin (Vietnamese diacritics included).
-    for raw_word in re.findall(r"[A-Za-zÃ€-á»¹]+", original):
+    for raw_word in re.findall(r"[A-Za-z\u00C0-\u1EF9]+", original):
         if not raw_word:
             continue
         if _slugify(raw_word) in cand_tokens and raw_word[0].isupper():
@@ -681,7 +681,7 @@ def _looks_named(original: str, candidate_slug: str) -> bool:
 # downstream prompt explicitly avoids that identity.
 _NEGATION_PATTERNS = (
     re.compile(
-        r"kh[oÃ´]ng\s+ph[aáº£]i\s+([A-Za-zÃ€-á»¹][A-Za-zÃ€-á»¹\s]*?)(?:[,.;!?]|$)",
+        r"kh[o\u00F4]ng\s+ph[a\u1EA3]i\s+([A-Za-z\u00C0-\u1EF9][A-Za-z\u00C0-\u1EF9\s]*?)(?:[,.;!?]|$)",
         re.IGNORECASE,
     ),
     re.compile(r"\bnot\s+([A-Za-z][A-Za-z\s]*?)(?:[,.;!?]|$)", re.IGNORECASE),
@@ -727,7 +727,7 @@ _OC_TOKENS = frozenset({"oc"})
 # Multi-character connector â€” a capitalized name + "vÃ "/"and" + capitalized
 # name signals the prompt references multiple characters.
 _MULTI_CHAR_RE = re.compile(
-    r"\b[A-ZÃ€-á»¸][A-Za-zÃ€-á»¹]+\s+(?:v[aÃ ]|and)\s+[A-ZÃ€-á»¸][A-Za-zÃ€-á»¹]+\b"
+    r"\b[A-Z\u00C0-\u1EF8][A-Za-z\u00C0-\u1EF9]+\s+(?:v[a\u00E0]|and)\s+[A-Z\u00C0-\u1EF8][A-Za-z\u00C0-\u1EF9]+\b"
 )
 
 
@@ -921,7 +921,7 @@ def extract_prompt_entities(prompt: str) -> dict:
         reason_parts.append("multi-character")
         # When multi-char detected, narrow candidate to FIRST capitalized
         # proper noun so resolver doesn't try to merge both into one slug.
-        m = re.search(r"\b([A-ZÃ€-á»¸][A-Za-zÃ€-á»¹]+)\b", text)
+        m = re.search(r"\b([A-Z\u00C0-\u1EF8][A-Za-z\u00C0-\u1EF9]+)\b", text)
         if m:
             candidate_name = m.group(1)
             candidate_name_slug = _slugify(candidate_name)
