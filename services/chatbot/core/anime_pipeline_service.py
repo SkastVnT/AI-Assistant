@@ -473,6 +473,9 @@ def stream_pipeline(req: PipelineRequest) -> Generator[str, None, None]:
             time.sleep(1.0)
         with _PIPELINE_QUEUE_LOCK:
             _PIPELINE_WAITING_COUNT -= 1
+            logger.debug(
+                "[AnimePipelineService] queue_waiting_count=%d", _PIPELINE_WAITING_COUNT
+            )
         if not _acquired:
             logger.warning(
                 "[AnimePipelineService] queue timeout after %.0fs for job=%s",
