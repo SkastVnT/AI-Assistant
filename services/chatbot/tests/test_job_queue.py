@@ -14,9 +14,13 @@ if str(_CHATBOT_DIR) not in sys.path:
 
 
 @pytest.fixture(autouse=True)
-def _fresh_queue():
+def _fresh_queue(monkeypatch):
     from core import job_queue as jq
 
+    # Disable MongoDB so _restore_from_db is a no-op; prevents historical
+    # jobs written by previous test runs from leaking into fresh instances.
+    monkeypatch.setattr(jq.JobQueue, "_try_init_mongo", lambda self: None)
+    monkeypatch.setattr(jq.JobQueue, "_restore_from_db", lambda self: None)
     jq.JobQueue._instance = None
     yield
     jq.JobQueue._instance = None

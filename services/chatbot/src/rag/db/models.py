@@ -15,7 +15,12 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from pgvector.sqlalchemy import Vector
+try:
+    from pgvector.sqlalchemy import Vector as _PgVector
+    _PGVECTOR_AVAILABLE = True
+except ImportError:  # pragma: no cover – pgvector not installed (e.g. CI / venv-core)
+    _PgVector = None  # type: ignore[assignment]
+    _PGVECTOR_AVAILABLE = False
 from sqlalchemy import (
     DateTime,
     ForeignKey,
@@ -80,7 +85,10 @@ class RagChunk(Base):
     )
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    embedding: Mapped[list[float] | None] = mapped_column(Vector(_dim), nullable=True)
+    embedding: Mapped[list[float] | None] = mapped_column(  # type: ignore[assignment]
+        _PgVector(_dim) if _PGVECTOR_AVAILABLE else Text,  # type: ignore[arg-type]
+        nullable=True,
+    )
     metadata_json: Mapped[dict | None] = mapped_column(
         JSONB, nullable=True, default=dict
     )
@@ -91,12 +99,18 @@ class RagChunk(Base):
     document: Mapped[RagDocument] = relationship(back_populates="chunks")
 
     __table_args__ = (
-        Index(
-            "ix_rag_chunks_embedding_hnsw",
-            embedding,
-            postgresql_using="hnsw",
-            postgresql_with={"m": 16, "ef_construction": 64},
-            postgresql_ops={"embedding": "vector_cosine_ops"},
+        *(
+            (
+                Index(
+                    "ix_rag_chunks_embedding_hnsw",
+                    "embedding",
+                    postgresql_using="hnsw",
+                    postgresql_with={"m": 16, "ef_construction": 64},
+                    postgresql_ops={"embedding": "vector_cosine_ops"},
+                ),
+            )
+            if _PGVECTOR_AVAILABLE
+            else ()
         ),
     )
 
