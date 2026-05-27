@@ -1,33 +1,44 @@
 [submodule "private"]
 	path = private
 	url = https://github.com/SkastVnT/AI-Assistant-private.git
+	ignore = untracked
 [submodule "services/edit-image/ComfyUI/custom_nodes/ComfyUI-Manager"]
 	path = services/edit-image/ComfyUI/custom_nodes/ComfyUI-Manager
 	url = https://github.com/Comfy-Org/ComfyUI-Manager
+	ignore = dirty
 [submodule "services/edit-image/ComfyUI/custom_nodes/ComfyUI_IPAdapter_plus"]
 	path = services/edit-image/ComfyUI/custom_nodes/ComfyUI_IPAdapter_plus
 	url = https://github.com/cubiq/ComfyUI_IPAdapter_plus.git
+	ignore = dirty
 [submodule "services/edit-image/ComfyUI/custom_nodes/ComfyUI_essentials"]
 	path = services/edit-image/ComfyUI/custom_nodes/ComfyUI_essentials
 	url = https://github.com/cubiq/ComfyUI_essentials
+	ignore = dirty
 [submodule "services/edit-image/ComfyUI/custom_nodes/comfyui_controlnet_aux"]
 	path = services/edit-image/ComfyUI/custom_nodes/comfyui_controlnet_aux
 	url = https://github.com/Fannovel16/comfyui_controlnet_aux.git
+	ignore = dirty
 [submodule "services/stable-diffusion/repositories/BLIP"]
 	path = services/stable-diffusion/repositories/BLIP
 	url = https://github.com/salesforce/BLIP.git
+	ignore = dirty
 [submodule "services/stable-diffusion/repositories/CodeFormer"]
 	path = services/stable-diffusion/repositories/CodeFormer
 	url = https://github.com/sczhou/CodeFormer.git
+	ignore = dirty
 [submodule "services/stable-diffusion/repositories/generative-models"]
 	path = services/stable-diffusion/repositories/generative-models
 	url = https://github.com/Stability-AI/generative-models.git
+	ignore = dirty
 [submodule "services/stable-diffusion/repositories/k-diffusion"]
 	path = services/stable-diffusion/repositories/k-diffusion
 	url = https://github.com/crowsonkb/k-diffusion.git
+	ignore = dirty
 [submodule "services/stable-diffusion/repositories/stable-diffusion-stability-ai"]
 	path = services/stable-diffusion/repositories/stable-diffusion-stability-ai
 	url = https://github.com/CompVis/stable-diffusion.git
+	ignore = dirty
 [submodule "services/stable-diffusion/repositories/taming-transformers"]
 	path = services/stable-diffusion/repositories/taming-transformers
 	url = https://github.com/CompVis/taming-transformers.git
+	ignore = dirty
