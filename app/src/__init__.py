@@ -18,10 +18,6 @@ def __getattr__(name: str):
         from . import database
 
         return database
-    elif name == "cache":
-        from . import cache
-
-        return cache
     elif name == "health":
         from . import health
 
@@ -33,4 +29,4 @@ def __getattr__(name: str):
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-__all__ = ["utils", "security", "database", "cache", "health", "errors"]
+__all__ = ["utils", "security", "database", "health", "errors"]

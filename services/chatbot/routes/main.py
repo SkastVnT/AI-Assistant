@@ -407,14 +407,19 @@ def chat():
         # Load selected memories
         memories = []
         if memory_ids:
+            import re as _re
+            _uuid_re = _re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
             for mem_id in memory_ids:
-                memory_file = MEMORY_DIR / f"{mem_id}.json"
-                if memory_file.exists():
-                    try:
-                        with open(memory_file, encoding="utf-8") as f:
-                            memories.append(json.load(f))
-                    except Exception as e:
-                        logger.error(f"Error loading memory {mem_id}: {e}")
+                if not _uuid_re.match(str(mem_id)):
+                    continue
+                for _f in MEMORY_DIR.iterdir():
+                    if _f.is_file() and _f.suffix == ".json" and _f.stem == mem_id:
+                        try:
+                            with open(_f, encoding="utf-8") as f:
+                                memories.append(json.load(f))
+                        except Exception as e:
+                            logger.error(f"Error loading memory {mem_id}: {e}")
+                        break
 
         # Process chat
         _t0 = time.time()

@@ -3316,18 +3316,19 @@ Respond in JSON format:
         memories = []
         if memory_ids:
             import re as _re
-            _uuid_re = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+            _uuid_re = _re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
             for mem_id in memory_ids:
                 if not _uuid_re.match(str(mem_id)):
                     continue
-                memory_file = MEMORY_DIR / f"{mem_id}.json"
-                if memory_file.exists():
-                    try:
-                        with open(memory_file, encoding="utf-8") as f:
-                            memory = json.load(f)
-                            memories.append(memory)
-                    except Exception as e:
-                        logger.error(f"Error loading memory {mem_id}: {e}")
+                for _f in MEMORY_DIR.iterdir():
+                    if _f.is_file() and _f.suffix == ".json" and _f.stem == mem_id:
+                        try:
+                            with open(_f, encoding="utf-8") as f:
+                                memory = json.load(f)
+                                memories.append(memory)
+                        except Exception as e:
+                            logger.error(f"Error loading memory {mem_id}: {e}")
+                        break
 
         # Prepare extra params from agent config
         extra_params = {}
@@ -5847,9 +5848,13 @@ def get_memory(memory_id):
     if not _re.match(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", memory_id):
         return jsonify({"error": "Invalid memory ID"}), 400
     try:
-        memory_file = MEMORY_DIR / f"{memory_id}.json"
+        memory_file = None
+        for _f in MEMORY_DIR.iterdir():
+            if _f.is_file() and _f.suffix == ".json" and _f.stem == memory_id:
+                memory_file = _f
+                break
 
-        if not memory_file.exists():
+        if not memory_file:
             return jsonify({"error": "Memory not found"}), 404
 
         with open(memory_file, encoding="utf-8") as f:
@@ -5885,12 +5890,12 @@ def delete_memory(memory_id):
                         pass
         logger.info(f"[DELETE] Available memory IDs: {all_memories}")
 
-        # Try old format first (direct .json file)
-        memory_file = MEMORY_DIR / f"{memory_id}.json"
-        if memory_file.exists():
-            logger.info(f"Found old format memory: {memory_file}")
-            memory_file.unlink()
-            return jsonify({"success": True, "message": "Memory deleted (old format)"})
+        # Try old format first (direct .json file) - use iterdir to avoid path injection
+        for _f in MEMORY_DIR.iterdir():
+            if _f.is_file() and _f.suffix == ".json" and _f.stem == memory_id:
+                logger.info(f"Found old format memory: {_f}")
+                _f.unlink()
+                return jsonify({"success": True, "message": "Memory deleted (old format)"})
 
         # Try new format (folder with memory.json)
         deleted = False
@@ -5938,9 +5943,13 @@ def update_memory(memory_id):
     if not _re.match(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", memory_id):
         return jsonify({"error": "Invalid memory ID"}), 400
     try:
-        memory_file = MEMORY_DIR / f"{memory_id}.json"
+        memory_file = None
+        for _f in MEMORY_DIR.iterdir():
+            if _f.is_file() and _f.suffix == ".json" and _f.stem == memory_id:
+                memory_file = _f
+                break
 
-        if not memory_file.exists():
+        if not memory_file:
             return jsonify({"error": "Memory not found"}), 404
 
         # Load existing memory

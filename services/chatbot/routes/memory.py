@@ -158,12 +158,16 @@ def list_memories():
 @memory_bp.route("/get/<memory_id>", methods=["GET"])
 def get_memory(memory_id):
     """Get a specific memory by ID"""
+    import re as _re
+    _uuid_re = _re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+    if not _uuid_re.match(str(memory_id)):
+        return jsonify({"error": "Invalid memory ID"}), 400
     try:
-        # Old format
-        memory_file = MEMORY_DIR / f"{memory_id}.json"
-        if memory_file.exists():
-            with open(memory_file, encoding="utf-8") as f:
-                return jsonify({"memory": json.load(f)})
+        # Old format - use iterdir to avoid path injection
+        for _f in MEMORY_DIR.iterdir():
+            if _f.is_file() and _f.suffix == ".json" and _f.stem == memory_id:
+                with open(_f, encoding="utf-8") as fp:
+                    return jsonify({"memory": json.load(fp)})
 
         # New format - search in folders
         for folder in MEMORY_DIR.iterdir():
@@ -185,14 +189,18 @@ def get_memory(memory_id):
 @memory_bp.route("/delete/<memory_id>", methods=["DELETE"])
 def delete_memory(memory_id):
     """Delete a memory"""
+    import re as _re
+    _uuid_re = _re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+    if not _uuid_re.match(str(memory_id)):
+        return jsonify({"error": "Invalid memory ID"}), 400
     try:
-        logger.info(f"[DELETE] Deleting memory ID: {memory_id}")
+        logger.info("[DELETE] Deleting memory ID: %s", memory_id)
 
-        # Old format
-        memory_file = MEMORY_DIR / f"{memory_id}.json"
-        if memory_file.exists():
-            memory_file.unlink()
-            return jsonify({"success": True, "message": "Memory deleted"})
+        # Old format - use iterdir to avoid path injection
+        for _f in MEMORY_DIR.iterdir():
+            if _f.is_file() and _f.suffix == ".json" and _f.stem == memory_id:
+                _f.unlink()
+                return jsonify({"success": True, "message": "Memory deleted"})
 
         # New format - search in folders
         for folder in MEMORY_DIR.iterdir():
@@ -204,7 +212,7 @@ def delete_memory(memory_id):
                             memory = json.load(f)
                             if memory.get("id") == memory_id:
                                 shutil.rmtree(folder)
-                                logger.info(f"[DELETE] Deleted folder: {folder}")
+                                logger.info("[DELETE] Deleted folder: %s", folder)
                                 return jsonify(
                                     {"success": True, "message": "Memory deleted"}
                                 )
@@ -221,17 +229,22 @@ def delete_memory(memory_id):
 @memory_bp.route("/update/<memory_id>", methods=["PUT"])
 def update_memory(memory_id):
     """Update a memory"""
+    import re as _re
+    _uuid_re = _re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+    if not _uuid_re.match(str(memory_id)):
+        return jsonify({"error": "Invalid memory ID"}), 400
     try:
         data = request.json
 
         # Find memory file
         memory_file = None
 
-        # Old format
-        old_file = MEMORY_DIR / f"{memory_id}.json"
-        if old_file.exists():
-            memory_file = old_file
-        else:
+        # Old format - use iterdir to avoid path injection
+        for _f in MEMORY_DIR.iterdir():
+            if _f.is_file() and _f.suffix == ".json" and _f.stem == memory_id:
+                memory_file = _f
+                break
+        if memory_file is None:
             # New format
             for folder in MEMORY_DIR.iterdir():
                 if folder.is_dir():
