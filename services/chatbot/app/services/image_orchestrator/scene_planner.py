@@ -589,9 +589,7 @@ _VI_EDIT_VERBS: list[tuple[str, str]] = [
         "keep_then_change",
     ),
 ]
-
-_EN_EDIT_VERBS = _VI_EDIT_VERBS  # already mixed in the list above
-
+ 
 # ─────────────────────────────────────────────────────────────────────
 # 13. Consistency / accuracy flags
 # ─────────────────────────────────────────────────────────────────────
