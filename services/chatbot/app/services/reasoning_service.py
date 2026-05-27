@@ -270,7 +270,8 @@ class _RoundCache:
             try:
                 result.append(int(e["id"].split("_t")[1]))
             except (IndexError, ValueError):
-                pass
+                # Ignore malformed trajectory IDs but keep traceability for debugging.
+                logger.debug("Skipping malformed trajectory id: %r", e.get("id"))
         return result
 
     def build_synthesis_context(self) -> str:
