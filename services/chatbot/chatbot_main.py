@@ -1,4 +1,4 @@
-"""
+﻿"""
 ChatBot Flask Application - Modular Version
 ============================================
 
@@ -2282,7 +2282,7 @@ def chat():
             from routes.stream import _needs_web_search, _run_web_search
 
             if _needs_web_search(message, tools or []):
-                logger.info(f"[TOOLS] Auto web search triggered for: {message[:60]}")
+                logger.info("[TOOLS] Auto web search triggered")
                 _auto_result = _run_web_search(message)
                 if _auto_result:
                     tool_results.append(_auto_result)
@@ -2309,7 +2309,7 @@ def chat():
                 import re as _re
 
                 _img_urls = _re.findall(
-                    r"https?://\S+\.(?:jpg|jpeg|png|gif|webp)\S*",
+                    r"https?://[^\s\"<>']{1,2048}\.(?:jpg|jpeg|png|gif|webp)[^\s\"<>']{0,500}",
                     message,
                     _re.IGNORECASE,
                 )
@@ -2343,7 +2343,7 @@ def chat():
                 import re as _re
 
                 _img_urls = _re.findall(
-                    r"https?://\S+\.(?:jpg|jpeg|png|gif|webp)\S*",
+                    r"https?://[^\s\"<>']{1,2048}\.(?:jpg|jpeg|png|gif|webp)[^\s\"<>']{0,500}",
                     message,
                     _re.IGNORECASE,
                 )
@@ -2643,7 +2643,7 @@ def chat():
 
             # â”€â”€ Deep Research Tool â”€â”€
             if "deep-research" in tools:
-                logger.info(f"[TOOLS] ðŸ”¬ Deep Research triggered for: {message[:80]}")
+                logger.info("[TOOLS] Deep Research triggered")
                 try:
                     # Step 1: Web search for latest information
                     search_result = google_search_tool(message)
@@ -2756,7 +2756,7 @@ Provide:
 
                     # Extract code blocks from message
                     code_blocks = _re.findall(
-                        r"```(?:python|py|javascript|js)?\s*\n(.*?)```",
+                        r"```(?:python|py|javascript|js)?[ \t]*\n(.*?)```",
                         message,
                         _re.DOTALL,
                     )
@@ -2926,7 +2926,7 @@ Provide:
 
             # â”€â”€ PDF Analyzer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if "pdf-analyzer" in tools:
-                logger.info(f"[TOOLS] PDF Analyzer for: {message[:80]}")
+                logger.info("[TOOLS] PDF Analyzer triggered")
                 try:
                     import re as _re
 
@@ -2936,7 +2936,7 @@ Provide:
 
                     # Try to find PDF URL in message
                     url_match = _re.search(
-                        r"https?://\S+\.pdf", message, _re.IGNORECASE
+                        r"https?://[^\s\"<>']{1,2048}\.pdf(?:[^\s\"<>']{0,500})?", message, _re.IGNORECASE
                     )
                     if url_match:
                         pdf_url = url_match.group(0)
@@ -3062,7 +3062,7 @@ Provide:
 
             # â”€â”€ Real-time Translation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if "translator" in tools:
-                logger.info(f"[TOOLS] Translation for: {message[:80]}")
+                logger.info("[TOOLS] Translation triggered")
                 try:
                     _trans_prompt = f"""You are a professional translator. Analyze the following text and:
 1. Auto-detect the source language
@@ -3100,80 +3100,89 @@ Respond in this format:
 
             # â”€â”€ Web Scraper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if "web-scraper" in tools:
-                logger.info(f"[TOOLS] Web Scraper for: {message[:80]}")
+                logger.info("[TOOLS] Web Scraper triggered")
                 try:
                     import re as _re
 
-                    url_match = _re.search(r'https?://[^\s<>"\']+', message)
+                    url_match = _re.search(r'https?://[^\s<>"\']{1,2048}', message)
                     if url_match:
                         target_url = url_match.group(0).rstrip(".,;:!?)")
-                        import httpx
-                        from bs4 import BeautifulSoup
+                        from core.url_safety import is_safe_external_url
 
-                        headers = {
-                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                        }
-                        resp = httpx.get(
-                            target_url,
-                            timeout=30,
-                            follow_redirects=True,
-                            headers=headers,
-                        )
-                        soup = BeautifulSoup(resp.text, "html.parser")
+                        if not is_safe_external_url(target_url):
+                            tool_results.append(
+                                "## 🌐 Web Scraper\n\n❌ URL bị từ chối vì không an toàn "
+                                "(loopback / private / link-local / non-http). Vui lòng dùng "
+                                "URL công khai (https://)."
+                            )
+                        else:
+                            import httpx
+                            from bs4 import BeautifulSoup
 
-                        # Remove scripts, styles
-                        for tag in soup(
-                            ["script", "style", "nav", "footer", "header", "aside"]
-                        ):
-                            tag.decompose()
+                            headers = {
+                                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                            }
+                            resp = httpx.get(
+                                target_url,
+                                timeout=30,
+                                follow_redirects=True,
+                                headers=headers,
+                            )
+                            soup = BeautifulSoup(resp.text, "html.parser")
 
-                        # Extract title
-                        title = (
-                            soup.title.string.strip()
-                            if soup.title and soup.title.string
-                            else "No title"
-                        )
+                            # Remove scripts, styles
+                            for tag in soup(
+                                ["script", "style", "nav", "footer", "header", "aside"]
+                            ):
+                                tag.decompose()
 
-                        # Extract meta description
-                        meta_desc = ""
-                        meta_tag = soup.find("meta", attrs={"name": "description"})
-                        if meta_tag and meta_tag.get("content"):
-                            meta_desc = meta_tag["content"]
+                            # Extract title
+                            title = (
+                                soup.title.string.strip()
+                                if soup.title and soup.title.string
+                                else "No title"
+                            )
 
-                        # Extract main text
-                        main_text = soup.get_text(separator="\n", strip=True)[:6000]
+                            # Extract meta description
+                            meta_desc = ""
+                            meta_tag = soup.find("meta", attrs={"name": "description"})
+                            if meta_tag and meta_tag.get("content"):
+                                meta_desc = meta_tag["content"]
 
-                        # Extract links
-                        links = []
-                        for a in soup.find_all("a", href=True)[:20]:
-                            href = a["href"]
-                            text = a.get_text(strip=True)[:80]
-                            if text and href.startswith("http"):
-                                links.append(f"- [{text}]({href})")
+                            # Extract main text
+                            main_text = soup.get_text(separator="\n", strip=True)[:6000]
 
-                        # Extract images
-                        images = []
-                        for img in soup.find_all("img", src=True)[:10]:
-                            src = img["src"]
-                            alt = img.get("alt", "")[:60]
-                            if src.startswith("http"):
-                                images.append(f"- ![{alt}]({src})")
+                            # Extract links
+                            links = []
+                            for a in soup.find_all("a", href=True)[:20]:
+                                href = a["href"]
+                                text = a.get_text(strip=True)[:80]
+                                if text and href.startswith("http"):
+                                    links.append(f"- [{text}]({href})")
 
-                        # Extract tables
-                        tables_text = ""
-                        for table in soup.find_all("table")[:3]:
-                            rows = table.find_all("tr")
-                            if rows:
-                                table_data = []
-                                for row in rows[:20]:
-                                    cells = [
-                                        c.get_text(strip=True)[:50]
-                                        for c in row.find_all(["td", "th"])
-                                    ]
-                                    table_data.append(" | ".join(cells))
-                                tables_text += "\n".join(table_data) + "\n\n"
+                            # Extract images
+                            images = []
+                            for img in soup.find_all("img", src=True)[:10]:
+                                src = img["src"]
+                                alt = img.get("alt", "")[:60]
+                                if src.startswith("http"):
+                                    images.append(f"- ![{alt}]({src})")
 
-                        result = f"""## ðŸŒ Web Scraper
+                            # Extract tables
+                            tables_text = ""
+                            for table in soup.find_all("table")[:3]:
+                                rows = table.find_all("tr")
+                                if rows:
+                                    table_data = []
+                                    for row in rows[:20]:
+                                        cells = [
+                                            c.get_text(strip=True)[:50]
+                                            for c in row.find_all(["td", "th"])
+                                        ]
+                                        table_data.append(" | ".join(cells))
+                                    tables_text += "\n".join(table_data) + "\n\n"
+
+                            result = f"""## ðŸŒ Web Scraper
 
 **URL:** {target_url}
 **Title:** {title}
@@ -3182,19 +3191,19 @@ Respond in this format:
 ### ðŸ“ Content
 {main_text[:5000]}
 """
-                        if tables_text:
-                            result += f"\n### ðŸ“Š Tables\n{tables_text[:2000]}"
-                        if links:
-                            result += f"\n### ðŸ”— Links ({len(links)})\n" + "\n".join(
-                                links[:15]
-                            )
-                        if images:
-                            result += (
-                                f"\n### ðŸ–¼ï¸ Images ({len(images)})\n"
-                                + "\n".join(images[:8])
-                            )
+                            if tables_text:
+                                result += f"\n### ðŸ“Š Tables\n{tables_text[:2000]}"
+                            if links:
+                                result += f"\n### ðŸ”— Links ({len(links)})\n" + "\n".join(
+                                    links[:15]
+                                )
+                            if images:
+                                result += (
+                                    f"\n### ðŸ–¼ï¸ Images ({len(images)})\n"
+                                    + "\n".join(images[:8])
+                                )
 
-                        tool_results.append(result)
+                            tool_results.append(result)
                     else:
                         tool_results.append(
                             "## ðŸŒ Web Scraper\n\nKhÃ´ng tÃ¬m tháº¥y URL trong tin nháº¯n. HÃ£y gá»­i URL cáº§n scrape, vÃ­ dá»¥: `https://example.com`"
@@ -3205,7 +3214,7 @@ Respond in this format:
 
             # â”€â”€ Memory Manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if "memory-manager" in tools:
-                logger.info(f"[TOOLS] Memory Manager for: {message[:80]}")
+                logger.info("[TOOLS] Memory Manager triggered")
                 try:
                     user_prefs_file = MEMORY_DIR / "_user_preferences.json"
 
@@ -3306,7 +3315,11 @@ Respond in JSON format:
         # Load selected memories
         memories = []
         if memory_ids:
+            import re as _re
+            _uuid_re = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
             for mem_id in memory_ids:
+                if not _uuid_re.match(str(mem_id)):
+                    continue
                 memory_file = MEMORY_DIR / f"{mem_id}.json"
                 if memory_file.exists():
                     try:
@@ -5717,8 +5730,12 @@ def save_memory():
                 img_base64 = img_data.get("base64", "")
 
                 if img_url and img_url.startswith("/storage/images/"):
-                    # Copy from existing storage
+                    # Copy from existing storage - validate filename before use
                     source_filename = img_url.split("/")[-1]
+                    import re as _re_img
+                    if not _re_img.match(r"^[a-zA-Z0-9_\-\.]+$", source_filename) or ".." in source_filename:
+                        logger.warning(f"Skipping image with invalid filename: {source_filename!r}")
+                        continue
                     source_path = IMAGE_STORAGE_DIR / source_filename
 
                     if source_path.exists():
@@ -5826,6 +5843,9 @@ def list_memories():
 @app.route("/api/memory/get/<memory_id>", methods=["GET"])
 def get_memory(memory_id):
     """Get a specific memory by ID"""
+    import re as _re
+    if not _re.match(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", memory_id):
+        return jsonify({"error": "Invalid memory ID"}), 400
     try:
         memory_file = MEMORY_DIR / f"{memory_id}.json"
 
@@ -5845,6 +5865,9 @@ def get_memory(memory_id):
 @app.route("/api/memory/delete/<memory_id>", methods=["DELETE"])
 def delete_memory(memory_id):
     """Delete a memory (supports both old and new format)"""
+    import re as _re
+    if not _re.match(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", memory_id):
+        return jsonify({"error": "Invalid memory ID"}), 400
     try:
         logger.info(f"[DELETE] Attempting to delete memory ID: {memory_id}")
 
@@ -5911,6 +5934,9 @@ def delete_memory(memory_id):
 @app.route("/api/memory/update/<memory_id>", methods=["PUT"])
 def update_memory(memory_id):
     """Update a memory"""
+    import re as _re
+    if not _re.match(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", memory_id):
+        return jsonify({"error": "Invalid memory ID"}), 400
     try:
         memory_file = MEMORY_DIR / f"{memory_id}.json"
 
@@ -6034,8 +6060,12 @@ def serve_image(filename):
         allowed_dir = IMAGE_STORAGE_DIR.resolve()
 
         # After validation, reconstruct path using only the base directory
-        # This breaks the taint flow from user input
-        validated_filename = filename  # At this point, filename is validated
+        # os.path.basename breaks taint flow from user input
+        import os.path as _osp
+        validated_filename = _osp.basename(filename)
+        if validated_filename != filename:
+            # Path separators survived — should have been caught above, but belt-and-suspenders
+            return jsonify({"error": "Invalid filename"}), 400
 
         # Build path by reconstructing from allowed_dir and validated components
         file_path = Path(str(allowed_dir)) / validated_filename
@@ -6113,7 +6143,22 @@ def list_images():
 def delete_image(filename):
     """Delete saved image"""
     try:
-        filepath = IMAGE_STORAGE_DIR / filename
+        import re as _re
+
+        # Validate filename to prevent path traversal
+        if "/" in filename or "\\" in filename or ".." in filename or "\0" in filename:
+            return jsonify({"error": "Invalid filename"}), 400
+        if not _re.match(r"^[a-zA-Z0-9_\-\.]+$", filename):
+            return jsonify({"error": "Invalid filename format"}), 400
+
+        allowed_dir = IMAGE_STORAGE_DIR.resolve()
+        safe_filename = Path(filename).name  # break taint
+        filepath = (allowed_dir / safe_filename).resolve()
+        try:
+            filepath.relative_to(allowed_dir)
+        except ValueError:
+            return jsonify({"error": "Access denied"}), 403
+
         metadata_file = filepath.with_suffix(".json")
 
         if not filepath.exists():
