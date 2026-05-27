@@ -16,20 +16,13 @@ logger = logging.getLogger(__name__)
 class CacheService:
     """Service for caching responses"""
 
-    def __init__(self, app: Flask = None):
+    def __init__(self, app: Flask = None, redis_client: Any = None):
         self._cache: dict = {}
         self._enabled = True
-        self._redis_client = None
+        self._redis_client = redis_client
 
         if app:
             self._enabled = app.config.get("CACHE_ENABLED", True)
-            # Get redis client once during initialization to avoid cyclic import
-            try:
-                from app.extensions import get_redis
-
-                self._redis_client = get_redis()
-            except (ImportError, Exception):
-                pass
 
     def get(self, key: str) -> Any | None:
         """Get a cached value"""
