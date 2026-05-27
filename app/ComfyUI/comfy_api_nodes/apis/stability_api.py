@@ -7,9 +7,9 @@ from pydantic import BaseModel, Field, confloat
 
 
 class StabilityFormat(str, Enum):
-    png = 'png'
-    jpeg = 'jpeg'
-    webp = 'webp'
+    png = "png"
+    jpeg = "jpeg"
+    webp = "webp"
 
 
 class StabilityAspectRatio(str, Enum):

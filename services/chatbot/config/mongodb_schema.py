@@ -1,4 +1,4 @@
-﻿"""
+"""
 MongoDB Database Schema for ChatBot Service
 Database: chatbot_db (MongoDB Atlas)
 Collections: 6 main collections
@@ -32,10 +32,10 @@ conversation_schema = {
         "temperature": "float",
         "max_tokens": "int",
         "top_p": "float",
-        "custom_settings": "object"
+        "custom_settings": "object",
     },
     "created_at": "ISODate",  # Creation timestamp
-    "updated_at": "ISODate"   # Last update timestamp
+    "updated_at": "ISODate",  # Last update timestamp
 }
 
 conversation_example = {
@@ -51,10 +51,10 @@ conversation_example = {
         "temperature": 0.7,
         "max_tokens": 2048,
         "top_p": 0.95,
-        "custom_settings": {}
+        "custom_settings": {},
     },
     "created_at": "ISODate('2025-11-09T10:30:00Z')",
-    "updated_at": "ISODate('2025-11-09T11:45:00Z')"
+    "updated_at": "ISODate('2025-11-09T11:45:00Z')",
 }
 
 
@@ -79,7 +79,7 @@ message_schema = {
             "size": "int",  # File size in bytes
             "mime_type": "string",
             "generated": "bool",  # True if AI-generated
-            "service": "string"  # 'postimages', 'local', etc.
+            "service": "string",  # 'postimages', 'local', etc.
         }
     ],
     "files": [
@@ -89,7 +89,7 @@ message_schema = {
             "type": "string",  # File extension
             "size": "int",
             "mime_type": "string",
-            "analysis_result": "string"  # AI analysis of file
+            "analysis_result": "string",  # AI analysis of file
         }
     ],
     "metadata": {
@@ -97,13 +97,13 @@ message_schema = {
         "tokens": "int",
         "temperature": "float",
         "finish_reason": "string",  # 'stop', 'length', 'interrupted'
-        "generation_time_ms": "int"
+        "generation_time_ms": "int",
     },
     "version": "int",  # Message version (for edit history)
     "parent_message_id": "ObjectId",  # For message versioning
     "is_edited": "bool",
     "is_stopped": "bool",  # True if generation was stopped by user
-    "created_at": "ISODate"
+    "created_at": "ISODate",
 }
 
 message_example = {
@@ -120,7 +120,7 @@ message_example = {
             "size": 245680,
             "mime_type": "image/png",
             "generated": True,
-            "service": "postimages"
+            "service": "postimages",
         }
     ],
     "files": [],
@@ -129,13 +129,13 @@ message_example = {
         "tokens": 450,
         "temperature": 0.7,
         "finish_reason": "stop",
-        "generation_time_ms": 2350
+        "generation_time_ms": 2350,
     },
     "version": 1,
     "parent_message_id": None,
     "is_edited": False,
     "is_stopped": False,
-    "created_at": "ISODate('2025-11-09T10:31:00Z')"
+    "created_at": "ISODate('2025-11-09T10:31:00Z')",
 }
 
 
@@ -157,18 +157,14 @@ memory_schema = {
         {
             "url": "string",
             "caption": "string",
-            "relevance": "string"  # Why this image is saved
+            "relevance": "string",  # Why this image is saved
         }
     ],
     "rating": "int",  # 1-5 stars (user feedback)
     "tags": ["string"],  # Array of tags for categorization
     "is_public": "bool",  # Share with other users?
-    "metadata": {
-        "model_used": "string",
-        "tokens": "int",
-        "confidence_score": "float"
-    },
-    "created_at": "ISODate"
+    "metadata": {"model_used": "string", "tokens": "int", "confidence_score": "float"},
+    "created_at": "ISODate",
 }
 
 memory_example = {
@@ -182,12 +178,8 @@ memory_example = {
     "rating": 5,
     "tags": ["python", "async", "programming"],
     "is_public": False,
-    "metadata": {
-        "model_used": "grok-3",
-        "tokens": 380,
-        "confidence_score": 0.95
-    },
-    "created_at": "ISODate('2025-11-09T10:35:00Z')"
+    "metadata": {"model_used": "grok-3", "tokens": 380, "confidence_score": 0.95},
+    "created_at": "ISODate('2025-11-09T10:35:00Z')",
 }
 
 
@@ -217,10 +209,10 @@ uploaded_file_schema = {
         "page_count": "int",  # For PDFs
         "dimensions": {  # For images
             "width": "int",
-            "height": "int"
-        }
+            "height": "int",
+        },
     },
-    "created_at": "ISODate"
+    "created_at": "ISODate",
 }
 
 uploaded_file_example = {
@@ -240,9 +232,9 @@ uploaded_file_example = {
         "model_used": "grok-3",
         "extracted_text": "Full text extracted from PDF...",
         "page_count": 5,
-        "dimensions": None
+        "dimensions": None,
     },
-    "created_at": "ISODate('2025-11-09T10:32:00Z')"
+    "created_at": "ISODate('2025-11-09T10:32:00Z')",
 }
 
 
@@ -267,11 +259,11 @@ user_schema = {
         "default_model": "string",
         "theme": "string",  # 'dark', 'light'
         "language": "string",  # 'vi', 'en'
-        "auto_save": "bool"
+        "auto_save": "bool",
     },
     "created_at": "ISODate",
     "last_login": "ISODate",
-    "last_ip": "string"
+    "last_ip": "string",
 }
 
 
@@ -292,20 +284,20 @@ user_settings_schema = {
         "system_prompt": "string",
         "enable_memory": "bool",
         "enable_tools": "bool",
-        "enable_image_gen": "bool"
+        "enable_image_gen": "bool",
     },
     "ui_settings": {
         "theme": "string",
         "font_size": "string",
         "code_theme": "string",
         "show_tokens": "bool",
-        "auto_scroll": "bool"
+        "auto_scroll": "bool",
     },
     "notification_settings": {
         "enable_notifications": "bool",
-        "email_notifications": "bool"
+        "email_notifications": "bool",
     },
-    "updated_at": "ISODate"
+    "updated_at": "ISODate",
 }
 
 
@@ -408,6 +400,7 @@ db.conversations.aggregate([
 # VALIDATION RULES (MongoDB Schema Validation)
 # ============================================================================
 
+
 def create_validation_rules():
     """
     Create MongoDB schema validation rules
@@ -426,8 +419,8 @@ def create_validation_rules():
                     "total_tokens": {"bsonType": "int", "minimum": 0},
                     "is_archived": {"bsonType": "bool"},
                     "created_at": {"bsonType": "date"},
-                    "updated_at": {"bsonType": "date"}
-                }
+                    "updated_at": {"bsonType": "date"},
+                },
             }
         },
         "messages": {
@@ -442,9 +435,9 @@ def create_validation_rules():
                     "files": {"bsonType": "array"},
                     "version": {"bsonType": "int", "minimum": 1},
                     "is_edited": {"bsonType": "bool"},
-                    "created_at": {"bsonType": "date"}
-                }
+                    "created_at": {"bsonType": "date"},
+                },
             }
-        }
+        },
     }
     return validation_rules

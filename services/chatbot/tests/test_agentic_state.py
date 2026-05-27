@@ -8,6 +8,7 @@ Covers:
   • JSON round-trip serializability
   • Factory function
 """
+
 import json
 import sys
 from pathlib import Path
@@ -34,8 +35,8 @@ from core.agentic.contracts import (
 )
 from core.agentic.state import AgentRunState, PreContext
 
-
 # ── Fixtures ───────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def bb() -> InMemoryBlackboard:
@@ -58,11 +59,13 @@ def config() -> CouncilConfig:
 
 # ── Protocol conformance ──────────────────────────────────────────────
 
+
 def test_in_memory_satisfies_protocol():
     assert isinstance(InMemoryBlackboard(), BlackboardStore)
 
 
 # ── create_run ─────────────────────────────────────────────────────────
+
 
 def test_create_run_returns_state(bb: InMemoryBlackboard, pre_ctx: PreContext):
     state = bb.create_run(pre_ctx)
@@ -72,7 +75,9 @@ def test_create_run_returns_state(bb: InMemoryBlackboard, pre_ctx: PreContext):
     assert state.pre_context.original_message == "What is the capital of France?"
 
 
-def test_create_run_respects_config(bb: InMemoryBlackboard, pre_ctx: PreContext, config: CouncilConfig):
+def test_create_run_respects_config(
+    bb: InMemoryBlackboard, pre_ctx: PreContext, config: CouncilConfig
+):
     state = bb.create_run(pre_ctx, config)
     assert state.max_rounds == 3
 
@@ -85,11 +90,13 @@ def test_create_run_stored(bb: InMemoryBlackboard, pre_ctx: PreContext):
 
 # ── get_run ────────────────────────────────────────────────────────────
 
+
 def test_get_run_missing(bb: InMemoryBlackboard):
     assert bb.get_run("nonexistent") is None
 
 
 # ── update_run_status ──────────────────────────────────────────────────
+
 
 def test_update_status(bb: InMemoryBlackboard, pre_ctx: PreContext):
     state = bb.create_run(pre_ctx)
@@ -103,6 +110,7 @@ def test_update_status_missing_raises(bb: InMemoryBlackboard):
 
 
 # ── append_planner_tasks ──────────────────────────────────────────────
+
 
 def test_append_planner_tasks(bb: InMemoryBlackboard, pre_ctx: PreContext):
     state = bb.create_run(pre_ctx)
@@ -121,12 +129,17 @@ def test_append_planner_tasks(bb: InMemoryBlackboard, pre_ctx: PreContext):
 
 # ── append_research_evidence ──────────────────────────────────────────
 
+
 def test_append_research_evidence(bb: InMemoryBlackboard, pre_ctx: PreContext):
     state = bb.create_run(pre_ctx)
     research = ResearcherOutput(
         evidence=[
-            EvidenceItem(source="web", content="Paris is the capital of France.", relevance=0.95),
-            EvidenceItem(source="rag", content="France — capital: Paris", relevance=0.9),
+            EvidenceItem(
+                source="web", content="Paris is the capital of France.", relevance=0.95
+            ),
+            EvidenceItem(
+                source="rag", content="France — capital: Paris", relevance=0.9
+            ),
         ],
         summary="Paris is the capital.",
         tools_used=["web_search", "rag_query"],
@@ -137,6 +150,7 @@ def test_append_research_evidence(bb: InMemoryBlackboard, pre_ctx: PreContext):
 
 
 # ── append_critic_issues ──────────────────────────────────────────────
+
 
 def test_append_critic_issues(bb: InMemoryBlackboard, pre_ctx: PreContext):
     state = bb.create_run(pre_ctx)
@@ -158,6 +172,7 @@ def test_append_critic_issues(bb: InMemoryBlackboard, pre_ctx: PreContext):
 
 # ── set_final_answer ──────────────────────────────────────────────────
 
+
 def test_set_final_answer(bb: InMemoryBlackboard, pre_ctx: PreContext):
     state = bb.create_run(pre_ctx)
     answer = SynthesizerOutput(
@@ -176,6 +191,7 @@ def test_set_final_answer(bb: InMemoryBlackboard, pre_ctx: PreContext):
 
 # ── summarize_trace ───────────────────────────────────────────────────
 
+
 def test_summarize_trace_empty(bb: InMemoryBlackboard, pre_ctx: PreContext):
     state = bb.create_run(pre_ctx)
     trace = bb.summarize_trace(state.run_id)
@@ -192,6 +208,7 @@ def test_summarize_trace_missing_raises(bb: InMemoryBlackboard):
 
 # ── Full lifecycle test ───────────────────────────────────────────────
 
+
 def test_full_lifecycle(bb: InMemoryBlackboard, pre_ctx: PreContext):
     """Walk through every stage and assert final trace is correct."""
     # 1. Create
@@ -200,49 +217,69 @@ def test_full_lifecycle(bb: InMemoryBlackboard, pre_ctx: PreContext):
 
     # 2. Plan
     bb.update_run_status(run_id, RunStatus.planning)
-    bb.append_planner_tasks(run_id, PlannerOutput(
-        approach="lookup",
-        tasks=[
-            TaskNode(question="What country?", suggested_tools=["web_search"]),
-            TaskNode(question="Capital?"),
-        ],
-        estimated_complexity=2,
-    ))
+    bb.append_planner_tasks(
+        run_id,
+        PlannerOutput(
+            approach="lookup",
+            tasks=[
+                TaskNode(question="What country?", suggested_tools=["web_search"]),
+                TaskNode(question="Capital?"),
+            ],
+            estimated_complexity=2,
+        ),
+    )
 
     # 3. Research
     bb.update_run_status(run_id, RunStatus.researching)
-    bb.append_research_evidence(run_id, ResearcherOutput(
-        evidence=[
-            EvidenceItem(source="web", content="Paris", relevance=0.95),
-        ],
-        summary="Paris",
-        tools_used=["web_search"],
-    ))
+    bb.append_research_evidence(
+        run_id,
+        ResearcherOutput(
+            evidence=[
+                EvidenceItem(source="web", content="Paris", relevance=0.95),
+            ],
+            summary="Paris",
+            tools_used=["web_search"],
+        ),
+    )
 
     # 4. Critique
     bb.update_run_status(run_id, RunStatus.critiquing)
-    bb.append_critic_issues(run_id, CriticOutput(
-        quality_score=9,
-        issues=[],
-        verdict="pass",
-    ))
+    bb.append_critic_issues(
+        run_id,
+        CriticOutput(
+            quality_score=9,
+            issues=[],
+            verdict="pass",
+        ),
+    )
 
     # 5. Record some steps for trace
     state.current_round = 1
-    state.record_step(AgentRole.planner, output_summary="2 tasks", tokens=150, elapsed_ms=320)
-    state.record_step(AgentRole.researcher, output_summary="1 evidence", tokens=200, elapsed_ms=450)
-    state.record_step(AgentRole.critic, output_summary="pass", tokens=100, elapsed_ms=210)
+    state.record_step(
+        AgentRole.planner, output_summary="2 tasks", tokens=150, elapsed_ms=320
+    )
+    state.record_step(
+        AgentRole.researcher, output_summary="1 evidence", tokens=200, elapsed_ms=450
+    )
+    state.record_step(
+        AgentRole.critic, output_summary="pass", tokens=100, elapsed_ms=210
+    )
 
     # 6. Synthesize
     bb.update_run_status(run_id, RunStatus.synthesizing)
-    bb.set_final_answer(run_id, SynthesizerOutput(
-        answer=FinalAnswer(
-            content="Paris",
-            confidence=0.95,
-            key_points=["Paris is the capital of France"],
+    bb.set_final_answer(
+        run_id,
+        SynthesizerOutput(
+            answer=FinalAnswer(
+                content="Paris",
+                confidence=0.95,
+                key_points=["Paris is the capital of France"],
+            ),
         ),
-    ))
-    state.record_step(AgentRole.synthesizer, output_summary="Paris", tokens=80, elapsed_ms=180)
+    )
+    state.record_step(
+        AgentRole.synthesizer, output_summary="Paris", tokens=80, elapsed_ms=180
+    )
 
     # 7. Verify trace
     trace = bb.summarize_trace(run_id)
@@ -256,16 +293,23 @@ def test_full_lifecycle(bb: InMemoryBlackboard, pre_ctx: PreContext):
 
 # ── JSON serialization round-trip ─────────────────────────────────────
 
+
 def test_run_state_json_roundtrip(bb: InMemoryBlackboard, pre_ctx: PreContext):
     """AgentRunState must survive JSON serialize → deserialize."""
     state = bb.create_run(pre_ctx)
-    bb.append_planner_tasks(state.run_id, PlannerOutput(
-        approach="test",
-        tasks=[TaskNode(question="Q1")],
-    ))
-    bb.set_final_answer(state.run_id, SynthesizerOutput(
-        answer=FinalAnswer(content="A1", confidence=0.8),
-    ))
+    bb.append_planner_tasks(
+        state.run_id,
+        PlannerOutput(
+            approach="test",
+            tasks=[TaskNode(question="Q1")],
+        ),
+    )
+    bb.set_final_answer(
+        state.run_id,
+        SynthesizerOutput(
+            answer=FinalAnswer(content="A1", confidence=0.8),
+        ),
+    )
 
     json_str = state.model_dump_json()
     restored = AgentRunState.model_validate_json(json_str)
@@ -291,6 +335,7 @@ def test_summarize_trace_json_serializable(bb: InMemoryBlackboard, pre_ctx: PreC
 
 # ── Factory function ──────────────────────────────────────────────────
 
+
 def test_factory_default_is_memory():
     bb = create_blackboard()
     assert isinstance(bb, InMemoryBlackboard)
@@ -313,6 +358,7 @@ def test_factory_env_override(monkeypatch):
 
 
 # ── clear helper ──────────────────────────────────────────────────────
+
 
 def test_clear(bb: InMemoryBlackboard, pre_ctx: PreContext):
     bb.create_run(pre_ctx)

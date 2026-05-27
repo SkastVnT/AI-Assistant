@@ -16,6 +16,7 @@ in their dedicated test modules (``test_character_understanding.py``,
 ``test_reasoning_payload_shape.py``); this file is the integration
 checklist, not a duplicate of those.
 """
+
 from __future__ import annotations
 
 import json
@@ -35,6 +36,7 @@ if str(_CHATBOT_DIR) not in sys.path:
 
 
 # ── Test scaffolding ────────────────────────────────────────────────────────
+
 
 class _ExplodingComfyClient:
     """Fails the test if generation is attempted."""
@@ -87,9 +89,11 @@ def _disable_saa(monkeypatch):
 
 # ── 1. Old prompt-only payload still accepted ──────────────────────────────
 
+
 def test_01_prompt_only_payload_still_accepted(client):
-    body = _post(client, {"prompt": "a quiet mountain lake at sunrise",
-                          "preflight_only": True})
+    body = _post(
+        client, {"prompt": "a quiet mountain lake at sunrise", "preflight_only": True}
+    )
     assert body["preflight"] is True
     assert "risk_level" in body
     # Old payloads must not require any new keys.
@@ -97,6 +101,7 @@ def test_01_prompt_only_payload_still_accepted(client):
 
 
 # ── 2. selected_character accepted ─────────────────────────────────────────
+
 
 def test_02_selected_character_accepted(client):
     body = _post(
@@ -118,6 +123,7 @@ def test_02_selected_character_accepted(client):
 
 # ── 3. manual_profile accepted ─────────────────────────────────────────────
 
+
 def test_03_manual_profile_accepted(client):
     body = _post(
         client,
@@ -137,6 +143,7 @@ def test_03_manual_profile_accepted(client):
 
 # ── 4. preflight_only does not start generation ────────────────────────────
 
+
 def test_04_preflight_only_does_not_start_generation(client):
     # The fixture's _ExplodingComfyClient is the actual assertion — if
     # generation runs, submit_workflow raises. We also assert no comic /
@@ -148,6 +155,7 @@ def test_04_preflight_only_does_not_start_generation(client):
 
 
 # ── 5. require_preflight_pass + high risk blocks ───────────────────────────
+
 
 def test_05_require_preflight_pass_high_risk_blocks(client):
     body = _post(
@@ -164,6 +172,7 @@ def test_05_require_preflight_pass_high_risk_blocks(client):
 
 
 # ── 6. unknown character returns unknown profile ───────────────────────────
+
 
 def test_06_unknown_character_returns_unknown_profile(monkeypatch):
     from core import character_understanding as cu
@@ -184,6 +193,7 @@ def test_06_unknown_character_returns_unknown_profile(monkeypatch):
 
 # ── 7. Style-only prompt does not become a character ───────────────────────
 
+
 def test_07_style_only_prompt_does_not_become_character(monkeypatch):
     from core import character_understanding as cu
 
@@ -201,6 +211,7 @@ def test_07_style_only_prompt_does_not_become_character(monkeypatch):
 
 # ── 8. Preview placeholder works ───────────────────────────────────────────
 
+
 def test_08_preview_placeholder_works(monkeypatch, tmp_path):
     from core import character_preview as cp
 
@@ -217,6 +228,7 @@ def test_08_preview_placeholder_works(monkeypatch, tmp_path):
 
 
 # ── 9. Preview metadata does not enable LoRA ───────────────────────────────
+
 
 def test_09_preview_metadata_alone_does_not_enable_lora(monkeypatch, tmp_path):
     """Manual override text alone must NOT flip ``safe_to_attach_lora``.
@@ -256,6 +268,7 @@ def test_09_preview_metadata_alone_does_not_enable_lora(monkeypatch, tmp_path):
 
 # ── 10. Result JSON-serializable ───────────────────────────────────────────
 
+
 def test_10_result_json_serializable(client, monkeypatch, tmp_path):
     """Every surface a frontend touches must round-trip through json."""
     # 10a. Route response.
@@ -264,6 +277,7 @@ def test_10_result_json_serializable(client, monkeypatch, tmp_path):
 
     # 10b. CharacterUnderstandingResult.
     from core import character_understanding as cu
+
     _empty_registry(monkeypatch)
     _disable_saa(monkeypatch)
     result = cu.resolve_character("zzz_unknown")
@@ -276,13 +290,17 @@ def test_10_result_json_serializable(client, monkeypatch, tmp_path):
                 "ambiguous": result.ambiguous,
                 "mode": result.mode,
                 "safe_to_attach_lora": result.safe_to_attach_lora,
-                "candidates": [c.to_dict() for c in result.candidates]
-                if hasattr(result, "candidates") else [],
+                "candidates": (
+                    [c.to_dict() for c in result.candidates]
+                    if hasattr(result, "candidates")
+                    else []
+                ),
             }
         )
 
     # 10c. CharacterPreview.
     from core import character_preview as cp
+
     monkeypatch.setattr(cp, "_OVERRIDES_PATH", tmp_path / "missing.json")
     monkeypatch.setattr(cp, "_LOCAL_CACHE_DIR", tmp_path / "cache")
     preview = cp.build_preview(query="unknown_xyz")

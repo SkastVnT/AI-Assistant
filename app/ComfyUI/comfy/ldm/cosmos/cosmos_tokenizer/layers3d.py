@@ -21,6 +21,7 @@ Adapted from: https://github.com/lucidrains/magvit2-pytorch/blob/
 https://github.com/lucidrains/magvit2-pytorch/blob/
 9f49074179c912736e617d61b32be367eb5f993a/LICENSE
 """
+
 import math
 from typing import Tuple, Union
 
@@ -51,6 +52,7 @@ from .utils import (
 )
 
 import comfy.ops
+
 ops = comfy.ops.disable_weight_init
 
 _LEGACY_NUM_GROUPS = 32
@@ -246,7 +248,6 @@ class CausalHybridDownsample3d(nn.Module):
             time_stride=1,
             padding=0,
         )
-
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if not self.spatial_down and not self.temporal_down:

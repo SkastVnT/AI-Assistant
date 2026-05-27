@@ -4,6 +4,7 @@ defined in Prompt 4.7. Exercises the new spec fields:
 ``style_hint``, ``negative_identity_guard``, ``multiple_characters``,
 ``extraction_confidence``, ``extraction_reason``.
 """
+
 from __future__ import annotations
 
 import json
@@ -16,8 +17,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core import character_understanding as cu  # noqa: E402
 
-
 # ── 1. Action-tail extraction (the headline case) ────────────────────────────
+
 
 class TestActionTailExtraction:
     def test_klee_fishing_with_bombs(self):
@@ -42,19 +43,26 @@ class TestActionTailExtraction:
 
 # ── 2. Vietnamese / English connector phrases ────────────────────────────────
 
+
 class TestConnectorPhrases:
-    @pytest.mark.parametrize("prompt,expected_slug,expected_series", [
-        ("Iroha trong Kaguya Cosmic Princess mặc váy trắng",
-         "iroha", "cosmic_princess_kaguya"),
-        ("Hu Tao của Genshin Impact cầm hoa cúc",
-         "hu_tao", "genshin_impact"),
-        ("nhân vật Sparkle trong Honkai Star Rail",
-         "sparkle", "honkai_star_rail"),
-        ("Klee from Genshin Impact wearing a red hat",
-         "klee", "genshin_impact"),
-        ("Sparkle in Honkai Star Rail standing on a rooftop",
-         "sparkle", "honkai_star_rail"),
-    ])
+    @pytest.mark.parametrize(
+        "prompt,expected_slug,expected_series",
+        [
+            (
+                "Iroha trong Kaguya Cosmic Princess mặc váy trắng",
+                "iroha",
+                "cosmic_princess_kaguya",
+            ),
+            ("Hu Tao của Genshin Impact cầm hoa cúc", "hu_tao", "genshin_impact"),
+            ("nhân vật Sparkle trong Honkai Star Rail", "sparkle", "honkai_star_rail"),
+            ("Klee from Genshin Impact wearing a red hat", "klee", "genshin_impact"),
+            (
+                "Sparkle in Honkai Star Rail standing on a rooftop",
+                "sparkle",
+                "honkai_star_rail",
+            ),
+        ],
+    )
     def test_connector_pins_series(self, prompt, expected_slug, expected_series):
         ents = cu.extract_prompt_entities(prompt)
         assert ents["candidate_name_slug"] == expected_slug
@@ -65,27 +73,32 @@ class TestConnectorPhrases:
 
 # ── 3. Series alias coverage ─────────────────────────────────────────────────
 
+
 class TestSeriesAliases:
-    @pytest.mark.parametrize("phrase,canonical", [
-        ("genshin", "genshin_impact"),
-        ("genshin impact", "genshin_impact"),
-        ("gi", "genshin_impact"),
-        ("hsr", "honkai_star_rail"),
-        ("honkai star rail", "honkai_star_rail"),
-        ("wuwa", "wuthering_waves"),
-        ("wuthering waves", "wuthering_waves"),
-        ("zzz", "zenless_zone_zero"),
-        ("zenless zone zero", "zenless_zone_zero"),
-        ("bocchi the rock", "bocchi_the_rock"),
-        ("kaguya cosmic princess", "cosmic_princess_kaguya"),
-        ("cosmic princess kaguya", "cosmic_princess_kaguya"),
-    ])
+    @pytest.mark.parametrize(
+        "phrase,canonical",
+        [
+            ("genshin", "genshin_impact"),
+            ("genshin impact", "genshin_impact"),
+            ("gi", "genshin_impact"),
+            ("hsr", "honkai_star_rail"),
+            ("honkai star rail", "honkai_star_rail"),
+            ("wuwa", "wuthering_waves"),
+            ("wuthering waves", "wuthering_waves"),
+            ("zzz", "zenless_zone_zero"),
+            ("zenless zone zero", "zenless_zone_zero"),
+            ("bocchi the rock", "bocchi_the_rock"),
+            ("kaguya cosmic princess", "cosmic_princess_kaguya"),
+            ("cosmic princess kaguya", "cosmic_princess_kaguya"),
+        ],
+    )
     def test_series_alias_canonicalizes(self, phrase, canonical):
         ents = cu.extract_prompt_entities(f"Iroha trong {phrase} mặc váy")
         assert ents["series_slug"] == canonical
 
 
 # ── 4. Protagonist phrases ───────────────────────────────────────────────────
+
 
 class TestProtagonistPhrases:
     def test_main_nu_zzz(self):
@@ -106,6 +119,7 @@ class TestProtagonistPhrases:
 
 # ── 5. Style hint ────────────────────────────────────────────────────────────
 
+
 class TestStyleHint:
     def test_phong_cach_demotes_series_to_style(self):
         ents = cu.extract_prompt_entities("vẽ cô gái phong cách Bocchi the Rock")
@@ -121,9 +135,7 @@ class TestStyleHint:
         assert ents["series_slug"] == ""
 
     def test_english_style_marker(self):
-        ents = cu.extract_prompt_entities(
-            "a girl in the style of Honkai Star Rail"
-        )
+        ents = cu.extract_prompt_entities("a girl in the style of Honkai Star Rail")
         assert ents["style_hint"] == "honkai_star_rail"
         assert ents["series_slug"] == ""
 
@@ -136,6 +148,7 @@ class TestStyleHint:
 
 
 # ── 6. Negative identity guard ───────────────────────────────────────────────
+
 
 class TestNegativeIdentityGuard:
     def test_khong_phai_appended(self):
@@ -153,23 +166,27 @@ class TestNegativeIdentityGuard:
         assert "sparkle" in guard_str
 
     def test_giong_nhung_khong_phai(self):
-        ents = cu.extract_prompt_entities(
-            "giống Hu Tao nhưng không phải Hu Tao"
-        )
+        ents = cu.extract_prompt_entities("giống Hu Tao nhưng không phải Hu Tao")
         guard_str = " ".join(ents["negative_identity_guard"]).lower()
         assert "hu tao" in guard_str or "hu" in guard_str
 
 
 # ── 7. OC marker ─────────────────────────────────────────────────────────────
 
+
 class TestOriginalCharacterMarker:
     def test_oc_does_not_resolve_known(self):
         ents = cu.extract_prompt_entities("OC tên Luna mặc áo giáp")
         assert ents["is_named"] is False
-        assert "OC" in ents["extraction_reason"] or "marker" in ents["extraction_reason"].lower()
+        assert (
+            "OC" in ents["extraction_reason"]
+            or "marker" in ents["extraction_reason"].lower()
+        )
 
     def test_original_character_phrase(self):
-        ents = cu.extract_prompt_entities("an original character named Vex wearing armor")
+        ents = cu.extract_prompt_entities(
+            "an original character named Vex wearing armor"
+        )
         assert ents["is_named"] is False
 
     def test_nhan_vat_tu_tao(self):
@@ -178,6 +195,7 @@ class TestOriginalCharacterMarker:
 
 
 # ── 8. Multi-character ───────────────────────────────────────────────────────
+
 
 class TestMultipleCharacters:
     def test_furina_va_nahida(self):
@@ -196,6 +214,7 @@ class TestMultipleCharacters:
 
 
 # ── 9. Confidence + reason invariants ────────────────────────────────────────
+
 
 class TestConfidenceAndReason:
     def test_empty_prompt(self):
@@ -221,25 +240,34 @@ class TestConfidenceAndReason:
 
 # ── 10. Serialization invariant ──────────────────────────────────────────────
 
+
 class TestSerialization:
-    @pytest.mark.parametrize("prompt", [
-        "klee câu cá bằng bom",
-        "Iroha trong Kaguya Cosmic Princess, không phải Kaguya",
-        "vẽ cô gái phong cách Bocchi the Rock",
-        "Furina và Nahida đi chơi trong vườn",
-        "OC tên Luna mặc áo giáp",
-        "nhân vật main nữ trong zzz",
-        "",
-    ])
+    @pytest.mark.parametrize(
+        "prompt",
+        [
+            "klee câu cá bằng bom",
+            "Iroha trong Kaguya Cosmic Princess, không phải Kaguya",
+            "vẽ cô gái phong cách Bocchi the Rock",
+            "Furina và Nahida đi chơi trong vườn",
+            "OC tên Luna mặc áo giáp",
+            "nhân vật main nữ trong zzz",
+            "",
+        ],
+    )
     def test_round_trips_json(self, prompt):
         ents = cu.extract_prompt_entities(prompt)
         encoded = json.dumps(ents)
         decoded = json.loads(encoded)
         # All required spec keys present.
         for k in (
-            "raw_character_query", "series_hint", "series_slug",
-            "residual_prompt", "style_hint", "negative_identity_guard",
-            "multiple_characters", "extraction_confidence",
+            "raw_character_query",
+            "series_hint",
+            "series_slug",
+            "residual_prompt",
+            "style_hint",
+            "negative_identity_guard",
+            "multiple_characters",
+            "extraction_confidence",
             "extraction_reason",
         ):
             assert k in decoded, f"missing key: {k}"

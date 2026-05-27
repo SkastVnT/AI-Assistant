@@ -18,13 +18,14 @@ Why a separate file instead of app/__init__.py?
   and programmatic test setup all look for a `create_app` callable at a
   well-known path.
 """
+
 from __future__ import annotations
 
 import os
 from typing import Any
 
 
-def create_app(config: dict[str, Any] | None = None) -> "Flask":  # noqa: F821
+def create_app(config: dict[str, Any] | None = None) -> Flask:  # noqa: F821
     """Return the canonical Flask monolith app.
 
     Parameters

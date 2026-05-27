@@ -1,0 +1,28 @@
+# electron-builder-local.yml
+# Builds a LOCAL launcher .exe — no payload bundling, no installer.
+# The app auto-detects the project root by walking up from its own location.
+# Output: private/local-app/win-unpacked/AI-Assistant Local.exe
+#
+# Usage:
+#   cd app/electron
+#   npx electron-builder --win dir --x64 --config electron-builder-local.yml --publish never
+
+appId: com.skastvnt.ai-assistant.local
+productName: AI-Assistant Local
+copyright: SkastVnT
+
+directories:
+  output: ../../private/local-app
+  buildResources: build
+
+# No extraResources — app uses the repo tree directly.
+
+asar: true
+
+win:
+  target:
+    - target: dir   # unpacked directory, no installer
+      arch: [x64]
+  icon: build/icon.ico
+
+# No NSIS section needed (dir target only).

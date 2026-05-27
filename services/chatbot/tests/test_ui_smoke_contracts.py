@@ -6,7 +6,6 @@ still exists in frontend modules after refactors.
 
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 MESSAGE_RENDERER = ROOT / "static" / "js" / "modules" / "message-renderer.js"
 MAIN_JS = ROOT / "static" / "js" / "main.js"
@@ -21,7 +20,9 @@ def test_token_gauge_render_logic_exists():
     assert "addResponseStats(contentDiv, stats = {})" in src
     assert "if (tokens && maxTokens)" in src
     assert "token-gauge" in src
-    assert "tokens/maxTokens" not in src  # sanity: should be template-based, not hardcoded typo
+    assert (
+        "tokens/maxTokens" not in src
+    )  # sanity: should be template-based, not hardcoded typo
 
 
 def test_stream_complete_maps_max_tokens_to_renderer_stats():
@@ -42,4 +43,8 @@ def test_thinking_reasoning_collapsible_logic_exists():
 def test_thinking_no_forced_auto_collapse_timeout():
     src = _read(MESSAGE_RENDERER)
     # Regression guard: previous logic hid entire thinking section after 1.5s.
-    assert "setTimeout(() => {" not in src or "thinking-content--collapsed" not in src.split("setTimeout(() => {")[-1][:250]
+    assert (
+        "setTimeout(() => {" not in src
+        or "thinking-content--collapsed"
+        not in src.split("setTimeout(() => {")[-1][:250]
+    )

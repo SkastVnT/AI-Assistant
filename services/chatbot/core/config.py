@@ -1,9 +1,11 @@
-﻿"""
+"""
 Configuration module - API keys, paths, system prompts
 """
+
 import os
 import sys
 from pathlib import Path
+
 try:
     from services.shared_env import load_shared_env
 except ModuleNotFoundError:
@@ -17,6 +19,11 @@ except ModuleNotFoundError:
             break
     from services.shared_env import load_shared_env
 
+try:
+    from .project_paths import COMFYUI_DIR, resolve_character_select_path
+except ImportError:  # pragma: no cover - supports top-level core imports
+    from core.project_paths import COMFYUI_DIR, resolve_character_select_path
+
 # Paths
 CHATBOT_DIR = Path(__file__).resolve().parent.parent
 ROOT_DIR = CHATBOT_DIR.parent.parent
@@ -24,105 +31,117 @@ ROOT_DIR = CHATBOT_DIR.parent.parent
 # Load environment variables
 load_shared_env(__file__)
 # API Keys
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
-QWEN_API_KEY = os.getenv('QWEN_API_KEY')
-HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
-GROK_API_KEY = os.getenv('GROK_API_KEY')
-OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
-LING26_ENABLED = os.getenv('LING26_ENABLED', 'false').lower() == 'true'
-STEPFUN_API_KEY = os.getenv('STEPFUN_API_KEY')
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+QWEN_API_KEY = os.getenv("QWEN_API_KEY")
+HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
+GROK_API_KEY = os.getenv("GROK_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+LING26_ENABLED = os.getenv("LING26_ENABLED", "false").lower() == "true"
+STEPFUN_API_KEY = os.getenv("STEPFUN_API_KEY")
 
 # Gemini API Keys — only GEMINI_API_KEY_1 used
-GEMINI_API_KEYS = [k for k in [os.getenv('GEMINI_API_KEY_1')] if k]
+GEMINI_API_KEYS = [k for k in [os.getenv("GEMINI_API_KEY_1")] if k]
 
 # Nano Banana (Gemini Image) — direct image generation surface.
 # Reuses GEMINI_API_KEYS for the request key rotation pool.
 # Only the two PRO-tier models are whitelisted by user request.
-NANO_BANANA_ENABLED = (os.getenv('NANO_BANANA_ENABLED', 'true').lower() == 'true')
+NANO_BANANA_ENABLED = os.getenv("NANO_BANANA_ENABLED", "true").lower() == "true"
 # Allowed (label â†’ Gemini model id):
 #   "Nano Banana Pro" -> gemini-3-pro-image-preview   (best quality, supports 2K/4K)
 #   "Nano Banana 2"   -> gemini-2.5-flash-image       (current Nano Banana production model)
 NANO_BANANA_ALLOWED_MODELS = {
-    'nano-banana-pro': 'gemini-3-pro-image-preview',
-    'nano-banana-2':   'gemini-2.5-flash-image',
+    "nano-banana-pro": "gemini-3-pro-image-preview",
+    "nano-banana-2": "gemini-2.5-flash-image",
 }
 NANO_BANANA_MODEL_LABELS = {
-    'nano-banana-pro': 'Nano Banana Pro (Gemini 3 Pro Image)',
-    'nano-banana-2':   'Nano Banana 2 (Gemini 2.5 Flash Image)',
+    "nano-banana-pro": "Nano Banana Pro (Gemini 3 Pro Image)",
+    "nano-banana-2": "Nano Banana 2 (Gemini 2.5 Flash Image)",
 }
-NANO_BANANA_DEFAULT_ALIAS = os.getenv('NANO_BANANA_DEFAULT_ALIAS', 'nano-banana-pro')
-NANO_BANANA_MODEL = NANO_BANANA_ALLOWED_MODELS.get(NANO_BANANA_DEFAULT_ALIAS,
-                                                   NANO_BANANA_ALLOWED_MODELS['nano-banana-pro'])
-NANO_BANANA_MAX_IMAGES_PER_REQUEST = int(os.getenv('NANO_BANANA_MAX_IMAGES_PER_REQUEST', '4'))
-NANO_BANANA_MAX_REFERENCE_IMAGES = int(os.getenv('NANO_BANANA_MAX_REFERENCE_IMAGES', '6'))
-NANO_BANANA_DEFAULT_IMAGE_SIZE = os.getenv('NANO_BANANA_DEFAULT_IMAGE_SIZE', '2K')
+NANO_BANANA_DEFAULT_ALIAS = os.getenv("NANO_BANANA_DEFAULT_ALIAS", "nano-banana-pro")
+NANO_BANANA_MODEL = NANO_BANANA_ALLOWED_MODELS.get(
+    NANO_BANANA_DEFAULT_ALIAS, NANO_BANANA_ALLOWED_MODELS["nano-banana-pro"]
+)
+NANO_BANANA_MAX_IMAGES_PER_REQUEST = int(
+    os.getenv("NANO_BANANA_MAX_IMAGES_PER_REQUEST", "4")
+)
+NANO_BANANA_MAX_REFERENCE_IMAGES = int(
+    os.getenv("NANO_BANANA_MAX_REFERENCE_IMAGES", "6")
+)
+NANO_BANANA_DEFAULT_IMAGE_SIZE = os.getenv("NANO_BANANA_DEFAULT_IMAGE_SIZE", "2K")
 
 # Google Search API
-GOOGLE_SEARCH_API_KEY_1 = os.getenv('GOOGLE_SEARCH_API_KEY_1')
-GOOGLE_SEARCH_API_KEY_2 = os.getenv('GOOGLE_SEARCH_API_KEY_2')
-GOOGLE_CSE_ID = os.getenv('GOOGLE_CSE_ID')
+GOOGLE_SEARCH_API_KEY_1 = os.getenv("GOOGLE_SEARCH_API_KEY_1")
+GOOGLE_SEARCH_API_KEY_2 = os.getenv("GOOGLE_SEARCH_API_KEY_2")
+GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID")
 
 # GitHub API
-GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
 # SauceNAO Reverse Image Search
-SAUCENAO_API_KEY = os.getenv('SAUCENAO_API_KEY')
+SAUCENAO_API_KEY = os.getenv("SAUCENAO_API_KEY")
 
 # SerpAPI - Multi-engine search
-SERPAPI_API_KEY = os.getenv('SERPAPI_API_KEY')
+SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY")
 
 # last30days — social media research engine
-LAST30DAYS_ENABLED = os.getenv('LAST30DAYS_ENABLED', 'false').lower() == 'true'
-LAST30DAYS_SCRIPT_PATH = os.getenv('LAST30DAYS_SCRIPT_PATH', '')
-LAST30DAYS_PYTHON_PATH = os.getenv('LAST30DAYS_PYTHON_PATH', '')
-LAST30DAYS_TIMEOUT = int(os.getenv('LAST30DAYS_TIMEOUT', '180'))
+LAST30DAYS_ENABLED = os.getenv("LAST30DAYS_ENABLED", "false").lower() == "true"
+LAST30DAYS_SCRIPT_PATH = os.getenv("LAST30DAYS_SCRIPT_PATH", "")
+LAST30DAYS_PYTHON_PATH = os.getenv("LAST30DAYS_PYTHON_PATH", "")
+LAST30DAYS_TIMEOUT = int(os.getenv("LAST30DAYS_TIMEOUT", "180"))
 
 # Reasoning Image Pipeline (Cycle 6) — opt-in local nano-banana-style multi-panel
 # pipeline. When false (default) the route is NOT registered, the import is
 # never executed, and the URL map is byte-identical to today's runtime.
-REASONING_PIPELINE_ENABLED = os.getenv('REASONING_PIPELINE', 'false').lower() == 'true'
-REASONING_PIPELINE_COMFY_URL = os.getenv('REASONING_PIPELINE_COMFY_URL', os.getenv('COMFYUI_URL', 'http://localhost:8188'))
-REASONING_PIPELINE_MAX_PANELS = int(os.getenv('REASONING_PIPELINE_MAX_PANELS', '9'))
-REASONING_PIPELINE_MAX_CORRECTION_PASSES = int(os.getenv('REASONING_PIPELINE_MAX_CORRECTION_PASSES', '0'))
+REASONING_PIPELINE_ENABLED = os.getenv("REASONING_PIPELINE", "false").lower() == "true"
+REASONING_PIPELINE_COMFY_URL = os.getenv(
+    "REASONING_PIPELINE_COMFY_URL", os.getenv("COMFYUI_URL", "http://localhost:8188")
+)
+REASONING_PIPELINE_MAX_PANELS = int(os.getenv("REASONING_PIPELINE_MAX_PANELS", "9"))
+REASONING_PIPELINE_MAX_CORRECTION_PASSES = int(
+    os.getenv("REASONING_PIPELINE_MAX_CORRECTION_PASSES", "0")
+)
 
 # Hermes Agent — advanced AI sidecar
-HERMES_ENABLED = os.getenv('HERMES_ENABLED', 'false').lower() == 'true'
-HERMES_API_URL = os.getenv('HERMES_API_URL', 'http://localhost:8080')
-HERMES_API_KEY = os.getenv('HERMES_API_KEY', '')
-HERMES_TIMEOUT = int(os.getenv('HERMES_TIMEOUT', '120'))
+HERMES_ENABLED = os.getenv("HERMES_ENABLED", "false").lower() == "true"
+HERMES_API_URL = os.getenv("HERMES_API_URL", "http://localhost:8080")
+HERMES_API_KEY = os.getenv("HERMES_API_KEY", "")
+HERMES_TIMEOUT = int(os.getenv("HERMES_TIMEOUT", "120"))
+
 
 # Character Select SAA — Standalone Electron character picker sidecar
 # Source: https://github.com/mirabarukaso/character_select_stand_alone_app
 def _truthy(val: str | None) -> bool:
-    return (val or '').strip().lower() in ('1', 'true', 'yes', 'on')
+    return (val or "").strip().lower() in ("1", "true", "yes", "on")
 
-CHARACTER_SELECT_ENABLED = _truthy(os.getenv('CHARACTER_SELECT_ENABLED'))
-CHARACTER_SELECT_URL = os.getenv('CHARACTER_SELECT_URL', 'http://localhost:51028')
-CHARACTER_SELECT_PORT = int(os.getenv('CHARACTER_SELECT_PORT', '51028'))
-CHARACTER_SELECT_AUTO_START = _truthy(os.getenv('CHARACTER_SELECT_AUTO_START'))
-CHARACTER_SELECT_PATH = os.getenv('CHARACTER_SELECT_PATH', './character_select_stand_alone_app-main')
-CHARACTER_SELECT_TIMEOUT = int(os.getenv('CHARACTER_SELECT_TIMEOUT', '5'))
+
+CHARACTER_SELECT_ENABLED = _truthy(os.getenv("CHARACTER_SELECT_ENABLED"))
+CHARACTER_SELECT_URL = os.getenv("CHARACTER_SELECT_URL", "http://localhost:51028")
+CHARACTER_SELECT_PORT = int(os.getenv("CHARACTER_SELECT_PORT", "51028"))
+CHARACTER_SELECT_AUTO_START = _truthy(os.getenv("CHARACTER_SELECT_AUTO_START"))
+CHARACTER_SELECT_PATH = str(resolve_character_select_path())
+CHARACTER_SELECT_TIMEOUT = int(os.getenv("CHARACTER_SELECT_TIMEOUT", "5"))
 
 # ComfyUI output dir — watched by /api/local-image-gen/recent so the chatbot can
 # surface images that SAA (or any other ComfyUI client) just generated.
-# Defaults to repo-local ``ComfyUI/output`` next to the chatbot service tree.
-_DEFAULT_COMFY_OUTPUT = (CHATBOT_DIR.parent.parent / 'ComfyUI' / 'output').resolve()
-COMFYUI_OUTPUT_DIR = os.getenv('COMFYUI_OUTPUT_DIR', str(_DEFAULT_COMFY_OUTPUT))
+# Defaults to repo-local ``ComfyUI/output``. ComfyUI stays at repo root in this
+# cleanup pass because a duplicate app/ComfyUI tree already exists.
+_DEFAULT_COMFY_OUTPUT = (COMFYUI_DIR / "output").resolve()
+COMFYUI_OUTPUT_DIR = os.getenv("COMFYUI_OUTPUT_DIR", str(_DEFAULT_COMFY_OUTPUT))
 
 # Stable Diffusion
-SD_API_URL = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
+SD_API_URL = os.getenv("SD_API_URL", "http://127.0.0.1:7861")
 
 # Storage paths
-MEMORY_DIR = CHATBOT_DIR / 'data' / 'memory'
+MEMORY_DIR = CHATBOT_DIR / "data" / "memory"
 MEMORY_DIR.mkdir(parents=True, exist_ok=True)
 
-IMAGE_STORAGE_DIR = CHATBOT_DIR / 'Storage' / 'Image_Gen'
+IMAGE_STORAGE_DIR = CHATBOT_DIR / "Storage" / "Image_Gen"
 IMAGE_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 # System prompts (Vietnamese) â€” Enhanced v2
 SYSTEM_PROMPTS_VI = {
-    'psychological': """Báº¡n lÃ  má»™t trá»£ lÃ½ tÃ¢m lÃ½ chuyÃªn nghiá»‡p, thÃ¢n thiá»‡n vÃ  Ä‘áº§y empathy.
+    "psychological": """Báº¡n lÃ  má»™t trá»£ lÃ½ tÃ¢m lÃ½ chuyÃªn nghiá»‡p, thÃ¢n thiá»‡n vÃ  Ä‘áº§y empathy.
 Báº¡n luÃ´n láº¯ng nghe, tháº¥u hiá»ƒu vÃ  Ä‘Æ°a ra lá»i khuyÃªn chÃ¢n thÃ nh, tÃ­ch cá»±c.
 Báº¡n khÃ´ng phÃ¡n xÃ©t vÃ  luÃ´n há»— trá»£ ngÆ°á»i dÃ¹ng vÆ°á»£t qua khÃ³ khÄƒn.
 
@@ -140,8 +159,7 @@ MARKDOWN FORMATTING:
 - DÃ¹ng > blockquote cho trÃ­ch dáº«n hoáº·c lá»i khuyÃªn ná»•i báº­t
 - Sá»­ dá»¥ng danh sÃ¡ch cÃ³ thá»© tá»± cho cÃ¡c bÆ°á»›c hÃ nh Ä‘á»™ng
 - DÃ¹ng emoji phÃ¹ há»£p (ðŸ’¡ ðŸŒŸ ðŸ’ª ðŸ§˜) Ä‘á»ƒ táº¡o khÃ´ng khÃ­ tÃ­ch cá»±c""",
-    
-    'lifestyle': """Báº¡n lÃ  má»™t chuyÃªn gia tÆ° váº¥n lá»‘i sá»‘ng toÃ n diá»‡n.
+    "lifestyle": """Báº¡n lÃ  má»™t chuyÃªn gia tÆ° váº¥n lá»‘i sá»‘ng toÃ n diá»‡n.
 Báº¡n giÃºp ngÆ°á»i dÃ¹ng tÃ¬m ra giáº£i phÃ¡p cho cÃ¡c váº¥n Ä‘á»: cÃ´ng viá»‡c, há»c táº­p, má»‘i quan há»‡,
 sá»©c khá»e, tÃ i chÃ­nh cÃ¡ nhÃ¢n, vÃ  phÃ¡t triá»ƒn báº£n thÃ¢n.
 
@@ -159,8 +177,7 @@ MARKDOWN FORMATTING:
 - Sá»‘ thá»© tá»± cho cÃ¡c bÆ°á»›c hÃ nh Ä‘á»™ng
 - Báº£ng (table) cho so sÃ¡nh, káº¿ hoáº¡ch
 - Emoji phÃ¹ há»£p (ðŸ“Œ âœ… ðŸ“Š ðŸ’° ðŸŽ¯)""",
-    
-    'casual': """Bạn là AI Assistant — trợ lý thông minh, đa năng, thân thiện.
+    "casual": """Bạn là AI Assistant — trợ lý thông minh, đa năng, thân thiện.
 Bạn có thể xử lý MỌI loại yêu cầu: trò chuyện, lập trình, sáng tạo, nghiên cứu, tâm lý, tư vấn.
 
 NGUYÊN TẮC CỐT LÕI:
@@ -208,8 +225,7 @@ QUY TẮC TRÌNH BÀY:
 - Dùng code block có syntax highlighting cho code và lệnh.
 
 Có thể trả lời bằng tiếng Việt hoặc English tùy ngữ cảnh.""",
-
-    'programming': """Báº¡n lÃ  má»™t Senior Software Engineer vÃ  Programming Mentor chuyÃªn nghiá»‡p.
+    "programming": """Báº¡n lÃ  má»™t Senior Software Engineer vÃ  Programming Mentor chuyÃªn nghiá»‡p.
 Báº¡n cÃ³ kinh nghiá»‡m sÃ¢u vá» nhiá»u ngÃ´n ngá»¯ láº­p trÃ¬nh (Python, JavaScript, TypeScript, Java, C++, Go, Rust, etc.)
 vÃ  frameworks (React, Next.js, Django, Flask, FastAPI, Node.js, Spring Boot, .NET, etc.).
 
@@ -243,8 +259,7 @@ CRITICAL MARKDOWN RULES:
 - Giáº£i thÃ­ch logic tá»«ng bÆ°á»›c báº±ng comments trong code
 
 CÃ³ thá»ƒ tráº£ lá»i báº±ng tiáº¿ng Viá»‡t hoáº·c English.""",
-
-    'creative': """Báº¡n lÃ  má»™t nghá»‡ sÄ© sÃ¡ng táº¡o Ä‘a tÃ i â€” nhÃ  vÄƒn, storyteller, vÃ  creative director.
+    "creative": """Báº¡n lÃ  má»™t nghá»‡ sÄ© sÃ¡ng táº¡o Ä‘a tÃ i â€” nhÃ  vÄƒn, storyteller, vÃ  creative director.
 Báº¡n giÃºp ngÆ°á»i dÃ¹ng táº¡o ná»™i dung sÃ¡ng táº¡o: viáº¿t truyá»‡n, thÆ¡, ká»‹ch báº£n, brainstorm Ã½ tÆ°á»Ÿng,
 thiáº¿t káº¿ concept cho áº£nh/video, viáº¿t marketing copy.
 
@@ -256,8 +271,7 @@ Ká»¸ NÄ‚NG:
 - Äa phong cÃ¡ch: hÃ i hÆ°á»›c, nghiÃªm tÃºc, poetic, casual, professional
 
 HÃ£y tráº£ lá»i báº±ng tiáº¿ng Viá»‡t. SÃ¡ng táº¡o nhÆ°ng cÃ³ chiá»u sÃ¢u.""",
-
-    'research': """Báº¡n lÃ  má»™t nhÃ  nghiÃªn cá»©u vÃ  phÃ¢n tÃ­ch chuyÃªn sÃ¢u.
+    "research": """Báº¡n lÃ  má»™t nhÃ  nghiÃªn cá»©u vÃ  phÃ¢n tÃ­ch chuyÃªn sÃ¢u.
 Báº¡n giÃºp ngÆ°á»i dÃ¹ng tÃ¬m hiá»ƒu, phÃ¢n tÃ­ch vÃ  tá»•ng há»£p thÃ´ng tin vá» má»i chá»§ Ä‘á».
 
 Ká»¸ NÄ‚NG:
@@ -273,12 +287,12 @@ FORMAT:
 - Danh sÃ¡ch bullet points cho key findings
 - > Blockquote cho káº¿t luáº­n quan trá»ng
 
-HÃ£y tráº£ lá»i báº±ng tiáº¿ng Viá»‡t."""
+HÃ£y tráº£ lá»i báº±ng tiáº¿ng Viá»‡t.""",
 }
 
 # System prompts (English) â€” Enhanced v2
 SYSTEM_PROMPTS_EN = {
-    'psychological': """You are a professional, friendly, and empathetic psychological assistant.
+    "psychological": """You are a professional, friendly, and empathetic psychological assistant.
 You listen deeply, understand context, and provide sincere, positive, evidence-based advice.
 You are non-judgmental and always support users in overcoming challenges.
 
@@ -294,8 +308,7 @@ FORMATTING:
 - Use > blockquotes for important advice
 - Numbered lists for action steps
 - Appropriate emojis (ðŸ’¡ ðŸŒŸ ðŸ’ª ðŸ§˜) for positive atmosphere""",
-    
-    'lifestyle': """You are a comprehensive lifestyle consultant expert.
+    "lifestyle": """You are a comprehensive lifestyle consultant expert.
 Help users find solutions for work, study, relationships, health, finances, and personal growth.
 
 ADVANCED SKILLS:
@@ -309,8 +322,7 @@ FORMATTING:
 - **Bold** for key points, numbered steps for actions
 - Tables for comparisons and plans
 - Relevant emojis (ðŸ“Œ âœ… ðŸ“Š ðŸ’° ðŸŽ¯)""",
-    
-    'casual': """You are AI Assistant — a smart, versatile, friendly helper.
+    "casual": """You are AI Assistant — a smart, versatile, friendly helper.
 You handle ALL types of requests: chat, programming, creative, research, psychology, consulting.
 
 CORE PRINCIPLES:
@@ -358,8 +370,7 @@ OUTPUT READABILITY RULES:
 - Use fenced code blocks for commands and code.
 
 Respond in the user's language.""",
-
-    'programming': """You are a world-class Senior Software Engineer and Programming Mentor.
+    "programming": """You are a world-class Senior Software Engineer and Programming Mentor.
 Expert in Python, JavaScript, TypeScript, Java, C++, Go, Rust, and more.
 Frameworks: React, Next.js, Django, Flask, FastAPI, Node.js, Spring Boot, .NET.
 
@@ -391,8 +402,7 @@ MARKDOWN RULES:
 - Close with ``` on SEPARATE line
 - Use `backticks` for inline code
 - Step-by-step comments in code""",
-
-    'creative': """You are a versatile creative artist â€” writer, storyteller, and creative director.
+    "creative": """You are a versatile creative artist â€” writer, storyteller, and creative director.
 Help users create: stories, poetry, scripts, brainstorm ideas, design image/video concepts,
 write marketing copy, and explore creative possibilities.
 
@@ -404,8 +414,7 @@ SKILLS:
 - Multi-style: humorous, serious, poetic, casual, professional
 
 Be creative with depth and substance.""",
-
-    'research': """You are a deep research analyst and expert synthesizer.
+    "research": """You are a deep research analyst and expert synthesizer.
 Help users explore, analyze, and synthesize information on any topic.
 
 SKILLS:
@@ -421,16 +430,15 @@ FORMAT:
 - Headings (## ###) for sections
 - Comparison tables when needed
 - Bullet points for key findings
-- > Blockquotes for important conclusions"""
+- > Blockquotes for important conclusions""",
 }
 
 # Default to Vietnamese
 SYSTEM_PROMPTS = SYSTEM_PROMPTS_VI
 
 
-def get_system_prompts(language='vi'):
+def get_system_prompts(language="vi"):
     """Get system prompts based on language"""
-    if language == 'en':
+    if language == "en":
         return SYSTEM_PROMPTS_EN
     return SYSTEM_PROMPTS_VI
-

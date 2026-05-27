@@ -8,6 +8,7 @@ Covers exactly the four contracts called out in the upgrade brief:
 
 Pure stdlib + pytest. No Flask app needed.
 """
+
 from __future__ import annotations
 
 import json
@@ -40,7 +41,14 @@ def test_normalize_legacy_record_shape():
     assert rec["model"] == "flux-dev"
     assert rec["timestamp"] == 1_700_000_000_000
     # New fields default to None — old sessions don't break.
-    for new_field in ("job_id", "character_key", "series_key", "preset", "manifest_path", "seed"):
+    for new_field in (
+        "job_id",
+        "character_key",
+        "series_key",
+        "preset",
+        "manifest_path",
+        "seed",
+    ):
         assert rec[new_field] is None
 
 
@@ -154,7 +162,10 @@ def test_manifest_oversized_rejected(tmp_path: Path, monkeypatch):
     # Force the size cap low so we don't have to actually write 256 KiB.
     monkeypatch.setattr("core.asset_memory.MAX_MANIFEST_BYTES", 10)
     mp = tmp_path / "big.json"
-    mp.write_text(json.dumps({"preset": "anime_quality", "extra": "padding" * 100}), encoding="utf-8")
+    mp.write_text(
+        json.dumps({"preset": "anime_quality", "extra": "padding" * 100}),
+        encoding="utf-8",
+    )
     record = {"prompt": "p", "manifest_path": str(mp)}
     block = build_asset_context_block([record])
     assert "manifest:" not in block
@@ -170,14 +181,22 @@ def test_manifest_malformed_json_swallowed(tmp_path: Path):
 
 
 # ── 4. Safe missing-field / malformed-input handling ─────────────────────────
-@pytest.mark.parametrize("bad", [None, "", 0, [], {}, {"foo": "bar"}, {"url": ""}, {"prompt": ""}])
+@pytest.mark.parametrize(
+    "bad", [None, "", 0, [], {}, {"foo": "bar"}, {"url": ""}, {"prompt": ""}]
+)
 def test_normalize_returns_none_for_unsalvageable_input(bad):
     # Non-dict OR empty dict OR dict with no usable fields all → None.
     assert normalize_asset_record(bad) is None
 
 
 def test_formatter_skips_non_dict_entries():
-    records = [None, "string", 42, {"url": "https://x/a.png", "prompt": "ok"}, {"prompt": ""}]
+    records = [
+        None,
+        "string",
+        42,
+        {"url": "https://x/a.png", "prompt": "ok"},
+        {"prompt": ""},
+    ]
     lines = format_asset_context_lines(records)
     assert len(lines) == 1
     assert "https://x/a.png" in lines[0]

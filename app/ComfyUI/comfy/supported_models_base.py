@@ -1,19 +1,19 @@
 """
-    This file is part of ComfyUI.
-    Copyright (C) 2024 Comfy
+This file is part of ComfyUI.
+Copyright (C) 2024 Comfy
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import torch
@@ -22,11 +22,13 @@ from . import model_base
 from . import utils
 from . import latent_formats
 
+
 class ClipTarget:
     def __init__(self, tokenizer, clip):
         self.clip = clip
         self.tokenizer = tokenizer
         self.params = {}
+
 
 class BASE:
     unet_config = {}
@@ -80,15 +82,24 @@ class BASE:
 
     def get_model(self, state_dict, prefix="", device=None):
         if self.noise_aug_config is not None:
-            out = model_base.SD21UNCLIP(self, self.noise_aug_config, model_type=self.model_type(state_dict, prefix), device=device)
+            out = model_base.SD21UNCLIP(
+                self,
+                self.noise_aug_config,
+                model_type=self.model_type(state_dict, prefix),
+                device=device,
+            )
         else:
-            out = model_base.BaseModel(self, model_type=self.model_type(state_dict, prefix), device=device)
+            out = model_base.BaseModel(
+                self, model_type=self.model_type(state_dict, prefix), device=device
+            )
         if self.inpaint_model():
             out.set_inpaint()
         return out
 
     def process_clip_state_dict(self, state_dict):
-        state_dict = utils.state_dict_prefix_replace(state_dict, {k: "" for k in self.text_encoder_key_prefix}, filter_keys=True)
+        state_dict = utils.state_dict_prefix_replace(
+            state_dict, {k: "" for k in self.text_encoder_key_prefix}, filter_keys=True
+        )
         return state_dict
 
     def process_unet_state_dict(self, state_dict):
@@ -116,9 +127,13 @@ class BASE:
         return utils.state_dict_prefix_replace(state_dict, replace_prefix)
 
     def set_inference_dtype(self, dtype, manual_cast_dtype):
-        self.unet_config['dtype'] = dtype
+        self.unet_config["dtype"] = dtype
         self.manual_cast_dtype = manual_cast_dtype
 
     def __getattr__(self, name):
-        logging.warning("\nWARNING, you accessed {} from the model config object which doesn't exist. Please fix your code.\n".format(name))
+        logging.warning(
+            "\nWARNING, you accessed {} from the model config object which doesn't exist. Please fix your code.\n".format(
+                name
+            )
+        )
         return None

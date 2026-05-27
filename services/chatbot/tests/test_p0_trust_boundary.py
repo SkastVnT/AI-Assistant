@@ -68,7 +68,9 @@ def test_mongodb_tls_invalid_default_is_false(monkeypatch):
     assert app_config.BaseConfig.MONGODB_TLS_ALLOW_INVALID_CERTIFICATES is False
 
     module_path = Path(__file__).resolve().parents[1] / "config" / "mongodb_config.py"
-    spec = importlib.util.spec_from_file_location("mongodb_config_under_test", module_path)
+    spec = importlib.util.spec_from_file_location(
+        "mongodb_config_under_test", module_path
+    )
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
@@ -128,7 +130,9 @@ def test_mcp_read_blocks_sensitive_file(monkeypatch):
     result = server.read_file_content("app/config/.env", max_lines=20)
 
     assert "error" in result
-    assert "blocked" in result["error"].lower() or "sensitive" in result["error"].lower()
+    assert (
+        "blocked" in result["error"].lower() or "sensitive" in result["error"].lower()
+    )
 
 
 def test_mcp_fetch_url_blocks_loopback(monkeypatch):
@@ -178,7 +182,9 @@ def test_url_safety_blocks_link_local_metadata():
     from core.url_safety import UnsafeUrlError, assert_safe_external_url
 
     with pytest.raises(UnsafeUrlError):
-        assert_safe_external_url("http://169.254.169.254/latest/meta-data/", resolve=False)
+        assert_safe_external_url(
+            "http://169.254.169.254/latest/meta-data/", resolve=False
+        )
 
 
 def test_url_safety_blocks_non_http_schemes():

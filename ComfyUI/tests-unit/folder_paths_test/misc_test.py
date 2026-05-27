@@ -3,6 +3,7 @@ import os
 import tempfile
 from folder_paths import get_input_subfolders, set_input_directory
 
+
 @pytest.fixture(scope="module")
 def mock_folder_structure():
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -14,7 +15,7 @@ def mock_folder_structure():
             "folder2",
             "folder2/deep",
             "folder2/deep/nested",
-            "empty_folder"
+            "empty_folder",
         ]
 
         # Create the folders
@@ -33,8 +34,15 @@ def mock_folder_structure():
 
 def test_gets_all_folders(mock_folder_structure):
     folders = get_input_subfolders()
-    expected = ["folder1", "folder1/subfolder1", "folder1/subfolder2",
-                "folder2", "folder2/deep", "folder2/deep/nested", "empty_folder"]
+    expected = [
+        "folder1",
+        "folder1/subfolder1",
+        "folder1/subfolder2",
+        "folder2",
+        "folder2/deep",
+        "folder2/deep/nested",
+        "empty_folder",
+    ]
     assert sorted(folders) == sorted(expected)
 
 

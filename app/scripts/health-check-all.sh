@@ -1,10 +1,10 @@
-#!/bin/bash
+﻿#!/bin/bash
 # =============================================================================
 # Health Check All Services
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
+PROJECT_ROOT="$(dirname "$(dirname "${SCRIPT_DIR}")")"
 LOGS_DIR="${PROJECT_ROOT}/logs"
 
 # Colors
@@ -16,9 +16,9 @@ NC='\033[0m'
 
 echo -e "${CYAN}"
 cat << "EOF"
-═══════════════════════════════════════════════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
                          AI-ASSISTANT HEALTH CHECK
-═══════════════════════════════════════════════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 EOF
 echo -e "${NC}"
 
@@ -46,7 +46,7 @@ echo "${SERVICES}" | while IFS=: read -r service port endpoint; do
     
     # Check if port is listening
     if netstat -tlnp 2>/dev/null | grep -q ":${port} " || ss -tlnp 2>/dev/null | grep -q ":${port} "; then
-        status_icon="${GREEN}●${NC}"
+        status_icon="${GREEN}â—${NC}"
         status_text="${GREEN}RUNNING${NC}"
         
         # Try health endpoint
@@ -61,7 +61,7 @@ echo "${SERVICES}" | while IFS=: read -r service port endpoint; do
             fi
         fi
     else
-        status_icon="${RED}○${NC}"
+        status_icon="${RED}â—‹${NC}"
         status_text="${RED}STOPPED${NC}"
     fi
     
@@ -75,19 +75,19 @@ echo "${SERVICES}" | while IFS=: read -r service port endpoint; do
     printf "  ${status_icon} %-25s Port %-6s [%b]" "${service}" "${port}" "${status_text}"
     
     if [[ -n "${public_url}" ]]; then
-        echo -e " → ${CYAN}${public_url}${NC}"
+        echo -e " â†’ ${CYAN}${public_url}${NC}"
     else
         echo ""
     fi
 done
 
 echo ""
-echo -e "${CYAN}───────────────────────────────────────────────────────────────────────────────${NC}"
+echo -e "${CYAN}â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€${NC}"
 
 # Count running services
 running_count=$(netstat -tlnp 2>/dev/null | grep -cE ":(3000|5000|5001|5002|5003|7860|7861|7862|7863|8000) " || echo "0")
 stopped_count=$((10 - running_count))
 
 echo -e "  Summary: ${GREEN}${running_count} running${NC}, ${RED}${stopped_count} stopped${NC}"
-echo -e "${CYAN}═══════════════════════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
 echo ""

@@ -125,7 +125,7 @@ services:
     restart: unless-stopped
     working_dir: /app
     volumes:
-      - ./character_select_stand_alone_app-main:/app
+      - ./app/character_select_stand_alone_app-main:/app
       - character_select_node_modules:/app/node_modules
     ports:
       - "${CHARACTER_SELECT_PORT:-51028}:51028"

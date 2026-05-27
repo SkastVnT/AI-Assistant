@@ -84,13 +84,17 @@ class GeminiSystemInstructionContent(BaseModel):
         description="A list of ordered parts that make up a single message. "
         "Different parts may have different IANA MIME types.",
     )
-    role: GeminiRole | None = Field(..., description="The role field of systemInstruction may be ignored.")
+    role: GeminiRole | None = Field(
+        ..., description="The role field of systemInstruction may be ignored."
+    )
 
 
 class GeminiFunctionDeclaration(BaseModel):
     description: str | None = Field(None)
     name: str = Field(...)
-    parameters: dict[str, Any] = Field(..., description="JSON schema for the function parameters")
+    parameters: dict[str, Any] = Field(
+        ..., description="JSON schema for the function parameters"
+    )
 
 
 class GeminiTool(BaseModel):
@@ -156,7 +160,9 @@ class Modality(str, Enum):
 
 class ModalityTokenCount(BaseModel):
     modality: Modality | None = None
-    tokenCount: int | None = Field(None, description="Number of tokens for the given modality.")
+    tokenCount: int | None = Field(
+        None, description="Number of tokens for the given modality."
+    )
 
 
 class Probability(str, Enum):
@@ -207,7 +213,9 @@ class GeminiUsageMetadata(BaseModel):
         None,
         description="Output only. Number of tokens in the cached part in the input (the cached content).",
     )
-    candidatesTokenCount: int | None = Field(None, description="Number of tokens in the response(s).")
+    candidatesTokenCount: int | None = Field(
+        None, description="Number of tokens in the response(s)."
+    )
     candidatesTokensDetails: list[ModalityTokenCount] | None = Field(
         None, description="Breakdown of candidate tokens by modality."
     )
@@ -218,8 +226,12 @@ class GeminiUsageMetadata(BaseModel):
     promptTokensDetails: list[ModalityTokenCount] | None = Field(
         None, description="Breakdown of prompt tokens by modality."
     )
-    thoughtsTokenCount: int | None = Field(None, description="Number of tokens present in thoughts output.")
-    toolUsePromptTokenCount: int | None = Field(None, description="Number of tokens present in tool-use prompt(s).")
+    thoughtsTokenCount: int | None = Field(
+        None, description="Number of tokens present in thoughts output."
+    )
+    toolUsePromptTokenCount: int | None = Field(
+        None, description="Number of tokens present in tool-use prompt(s)."
+    )
 
 
 class GeminiGenerateContentResponse(BaseModel):

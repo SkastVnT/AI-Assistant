@@ -1,4 +1,5 @@
 """Backward-compat alias — use ``openai_provider.OpenAIProvider`` for new code."""
+
 from .openai_provider import OpenAIProvider
 
 

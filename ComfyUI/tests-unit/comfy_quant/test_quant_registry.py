@@ -6,10 +6,13 @@ import os
 # Add comfy to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+
 def has_gpu():
     return torch.cuda.is_available()
 
+
 from comfy.cli_args import args
+
 if not has_gpu():
     args.cpu = True
 
@@ -23,15 +26,15 @@ class TestQuantizedTensor(unittest.TestCase):
         """Test creating a QuantizedTensor with TensorCoreFP8Layout"""
         fp8_data = torch.randn(256, 128, dtype=torch.float32).to(torch.float8_e4m3fn)
         scale = torch.tensor(2.0)
-        layout_params = {'scale': scale, 'orig_dtype': torch.bfloat16}
+        layout_params = {"scale": scale, "orig_dtype": torch.bfloat16}
 
         qt = QuantizedTensor(fp8_data, "TensorCoreFP8Layout", layout_params)
 
         self.assertIsInstance(qt, QuantizedTensor)
         self.assertEqual(qt.shape, (256, 128))
         self.assertEqual(qt.dtype, torch.float8_e4m3fn)
-        self.assertEqual(qt._layout_params['scale'], scale)
-        self.assertEqual(qt._layout_params['orig_dtype'], torch.bfloat16)
+        self.assertEqual(qt._layout_params["scale"], scale)
+        self.assertEqual(qt._layout_params["orig_dtype"], torch.bfloat16)
         self.assertEqual(qt._layout_type, "TensorCoreFP8Layout")
 
     def test_dequantize(self):
@@ -39,7 +42,7 @@ class TestQuantizedTensor(unittest.TestCase):
 
         fp8_data = torch.ones(10, 20, dtype=torch.float32).to(torch.float8_e4m3fn)
         scale = torch.tensor(3.0)
-        layout_params = {'scale': scale, 'orig_dtype': torch.float32}
+        layout_params = {"scale": scale, "orig_dtype": torch.float32}
 
         qt = QuantizedTensor(fp8_data, "TensorCoreFP8Layout", layout_params)
         dequantized = qt.dequantize()
@@ -53,10 +56,7 @@ class TestQuantizedTensor(unittest.TestCase):
         scale = torch.tensor(1.5)
 
         qt = QuantizedTensor.from_float(
-            float_tensor,
-            "TensorCoreFP8Layout",
-            scale=scale,
-            dtype=torch.float8_e4m3fn
+            float_tensor, "TensorCoreFP8Layout", scale=scale, dtype=torch.float8_e4m3fn
         )
 
         self.assertIsInstance(qt, QuantizedTensor)
@@ -65,7 +65,9 @@ class TestQuantizedTensor(unittest.TestCase):
 
         # Verify dequantization gives approximately original values
         dequantized = qt.dequantize()
-        mean_rel_error = ((dequantized - float_tensor).abs() / (float_tensor.abs() + 1e-6)).mean()
+        mean_rel_error = (
+            (dequantized - float_tensor).abs() / (float_tensor.abs() + 1e-6)
+        ).mean()
         self.assertLess(mean_rel_error, 0.1)
 
 
@@ -76,7 +78,7 @@ class TestGenericUtilities(unittest.TestCase):
         """Test detach operation on quantized tensor"""
         fp8_data = torch.randn(10, 20, dtype=torch.float32).to(torch.float8_e4m3fn)
         scale = torch.tensor(1.5)
-        layout_params = {'scale': scale, 'orig_dtype': torch.float32}
+        layout_params = {"scale": scale, "orig_dtype": torch.float32}
         qt = QuantizedTensor(fp8_data, "TensorCoreFP8Layout", layout_params)
 
         # Detach should return a new QuantizedTensor
@@ -90,7 +92,7 @@ class TestGenericUtilities(unittest.TestCase):
         """Test clone operation on quantized tensor"""
         fp8_data = torch.randn(10, 20, dtype=torch.float32).to(torch.float8_e4m3fn)
         scale = torch.tensor(1.5)
-        layout_params = {'scale': scale, 'orig_dtype': torch.float32}
+        layout_params = {"scale": scale, "orig_dtype": torch.float32}
         qt = QuantizedTensor(fp8_data, "TensorCoreFP8Layout", layout_params)
 
         # Clone should return a new QuantizedTensor
@@ -108,15 +110,15 @@ class TestGenericUtilities(unittest.TestCase):
         """Test device transfer"""
         fp8_data = torch.randn(10, 20, dtype=torch.float32).to(torch.float8_e4m3fn)
         scale = torch.tensor(1.5)
-        layout_params = {'scale': scale, 'orig_dtype': torch.float32}
+        layout_params = {"scale": scale, "orig_dtype": torch.float32}
         qt = QuantizedTensor(fp8_data, "TensorCoreFP8Layout", layout_params)
 
         # Moving to same device should work (CPU to CPU)
-        qt_cpu = qt.to('cpu')
+        qt_cpu = qt.to("cpu")
 
         self.assertIsInstance(qt_cpu, QuantizedTensor)
-        self.assertEqual(qt_cpu.device.type, 'cpu')
-        self.assertEqual(qt_cpu._layout_params['scale'].device.type, 'cpu')
+        self.assertEqual(qt_cpu.device.type, "cpu")
+        self.assertEqual(qt_cpu._layout_params["scale"].device.type, "cpu")
 
 
 class TestTensorCoreFP8Layout(unittest.TestCase):
@@ -128,16 +130,14 @@ class TestTensorCoreFP8Layout(unittest.TestCase):
         scale = torch.tensor(1.5)
 
         qdata, layout_params = TensorCoreFP8Layout.quantize(
-            float_tensor,
-            scale=scale,
-            dtype=torch.float8_e4m3fn
+            float_tensor, scale=scale, dtype=torch.float8_e4m3fn
         )
 
         self.assertEqual(qdata.dtype, torch.float8_e4m3fn)
         self.assertEqual(qdata.shape, float_tensor.shape)
-        self.assertIn('scale', layout_params)
-        self.assertIn('orig_dtype', layout_params)
-        self.assertEqual(layout_params['orig_dtype'], torch.float32)
+        self.assertIn("scale", layout_params)
+        self.assertIn("orig_dtype", layout_params)
+        self.assertEqual(layout_params["orig_dtype"], torch.float32)
 
     def test_dequantize(self):
         """Test dequantization method"""
@@ -145,9 +145,7 @@ class TestTensorCoreFP8Layout(unittest.TestCase):
         scale = torch.tensor(1.0)
 
         qdata, layout_params = TensorCoreFP8Layout.quantize(
-            float_tensor,
-            scale=scale,
-            dtype=torch.float8_e4m3fn
+            float_tensor, scale=scale, dtype=torch.float8_e4m3fn
         )
 
         dequantized = TensorCoreFP8Layout.dequantize(qdata, **layout_params)
@@ -168,10 +166,7 @@ class TestFallbackMechanism(unittest.TestCase):
         a_fp32 = torch.randn(10, 20, dtype=torch.float32)
         scale = torch.tensor(1.0)
         a_q = QuantizedTensor.from_float(
-            a_fp32,
-            "TensorCoreFP8Layout",
-            scale=scale,
-            dtype=torch.float8_e4m3fn
+            a_fp32, "TensorCoreFP8Layout", scale=scale, dtype=torch.float8_e4m3fn
         )
 
         # Call an operation that doesn't have a registered handler

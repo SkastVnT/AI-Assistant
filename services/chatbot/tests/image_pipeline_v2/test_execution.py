@@ -26,7 +26,6 @@ if str(_ROOT) not in sys.path:
 from dataclasses import dataclass
 
 import pytest
-
 from image_pipeline.reasoning.execution import (
     ExecutionPlan,
     ExecutionStep,
@@ -50,7 +49,6 @@ from image_pipeline.reasoning.schemas import (
     SinglePanelSpec,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -72,6 +70,7 @@ def _route_fn_factory(model: str = "sdxl_base.safetensors", cost: float = 0.0):
             location="local",
             cost_usd=cost,
         )
+
     return route_fn
 
 
@@ -95,9 +94,7 @@ def panel_with_overlay_and_props() -> SinglePanelSpec:
         scene_description="cafe",
         action_description="she holds a red phone",
         aspect_ratio="3:4",
-        prop_requirements=(
-            PropRequirement(prop_key="red_phone", must_appear=True),
-        ),
+        prop_requirements=(PropRequirement(prop_key="red_phone", must_appear=True),),
         overlay_plan=OverlayPlan(
             elements=(
                 OverlayElement(
@@ -231,9 +228,7 @@ class TestPlanPanel:
         assert plan.render_step.params["cfg"] == 4.0
 
     def test_aspect_propagates(self, panel_with_overlay_and_props):
-        plan = plan_panel(
-            panel_with_overlay_and_props, route_fn=_route_fn_factory()
-        )
+        plan = plan_panel(panel_with_overlay_and_props, route_fn=_route_fn_factory())
         assert plan.aspect_ratio == "3:4"
         assert plan.height == 1024
         assert plan.width < 1024
@@ -278,6 +273,7 @@ class TestExecutionPlanInvariants:
         as_dict = plan.to_dict()
         # Must be JSON-friendly.
         import json
+
         json.dumps(as_dict)
 
 
@@ -307,9 +303,7 @@ class TestBuildWorkflow:
             simple_panel, route_fn=_route_fn_factory(model="my_custom.safetensors")
         )
         wf = build_workflow(plan)
-        ckpts = [
-            n for n in wf.values() if n["class_type"] == "CheckpointLoaderSimple"
-        ]
+        ckpts = [n for n in wf.values() if n["class_type"] == "CheckpointLoaderSimple"]
         assert ckpts[0]["inputs"]["ckpt_name"] == "my_custom.safetensors"
 
     def test_face_patch_appends_inpaint_subgraph(self, simple_panel):
@@ -353,7 +347,7 @@ class TestBuildWorkflow:
     def test_node_ids_are_strings_and_unique(self, simple_panel):
         plan = plan_panel(simple_panel, route_fn=_route_fn_factory())
         wf = build_workflow(plan)
-        assert all(isinstance(k, str) for k in wf.keys())
+        assert all(isinstance(k, str) for k in wf)
         assert len(wf) == len(set(wf.keys()))
 
     def test_workflow_is_json_serializable(self, simple_panel):
@@ -363,6 +357,7 @@ class TestBuildWorkflow:
             required_stages=("face_patch", "upscale"),
         )
         import json
+
         json.dumps(build_workflow(plan))
 
 
@@ -450,7 +445,7 @@ class TestRunner:
 
 
 class TestExecutionHygiene:
-    EXECUTION_DIR = _ROOT / "image_pipeline" / "reasoning" / "execution"
+    EXECUTION_DIR = _ROOT / "app" / "image_pipeline" / "reasoning" / "execution"
 
     def test_no_load_dotenv(self):
         offenders = [

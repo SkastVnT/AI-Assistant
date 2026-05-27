@@ -87,7 +87,9 @@ async def validate_and_cast_response(response, timeout: int = None) -> torch.Ten
             img_io = BytesIO()
             await download_url_to_bytesio(img_data.url, img_io, timeout=timeout)
         else:
-            raise ValueError("Invalid image payload – neither URL nor base64 data present.")
+            raise ValueError(
+                "Invalid image payload – neither URL nor base64 data present."
+            )
 
         pil_img = Image.open(img_io).convert("RGBA")
         arr = np.asarray(pil_img).astype(np.float32) / 255.0
@@ -97,7 +99,6 @@ async def validate_and_cast_response(response, timeout: int = None) -> torch.Ten
 
 
 class OpenAIDalle2(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -230,7 +231,6 @@ class OpenAIDalle2(IO.ComfyNode):
 
 
 class OpenAIDalle3(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -249,7 +249,7 @@ class OpenAIDalle3(IO.ComfyNode):
                     "seed",
                     default=0,
                     min=0,
-                    max=2 ** 31 - 1,
+                    max=2**31 - 1,
                     step=1,
                     display_mode=IO.NumberDisplay.number,
                     control_after_generate=True,
@@ -319,17 +319,24 @@ class OpenAIDalle3(IO.ComfyNode):
         return IO.NodeOutput(await validate_and_cast_response(response))
 
 
-def calculate_tokens_price_image_1(response: OpenAIImageGenerationResponse) -> float | None:
+def calculate_tokens_price_image_1(
+    response: OpenAIImageGenerationResponse,
+) -> float | None:
     # https://platform.openai.com/docs/pricing
-    return ((response.usage.input_tokens * 10.0) + (response.usage.output_tokens * 40.0)) / 1_000_000.0
+    return (
+        (response.usage.input_tokens * 10.0) + (response.usage.output_tokens * 40.0)
+    ) / 1_000_000.0
 
 
-def calculate_tokens_price_image_1_5(response: OpenAIImageGenerationResponse) -> float | None:
-    return ((response.usage.input_tokens * 8.0) + (response.usage.output_tokens * 32.0)) / 1_000_000.0
+def calculate_tokens_price_image_1_5(
+    response: OpenAIImageGenerationResponse,
+) -> float | None:
+    return (
+        (response.usage.input_tokens * 8.0) + (response.usage.output_tokens * 32.0)
+    ) / 1_000_000.0
 
 
 class OpenAIGPTImage1(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -348,7 +355,7 @@ class OpenAIGPTImage1(IO.ComfyNode):
                     "seed",
                     default=0,
                     min=0,
-                    max=2 ** 31 - 1,
+                    max=2**31 - 1,
                     step=1,
                     display_mode=IO.NumberDisplay.number,
                     control_after_generate=True,
@@ -442,8 +449,10 @@ class OpenAIGPTImage1(IO.ComfyNode):
             files = []
             batch_size = image.shape[0]
             for i in range(batch_size):
-                single_image = image[i: i + 1]
-                scaled_image = downscale_image_tensor(single_image, total_pixels=2048*2048).squeeze()
+                single_image = image[i : i + 1]
+                scaled_image = downscale_image_tensor(
+                    single_image, total_pixels=2048 * 2048
+                ).squeeze()
 
                 image_np = (scaled_image.numpy() * 255).astype(np.uint8)
                 img = Image.fromarray(image_np)
@@ -452,9 +461,13 @@ class OpenAIGPTImage1(IO.ComfyNode):
                 img_byte_arr.seek(0)
 
                 if batch_size == 1:
-                    files.append(("image", (f"image_{i}.png", img_byte_arr, "image/png")))
+                    files.append(
+                        ("image", (f"image_{i}.png", img_byte_arr, "image/png"))
+                    )
                 else:
-                    files.append(("image[]", (f"image_{i}.png", img_byte_arr, "image/png")))
+                    files.append(
+                        ("image[]", (f"image_{i}.png", img_byte_arr, "image/png"))
+                    )
 
             if mask is not None:
                 if image.shape[0] != 1:
@@ -465,7 +478,9 @@ class OpenAIGPTImage1(IO.ComfyNode):
                 rgba_mask = torch.zeros(height, width, 4, device="cpu")
                 rgba_mask[:, :, 3] = 1 - mask.squeeze().cpu()
 
-                scaled_mask = downscale_image_tensor(rgba_mask.unsqueeze(0), total_pixels=2048*2048).squeeze()
+                scaled_mask = downscale_image_tensor(
+                    rgba_mask.unsqueeze(0), total_pixels=2048 * 2048
+                ).squeeze()
 
                 mask_np = (scaled_mask.numpy() * 255).astype(np.uint8)
                 mask_img = Image.fromarray(mask_np)
@@ -579,9 +594,7 @@ class OpenAIChatNode(IO.ComfyNode):
         raise TypeError("No output message found in response")
 
     @classmethod
-    def get_text_from_message_content(
-        cls, message_content: list[OutputContent]
-    ) -> str:
+    def get_text_from_message_content(cls, message_content: list[OutputContent]) -> str:
         """Extract text content from message content."""
         for content_item in message_content:
             if content_item.root.type == "output_text":
@@ -607,7 +620,9 @@ class OpenAIChatNode(IO.ComfyNode):
         files: list[InputFileContent] | None = None,
     ) -> InputMessageContentList:
         """Create a list of input message contents from prompt and optional image."""
-        content_list: list[InputContent | InputTextContent | InputImageContent | InputFileContent] = [
+        content_list: list[
+            InputContent | InputTextContent | InputImageContent | InputFileContent
+        ] = [
             InputTextContent(text=prompt, type="input_text"),
         ]
         if image is not None:
@@ -670,13 +685,17 @@ class OpenAIChatNode(IO.ComfyNode):
 
         # Get result output
         result_response = await poll_op(
-                cls,
-                ApiEndpoint(path=f"{RESPONSES_ENDPOINT}/{response_id}"),
-                response_model=OpenAIResponse,
-                status_extractor=lambda response: response.status,
-                completed_statuses=["incomplete", "completed"]
+            cls,
+            ApiEndpoint(path=f"{RESPONSES_ENDPOINT}/{response_id}"),
+            response_model=OpenAIResponse,
+            status_extractor=lambda response: response.status,
+            completed_statuses=["incomplete", "completed"],
+        )
+        return IO.NodeOutput(
+            cls.get_text_from_message_content(
+                cls.get_message_content_from_response(result_response)
             )
-        return IO.NodeOutput(cls.get_text_from_message_content(cls.get_message_content_from_response(result_response)))
+        )
 
 
 class OpenAIInputFiles(IO.ComfyNode):
@@ -732,7 +751,9 @@ class OpenAIInputFiles(IO.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, file: str, OPENAI_INPUT_FILES: list[InputFileContent] = []) -> IO.NodeOutput:
+    def execute(
+        cls, file: str, OPENAI_INPUT_FILES: list[InputFileContent] = []
+    ) -> IO.NodeOutput:
         """
         Loads and formats input files for OpenAI API.
         """

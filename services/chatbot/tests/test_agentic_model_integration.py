@@ -9,6 +9,7 @@ Covers:
   • LLMAdapter — call routing, missing handler, error handling
   • BaseAgent._call_llm — adapter injection and lazy creation
 """
+
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -20,16 +21,14 @@ pytestmark = pytest.mark.agentic
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from core.agentic.agents.base import BaseAgent, LLMCallResult
-from core.agentic.config import CouncilConfig, DEFAULT_AGENT_MODELS
+from core.agentic.config import DEFAULT_AGENT_MODELS, CouncilConfig
 from core.agentic.contracts import AgentRole
 from core.agentic.llm_adapter import LLMAdapter
 from core.agentic.model_resolver import (
     ROLE_FALLBACK_CHAINS,
-    _GLOBAL_FALLBACK,
     resolve_all_roles,
     resolve_model,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # model_resolver tests
@@ -100,7 +99,7 @@ class TestResolveAllRoles:
 
     def test_returns_all_four_roles(self):
         result = resolve_all_roles()
-        assert set(result.keys()) == {r for r in AgentRole}
+        assert set(result.keys()) == set(AgentRole)
 
     def test_preferred_overrides_applied(self):
         result = resolve_all_roles(preferred_planner="qwen", preferred_critic="gemini")
@@ -241,8 +240,10 @@ class TestLLMAdapter:
 # BaseAgent._call_llm integration tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class _StubAgent(BaseAgent):
     """Minimal concrete agent for testing _call_llm."""
+
     role = AgentRole.planner
 
     async def execute(self, state):
@@ -302,7 +303,8 @@ class TestEndToEnd:
     def test_resolver_to_adapter(self):
         available = {"grok", "deepseek"}
         registry, handler, _ = _make_mock_registry(
-            available=available, response_content="e2e answer",
+            available=available,
+            response_content="e2e answer",
         )
         adapter = LLMAdapter(registry)
 

@@ -17,9 +17,9 @@ phase 1. It is a pure, testable core layer:
 Resolver priority
 -----------------
 1. ``selected_character`` payload from the UI (if provided).
-2. Local :class:`CharacterRegistry` (``storage/character_db/``).
+2. Local :class:`CharacterRegistry` (``app/storage/character_db/``).
 3. SAA standalone-app DB (``image_pipeline.anime_pipeline.saa_character_db``)
-   via lazy import — fail-safe if SAA data is absent.
+   via lazy import â€” fail-safe if SAA data is absent.
 4. Built-in alias table (small, hard-coded, for common short aliases).
 5. Unresolved.
 
@@ -30,11 +30,12 @@ A future variant suffix ``:<variant_slug>`` is reserved but unused.
 
 Ambiguity handling
 ------------------
-When two or more high-confidence candidates exist (e.g. ``Rem`` →
+When two or more high-confidence candidates exist (e.g. ``Rem`` â†’
 re:zero / generic ``rem_sleep``), the result is marked
 ``ambiguous=True`` and **all** candidates are returned. Callers MUST
-NOT auto-attach LoRA in that case — they should ask the user.
+NOT auto-attach LoRA in that case â€” they should ask the user.
 """
+
 from __future__ import annotations
 
 import logging
@@ -42,47 +43,49 @@ import re
 import unicodedata
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 
-# ── Public dataclasses ───────────────────────────────────────────────────────
+# â”€â”€ Public dataclasses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
 
 @dataclass(frozen=True)
 class CharacterCandidate:
     """A single resolved (or partially-resolved) character identity."""
-    canonical_id: str            # "<character_slug>@<series_slug>"
-    character_slug: str          # "hu_tao"
-    series_slug: str             # "genshin_impact" — "" if unknown
-    display_name: str            # "Hu Tao"
-    series_name: str             # "Genshin Impact" — "" if unknown
-    source: str                  # "selected" | "registry" | "saa" | "alias_table"
-    confidence: float            # 0.0–1.0
+
+    canonical_id: str  # "<character_slug>@<series_slug>"
+    character_slug: str  # "hu_tao"
+    series_slug: str  # "genshin_impact" â€” "" if unknown
+    display_name: str  # "Hu Tao"
+    series_name: str  # "Genshin Impact" â€” "" if unknown
+    source: str  # "selected" | "registry" | "saa" | "alias_table"
+    confidence: float  # 0.0â€“1.0
     aliases: tuple[str, ...] = ()
-    lora_hint: Optional[str] = None
-    variant_slug: Optional[str] = None  # reserved for phase 2
+    lora_hint: str | None = None
+    variant_slug: str | None = None  # reserved for phase 2
 
 
 @dataclass
 class CharacterUnderstandingResult:
     """Outcome of one resolve call. See :func:`resolve_character`."""
+
     query: str
     resolved: bool
     ambiguous: bool
     candidates: list[CharacterCandidate] = field(default_factory=list)
     reason: str = ""
-    # Phase 2 — unknown / low-data fallback support. All optional, all
+    # Phase 2 â€” unknown / low-data fallback support. All optional, all
     # backward-compatible: legacy callers reading the original fields
     # continue to work unchanged.
-    mode: str = ""                 # "resolved_known" | "ambiguous" |
-                                   # "low_data_profile" | "unresolved_unknown" | ""
-    unknown_profile: Optional["UnknownCharacterProfile"] = None
+    mode: str = ""  # "resolved_known" | "ambiguous" |
+    # "low_data_profile" | "unresolved_unknown" | ""
+    unknown_profile: UnknownCharacterProfile | None = None
     safe_to_attach_lora: bool = False
     character_identity_block: str = ""
 
     @property
-    def best(self) -> Optional[CharacterCandidate]:
+    def best(self) -> CharacterCandidate | None:
         """The single best candidate, or ``None`` if unresolved/ambiguous."""
         if self.ambiguous or not self.candidates:
             return None
@@ -114,7 +117,8 @@ class CharacterUnderstandingResult:
             ],
             "unknown_profile": (
                 self.unknown_profile.to_dict()
-                if self.unknown_profile is not None else None
+                if self.unknown_profile is not None
+                else None
             ),
         }
 
@@ -126,13 +130,16 @@ class UnknownCharacterProfile:
     Created when a user references a character that none of the local
     sources (``selected_character`` payload, registry, SAA, alias table)
     can identify, OR when a manual override is the only source of
-    metadata. NEVER drives LoRA selection — the resolver flips
+    metadata. NEVER drives LoRA selection â€” the resolver flips
     ``safe_to_attach_lora`` to ``False`` whenever this is set.
     """
-    provisional_id: str            # "unknown:<char>@<series>" or canonical_id (override)
-    raw_name: str                  # what the user actually typed
-    possible_series: str = ""      # canonical series_slug, or "" if unknown
-    profile_source: str = "unknown"  # "prompt" | "manual_override" | "payload" | "unknown"
+
+    provisional_id: str  # "unknown:<char>@<series>" or canonical_id (override)
+    raw_name: str  # what the user actually typed
+    possible_series: str = ""  # canonical series_slug, or "" if unknown
+    profile_source: str = (
+        "unknown"  # "prompt" | "manual_override" | "payload" | "unknown"
+    )
     visual_traits: list[str] = field(default_factory=list)
     outfit_traits: list[str] = field(default_factory=list)
     personality_traits: list[str] = field(default_factory=list)
@@ -141,7 +148,7 @@ class UnknownCharacterProfile:
     confidence: float = 0.0
     needs_user_confirmation: bool = True
     reason: str = ""
-    # Phase 4 — generic profile metadata. ``data_status`` mirrors the
+    # Phase 4 â€” generic profile metadata. ``data_status`` mirrors the
     # parent result's ``mode`` for self-contained JSON ("unknown" |
     # "manual_override" | "low_data" | "ambiguous"). ``needs_review`` is
     # an alias of ``needs_user_confirmation`` exposed under the spec name.
@@ -167,7 +174,7 @@ class UnknownCharacterProfile:
         }
 
 
-# ── Slug helpers ─────────────────────────────────────────────────────────────
+# â”€â”€ Slug helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 _SLUG_NON_WORD = re.compile(r"[^a-z0-9]+")
 
@@ -190,51 +197,52 @@ def make_canonical_id(character_slug: str, series_slug: str) -> str:
     return f"{c}@{s}" if s else f"{c}@"
 
 
-# ── Built-in alias table ─────────────────────────────────────────────────────
+# â”€â”€ Built-in alias table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Maps a normalized short alias to one or more candidate descriptors.
-# Multiple entries → ambiguity → caller must ask.
+# Multiple entries â†’ ambiguity â†’ caller must ask.
 #
 # Format: alias_key -> tuple of (character_slug, series_slug, display_name,
 #                                series_name, lora_hint_or_none)
-_ALIAS_TABLE: dict[str, tuple[tuple[str, str, str, str, Optional[str]], ...]] = {
-    # Genshin Impact — Hu Tao
+_ALIAS_TABLE: dict[str, tuple[tuple[str, str, str, str, str | None], ...]] = {
+    # Genshin Impact â€” Hu Tao
     "hutao": (("hu_tao", "genshin_impact", "Hu Tao", "Genshin Impact", None),),
     "hu_tao": (("hu_tao", "genshin_impact", "Hu Tao", "Genshin Impact", None),),
-
-    # Genshin Impact — Yae Miko (collides with generic shrine_miko if "miko")
+    # Genshin Impact â€” Yae Miko (collides with generic shrine_miko if "miko")
     "yae": (("yae_miko", "genshin_impact", "Yae Miko", "Genshin Impact", None),),
     "yae_miko": (("yae_miko", "genshin_impact", "Yae Miko", "Genshin Impact", None),),
     "miko": (
         ("yae_miko", "genshin_impact", "Yae Miko", "Genshin Impact", None),
         ("shrine_miko", "generic", "Shrine Miko", "Generic", None),
     ),
-
-    # Honkai Star Rail — Sparkle (collides with generic sparkle effect)
+    # Honkai Star Rail â€” Sparkle (collides with generic sparkle effect)
     "sparkle": (
         ("sparkle", "honkai_star_rail", "Sparkle", "Honkai: Star Rail", None),
         ("sparkle_effect", "generic", "Sparkle Effect", "Generic", None),
     ),
-
-    # Re:Zero — Rem (collides with generic rem_sleep)
+    # Re:Zero â€” Rem (collides with generic rem_sleep)
     "rem": (
         ("rem", "rezero", "Rem", "Re:Zero", None),
         ("rem_sleep", "generic", "REM Sleep", "Generic", None),
     ),
-
-    # Fate — Saber (highly ambiguous, lots of Sabers; treat as ambiguous
+    # Fate â€” Saber (highly ambiguous, lots of Sabers; treat as ambiguous
     # between two of the most common references).
     "saber": (
-        ("artoria_pendragon", "fate_stay_night", "Artoria Pendragon",
-         "Fate/stay night", None),
-        ("saber_alter", "fate_stay_night", "Saber Alter",
-         "Fate/stay night", None),
+        (
+            "artoria_pendragon",
+            "fate_stay_night",
+            "Artoria Pendragon",
+            "Fate/stay night",
+            None,
+        ),
+        ("saber_alter", "fate_stay_night", "Saber Alter", "Fate/stay night", None),
     ),
 }
 
 
-# ── Resolver entry points ────────────────────────────────────────────────────
+# â”€â”€ Resolver entry points â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-def _from_selected(payload: dict) -> Optional[CharacterCandidate]:
+
+def _from_selected(payload: dict) -> CharacterCandidate | None:
     """Build a candidate from a UI payload. Trusts the UI fully."""
     if not isinstance(payload, dict):
         return None
@@ -261,6 +269,7 @@ def _from_registry(query: str) -> list[CharacterCandidate]:
     """Look up via :class:`CharacterRegistry`. Empty list on any failure."""
     try:
         from core.character_registry import get_registry  # noqa: PLC0415
+
         registry = get_registry()
     except Exception as exc:
         logger.debug("character_understanding: registry unavailable (%s)", exc)
@@ -269,7 +278,7 @@ def _from_registry(query: str) -> list[CharacterCandidate]:
     out: list[CharacterCandidate] = []
     seen: set[str] = set()
 
-    # Direct resolve (alias-aware) → highest confidence single hit.
+    # Direct resolve (alias-aware) â†’ highest confidence single hit.
     try:
         rec = registry.resolve_query(query)
     except Exception as exc:
@@ -280,7 +289,7 @@ def _from_registry(query: str) -> list[CharacterCandidate]:
         out.append(_record_to_candidate(rec, confidence=0.95))
         seen.add(cid)
 
-    # Collision detection — same display name in multiple series.
+    # Collision detection â€” same display name in multiple series.
     try:
         collisions = registry.detect_collisions(query)
     except Exception:
@@ -311,7 +320,7 @@ def _record_to_candidate(rec, confidence: float) -> CharacterCandidate:
     )
 
 
-def _from_saa(query: str) -> Optional[CharacterCandidate]:
+def _from_saa(query: str) -> CharacterCandidate | None:
     """Lazy SAA lookup. Returns ``None`` if SAA is unavailable or no hit."""
     try:
         from image_pipeline.anime_pipeline.saa_character_db import (  # noqa: PLC0415
@@ -335,13 +344,14 @@ def _from_saa(query: str) -> Optional[CharacterCandidate]:
     # SAA's match_score is 0..1 already; clamp & dampen lightly because
     # SAA matches by substring and can over-trigger.
     final_conf = max(0.0, min(1.0, float(match.match_score) * 0.85))
-    # Confidence floor — below this, SAA is more likely substring noise
+    # Confidence floor â€” below this, SAA is more likely substring noise
     # than a real identity. The route-level auto-attach gate is 0.8, so
     # keeping low-confidence SAA hits would just produce ambiguous /
     # never-attached candidates that confuse callers. Drop them.
     if final_conf < 0.6:
         logger.debug(
-            "character_understanding: SAA confidence %.2f below floor — discarded", final_conf,
+            "character_understanding: SAA confidence %.2f below floor â€” discarded",
+            final_conf,
         )
         return None
     return CharacterCandidate(
@@ -363,36 +373,70 @@ def _from_alias_table(query: str) -> list[CharacterCandidate]:
     entries = _ALIAS_TABLE[key]
     out: list[CharacterCandidate] = []
     for char_slug, series_slug, display, series, lora_hint in entries:
-        out.append(CharacterCandidate(
-            canonical_id=make_canonical_id(char_slug, series_slug),
-            character_slug=_slugify(char_slug),
-            series_slug=_slugify(series_slug),
-            display_name=display,
-            series_name=series,
-            source="alias_table",
-            confidence=0.8 if len(entries) == 1 else 0.6,
-            lora_hint=lora_hint,
-        ))
+        out.append(
+            CharacterCandidate(
+                canonical_id=make_canonical_id(char_slug, series_slug),
+                character_slug=_slugify(char_slug),
+                series_slug=_slugify(series_slug),
+                display_name=display,
+                series_name=series,
+                source="alias_table",
+                confidence=0.8 if len(entries) == 1 else 0.6,
+                lora_hint=lora_hint,
+            )
+        )
     return out
 
 
-# ── Sentence-aware helpers ───────────────────────────────────────────────────
+# â”€â”€ Sentence-aware helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 # Words ignored when deciding whether the query is a "sentence" vs a bare
 # name. Conservative: only the most common Vietnamese/English filler words
 # that frame an image request.
-_PROMPT_NOISE = frozenset({
-    "anh", "tranh", "hinh", "ve", "cho", "mot", "bucanh", "mac",
-    "trong", "voi", "cua", "den", "cai", "buc",
-    # Vietnamese generic noun-prefix "nhân vật" ("character"). Both tokens
-    # are filtered so prompts like "nhân vật Sparkle trong HSR" reduce to
-    # candidate "sparkle". Protagonist phrases ("nhan vat main nu") are
-    # detected on the pre-noise token slice, so this filter is safe.
-    "nhan", "vat",
-    "draw", "paint", "sketch", "render", "make", "create", "generate",
-    "image", "picture", "of", "a", "an", "the", "in", "with", "and", "for",
-    "wearing", "at", "on",
-})
+_PROMPT_NOISE = frozenset(
+    {
+        "anh",
+        "tranh",
+        "hinh",
+        "ve",
+        "cho",
+        "mot",
+        "bucanh",
+        "mac",
+        "trong",
+        "voi",
+        "cua",
+        "den",
+        "cai",
+        "buc",
+        # Vietnamese generic noun-prefix "nhÃ¢n váº­t" ("character"). Both tokens
+        # are filtered so prompts like "nhÃ¢n váº­t Sparkle trong HSR" reduce to
+        # candidate "sparkle". Protagonist phrases ("nhan vat main nu") are
+        # detected on the pre-noise token slice, so this filter is safe.
+        "nhan",
+        "vat",
+        "draw",
+        "paint",
+        "sketch",
+        "render",
+        "make",
+        "create",
+        "generate",
+        "image",
+        "picture",
+        "of",
+        "a",
+        "an",
+        "the",
+        "in",
+        "with",
+        "and",
+        "for",
+        "wearing",
+        "at",
+        "on",
+    }
+)
 
 
 def _query_tokens(query: str) -> list[str]:
@@ -414,6 +458,7 @@ def _series_hints_in_tokens(tokens: set[str]) -> set[str]:
     """
     try:
         from core.character_registry import get_registry  # noqa: PLC0415
+
         registry = get_registry()
         all_series = registry.list_series()
     except Exception:
@@ -446,7 +491,7 @@ def _scan_alias_table_in_sentence(tokens: list[str]) -> list[CharacterCandidate]
     return out
 
 
-def _resolve_sentence(query: str) -> Optional[CharacterUnderstandingResult]:
+def _resolve_sentence(query: str) -> CharacterUnderstandingResult | None:
     """Sentence-aware path. Returns a result when at least one name token
     matches the alias table or registry; ``None`` otherwise (caller may
     fall back to short-query handling)."""
@@ -468,6 +513,7 @@ def _resolve_sentence(query: str) -> Optional[CharacterUnderstandingResult]:
     # appear as a contiguous slug-token in the sentence.
     try:
         from core.character_registry import get_registry  # noqa: PLC0415
+
         registry = get_registry()
         for rec in registry.list_all():
             haystacks: list[str] = [rec.display_name, rec.character_tag, rec.key]
@@ -493,11 +539,12 @@ def _resolve_sentence(query: str) -> Optional[CharacterUnderstandingResult]:
     # candidates whose series doesn't match.
     if series_hints:
         filtered = {
-            cid: c for cid, c in candidates.items()
+            cid: c
+            for cid, c in candidates.items()
             if not c.series_slug or c.series_slug in series_hints
         }
         if filtered:
-            # Boost confidence of survivors — series match is strong signal.
+            # Boost confidence of survivors â€” series match is strong signal.
             for cid in list(filtered):
                 c = filtered[cid]
                 if c.series_slug in series_hints:
@@ -507,19 +554,26 @@ def _resolve_sentence(query: str) -> Optional[CharacterUnderstandingResult]:
     cands = sorted(candidates.values(), key=lambda x: -x.confidence)
     if len(cands) == 1:
         return CharacterUnderstandingResult(
-            query=query, resolved=True, ambiguous=False,
-            candidates=cands, reason=f"sentence: single {cands[0].source} hit",
+            query=query,
+            resolved=True,
+            ambiguous=False,
+            candidates=cands,
+            reason=f"sentence: single {cands[0].source} hit",
         )
 
     top, second = cands[0], cands[1]
     if top.confidence >= 0.8 and (top.confidence - second.confidence) >= 0.2:
         return CharacterUnderstandingResult(
-            query=query, resolved=True, ambiguous=False,
+            query=query,
+            resolved=True,
+            ambiguous=False,
             candidates=[top],
             reason=f"sentence: top dominates ({top.confidence:.2f} vs {second.confidence:.2f})",
         )
     return CharacterUnderstandingResult(
-        query=query, resolved=False, ambiguous=True,
+        query=query,
+        resolved=False,
+        ambiguous=True,
         candidates=cands,
         reason=f"sentence: {len(cands)} candidates within band",
     )
@@ -530,12 +584,12 @@ def _is_subseq(needle: list[str], haystack: list[str]) -> bool:
     if not needle:
         return False
     n = len(needle)
-    return any(haystack[i:i + n] == needle for i in range(len(haystack) - n + 1))
+    return any(haystack[i : i + n] == needle for i in range(len(haystack) - n + 1))
 
 
-# ── Unknown / low-data fallback ──────────────────────────────────────────────
+# â”€â”€ Unknown / low-data fallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-# Series alias map (slugified phrase → canonical series_slug). Small &
+# Series alias map (slugified phrase â†’ canonical series_slug). Small &
 # extensible; extend as more series are seen in the wild. Multi-token keys
 # win over single-token keys via longest-match scanning.
 _SERIES_ALIAS_MAP: dict[str, str] = {
@@ -560,22 +614,51 @@ _SERIES_ALIAS_MAP: dict[str, str] = {
 }
 
 # Connector words that introduce a series phrase: "X trong Y", "X from Y".
-_CONNECTOR_TOKENS = frozenset({
-    "trong", "tu", "cua",      # Vietnamese: trong / từ / của
-    "from", "in", "of",        # English
-})
+_CONNECTOR_TOKENS = frozenset(
+    {
+        "trong",
+        "tu",
+        "cua",  # Vietnamese: trong / tá»« / cá»§a
+        "from",
+        "in",
+        "of",  # English
+    }
+)
 
-# Action / outfit / scene tokens — anything after one of these is residual,
+# Action / outfit / scene tokens â€” anything after one of these is residual,
 # not character identity. Used both for residual extraction and as a
 # secondary stop boundary for the candidate-name span.
-_ACTION_TOKENS = frozenset({
-    # Vietnamese
-    "mac", "dung", "ngoi", "choi", "cam", "cau", "chay", "bay",
-    "tren", "duoi", "ben", "voi", "o", "den",
-    # English
-    "wearing", "standing", "sitting", "playing", "holding", "fishing",
-    "flying", "on", "beside", "with", "at",
-})
+_ACTION_TOKENS = frozenset(
+    {
+        # Vietnamese
+        "mac",
+        "dung",
+        "ngoi",
+        "choi",
+        "cam",
+        "cau",
+        "chay",
+        "bay",
+        "tren",
+        "duoi",
+        "ben",
+        "voi",
+        "o",
+        "den",
+        # English
+        "wearing",
+        "standing",
+        "sitting",
+        "playing",
+        "holding",
+        "fishing",
+        "flying",
+        "on",
+        "beside",
+        "with",
+        "at",
+    }
+)
 
 
 def _looks_named(original: str, candidate_slug: str) -> bool:
@@ -585,7 +668,7 @@ def _looks_named(original: str, candidate_slug: str) -> bool:
         return False
     cand_tokens = set(candidate_slug.split("_"))
     # Match Latin + extended Latin (Vietnamese diacritics included).
-    for raw_word in re.findall(r"[A-Za-zÀ-ỹ]+", original):
+    for raw_word in re.findall(r"[A-Za-z\u00C0-\u1EF9]+", original):
         if not raw_word:
             continue
         if _slugify(raw_word) in cand_tokens and raw_word[0].isupper():
@@ -593,12 +676,14 @@ def _looks_named(original: str, candidate_slug: str) -> bool:
     return False
 
 
-# Negation patterns — "không phải X" / "not X" / "khong phai X". Captured X
+# Negation patterns â€” "khÃ´ng pháº£i X" / "not X" / "khong phai X". Captured X
 # is appended to the unknown profile's negative_identity_guard so the
 # downstream prompt explicitly avoids that identity.
 _NEGATION_PATTERNS = (
-    re.compile(r"kh[oô]ng\s+ph[aả]i\s+([A-Za-zÀ-ỹ][A-Za-zÀ-ỹ\s]*?)(?:[,.;!?]|$)",
-               re.IGNORECASE),
+    re.compile(
+        r"kh[o\u00F4]ng\s+ph[a\u1EA3]i\s+([A-Za-z\u00C0-\u1EF9][A-Za-z\u00C0-\u1EF9\s]*?)(?:[,.;!?]|$)",
+        re.IGNORECASE,
+    ),
     re.compile(r"\bnot\s+([A-Za-z][A-Za-z\s]*?)(?:[,.;!?]|$)", re.IGNORECASE),
 )
 
@@ -633,16 +718,16 @@ def _normalize_protagonist_phrase(slug: str) -> str:
     return slug
 
 
-# Style markers — when present, the series alias should be treated as a
+# Style markers â€” when present, the series alias should be treated as a
 # *style* reference rather than a character/series identity (unless an
 # explicit known character was named).
 _STYLE_TOKENS = frozenset({"style", "kieu"})  # "phong cach" handled as phrase
 _OC_TOKENS = frozenset({"oc"})
 
-# Multi-character connector — a capitalized name + "và"/"and" + capitalized
+# Multi-character connector â€” a capitalized name + "vÃ "/"and" + capitalized
 # name signals the prompt references multiple characters.
 _MULTI_CHAR_RE = re.compile(
-    r"\b[A-ZÀ-Ỹ][A-Za-zÀ-ỹ]+\s+(?:v[aà]|and)\s+[A-ZÀ-Ỹ][A-Za-zÀ-ỹ]+\b"
+    r"\b[A-Z\u00C0-\u1EF8][A-Za-z\u00C0-\u1EF9]+\s+(?:v[a\u00E0]|and)\s+[A-Z\u00C0-\u1EF8][A-Za-z\u00C0-\u1EF9]+\b"
 )
 
 
@@ -652,7 +737,7 @@ def _has_phrase(tokens: list[str], phrase: tuple[str, ...]) -> bool:
     if n == 0 or n > len(tokens):
         return False
     target = list(phrase)
-    return any(tokens[i:i + n] == target for i in range(len(tokens) - n + 1))
+    return any(tokens[i : i + n] == target for i in range(len(tokens) - n + 1))
 
 
 def _word_spans(text: str) -> list[str]:
@@ -666,7 +751,7 @@ def _raw_name_from_words(words: list[str], name_tokens: list[str]) -> str:
 
     Used so prompts like ``"Iroha trong Kaguya..."`` produce
     ``raw_character_query == "Iroha"`` (preserving capitalization), while
-    ``"klee câu cá bằng bom"`` produces ``"klee"`` (lowercase preserved).
+    ``"klee cÃ¢u cÃ¡ báº±ng bom"`` produces ``"klee"`` (lowercase preserved).
     """
     if not name_tokens:
         return ""
@@ -690,7 +775,7 @@ def _raw_residual_from_words(words: list[str]) -> str:
     """Return original-cased prompt tail starting at the first action token.
 
     Preserves Vietnamese diacritics so prompt-builders downstream see
-    ``"câu cá bằng bom"`` instead of slug-form ``"cau ca bang bom"``.
+    ``"cÃ¢u cÃ¡ báº±ng bom"`` instead of slug-form ``"cau ca bang bom"``.
     """
     out: list[str] = []
     collecting = False
@@ -706,28 +791,28 @@ def _raw_residual_from_words(words: list[str]) -> str:
 def extract_prompt_entities(prompt: str) -> dict:
     """Rule-based prompt entity extraction.
 
-    Pure heuristic — never raises, no network, no model. The return dict
+    Pure heuristic â€” never raises, no network, no model. The return dict
     is JSON-serializable and contains both the spec-required keys and a
     set of legacy keys preserved for backward compatibility.
 
     Spec fields
     -----------
-    - ``raw_character_query``     — original-cased character name
+    - ``raw_character_query``     â€” original-cased character name
       (e.g. ``"Iroha"``, ``"klee"``, ``""``).
-    - ``series_hint``             — canonical series slug
+    - ``series_hint``             â€” canonical series slug
       (e.g. ``"cosmic_princess_kaguya"``); also exposed as ``series_slug``.
-    - ``series_slug``             — alias of ``series_hint``.
-    - ``residual_prompt``         — original-cased outfit/action/scene tail
-      starting at the first action token (e.g. ``"câu cá bằng bom"``).
-    - ``style_hint``              — series slug repurposed as a style ref
-      when the prompt says "phong cách"/"kiểu"/"style" and no explicit
+    - ``series_slug``             â€” alias of ``series_hint``.
+    - ``residual_prompt``         â€” original-cased outfit/action/scene tail
+      starting at the first action token (e.g. ``"cÃ¢u cÃ¡ báº±ng bom"``).
+    - ``style_hint``              â€” series slug repurposed as a style ref
+      when the prompt says "phong cÃ¡ch"/"kiá»ƒu"/"style" and no explicit
       character is named (e.g. ``"bocchi_the_rock"``).
-    - ``negative_identity_guard`` — list of identities the user explicitly
-      excluded via "không phải X"/"not X".
-    - ``multiple_characters``     — True iff two capitalized names are
-      connected by "và"/"and".
-    - ``extraction_confidence``   — 0.0–0.9 heuristic score.
-    - ``extraction_reason``       — short human-readable trace.
+    - ``negative_identity_guard`` â€” list of identities the user explicitly
+      excluded via "khÃ´ng pháº£i X"/"not X".
+    - ``multiple_characters``     â€” True iff two capitalized names are
+      connected by "vÃ "/"and".
+    - ``extraction_confidence``   â€” 0.0â€“0.9 heuristic score.
+    - ``extraction_reason``       â€” short human-readable trace.
 
     Legacy fields (preserved)
     -------------------------
@@ -763,14 +848,14 @@ def extract_prompt_entities(prompt: str) -> dict:
     # 1. Series hint: longest-token-count alias key wins.
     series_hint = ""
     series_hint_raw = ""
-    series_span: Optional[tuple[int, int]] = None
+    series_span: tuple[int, int] | None = None
     for alias_key in sorted(_SERIES_ALIAS_MAP, key=lambda k: -len(k.split("_"))):
         ak_tokens = alias_key.split("_")
         n = len(ak_tokens)
         if n > len(text_tokens):
             continue
         for i in range(len(text_tokens) - n + 1):
-            if text_tokens[i:i + n] == ak_tokens:
+            if text_tokens[i : i + n] == ak_tokens:
                 series_hint = _SERIES_ALIAS_MAP[alias_key]
                 series_hint_raw = " ".join(ak_tokens)
                 series_span = (i, i + n)
@@ -780,7 +865,7 @@ def extract_prompt_entities(prompt: str) -> dict:
     if series_hint:
         reason_parts.append(f"series={series_hint}")
 
-    # 2. Candidate name span — tokens up to the first connector / action /
+    # 2. Candidate name span â€” tokens up to the first connector / action /
     # series / style boundary, minus prompt-noise words.
     end_idx = len(text_tokens)
     boundary_kind = ""
@@ -807,8 +892,8 @@ def extract_prompt_entities(prompt: str) -> dict:
             boundary_kind = "series-alias"
             break
     # Run protagonist normalization on the PRE-noise token slice so phrases
-    # like "nhân vật main nữ" — where "nhan"/"vat" are filtered as generic
-    # noise — still canonicalize to "main_female_protagonist".
+    # like "nhÃ¢n váº­t main ná»¯" â€” where "nhan"/"vat" are filtered as generic
+    # noise â€” still canonicalize to "main_female_protagonist".
     raw_pre_noise = "_".join(text_tokens[:end_idx])
     canonical_slug = _normalize_protagonist_phrase(raw_pre_noise)
     if canonical_slug != raw_pre_noise and canonical_slug:
@@ -825,29 +910,29 @@ def extract_prompt_entities(prompt: str) -> dict:
     # 3. Residual = everything from first action token onward, original-cased.
     residual_prompt = _raw_residual_from_words(words)
 
-    # 4. Negative identity guard — "không phải X" / "not X".
+    # 4. Negative identity guard â€” "khÃ´ng pháº£i X" / "not X".
     negative_identity_guard = _extract_negation_targets(text)
     if negative_identity_guard:
         reason_parts.append(f"negation={len(negative_identity_guard)}")
 
-    # 5. Multi-character — "Furina và Nahida" / "Hu Tao and Yae".
+    # 5. Multi-character â€” "Furina vÃ  Nahida" / "Hu Tao and Yae".
     multiple_characters = bool(_MULTI_CHAR_RE.search(text))
     if multiple_characters:
         reason_parts.append("multi-character")
         # When multi-char detected, narrow candidate to FIRST capitalized
         # proper noun so resolver doesn't try to merge both into one slug.
-        m = re.search(r"\b([A-ZÀ-Ỹ][A-Za-zÀ-ỹ]+)\b", text)
+        m = re.search(r"\b([A-Z\u00C0-\u1EF8][A-Za-z\u00C0-\u1EF9]+)\b", text)
         if m:
             candidate_name = m.group(1)
             candidate_name_slug = _slugify(candidate_name)
             name_tokens = [t for t in candidate_name_slug.split("_") if t]
 
-    # 6. raw_character_query — original-cased name from input words.
+    # 6. raw_character_query â€” original-cased name from input words.
     raw_character_query = _raw_name_from_words(words, name_tokens)
     if not raw_character_query:
         raw_character_query = candidate_name  # fallback (e.g. protagonist phrase)
 
-    # 7. Style mode — "phong cách"/"style"/"kiểu". When active and no
+    # 7. Style mode â€” "phong cÃ¡ch"/"style"/"kiá»ƒu". When active and no
     # explicit character is named (alias-table hit), the series alias is
     # demoted to ``style_hint`` and character fields are cleared.
     style_marker = (
@@ -867,7 +952,7 @@ def extract_prompt_entities(prompt: str) -> dict:
             raw_character_query = ""
             reason_parts.append(f"style={style_hint}")
 
-    # 8. OC mode — "OC" / "original character" / "nhân vật tự tạo".
+    # 8. OC mode â€” "OC" / "original character" / "nhÃ¢n váº­t tá»± táº¡o".
     oc_marker = (
         bool(_OC_TOKENS & set(text_tokens))
         or _has_phrase(text_tokens, ("original", "character"))
@@ -877,7 +962,7 @@ def extract_prompt_entities(prompt: str) -> dict:
     if oc_marker:
         reason_parts.append("OC marker")
 
-    # 9. is_named — capitalised in original prompt OR series hint present
+    # 9. is_named â€” capitalised in original prompt OR series hint present
     # OR candidate is itself a known alias key. OC marker forces False to
     # prevent silent resolution to a known character by name alone.
     is_named = bool(candidate_name_slug) and (
@@ -888,7 +973,7 @@ def extract_prompt_entities(prompt: str) -> dict:
     if oc_marker:
         is_named = False
 
-    # 10. Extraction confidence — coarse heuristic.
+    # 10. Extraction confidence â€” coarse heuristic.
     if not candidate_name_slug and not style_hint:
         confidence = 0.0
     elif series_hint and is_named:
@@ -921,23 +1006,24 @@ def extract_prompt_entities(prompt: str) -> dict:
     }
 
 
-# ── Manual overrides ─────────────────────────────────────────────────────────
+# â”€â”€ Manual overrides â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 # Cached at module level. Tests can monkeypatch ``_load_manual_overrides``
-# directly. The on-disk file is OPTIONAL — missing/unreadable file is
+# directly. The on-disk file is OPTIONAL â€” missing/unreadable file is
 # treated as "no overrides".
 _OVERRIDES_PATH_DEFAULT = (
     Path(__file__).resolve().parent.parent / "config" / "character_overrides.json"
 )
 
 
-def _load_manual_overrides(path: Optional[Path] = None) -> list[dict]:
+def _load_manual_overrides(path: Path | None = None) -> list[dict]:
     """Lazy + fail-safe loader. Returns ``[]`` on any error."""
     p = path or _OVERRIDES_PATH_DEFAULT
     try:
         if not p.exists():
             return []
         import json  # noqa: PLC0415
+
         data = json.loads(p.read_text(encoding="utf-8"))
         chars = data.get("characters", []) if isinstance(data, dict) else []
         return [c for c in chars if isinstance(c, dict)]
@@ -950,11 +1036,11 @@ def _match_override(
     name_slug: str,
     series_slug: str,
     overrides: list[dict],
-) -> Optional[dict]:
+) -> dict | None:
     """First override whose aliases / display_name match ``name_slug``.
 
     If ``series_slug`` is non-empty, the override's ``series_slug`` (when
-    present) must match — this prevents a same-named override entry from
+    present) must match â€” this prevents a same-named override entry from
     hijacking a different franchise.
     """
     if not name_slug:
@@ -966,7 +1052,7 @@ def _match_override(
         if entry.get("display_name"):
             candidates.add(_slugify(entry["display_name"]))
         if entry.get("canonical_id"):
-            # canonical_id format "<char>@<series>" — extract char part.
+            # canonical_id format "<char>@<series>" â€” extract char part.
             cid = entry["canonical_id"]
             if "@" in cid:
                 candidates.add(_slugify(cid.split("@", 1)[0]))
@@ -1043,8 +1129,9 @@ def _make_override_result(
         character_slug=char_slug,
         series_slug=s_slug,
         display_name=hit.get("display_name", "") or ents["candidate_name"],
-        series_name=hit.get("series_name", "") or hit.get("series", "")
-                    or s_slug.replace("_", " ").title(),
+        series_name=hit.get("series_name", "")
+        or hit.get("series", "")
+        or s_slug.replace("_", " ").title(),
         source="manual_override",
         confidence=float(hit.get("confidence", 0.7)),
         aliases=tuple(hit.get("aliases", []) or ()),
@@ -1074,9 +1161,11 @@ def _make_override_result(
         profile.negative_identity_guard,
     )
     return CharacterUnderstandingResult(
-        query=query, resolved=True, ambiguous=False,
+        query=query,
+        resolved=True,
+        ambiguous=False,
         candidates=[cand],
-        reason="manual override → low_data_profile",
+        reason="manual override â†’ low_data_profile",
         mode="low_data_profile",
         unknown_profile=profile,
         safe_to_attach_lora=safe_lora,
@@ -1087,8 +1176,8 @@ def _make_override_result(
 def _try_manual_override(
     query: str,
     *,
-    overrides: Optional[list[dict]] = None,
-) -> Optional[CharacterUnderstandingResult]:
+    overrides: list[dict] | None = None,
+) -> CharacterUnderstandingResult | None:
     """Run the override matcher early (before registry/SAA). Returns
     ``None`` when no entity could be extracted or no override matches.
     """
@@ -1109,12 +1198,12 @@ def _try_manual_override(
 def _unknown_or_low_data_result(
     query: str,
     *,
-    overrides: Optional[list[dict]] = None,
-) -> Optional[CharacterUnderstandingResult]:
+    overrides: list[dict] | None = None,
+) -> CharacterUnderstandingResult | None:
     """Build a low_data_profile / unresolved_unknown result for ``query``.
 
     Returns ``None`` when the prompt does not look character-named
-    (``is_named=False``) — in that case the caller keeps the original
+    (``is_named=False``) â€” in that case the caller keeps the original
     "fully unresolved" outcome unchanged.
     """
     ents = extract_prompt_entities(query)
@@ -1127,11 +1216,11 @@ def _unknown_or_low_data_result(
     hit = _match_override(name_slug, series_slug, overrides)
 
     if hit is not None:
-        # Late-path safety net — normally already handled by the early
+        # Late-path safety net â€” normally already handled by the early
         # ``_try_manual_override`` hook in ``resolve_character``.
         return _make_override_result(hit, ents, query)
 
-    # ── unresolved_unknown ──────────────────────────────────────────────
+    # â”€â”€ unresolved_unknown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     series_for_id = series_slug or "unknown_series"
     provisional_id = f"unknown:{name_slug}@{series_for_id}"
     guard = [
@@ -1139,7 +1228,7 @@ def _unknown_or_low_data_result(
         "do not use a similar popular character as identity",
         "do not attach LoRA",
     ]
-    # User-supplied "không phải X" / "not X" — append explicit negative
+    # User-supplied "khÃ´ng pháº£i X" / "not X" â€” append explicit negative
     # targets so the prompt block tells the model what NOT to draw.
     for target in _extract_negation_targets(query):
         guard.append(f"do not draw {target}")
@@ -1165,7 +1254,9 @@ def _unknown_or_low_data_result(
         profile.negative_identity_guard,
     )
     return CharacterUnderstandingResult(
-        query=query, resolved=False, ambiguous=False,
+        query=query,
+        resolved=False,
+        ambiguous=False,
         candidates=[],
         reason=profile.reason,
         mode="unresolved_unknown",
@@ -1185,7 +1276,7 @@ def _annotate_resolved_known(
     elif result.resolved and result.candidates:
         result.mode = "resolved_known"
         # All known sources (selected/registry/saa/alias_table) are
-        # considered safe — the existing confidence gate in route handlers
+        # considered safe â€” the existing confidence gate in route handlers
         # still applies the 0.8 threshold for actual hint auto-fill.
         result.safe_to_attach_lora = True
     return result
@@ -1194,7 +1285,7 @@ def _annotate_resolved_known(
 def resolve_character(
     query: str = "",
     *,
-    selected_character: Optional[dict] = None,
+    selected_character: dict | None = None,
 ) -> CharacterUnderstandingResult:
     """Resolve ``query`` to a canonical character identity.
 
@@ -1211,31 +1302,31 @@ def resolve_character(
 
     Returns
     -------
-    :class:`CharacterUnderstandingResult` — never raises. ``best`` is
+    :class:`CharacterUnderstandingResult` â€” never raises. ``best`` is
     ``None`` when unresolved or ambiguous.
 
     The result is post-processed to set ``mode`` (``resolved_known`` /
     ``ambiguous`` / ``low_data_profile`` / ``unresolved_unknown`` / ``""``)
     and ``safe_to_attach_lora``. When the known-source pipeline returns
     no candidate AND the prompt looks character-named, the unknown /
-    low-data fallback runs (manual override → ``low_data_profile``,
+    low-data fallback runs (manual override â†’ ``low_data_profile``,
     otherwise ``unresolved_unknown``).
     """
     original_query = (query or "").strip()
     original_was_sentence = (
-        _is_sentence_query(_query_tokens(original_query))
-        if original_query else False
+        _is_sentence_query(_query_tokens(original_query)) if original_query else False
     )
 
-    # Priority 1 — selected_character payload short-circuits everything.
+    # Priority 1 â€” selected_character payload short-circuits everything.
     if selected_character:
         sel_result = _resolve_known(
-            original_query, selected_character=selected_character,
+            original_query,
+            selected_character=selected_character,
         )
         if sel_result.candidates:
             return _annotate_resolved_known(sel_result)
 
-    # Priority 2 — manual overrides win over registry/SAA/alias. This is
+    # Priority 2 â€” manual overrides win over registry/SAA/alias. This is
     # how new / niche / low-data characters become resolvable without
     # touching code: drop a JSON entry into character_overrides.json.
     override_result = _try_manual_override(original_query)
@@ -1266,15 +1357,17 @@ def resolve_character(
                 str(result.best.series_slug).replace("\n", "\\n").replace("\r", "\\r"),
             )
             result = CharacterUnderstandingResult(
-                query=original_query, resolved=False, ambiguous=False,
-                reason="SAA sentence match dropped — no confirming series hint",
+                query=original_query,
+                resolved=False,
+                ambiguous=False,
+                reason="SAA sentence match dropped â€” no confirming series hint",
             )
 
     # Successful or ambiguous: stamp mode + LoRA-attach safety. Done.
     if result.candidates or result.ambiguous:
         return _annotate_resolved_known(result)
 
-    # Truly unresolved with no candidates → try the unknown / low-data
+    # Truly unresolved with no candidates â†’ try the unknown / low-data
     # fallback. ``selected_character`` already wins above; here we only
     # reach this branch when no source produced a candidate.
     fallback = _unknown_or_low_data_result(original_query)
@@ -1284,7 +1377,7 @@ def resolve_character(
             fallback.reason = f"{result.reason}; {fallback.reason}"
         return fallback
 
-    # Still nothing — leave mode empty for backward compat (callers that
+    # Still nothing â€” leave mode empty for backward compat (callers that
     # check ``resolved is False`` keep working).
     return result
 
@@ -1292,14 +1385,14 @@ def resolve_character(
 def _resolve_known(
     query: str = "",
     *,
-    selected_character: Optional[dict] = None,
+    selected_character: dict | None = None,
 ) -> CharacterUnderstandingResult:
-    """Inner resolver — returns a known-source result, ambiguous result,
+    """Inner resolver â€” returns a known-source result, ambiguous result,
     or an empty unresolved result. Never builds an unknown profile.
     """
     query = (query or "").strip()
 
-    # Priority 1 — UI selection wins outright.
+    # Priority 1 â€” UI selection wins outright.
     if selected_character:
         cand = _from_selected(selected_character)
         if cand is not None:
@@ -1313,11 +1406,13 @@ def _resolve_known(
 
     if not query:
         return CharacterUnderstandingResult(
-            query="", resolved=False, ambiguous=False,
+            query="",
+            resolved=False,
+            ambiguous=False,
             reason="empty query and no selected_character",
         )
 
-    # Sentence-aware path — when the user types a full prompt instead of a
+    # Sentence-aware path â€” when the user types a full prompt instead of a
     # bare name, dispatch to a token-based scanner that handles series
     # disambiguation (e.g. "Sparkle Honkai Star Rail") and avoids SAA
     # substring noise.
@@ -1335,11 +1430,13 @@ def _resolve_known(
             query = ents["candidate_name_slug"]
         else:
             return CharacterUnderstandingResult(
-                query=query, resolved=False, ambiguous=False,
+                query=query,
+                resolved=False,
+                ambiguous=False,
                 reason="no character token found in sentence",
             )
 
-    # Priority 2 — local registry (highest-quality local data).
+    # Priority 2 â€” local registry (highest-quality local data).
     reg_candidates = _from_registry(query)
     if reg_candidates:
         # Dedupe by canonical_id (resolve_query + collisions can overlap).
@@ -1349,20 +1446,25 @@ def _resolve_known(
         cands = list(unique.values())
         if len(cands) > 1:
             return CharacterUnderstandingResult(
-                query=query, resolved=False, ambiguous=True,
+                query=query,
+                resolved=False,
+                ambiguous=True,
                 candidates=cands,
                 reason=f"registry: {len(cands)} candidates share display name",
             )
         return CharacterUnderstandingResult(
-            query=query, resolved=True, ambiguous=False,
-            candidates=cands, reason="registry exact / alias hit",
+            query=query,
+            resolved=True,
+            ambiguous=False,
+            candidates=cands,
+            reason="registry exact / alias hit",
         )
 
-    # Priority 3 — SAA (large but noisier).
+    # Priority 3 â€” SAA (large but noisier).
     saa = _from_saa(query)
     saa_list = [saa] if saa is not None else []
 
-    # Priority 4 — built-in alias table.
+    # Priority 4 â€” built-in alias table.
     alias_candidates = _from_alias_table(query)
 
     # Combine SAA + alias table for ambiguity assessment.
@@ -1376,7 +1478,9 @@ def _resolve_known(
 
     if not cands:
         return CharacterUnderstandingResult(
-            query=query, resolved=False, ambiguous=False,
+            query=query,
+            resolved=False,
+            ambiguous=False,
             reason="no candidate from registry / SAA / alias table",
         )
 
@@ -1386,34 +1490,42 @@ def _resolve_known(
         top, second = cands[0], cands[1]
         if top.confidence >= 0.8 and (top.confidence - second.confidence) >= 0.2:
             return CharacterUnderstandingResult(
-                query=query, resolved=True, ambiguous=False,
+                query=query,
+                resolved=True,
+                ambiguous=False,
                 candidates=[top],
                 reason=f"top candidate dominates ({top.confidence:.2f} vs {second.confidence:.2f})",
             )
         return CharacterUnderstandingResult(
-            query=query, resolved=False, ambiguous=True,
+            query=query,
+            resolved=False,
+            ambiguous=True,
             candidates=cands,
             reason=f"{len(cands)} candidates within confidence band",
         )
 
     return CharacterUnderstandingResult(
-        query=query, resolved=True, ambiguous=False,
-        candidates=cands, reason=f"single {cands[0].source} hit",
+        query=query,
+        resolved=True,
+        ambiguous=False,
+        candidates=cands,
+        reason=f"single {cands[0].source} hit",
     )
 
 
-# ── LoRA attach safety gate ──────────────────────────────────────────────────
+# â”€â”€ LoRA attach safety gate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
 
 def can_attach_character_lora(
-    character_result: Optional["CharacterUnderstandingResult"],
-    lora_candidate: Optional[dict] = None,
+    character_result: CharacterUnderstandingResult | None,
+    lora_candidate: dict | None = None,
 ) -> tuple[bool, str]:
     """Decide whether it is safe to attach a character LoRA / reference.
 
     Returns ``(safe, reason)``. ``reason`` is a short machine-readable
     tag suitable for logging or surfacing as ``lora_blocked_reason`` in
     a route response. Generation must NOT fail when this returns
-    ``False`` — the caller should fall back to prompt-only / profile-
+    ``False`` â€” the caller should fall back to prompt-only / profile-
     based rendering.
 
     Safe is granted only when ALL of:
@@ -1436,7 +1548,7 @@ def can_attach_character_lora(
     if character_result is None:
         return False, "no_character_result"
     if not character_result.resolved:
-        # Unknown / unresolved — covers OC, style-only, missing-name.
+        # Unknown / unresolved â€” covers OC, style-only, missing-name.
         if character_result.mode == "unresolved_unknown":
             return False, "unresolved_unknown"
         return False, "not_resolved"
@@ -1470,10 +1582,10 @@ def can_attach_character_lora(
             if cand_char and cand_char != best.character_slug:
                 return False, "character_slug_mismatch"
             if cand_series and cand_series != best.series_slug:
-                # Same display name across different franchises — refuse.
+                # Same display name across different franchises â€” refuse.
                 return False, "series_mismatch"
             if not cand_char and not cid:
-                # Unverifiable LoRA candidate metadata — refuse rather
+                # Unverifiable LoRA candidate metadata â€” refuse rather
                 # than silently trust it.
                 return False, "unverifiable_lora_candidate"
 
@@ -1492,6 +1604,6 @@ __all__ = [
 ]
 
 
-# Public alias — preferred name when called from request handlers, where
+# Public alias â€” preferred name when called from request handlers, where
 # "intent" reads more naturally alongside other intent helpers.
 resolve_character_intent = resolve_character

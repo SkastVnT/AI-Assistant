@@ -69,12 +69,12 @@ class StabilityStableImageUltraNode(IO.ComfyNode):
                     "prompt",
                     multiline=True,
                     default="",
-                    tooltip="What you wish to see in the output image. A strong, descriptive prompt that clearly defines" +
-                                    "elements, colors, and subjects will lead to better results. " +
-                                    "To control the weight of a given word use the format `(word:weight)`," +
-                                    "where `word` is the word you'd like to control the weight of and `weight`" +
-                                    "is a value between 0 and 1. For example: `The sky was a crisp (blue:0.3) and (green:0.8)`" +
-                                    "would convey a sky that was blue and green, but more green than blue.",
+                    tooltip="What you wish to see in the output image. A strong, descriptive prompt that clearly defines"
+                    + "elements, colors, and subjects will lead to better results. "
+                    + "To control the weight of a given word use the format `(word:weight)`,"
+                    + "where `word` is the word you'd like to control the weight of and `weight`"
+                    + "is a value between 0 and 1. For example: `The sky was a crisp (blue:0.3) and (green:0.8)`"
+                    + "would convey a sky that was blue and green, but more green than blue.",
                 ),
                 IO.Combo.Input(
                     "aspect_ratio",
@@ -144,7 +144,7 @@ class StabilityStableImageUltraNode(IO.ComfyNode):
         # prepare image binary if image present
         image_binary = None
         if image is not None:
-            image_binary = tensor_to_bytesio(image, total_pixels=1504*1504).read()
+            image_binary = tensor_to_bytesio(image, total_pixels=1504 * 1504).read()
         else:
             image_denoise = None
 
@@ -153,13 +153,14 @@ class StabilityStableImageUltraNode(IO.ComfyNode):
         if style_preset == "None":
             style_preset = None
 
-        files = {
-            "image": image_binary
-        }
+        files = {"image": image_binary}
 
         response_api = await sync_op(
             cls,
-            ApiEndpoint(path="/proxy/stability/v2beta/stable-image/generate/ultra", method="POST"),
+            ApiEndpoint(
+                path="/proxy/stability/v2beta/stable-image/generate/ultra",
+                method="POST",
+            ),
             response_model=StabilityStableUltraResponse,
             data=StabilityStableUltraRequest(
                 prompt=prompt,
@@ -174,7 +175,9 @@ class StabilityStableImageUltraNode(IO.ComfyNode):
         )
 
         if response_api.finish_reason != "SUCCESS":
-            raise Exception(f"Stable Image Ultra generation failed: {response_api.finish_reason}.")
+            raise Exception(
+                f"Stable Image Ultra generation failed: {response_api.finish_reason}."
+            )
 
         image_data = base64.b64decode(response_api.image)
         returned_image = bytesio_to_image_tensor(BytesIO(image_data))
@@ -284,7 +287,7 @@ class StabilityStableImageSD_3_5Node(IO.ComfyNode):
         image_binary = None
         mode = Stability_SD3_5_GenerationMode.text_to_image
         if image is not None:
-            image_binary = tensor_to_bytesio(image, total_pixels=1504*1504).read()
+            image_binary = tensor_to_bytesio(image, total_pixels=1504 * 1504).read()
             mode = Stability_SD3_5_GenerationMode.image_to_image
             aspect_ratio = None
         else:
@@ -295,13 +298,13 @@ class StabilityStableImageSD_3_5Node(IO.ComfyNode):
         if style_preset == "None":
             style_preset = None
 
-        files = {
-            "image": image_binary
-        }
+        files = {"image": image_binary}
 
         response_api = await sync_op(
             cls,
-            ApiEndpoint(path="/proxy/stability/v2beta/stable-image/generate/sd3", method="POST"),
+            ApiEndpoint(
+                path="/proxy/stability/v2beta/stable-image/generate/sd3", method="POST"
+            ),
             response_model=StabilityStableUltraResponse,
             data=StabilityStable3_5Request(
                 prompt=prompt,
@@ -319,7 +322,9 @@ class StabilityStableImageSD_3_5Node(IO.ComfyNode):
         )
 
         if response_api.finish_reason != "SUCCESS":
-            raise Exception(f"Stable Diffusion 3.5 Image generation failed: {response_api.finish_reason}.")
+            raise Exception(
+                f"Stable Diffusion 3.5 Image generation failed: {response_api.finish_reason}."
+            )
 
         image_data = base64.b64decode(response_api.image)
         returned_image = bytesio_to_image_tensor(BytesIO(image_data))
@@ -394,23 +399,24 @@ class StabilityUpscaleConservativeNode(IO.ComfyNode):
         negative_prompt: str = "",
     ) -> IO.NodeOutput:
         validate_string(prompt, strip_whitespace=False)
-        image_binary = tensor_to_bytesio(image, total_pixels=1024*1024).read()
+        image_binary = tensor_to_bytesio(image, total_pixels=1024 * 1024).read()
 
         if not negative_prompt:
             negative_prompt = None
 
-        files = {
-            "image": image_binary
-        }
+        files = {"image": image_binary}
 
         response_api = await sync_op(
             cls,
-            ApiEndpoint(path="/proxy/stability/v2beta/stable-image/upscale/conservative", method="POST"),
+            ApiEndpoint(
+                path="/proxy/stability/v2beta/stable-image/upscale/conservative",
+                method="POST",
+            ),
             response_model=StabilityStableUltraResponse,
             data=StabilityUpscaleConservativeRequest(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
-                creativity=round(creativity,2),
+                creativity=round(creativity, 2),
                 seed=seed,
             ),
             files=files,
@@ -418,7 +424,9 @@ class StabilityUpscaleConservativeNode(IO.ComfyNode):
         )
 
         if response_api.finish_reason != "SUCCESS":
-            raise Exception(f"Stability Upscale Conservative generation failed: {response_api.finish_reason}.")
+            raise Exception(
+                f"Stability Upscale Conservative generation failed: {response_api.finish_reason}."
+            )
 
         image_data = base64.b64decode(response_api.image)
         returned_image = bytesio_to_image_tensor(BytesIO(image_data))
@@ -499,25 +507,26 @@ class StabilityUpscaleCreativeNode(IO.ComfyNode):
         negative_prompt: str = "",
     ) -> IO.NodeOutput:
         validate_string(prompt, strip_whitespace=False)
-        image_binary = tensor_to_bytesio(image, total_pixels=1024*1024).read()
+        image_binary = tensor_to_bytesio(image, total_pixels=1024 * 1024).read()
 
         if not negative_prompt:
             negative_prompt = None
         if style_preset == "None":
             style_preset = None
 
-        files = {
-            "image": image_binary
-        }
+        files = {"image": image_binary}
 
         response_api = await sync_op(
             cls,
-            ApiEndpoint(path="/proxy/stability/v2beta/stable-image/upscale/creative", method="POST"),
+            ApiEndpoint(
+                path="/proxy/stability/v2beta/stable-image/upscale/creative",
+                method="POST",
+            ),
             response_model=StabilityAsyncResponse,
             data=StabilityUpscaleCreativeRequest(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
-                creativity=round(creativity,2),
+                creativity=round(creativity, 2),
                 style_preset=style_preset,
                 seed=seed,
             ),
@@ -534,7 +543,9 @@ class StabilityUpscaleCreativeNode(IO.ComfyNode):
         )
 
         if response_poll.finish_reason != "SUCCESS":
-            raise Exception(f"Stability Upscale Creative generation failed: {response_poll.finish_reason}.")
+            raise Exception(
+                f"Stability Upscale Creative generation failed: {response_poll.finish_reason}."
+            )
 
         image_data = base64.b64decode(response_poll.result)
         returned_image = bytesio_to_image_tensor(BytesIO(image_data))
@@ -570,22 +581,24 @@ class StabilityUpscaleFastNode(IO.ComfyNode):
 
     @classmethod
     async def execute(cls, image: torch.Tensor) -> IO.NodeOutput:
-        image_binary = tensor_to_bytesio(image, total_pixels=4096*4096).read()
+        image_binary = tensor_to_bytesio(image, total_pixels=4096 * 4096).read()
 
-        files = {
-            "image": image_binary
-        }
+        files = {"image": image_binary}
 
         response_api = await sync_op(
             cls,
-            ApiEndpoint(path="/proxy/stability/v2beta/stable-image/upscale/fast", method="POST"),
+            ApiEndpoint(
+                path="/proxy/stability/v2beta/stable-image/upscale/fast", method="POST"
+            ),
             response_model=StabilityStableUltraResponse,
             files=files,
             content_type="multipart/form-data",
         )
 
         if response_api.finish_reason != "SUCCESS":
-            raise Exception(f"Stability Upscale Fast failed: {response_api.finish_reason}.")
+            raise Exception(
+                f"Stability Upscale Fast failed: {response_api.finish_reason}."
+            )
 
         image_data = base64.b64decode(response_api.image)
         returned_image = bytesio_to_image_tensor(BytesIO(image_data))
@@ -651,19 +664,28 @@ class StabilityTextToAudio(IO.ComfyNode):
         )
 
     @classmethod
-    async def execute(cls, model: str, prompt: str, duration: int, seed: int, steps: int) -> IO.NodeOutput:
+    async def execute(
+        cls, model: str, prompt: str, duration: int, seed: int, steps: int
+    ) -> IO.NodeOutput:
         validate_string(prompt, max_length=10000)
-        payload = StabilityTextToAudioRequest(prompt=prompt, model=model, duration=duration, seed=seed, steps=steps)
+        payload = StabilityTextToAudioRequest(
+            prompt=prompt, model=model, duration=duration, seed=seed, steps=steps
+        )
         response_api = await sync_op(
             cls,
-            ApiEndpoint(path="/proxy/stability/v2beta/audio/stable-audio-2/text-to-audio", method="POST"),
+            ApiEndpoint(
+                path="/proxy/stability/v2beta/audio/stable-audio-2/text-to-audio",
+                method="POST",
+            ),
             response_model=StabilityAudioResponse,
             data=payload,
             content_type="multipart/form-data",
         )
         if not response_api.audio:
             raise ValueError("No audio file was received in response.")
-        return IO.NodeOutput(audio_bytes_to_audio_input(base64.b64decode(response_api.audio)))
+        return IO.NodeOutput(
+            audio_bytes_to_audio_input(base64.b64decode(response_api.audio))
+        )
 
 
 class StabilityAudioToAudio(IO.ComfyNode):
@@ -682,7 +704,9 @@ class StabilityAudioToAudio(IO.ComfyNode):
                     options=["stable-audio-2.5"],
                 ),
                 IO.String.Input("prompt", multiline=True, default=""),
-                IO.Audio.Input("audio", tooltip="Audio must be between 6 and 190 seconds long."),
+                IO.Audio.Input(
+                    "audio", tooltip="Audio must be between 6 and 190 seconds long."
+                ),
                 IO.Int.Input(
                     "duration",
                     default=190,
@@ -736,16 +760,31 @@ class StabilityAudioToAudio(IO.ComfyNode):
 
     @classmethod
     async def execute(
-        cls, model: str, prompt: str, audio: Input.Audio, duration: int, seed: int, steps: int, strength: float
+        cls,
+        model: str,
+        prompt: str,
+        audio: Input.Audio,
+        duration: int,
+        seed: int,
+        steps: int,
+        strength: float,
     ) -> IO.NodeOutput:
         validate_string(prompt, max_length=10000)
         validate_audio_duration(audio, 6, 190)
         payload = StabilityAudioToAudioRequest(
-            prompt=prompt, model=model, duration=duration, seed=seed, steps=steps, strength=strength
+            prompt=prompt,
+            model=model,
+            duration=duration,
+            seed=seed,
+            steps=steps,
+            strength=strength,
         )
         response_api = await sync_op(
             cls,
-            ApiEndpoint(path="/proxy/stability/v2beta/audio/stable-audio-2/audio-to-audio", method="POST"),
+            ApiEndpoint(
+                path="/proxy/stability/v2beta/audio/stable-audio-2/audio-to-audio",
+                method="POST",
+            ),
             response_model=StabilityAudioResponse,
             data=payload,
             content_type="multipart/form-data",
@@ -753,7 +792,9 @@ class StabilityAudioToAudio(IO.ComfyNode):
         )
         if not response_api.audio:
             raise ValueError("No audio file was received in response.")
-        return IO.NodeOutput(audio_bytes_to_audio_input(base64.b64decode(response_api.audio)))
+        return IO.NodeOutput(
+            audio_bytes_to_audio_input(base64.b64decode(response_api.audio))
+        )
 
 
 class StabilityAudioInpaint(IO.ComfyNode):
@@ -772,7 +813,9 @@ class StabilityAudioInpaint(IO.ComfyNode):
                     options=["stable-audio-2.5"],
                 ),
                 IO.String.Input("prompt", multiline=True, default=""),
-                IO.Audio.Input("audio", tooltip="Audio must be between 6 and 190 seconds long."),
+                IO.Audio.Input(
+                    "audio", tooltip="Audio must be between 6 and 190 seconds long."
+                ),
                 IO.Int.Input(
                     "duration",
                     default=190,
@@ -844,7 +887,9 @@ class StabilityAudioInpaint(IO.ComfyNode):
     ) -> IO.NodeOutput:
         validate_string(prompt, max_length=10000)
         if mask_end <= mask_start:
-            raise ValueError(f"Value of mask_end({mask_end}) should be greater then mask_start({mask_start})")
+            raise ValueError(
+                f"Value of mask_end({mask_end}) should be greater then mask_start({mask_start})"
+            )
         validate_audio_duration(audio, 6, 190)
 
         payload = StabilityAudioInpaintRequest(
@@ -858,7 +903,10 @@ class StabilityAudioInpaint(IO.ComfyNode):
         )
         response_api = await sync_op(
             cls,
-            endpoint=ApiEndpoint(path="/proxy/stability/v2beta/audio/stable-audio-2/inpaint", method="POST"),
+            endpoint=ApiEndpoint(
+                path="/proxy/stability/v2beta/audio/stable-audio-2/inpaint",
+                method="POST",
+            ),
             response_model=StabilityAudioResponse,
             data=payload,
             content_type="multipart/form-data",
@@ -866,7 +914,9 @@ class StabilityAudioInpaint(IO.ComfyNode):
         )
         if not response_api.audio:
             raise ValueError("No audio file was received in response.")
-        return IO.NodeOutput(audio_bytes_to_audio_input(base64.b64decode(response_api.audio)))
+        return IO.NodeOutput(
+            audio_bytes_to_audio_input(base64.b64decode(response_api.audio))
+        )
 
 
 class StabilityExtension(ComfyExtension):

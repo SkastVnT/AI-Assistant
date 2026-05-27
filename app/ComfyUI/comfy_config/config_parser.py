@@ -8,8 +8,9 @@ from comfy_config.types import (
     ComfyConfig,
     ProjectConfig,
     PyProjectConfig,
-    PyProjectSettings
+    PyProjectSettings,
 )
+
 
 def validate_and_extract_os_classifiers(classifiers: list) -> list:
     os_classifiers = [c for c in classifiers if c.startswith("Operating System :: ")]
@@ -88,11 +89,13 @@ Example:
     >>> project_config = config_parser.extract_node_configuration(py_file_path)
     >>> print(project_config.project.name)  # "my_node"
 """
+
+
 def extract_node_configuration(path) -> Optional[PyProjectConfig]:
     if os.path.isfile(path):
         file_path = Path(path)
 
-        if file_path.suffix.lower() != '.py':
+        if file_path.suffix.lower() != ".py":
             return None
 
         project_name = file_path.stem
@@ -119,19 +122,23 @@ def extract_node_configuration(path) -> Optional[PyProjectConfig]:
     supported_comfyui_frontend_version = ""
     for dep in dependencies:
         if isinstance(dep, str) and dep.startswith("comfyui-frontend-package"):
-            supported_comfyui_frontend_version = dep.removeprefix("comfyui-frontend-package")
+            supported_comfyui_frontend_version = dep.removeprefix(
+                "comfyui-frontend-package"
+            )
             break
 
     supported_comfyui_version = comfy_data.get("requires-comfyui", "")
 
-    classifiers = project_data.get('classifiers', [])
+    classifiers = project_data.get("classifiers", [])
     supported_os = validate_and_extract_os_classifiers(classifiers)
     supported_accelerators = validate_and_extract_accelerator_classifiers(classifiers)
 
-    project_data['supported_os'] = supported_os
-    project_data['supported_accelerators'] = supported_accelerators
-    project_data['supported_comfyui_frontend_version'] = supported_comfyui_frontend_version
-    project_data['supported_comfyui_version'] = supported_comfyui_version
+    project_data["supported_os"] = supported_os
+    project_data["supported_accelerators"] = supported_accelerators
+    project_data["supported_comfyui_frontend_version"] = (
+        supported_comfyui_frontend_version
+    )
+    project_data["supported_comfyui_version"] = supported_comfyui_version
 
     return PyProjectConfig(project=project_data, tool_comfy=comfy_data)
 

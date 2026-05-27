@@ -8,6 +8,7 @@ Pinpoints the three contracts that /chat and /chat/stream share:
 Also asserts both route modules actually import the helper, so a future
 edit cannot silently re-fork the request handling.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -21,40 +22,44 @@ if str(CHATBOT_DIR) not in sys.path:
     sys.path.insert(0, str(CHATBOT_DIR))
 
 from core.request_normalizer import (  # noqa: E402
+    DEFAULT_HISTORY_MAX_CHARS,
     apply_image_context,
     bind_conversation_id_to_session,
     cap_history,
-    DEFAULT_HISTORY_MAX_CHARS,
-    DEFAULT_HISTORY_MAX_TURNS,
     extract_conversation_id,
     extract_generated_images,
     normalize_chat_request,
 )
 
-
 # ── conversation_id ──────────────────────────────────────────────────────
 
 
-@pytest.mark.parametrize("value", [
-    "chat_1700000000000",
-    "abc-DEF_123",
-    "a",
-    "0" * 64,
-])
+@pytest.mark.parametrize(
+    "value",
+    [
+        "chat_1700000000000",
+        "abc-DEF_123",
+        "a",
+        "0" * 64,
+    ],
+)
 def test_conversation_id_valid_passes_through(value):
     assert extract_conversation_id({"conversation_id": value}) == value
 
 
-@pytest.mark.parametrize("value", [
-    "",
-    "../etc/passwd",
-    "abc/def",
-    "abc def",
-    "abc.def",
-    "<script>",
-    "%00",
-    "a\nb",
-])
+@pytest.mark.parametrize(
+    "value",
+    [
+        "",
+        "../etc/passwd",
+        "abc/def",
+        "abc def",
+        "abc.def",
+        "<script>",
+        "%00",
+        "a\nb",
+    ],
+)
 def test_conversation_id_invalid_rejected(value):
     assert extract_conversation_id({"conversation_id": value}) == ""
 
@@ -154,8 +159,8 @@ def test_cap_history_non_list_returns_empty():
 def test_cap_history_filters_invalid_entries():
     history = [
         {"role": "user", "content": "hi"},
-        {"role": "bogus", "content": "x"},      # bad role
-        {"role": "assistant"},                  # missing content
+        {"role": "bogus", "content": "x"},  # bad role
+        {"role": "assistant"},  # missing content
         {"role": "assistant", "content": 123},  # wrong type
         "string-not-dict",
         None,
@@ -230,7 +235,9 @@ def test_normalize_uses_explicit_message_arg_over_payload():
     # from data['message'] directly.
     payload = {
         "message": "RAW",
-        "generated_images": [{"url": "https://cdn/y.png", "prompt": "p", "timestamp": 1}],
+        "generated_images": [
+            {"url": "https://cdn/y.png", "prompt": "p", "timestamp": 1}
+        ],
     }
     out = normalize_chat_request(payload, None, message="ENRICHED MESSAGE")
     assert out["message"].startswith("ENRICHED MESSAGE")
@@ -247,21 +254,21 @@ def _module_imports(module_path: Path, symbol: str) -> bool:
 
 
 def test_main_route_imports_normalizer():
-    assert _module_imports(CHATBOT_DIR / "routes" / "main.py", "from core.request_normalizer"), (
-        "routes/main.py must import the shared request normalizer"
-    )
-    assert _module_imports(CHATBOT_DIR / "routes" / "main.py", "normalize_chat_request("), (
-        "routes/main.py must call normalize_chat_request"
-    )
+    assert _module_imports(
+        CHATBOT_DIR / "routes" / "main.py", "from core.request_normalizer"
+    ), "routes/main.py must import the shared request normalizer"
+    assert _module_imports(
+        CHATBOT_DIR / "routes" / "main.py", "normalize_chat_request("
+    ), "routes/main.py must call normalize_chat_request"
 
 
 def test_stream_route_imports_normalizer():
-    assert _module_imports(CHATBOT_DIR / "routes" / "stream.py", "from core.request_normalizer"), (
-        "routes/stream.py must import the shared request normalizer"
-    )
-    assert _module_imports(CHATBOT_DIR / "routes" / "stream.py", "normalize_chat_request("), (
-        "routes/stream.py must call normalize_chat_request"
-    )
+    assert _module_imports(
+        CHATBOT_DIR / "routes" / "stream.py", "from core.request_normalizer"
+    ), "routes/stream.py must import the shared request normalizer"
+    assert _module_imports(
+        CHATBOT_DIR / "routes" / "stream.py", "normalize_chat_request("
+    ), "routes/stream.py must call normalize_chat_request"
 
 
 def test_legacy_v1_marker_present_on_chatbot_module():

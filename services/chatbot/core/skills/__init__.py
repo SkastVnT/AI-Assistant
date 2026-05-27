@@ -6,21 +6,22 @@ default thinking mode, and context override.  Skills are loaded from YAML
 definitions and activated per-request or per-session via explicit selection
 or auto-routing.
 """
+
+from core.skills.applicator import AppliedSkill, apply_skill_overrides
 from core.skills.registry import SkillDefinition, SkillRegistry, get_skill_registry
-from core.skills.router import SkillRouter, RouteMatch, get_skill_router
 from core.skills.resolver import (
-    resolve_skill,
-    SkillOverrides,
+    SOURCE_AUTO,
     SOURCE_EXPLICIT,
     SOURCE_SESSION,
-    SOURCE_AUTO,
+    SkillOverrides,
+    resolve_skill,
 )
-from core.skills.applicator import AppliedSkill, apply_skill_overrides
+from core.skills.router import RouteMatch, SkillRouter, get_skill_router
 from core.skills.session import (
+    SkillSessionStore,
+    clear_session_skill,
     get_session_skill,
     set_session_skill,
-    clear_session_skill,
-    SkillSessionStore,
 )
 
 __all__ = [

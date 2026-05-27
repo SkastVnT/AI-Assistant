@@ -3,7 +3,7 @@ title AI Assistant - Stop All Services
 color 0C
 
 REM Navigate to project root (parent of scripts folder)
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 echo ================================================================================
 echo.

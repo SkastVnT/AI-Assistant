@@ -1,18 +1,18 @@
-﻿"""
+"""
 Firebase Authentication Routes
 Supports Email/Password and Google Sign-In
 """
+
 import os
 import sys
-import json
 from pathlib import Path
-from flask import Blueprint, request, jsonify, render_template_string
-import logging
+
+from flask import Blueprint, jsonify, render_template_string, request
 
 # Setup path
 CHATBOT_DIR = Path(__file__).parent.parent.resolve()
 ROOT_DIR = CHATBOT_DIR.parent.parent.resolve()
-APP_DIR = ROOT_DIR / 'app'
+APP_DIR = ROOT_DIR / "app"
 if str(CHATBOT_DIR) not in sys.path:
     sys.path.insert(0, str(CHATBOT_DIR))
 # Add app/ so that `from config.firebase_config import ...` resolves
@@ -21,15 +21,15 @@ if str(APP_DIR) not in sys.path:
 
 from core.extensions import logger
 
-auth_bp = Blueprint('auth', __name__)
+auth_bp = Blueprint("auth", __name__)
 
 # Firebase Admin SDK (optional for server-side verification)
 firebase_auth = None
 try:
     import firebase_admin
     from firebase_admin import auth as fb_auth
-    
-    FIREBASE_CREDS_PATH = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH', '')
+
+    FIREBASE_CREDS_PATH = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH", "")
     if FIREBASE_CREDS_PATH and os.path.exists(FIREBASE_CREDS_PATH):
         if not firebase_admin._apps:
             cred = firebase_admin.credentials.Certificate(FIREBASE_CREDS_PATH)
@@ -40,121 +40,124 @@ except Exception as e:
     logger.warning(f"[Auth] Firebase Admin SDK not available: {e}")
 
 
-@auth_bp.route('/api/auth/config', methods=['GET'])
+@auth_bp.route("/api/auth/config", methods=["GET"])
 def get_auth_config():
     """Get Firebase configuration for frontend"""
     try:
         from config.firebase_config import get_firebase_config
+
         config = get_firebase_config()
-        
-        return jsonify({
-            'success': True,
-            'config': config
-        })
+
+        return jsonify({"success": True, "config": config})
     except Exception as e:
         logger.error(f"[Auth] Config error: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@auth_bp.route('/api/auth/verify', methods=['POST'])
+@auth_bp.route("/api/auth/verify", methods=["POST"])
 def verify_token():
     """Verify Firebase ID token"""
     try:
         data = request.json
-        id_token = data.get('idToken')
-        
+        id_token = data.get("idToken")
+
         if not id_token:
-            return jsonify({'error': 'No token provided'}), 400
-        
+            return jsonify({"error": "No token provided"}), 400
+
         if not firebase_auth:
             # If Firebase Admin is not configured, accept token as-is
             # Frontend should handle authentication
-            return jsonify({
-                'success': True,
-                'message': 'Token accepted (server-side verification disabled)',
-                'verified': False
-            })
-        
+            return jsonify(
+                {
+                    "success": True,
+                    "message": "Token accepted (server-side verification disabled)",
+                    "verified": False,
+                }
+            )
+
         # Verify the ID token
         decoded_token = firebase_auth.verify_id_token(id_token)
-        uid = decoded_token['uid']
-        email = decoded_token.get('email', '')
-        name = decoded_token.get('name', '')
-        
+        uid = decoded_token["uid"]
+        email = decoded_token.get("email", "")
+        name = decoded_token.get("name", "")
+
         logger.info(f"[Auth] Token verified for user: {uid}")
-        
-        return jsonify({
-            'success': True,
-            'verified': True,
-            'user': {
-                'uid': uid,
-                'email': email,
-                'name': name
+
+        return jsonify(
+            {
+                "success": True,
+                "verified": True,
+                "user": {"uid": uid, "email": email, "name": name},
             }
-        })
-        
+        )
+
     except Exception as e:
         logger.error(f"[Auth] Verification error: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 401
+        return jsonify({"success": False, "error": str(e)}), 401
 
 
-@auth_bp.route('/api/auth/user', methods=['GET'])
+@auth_bp.route("/api/auth/user", methods=["GET"])
 def get_user():
     """Get user info from token (header: Authorization: Bearer <token>)"""
     try:
-        auth_header = request.headers.get('Authorization', '')
-        
-        if not auth_header.startswith('Bearer '):
-            return jsonify({'error': 'No token provided'}), 401
-        
+        auth_header = request.headers.get("Authorization", "")
+
+        if not auth_header.startswith("Bearer "):
+            return jsonify({"error": "No token provided"}), 401
+
         id_token = auth_header[7:]  # Remove 'Bearer ' prefix
-        
+
         if not firebase_auth:
-            return jsonify({
-                'success': False,
-                'error': 'Server-side authentication not configured'
-            }), 500
-        
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": "Server-side authentication not configured",
+                    }
+                ),
+                500,
+            )
+
         decoded_token = firebase_auth.verify_id_token(id_token)
-        
-        return jsonify({
-            'success': True,
-            'user': {
-                'uid': decoded_token['uid'],
-                'email': decoded_token.get('email', ''),
-                'name': decoded_token.get('name', ''),
-                'picture': decoded_token.get('picture', '')
+
+        return jsonify(
+            {
+                "success": True,
+                "user": {
+                    "uid": decoded_token["uid"],
+                    "email": decoded_token.get("email", ""),
+                    "name": decoded_token.get("name", ""),
+                    "picture": decoded_token.get("picture", ""),
+                },
             }
-        })
-        
+        )
+
     except Exception as e:
         logger.error(f"[Auth] Get user error: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 401
+        return jsonify({"success": False, "error": str(e)}), 401
 
 
-@auth_bp.route('/login')
+@auth_bp.route("/login")
 def login_page():
     """Render login page — try Firebase, fall back to standard login.html."""
     try:
         from config.firebase_config import get_firebase_config
+
         config = get_firebase_config()
         return render_template_string(LOGIN_TEMPLATE, firebase_config=config)
     except Exception:
         # Firebase config unavailable — serve standard login template
-        from flask import session as _session, redirect as _redirect, render_template as _rt
-        if _session.get('authenticated'):
-            return _redirect('/')
-        return _rt('login.html')
+        from flask import redirect as _redirect
+        from flask import render_template as _rt
+        from flask import session as _session
+
+        if _session.get("authenticated"):
+            return _redirect("/")
+        return _rt("login.html")
 
 
 # Login page template with Firebase Auth
-LOGIN_TEMPLATE = '''
+LOGIN_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -279,10 +282,10 @@ LOGIN_TEMPLATE = '''
         <div class="logo">
             <h1>ðŸ¤– AI <span>Assistant</span></h1>
         </div>
-        
+
         <div id="error-message" class="error-message"></div>
         <div id="success-message" class="success-message"></div>
-        
+
         <form id="login-form">
             <div class="form-group">
                 <label for="email">Email</label>
@@ -294,9 +297,9 @@ LOGIN_TEMPLATE = '''
             </div>
             <button type="submit" class="btn btn-primary" id="submit-btn">Sign In</button>
         </form>
-        
+
         <div class="divider">or</div>
-        
+
         <button class="btn btn-google" id="google-btn">
             <svg width="20" height="20" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -306,7 +309,7 @@ LOGIN_TEMPLATE = '''
             </svg>
             Sign in with Google
         </button>
-        
+
         <div class="toggle-form" id="toggle-container">
             Don't have an account? <a href="#" id="toggle-link">Sign up</a>
         </div>
@@ -314,19 +317,19 @@ LOGIN_TEMPLATE = '''
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { 
-            getAuth, 
-            signInWithEmailAndPassword, 
+        import {
+            getAuth,
+            signInWithEmailAndPassword,
             createUserWithEmailAndPassword,
-            signInWithPopup, 
-            GoogleAuthProvider 
+            signInWithPopup,
+            GoogleAuthProvider
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        
+
         const firebaseConfig = {{ firebase_config|tojson }};
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const googleProvider = new GoogleAuthProvider();
-        
+
         let isSignUp = false;
         const form = document.getElementById('login-form');
         const submitBtn = document.getElementById('submit-btn');
@@ -334,19 +337,19 @@ LOGIN_TEMPLATE = '''
         const toggleContainer = document.getElementById('toggle-container');
         const errorDiv = document.getElementById('error-message');
         const successDiv = document.getElementById('success-message');
-        
+
         function showError(msg) {
             errorDiv.textContent = msg;
             errorDiv.style.display = 'block';
             successDiv.style.display = 'none';
         }
-        
+
         function showSuccess(msg) {
             successDiv.textContent = msg;
             successDiv.style.display = 'block';
             errorDiv.style.display = 'none';
         }
-        
+
         function onSuccess(user) {
             showSuccess('Login successful! Redirecting...');
             // Store user info
@@ -365,25 +368,25 @@ LOGIN_TEMPLATE = '''
                 }, 1000);
             });
         }
-        
+
         // Toggle between sign in and sign up
         toggleLink.addEventListener('click', (e) => {
             e.preventDefault();
             isSignUp = !isSignUp;
             submitBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
             toggleLink.textContent = isSignUp ? 'Sign in' : 'Sign up';
-            toggleContainer.innerHTML = isSignUp 
+            toggleContainer.innerHTML = isSignUp
                 ? 'Already have an account? <a href="#" id="toggle-link">Sign in</a>'
                 : 'Don\\'t have an account? <a href="#" id="toggle-link">Sign up</a>';
             document.getElementById('toggle-link').addEventListener('click', arguments.callee);
         });
-        
+
         // Email/Password auth
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            
+
             try {
                 let result;
                 if (isSignUp) {
@@ -396,7 +399,7 @@ LOGIN_TEMPLATE = '''
                 showError(error.message);
             }
         });
-        
+
         // Google auth
         document.getElementById('google-btn').addEventListener('click', async () => {
             try {
@@ -409,4 +412,4 @@ LOGIN_TEMPLATE = '''
     </script>
 </body>
 </html>
-'''
+"""

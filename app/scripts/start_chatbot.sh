@@ -1,9 +1,9 @@
-#!/bin/bash
+﻿#!/bin/bash
 #==========================================================
-# 🤖 AI-Assistant Chatbot - Start & Expose to Public
-# Chạy chatbot và tạo Cloudflare tunnel để public
-# Sử dụng: ./start_chatbot.sh
-# Hoặc với nohup để chạy ngay cả khi đóng SSH:
+# ðŸ¤– AI-Assistant Chatbot - Start & Expose to Public
+# Cháº¡y chatbot vÃ  táº¡o Cloudflare tunnel Ä‘á»ƒ public
+# Sá»­ dá»¥ng: ./start_chatbot.sh
+# Hoáº·c vá»›i nohup Ä‘á»ƒ cháº¡y ngay cáº£ khi Ä‘Ã³ng SSH:
 #   nohup ./start_chatbot.sh &
 #==========================================================
 
@@ -26,9 +26,9 @@ URL_FILE="${BASE_DIR}/public_urls.txt"
 # Create logs directory
 mkdir -p "$LOGS_DIR"
 
-echo -e "${CYAN}╔═══════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║      🤖 AI-Assistant Chatbot Launcher                 ║${NC}"
-echo -e "${CYAN}╚═══════════════════════════════════════════════════════╝${NC}"
+echo -e "${CYAN}â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—${NC}"
+echo -e "${CYAN}â•‘      ðŸ¤– AI-Assistant Chatbot Launcher                 â•‘${NC}"
+echo -e "${CYAN}â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
 echo ""
 
 #----------------------------------------------------------
@@ -48,18 +48,18 @@ find_cloudflared() {
 # Function: Stop existing processes
 #----------------------------------------------------------
 stop_existing() {
-    echo -e "${YELLOW}🔄 Dừng các process cũ...${NC}"
+    echo -e "${YELLOW}ðŸ”„ Dá»«ng cÃ¡c process cÅ©...${NC}"
     pkill -f "python.*chatbot_main.py" 2>/dev/null || true
     pkill -f "cloudflared.*5000" 2>/dev/null || true
     sleep 2
-    echo -e "${GREEN}✅ Đã dừng các process cũ${NC}"
+    echo -e "${GREEN}âœ… ÄÃ£ dá»«ng cÃ¡c process cÅ©${NC}"
 }
 
 #----------------------------------------------------------
 # Function: Start Chatbot Service
 #----------------------------------------------------------
 start_chatbot() {
-    echo -e "${BLUE}💬 Khởi động Chatbot (port 5000)...${NC}"
+    echo -e "${BLUE}ðŸ’¬ Khá»Ÿi Ä‘á»™ng Chatbot (port 5000)...${NC}"
     
     cd "$CHATBOT_DIR"
     
@@ -70,16 +70,16 @@ start_chatbot() {
     echo -e "   PID: ${GREEN}$CHATBOT_PID${NC}"
     
     # Wait for startup
-    echo -e "${YELLOW}   Đang chờ khởi động...${NC}"
+    echo -e "${YELLOW}   Äang chá» khá»Ÿi Ä‘á»™ng...${NC}"
     for i in {1..30}; do
         if curl -s --max-time 2 "http://localhost:5000" > /dev/null 2>&1; then
-            echo -e "${GREEN}   ✅ Chatbot đã sẵn sàng!${NC}"
+            echo -e "${GREEN}   âœ… Chatbot Ä‘Ã£ sáºµn sÃ ng!${NC}"
             return 0
         fi
         sleep 1
     done
     
-    echo -e "${RED}   ❌ Chatbot không khởi động được. Kiểm tra logs:${NC}"
+    echo -e "${RED}   âŒ Chatbot khÃ´ng khá»Ÿi Ä‘á»™ng Ä‘Æ°á»£c. Kiá»ƒm tra logs:${NC}"
     echo -e "   tail -f ${LOGS_DIR}/chatbot.log"
     return 1
 }
@@ -92,13 +92,13 @@ start_tunnel() {
     local name=$2
     local log_file="${LOGS_DIR}/tunnel-${name}.log"
     
-    echo -e "${BLUE}🌐 Tạo Cloudflare Tunnel cho ${name} (port ${port})...${NC}"
+    echo -e "${BLUE}ðŸŒ Táº¡o Cloudflare Tunnel cho ${name} (port ${port})...${NC}"
     
     CLOUDFLARED=$(find_cloudflared)
     
     if [[ -z "$CLOUDFLARED" ]]; then
-        echo -e "${RED}❌ cloudflared không tìm thấy!${NC}"
-        echo -e "${YELLOW}   Cài đặt: curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared && chmod +x /usr/local/bin/cloudflared${NC}"
+        echo -e "${RED}âŒ cloudflared khÃ´ng tÃ¬m tháº¥y!${NC}"
+        echo -e "${YELLOW}   CÃ i Ä‘áº·t: curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared && chmod +x /usr/local/bin/cloudflared${NC}"
         return 1
     fi
     
@@ -109,12 +109,12 @@ start_tunnel() {
     echo -e "   PID: ${GREEN}$TUNNEL_PID${NC}"
     
     # Wait for tunnel URL
-    echo -e "${YELLOW}   Đang chờ URL public...${NC}"
+    echo -e "${YELLOW}   Äang chá» URL public...${NC}"
     for i in {1..20}; do
         URL=$(grep -oE "https://[a-z0-9-]+\.trycloudflare\.com" "$log_file" 2>/dev/null | head -1)
         if [[ ! -z "$URL" ]]; then
-            echo -e "${GREEN}   ✅ Tunnel sẵn sàng!${NC}"
-            echo -e "   🔗 ${CYAN}${URL}${NC}"
+            echo -e "${GREEN}   âœ… Tunnel sáºµn sÃ ng!${NC}"
+            echo -e "   ðŸ”— ${CYAN}${URL}${NC}"
             
             # Save URL to file
             grep -v "^${name}:" "$URL_FILE" > "${URL_FILE}.tmp" 2>/dev/null || true
@@ -126,7 +126,7 @@ start_tunnel() {
         sleep 1
     done
     
-    echo -e "${RED}   ❌ Không lấy được URL tunnel${NC}"
+    echo -e "${RED}   âŒ KhÃ´ng láº¥y Ä‘Æ°á»£c URL tunnel${NC}"
     return 1
 }
 
@@ -135,37 +135,37 @@ start_tunnel() {
 #----------------------------------------------------------
 show_status() {
     echo ""
-    echo -e "${CYAN}═══════════════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}                    📊 TRẠNG THÁI                       ${NC}"
-    echo -e "${CYAN}═══════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
+    echo -e "${CYAN}                    ðŸ“Š TRáº NG THÃI                       ${NC}"
+    echo -e "${CYAN}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
     
     # Check chatbot
     if curl -s --max-time 2 "http://localhost:5000" > /dev/null 2>&1; then
-        echo -e "💬 Chatbot (local):  ${GREEN}✅ Đang chạy${NC} - http://localhost:5000"
+        echo -e "ðŸ’¬ Chatbot (local):  ${GREEN}âœ… Äang cháº¡y${NC} - http://localhost:5000"
     else
-        echo -e "💬 Chatbot (local):  ${RED}❌ Không chạy${NC}"
+        echo -e "ðŸ’¬ Chatbot (local):  ${RED}âŒ KhÃ´ng cháº¡y${NC}"
     fi
     
     # Show public URLs
     echo ""
-    echo -e "${CYAN}═══════════════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}                   🌐 PUBLIC URLs                       ${NC}"
-    echo -e "${CYAN}═══════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
+    echo -e "${CYAN}                   ðŸŒ PUBLIC URLs                       ${NC}"
+    echo -e "${CYAN}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
     
     if [[ -f "$URL_FILE" ]]; then
         while IFS= read -r line; do
-            echo -e "🔗 ${GREEN}${line}${NC}"
+            echo -e "ðŸ”— ${GREEN}${line}${NC}"
         done < "$URL_FILE"
     fi
     
     echo ""
-    echo -e "${CYAN}═══════════════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}                   📝 LOG FILES                         ${NC}"
-    echo -e "${CYAN}═══════════════════════════════════════════════════════${NC}"
-    echo -e "📄 Chatbot:        tail -f ${LOGS_DIR}/chatbot.log"
-    echo -e "📄 Tunnel:         tail -f ${LOGS_DIR}/tunnel-chatbot.log"
+    echo -e "${CYAN}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
+    echo -e "${CYAN}                   ðŸ“ LOG FILES                         ${NC}"
+    echo -e "${CYAN}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
+    echo -e "ðŸ“„ Chatbot:        tail -f ${LOGS_DIR}/chatbot.log"
+    echo -e "ðŸ“„ Tunnel:         tail -f ${LOGS_DIR}/tunnel-chatbot.log"
     echo ""
-    echo -e "${YELLOW}💡 Tip: Script chạy với nohup, bạn có thể đóng SSH mà không ảnh hưởng${NC}"
+    echo -e "${YELLOW}ðŸ’¡ Tip: Script cháº¡y vá»›i nohup, báº¡n cÃ³ thá»ƒ Ä‘Ã³ng SSH mÃ  khÃ´ng áº£nh hÆ°á»Ÿng${NC}"
     echo ""
 }
 

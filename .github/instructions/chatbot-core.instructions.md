@@ -190,4 +190,4 @@ Fallback order is intentional. If SerpAPI is unavailable, the CSE fallback must 
 - Do not add a `load_dotenv` call that could override values already loaded by `shared_env.py`.
 - Do not hardcode `localhost`, port numbers, or file paths; read from env or derive from `Path(__file__)`.
 - Do not add compatibility shims or a second runtime path.
-- Do not modify `AGENTS.md` or `.github/copilot-instructions.md` as part of a feature task — those are meta files.
+- Do not modify `.claude/skills/repo-guidelines/AGENTS.md` or `.github/copilot-instructions.md` as part of a feature task — those are meta files.

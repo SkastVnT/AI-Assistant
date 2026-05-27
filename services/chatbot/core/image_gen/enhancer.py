@@ -1,19 +1,18 @@
-﻿"""
-PromptEnhancer â€” uses an LLM to transform user's casual request into 
+"""
+PromptEnhancer â€” uses an LLM to transform user's casual request into
 an optimized image generation prompt.
 
-This is the key differentiator: ChatGPT/Gemini/Grok all use their LLM 
+This is the key differentiator: ChatGPT/Gemini/Grok all use their LLM
 to rewrite prompts internally before sending to the image model.
 We do the same thing explicitly.
 """
 
 from __future__ import annotations
 
-import os
-import json
 import logging
+import os
+
 import httpx
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +32,7 @@ EXAMPLES:
 User: "váº½ con mÃ¨o"
 Enhanced: A fluffy white cat sitting gracefully on a sunlit windowsill, golden hour lighting streaming through lace curtains, photorealistic, shallow depth of field, 4K, warm color palette
 
-User: "cyberpunk city at night"  
+User: "cyberpunk city at night"
 Enhanced: Sprawling cyberpunk metropolis at night, neon signs reflecting on rain-soaked streets, towering holographic billboards, flying vehicles between skyscrapers, blade runner atmosphere, dramatic rain, volumetric fog, cinematic wide angle, ultra detailed, 8K
 
 User: "logo for a coffee shop called Bean & Brew"
@@ -94,7 +93,6 @@ User: "samurai in rain"
 Tags: 1boy, samurai, katana, standing, rain, wet clothing, hakama, serious expression, dark background, dramatic lighting, detailed face, almond-shaped eyes, detailed iris, focused gaze, catchlight"""
 
 
-
 STYLE_PRESETS = {
     "photorealistic": "photorealistic, DSLR quality, natural lighting, 8K resolution, detailed textures",
     "anime": "anime art style, vibrant colors, clean linework, studio Ghibli inspired, manga shading",
@@ -137,9 +135,9 @@ class PromptEnhancer:
     def enhance(
         self,
         user_prompt: str,
-        style_preset: Optional[str] = None,
-        context: Optional[str] = None,
-        provider_hint: Optional[str] = None,
+        style_preset: str | None = None,
+        context: str | None = None,
+        provider_hint: str | None = None,
     ) -> str:
         """
         Enhance a user prompt. Returns enhanced prompt string.
@@ -153,27 +151,33 @@ class PromptEnhancer:
             return self._manual_enhance(user_prompt, style_preset)
 
         try:
-            return self._llm_enhance(user_prompt, style_preset, context, use_danbooru=use_danbooru)
+            return self._llm_enhance(
+                user_prompt, style_preset, context, use_danbooru=use_danbooru
+            )
         except Exception as e:
             logger.warning(f"[PromptEnhancer] LLM failed ({e}), trying fallback...")
             try:
                 if self.fallback_api_key:
                     return self._llm_enhance(
-                        user_prompt, style_preset, context,
+                        user_prompt,
+                        style_preset,
+                        context,
                         api_key=self.fallback_api_key,
                         base_url=self.fallback_base_url,
                         model=self.fallback_model,
                         use_danbooru=use_danbooru,
                     )
             except Exception as e2:
-                logger.warning(f"[PromptEnhancer] Fallback also failed ({e2}), using manual enhance")
+                logger.warning(
+                    f"[PromptEnhancer] Fallback also failed ({e2}), using manual enhance"
+                )
             return self._manual_enhance(user_prompt, style_preset)
 
     def _llm_enhance(
         self,
         user_prompt: str,
-        style_preset: Optional[str] = None,
-        context: Optional[str] = None,
+        style_preset: str | None = None,
+        context: str | None = None,
         api_key: str = "",
         base_url: str = "",
         model: str = "",
@@ -202,23 +206,26 @@ class PromptEnhancer:
             },
             timeout=15.0,
         ) as client:
-            resp = client.post("/chat/completions", json={
-                "model": model,
-                "messages": messages,
-                "max_tokens": 300,
-                "temperature": 0.7,
-            })
+            resp = client.post(
+                "/chat/completions",
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "max_tokens": 300,
+                    "temperature": 0.7,
+                },
+            )
             resp.raise_for_status()
             data = resp.json()
             enhanced = data["choices"][0]["message"]["content"].strip()
 
             # Clean up any wrapping the LLM might add
-            for wrapper in ['```', '"', "'"]:
+            for wrapper in ["```", '"', "'"]:
                 enhanced = enhanced.strip(wrapper)
 
             return enhanced
 
-    def _manual_enhance(self, user_prompt: str, style_preset: Optional[str] = None) -> str:
+    def _manual_enhance(self, user_prompt: str, style_preset: str | None = None) -> str:
         """Rule-based enhancement when LLM is unavailable."""
         parts = [user_prompt]
 
@@ -236,11 +243,30 @@ class PromptEnhancer:
         Detect if the user wants to edit a previous image vs. generate new.
         Returns: {"is_edit": bool, "edit_type": str, "description": str}
         """
-        edit_keywords_vi = ["thÃªm", "bá»", "xÃ³a", "Ä‘á»•i", "thay", "sá»­a", "chá»‰nh", "lÃ m", "biáº¿n"]
-        edit_keywords_en = ["add", "remove", "change", "replace", "fix", "adjust", "make", "turn"]
+        edit_keywords_vi = [
+            "thÃªm",
+            "bá»",
+            "xÃ³a",
+            "Ä‘á»•i",
+            "thay",
+            "sá»­a",
+            "chá»‰nh",
+            "lÃ m",
+            "biáº¿n",
+        ]
+        edit_keywords_en = [
+            "add",
+            "remove",
+            "change",
+            "replace",
+            "fix",
+            "adjust",
+            "make",
+            "turn",
+        ]
 
         lower = user_message.lower().strip()
-        
+
         for kw in edit_keywords_vi + edit_keywords_en:
             if lower.startswith(kw) or f" {kw} " in f" {lower} ":
                 return {
@@ -250,7 +276,14 @@ class PromptEnhancer:
                 }
 
         # Check for referencing previous image
-        ref_patterns = ["áº£nh trÆ°á»›c", "áº£nh vá»«a", "cÃ¡i áº£nh", "last image", "previous image", "that image"]
+        ref_patterns = [
+            "áº£nh trÆ°á»›c",
+            "áº£nh vá»«a",
+            "cÃ¡i áº£nh",
+            "last image",
+            "previous image",
+            "that image",
+        ]
         for pat in ref_patterns:
             if pat in lower:
                 return {

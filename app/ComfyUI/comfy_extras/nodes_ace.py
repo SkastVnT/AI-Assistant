@@ -16,7 +16,9 @@ class TextEncodeAceStepAudio(io.ComfyNode):
                 io.Clip.Input("clip"),
                 io.String.Input("tags", multiline=True, dynamic_prompts=True),
                 io.String.Input("lyrics", multiline=True, dynamic_prompts=True),
-                io.Float.Input("lyrics_strength", default=1.0, min=0.0, max=10.0, step=0.01),
+                io.Float.Input(
+                    "lyrics_strength", default=1.0, min=0.0, max=10.0, step=0.01
+                ),
             ],
             outputs=[io.Conditioning.Output()],
         )
@@ -25,7 +27,9 @@ class TextEncodeAceStepAudio(io.ComfyNode):
     def execute(cls, clip, tags, lyrics, lyrics_strength) -> io.NodeOutput:
         tokens = clip.tokenize(tags, lyrics=lyrics)
         conditioning = clip.encode_from_tokens_scheduled(tokens)
-        conditioning = node_helpers.conditioning_set_values(conditioning, {"lyrics_strength": lyrics_strength})
+        conditioning = node_helpers.conditioning_set_values(
+            conditioning, {"lyrics_strength": lyrics_strength}
+        )
         return io.NodeOutput(conditioning)
 
 
@@ -38,7 +42,11 @@ class EmptyAceStepLatentAudio(io.ComfyNode):
             inputs=[
                 io.Float.Input("seconds", default=120.0, min=1.0, max=1000.0, step=0.1),
                 io.Int.Input(
-                    "batch_size", default=1, min=1, max=4096, tooltip="The number of latent images in the batch."
+                    "batch_size",
+                    default=1,
+                    min=1,
+                    max=4096,
+                    tooltip="The number of latent images in the batch.",
                 ),
             ],
             outputs=[io.Latent.Output()],
@@ -47,7 +55,10 @@ class EmptyAceStepLatentAudio(io.ComfyNode):
     @classmethod
     def execute(cls, seconds, batch_size) -> io.NodeOutput:
         length = int(seconds * 44100 / 512 / 8)
-        latent = torch.zeros([batch_size, 8, 16, length], device=comfy.model_management.intermediate_device())
+        latent = torch.zeros(
+            [batch_size, 8, 16, length],
+            device=comfy.model_management.intermediate_device(),
+        )
         return io.NodeOutput({"samples": latent, "type": "audio"})
 
 
@@ -58,6 +69,7 @@ class AceExtension(ComfyExtension):
             TextEncodeAceStepAudio,
             EmptyAceStepLatentAudio,
         ]
+
 
 async def comfy_entrypoint() -> AceExtension:
     return AceExtension()

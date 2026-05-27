@@ -12,7 +12,7 @@ def test_resolve_aspect_ratio_square_maps_to_valid_api_size():
 def test_resolve_aspect_ratio_rejects_invalid_value():
     try:
         _resolve_aspect_ratio("999x999")
-        assert False, "Expected ValueError for invalid aspect ratio"
+        raise AssertionError("Expected ValueError for invalid aspect ratio")
     except ValueError as e:
         assert "Unsupported video size/aspect ratio" in str(e)
 

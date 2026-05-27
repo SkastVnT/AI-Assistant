@@ -4,6 +4,7 @@ Recursive text splitter with overlap and metadata carry-over.
 Tries to break at natural boundaries (paragraphs → lines → sentences →
 words) before falling back to a hard character cut.
 """
+
 from __future__ import annotations
 
 from .base import Chunker, TextChunk
@@ -65,7 +66,9 @@ class RecursiveTextChunker(Chunker):
             fragment = text[start:end].strip()
             if fragment:
                 meta = {**base_meta}
-                chunks.append(TextChunk(text=fragment, chunk_index=index, metadata=meta))
+                chunks.append(
+                    TextChunk(text=fragment, chunk_index=index, metadata=meta)
+                )
                 index += 1
 
             # Advance with overlap

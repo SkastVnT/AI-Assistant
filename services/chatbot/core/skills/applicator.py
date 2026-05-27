@@ -15,13 +15,13 @@ and resolving the skill.  This module owns:
 Every field in ``AppliedSkill`` is a concrete value ready for the pipeline.
 Route handlers do not need to interpret SkillOverrides themselves.
 """
+
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import List, Optional
 
-from core.skills.resolver import SkillOverrides, resolve_skill
+from core.skills.resolver import SkillOverrides
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +35,8 @@ class AppliedSkill:
     """
 
     # Resolved skill identity
-    skill_id: Optional[str] = None
-    skill_name: Optional[str] = None
+    skill_id: str | None = None
+    skill_name: str | None = None
     was_applied: bool = False
 
     # Pipeline parameters (final values)
@@ -45,7 +45,7 @@ class AppliedSkill:
     thinking_mode: str = "auto"
     deep_thinking: bool = False
     custom_prompt: str = ""
-    tools: List[str] = field(default_factory=list)
+    tools: list[str] = field(default_factory=list)
 
     # MCP hint — True when the skill wants MCP context injected
     prefer_mcp: bool = False
@@ -91,6 +91,7 @@ def apply_skill_overrides(
     if isinstance(tools, str):
         try:
             import json as _json
+
             tools = _json.loads(tools)
         except Exception:
             tools = []
@@ -118,14 +119,12 @@ def apply_skill_overrides(
     user_set_context = "context" in data and data["context"] != "casual"
 
     # ── Context override ──────────────────────────────────────────────
-    if skill_overrides.context:
-        if user_chose_skill or not user_set_context:
-            context = skill_overrides.context
+    if skill_overrides.context and (user_chose_skill or not user_set_context):
+        context = skill_overrides.context
 
     # ── Model override ────────────────────────────────────────────────
-    if skill_overrides.model:
-        if user_chose_skill or not user_set_model:
-            model = skill_overrides.model
+    if skill_overrides.model and (user_chose_skill or not user_set_model):
+        model = skill_overrides.model
 
     # ── Thinking mode override ────────────────────────────────────────
     if skill_overrides.thinking_mode:
@@ -145,6 +144,7 @@ def apply_skill_overrides(
             # No user custom prompt — build context-based prompt + skill
             try:
                 from core.config import get_system_prompts
+
                 base_prompt = get_system_prompts(language).get(
                     context,
                     get_system_prompts(language).get("casual", ""),
@@ -167,6 +167,7 @@ def apply_skill_overrides(
     # MCP context is especially valuable for this request.
     try:
         from core.skills.registry import get_skill_registry
+
         skill_def = get_skill_registry().get(skill_overrides.skill_id)
         if skill_def and ("mcp" in getattr(skill_def, "tags", [])):
             prefer_mcp = True

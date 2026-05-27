@@ -17,7 +17,7 @@ REM Force UTF-8 encoding to prevent Unicode errors
 chcp 65001 >nul 2>&1
 
 REM Get project root (parent of scripts folder)
-set "PROJECT_ROOT=%~dp0.."
+set "PROJECT_ROOT=%~dp0..\.."
 cd /d "%PROJECT_ROOT%"
 
 echo.
@@ -258,7 +258,7 @@ if "!NEED_INSTALL!"=="1" (
 
 echo.
 echo ============================================================================
-echo   ✅ Virtual Environment Ready
+echo   ??? Virtual Environment Ready
 echo ============================================================================
 echo.
 

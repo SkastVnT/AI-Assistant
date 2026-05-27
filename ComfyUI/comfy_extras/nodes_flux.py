@@ -7,6 +7,7 @@ import torch
 import math
 import nodes
 
+
 class CLIPTextEncodeFlux(io.ComfyNode):
     @classmethod
     def define_schema(cls):
@@ -29,9 +30,12 @@ class CLIPTextEncodeFlux(io.ComfyNode):
         tokens = clip.tokenize(clip_l)
         tokens["t5xxl"] = clip.tokenize(t5xxl)["t5xxl"]
 
-        return io.NodeOutput(clip.encode_from_tokens_scheduled(tokens, add_dict={"guidance": guidance}))
+        return io.NodeOutput(
+            clip.encode_from_tokens_scheduled(tokens, add_dict={"guidance": guidance})
+        )
 
     encode = execute  # TODO: remove
+
 
 class EmptyFlux2LatentImage(io.ComfyNode):
     @classmethod
@@ -41,8 +45,12 @@ class EmptyFlux2LatentImage(io.ComfyNode):
             display_name="Empty Flux 2 Latent",
             category="latent",
             inputs=[
-                io.Int.Input("width", default=1024, min=16, max=nodes.MAX_RESOLUTION, step=16),
-                io.Int.Input("height", default=1024, min=16, max=nodes.MAX_RESOLUTION, step=16),
+                io.Int.Input(
+                    "width", default=1024, min=16, max=nodes.MAX_RESOLUTION, step=16
+                ),
+                io.Int.Input(
+                    "height", default=1024, min=16, max=nodes.MAX_RESOLUTION, step=16
+                ),
                 io.Int.Input("batch_size", default=1, min=1, max=4096),
             ],
             outputs=[
@@ -52,8 +60,12 @@ class EmptyFlux2LatentImage(io.ComfyNode):
 
     @classmethod
     def execute(cls, width, height, batch_size=1) -> io.NodeOutput:
-        latent = torch.zeros([batch_size, 128, height // 16, width // 16], device=comfy.model_management.intermediate_device())
+        latent = torch.zeros(
+            [batch_size, 128, height // 16, width // 16],
+            device=comfy.model_management.intermediate_device(),
+        )
         return io.NodeOutput({"samples": latent})
+
 
 class FluxGuidance(io.ComfyNode):
     @classmethod
@@ -142,8 +154,12 @@ class FluxKontextImageScale(io.ComfyNode):
         width = image.shape[2]
         height = image.shape[1]
         aspect_ratio = width / height
-        _, width, height = min((abs(aspect_ratio - w / h), w, h) for w, h in PREFERED_KONTEXT_RESOLUTIONS)
-        image = comfy.utils.common_upscale(image.movedim(-1, 1), width, height, "lanczos", "center").movedim(1, -1)
+        _, width, height = min(
+            (abs(aspect_ratio - w / h), w, h) for w, h in PREFERED_KONTEXT_RESOLUTIONS
+        )
+        image = comfy.utils.common_upscale(
+            image.movedim(-1, 1), width, height, "lanczos", "center"
+        ).movedim(1, -1)
         return io.NodeOutput(image)
 
     scale = execute  # TODO: remove
@@ -173,7 +189,9 @@ class FluxKontextMultiReferenceLatentMethod(io.ComfyNode):
     def execute(cls, conditioning, reference_latents_method) -> io.NodeOutput:
         if "uxo" in reference_latents_method or "uso" in reference_latents_method:
             reference_latents_method = "uxo"
-        c = node_helpers.conditioning_set_values(conditioning, {"reference_latents_method": reference_latents_method})
+        c = node_helpers.conditioning_set_values(
+            conditioning, {"reference_latents_method": reference_latents_method}
+        )
         return io.NodeOutput(c)
 
     append = execute  # TODO: remove
@@ -216,8 +234,12 @@ class Flux2Scheduler(io.ComfyNode):
             category="sampling/custom_sampling/schedulers",
             inputs=[
                 io.Int.Input("steps", default=20, min=1, max=4096),
-                io.Int.Input("width", default=1024, min=16, max=nodes.MAX_RESOLUTION, step=1),
-                io.Int.Input("height", default=1024, min=16, max=nodes.MAX_RESOLUTION, step=1),
+                io.Int.Input(
+                    "width", default=1024, min=16, max=nodes.MAX_RESOLUTION, step=1
+                ),
+                io.Int.Input(
+                    "height", default=1024, min=16, max=nodes.MAX_RESOLUTION, step=1
+                ),
             ],
             outputs=[
                 io.Sigmas.Output(),
@@ -226,7 +248,7 @@ class Flux2Scheduler(io.ComfyNode):
 
     @classmethod
     def execute(cls, steps, width, height) -> io.NodeOutput:
-        seq_len = (width * height / (16 * 16))
+        seq_len = width * height / (16 * 16)
         sigmas = get_schedule(steps, round(seq_len))
         return io.NodeOutput(sigmas)
 

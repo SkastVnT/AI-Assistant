@@ -42,6 +42,7 @@ ROUTE_FILE = _CHATBOT_DIR / "routes" / "image_gen.py"
 
 def _png_b64() -> str:
     import base64
+
     buf = io.BytesIO()
     Image.new("RGB", (32, 32), (10, 200, 50)).save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode("ascii")
@@ -82,10 +83,16 @@ def _stub_storage_capture():
     return storage
 
 
-def _patch_common(monkeypatch, *, flag: bool, pipeline_result: dict | None,
-                  router_should_run: bool = False):
+def _patch_common(
+    monkeypatch,
+    *,
+    flag: bool,
+    pipeline_result: dict | None,
+    router_should_run: bool = False,
+):
     """Patch the route module so tests don't touch real ComfyUI / DB."""
     from routes import image_gen as route_mod
+
     from core import config as core_cfg
 
     monkeypatch.setattr(core_cfg, "REASONING_PIPELINE_ENABLED", flag, raising=False)
@@ -95,8 +102,10 @@ def _patch_common(monkeypatch, *, flag: bool, pipeline_result: dict | None,
     monkeypatch.setattr(route_mod, "_get_storage", lambda: storage)
     sessions = MagicMock()
     sessions.get_or_create.return_value = MagicMock(
-        history=[], get_context_for_enhancement=lambda: None,
-        add_generation=lambda **kw: None, active_style=None,
+        history=[],
+        get_context_for_enhancement=lambda: None,
+        add_generation=lambda **kw: None,
+        active_style=None,
     )
     monkeypatch.setattr(route_mod, "_get_sessions", lambda: sessions)
 
@@ -108,8 +117,10 @@ def _patch_common(monkeypatch, *, flag: bool, pipeline_result: dict | None,
     # function body, so monkeypatching the attribute on that module works.
     if pipeline_result is not None:
         from routes import reasoning_image_gen as r_mod
+
         monkeypatch.setattr(
-            r_mod, "run_pipeline_for_prompt",
+            r_mod,
+            "run_pipeline_for_prompt",
             lambda *a, **kw: dict(pipeline_result),
         )
 
@@ -157,13 +168,14 @@ class TestFastpathTaken:
             "success": True,
             "job_id": "reason-deadbeef",
             "image_b64": _png_b64(),
-            "comic": {"layout": "single", "panel_count": 1,
-                      "image_bytes_size": 9},
+            "comic": {"layout": "single", "panel_count": 1, "image_bytes_size": 9},
             "panels": [{"panel_id": "p0", "success": True}],
             "parse": {},
         }
         ctx = _patch_common(
-            monkeypatch, flag=True, pipeline_result=pipeline_ok,
+            monkeypatch,
+            flag=True,
+            pipeline_result=pipeline_ok,
         )
         app = _make_app()
         client = app.test_client()
@@ -199,7 +211,9 @@ class TestFastpathTaken:
             "panels": [{"panel_id": "p0", "success": False, "error": "boom"}],
         }
         ctx = _patch_common(
-            monkeypatch, flag=True, pipeline_result=pipeline_fail,
+            monkeypatch,
+            flag=True,
+            pipeline_result=pipeline_fail,
         )
         app = _make_app()
         client = app.test_client()

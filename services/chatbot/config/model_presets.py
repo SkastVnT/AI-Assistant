@@ -10,69 +10,309 @@ LoRA combinations, and workflow recipes.
 
 LORA_CATALOG = {
     # -- Character LoRAs (Honkai Star Rail) -------------------------------
-    "firefly":        {"file": "Firefly-1024-v1.safetensors",           "trigger": ["firefly"],           "category": "character", "base": "sdxl"},
-    "kafka":          {"file": "kafka-v2-naivae-final-6ep.safetensors", "trigger": ["kafka"],             "category": "character", "base": "sdxl"},
-    "jingliu":        {"file": "JingliuV4-09.safetensors",              "trigger": ["jingliu"],           "category": "character", "base": "sdxl"},
-    "seele":          {"file": "Seele.safetensors",                     "trigger": ["seele"],             "category": "character", "base": "sd15"},
-    "clara":          {"file": "Clara.safetensors",                     "trigger": ["clara"],             "category": "character", "base": "sd15"},
-    "march7th":       {"file": "March 7th.safetensors",                 "trigger": ["march 7th"],         "category": "character", "base": "sd15"},
-    "bronya":         {"file": "Bronya Rand.safetensors",               "trigger": ["bronya rand"],       "category": "character", "base": "sd15"},
-    "trailblazer":    {"file": "TrailblazerHonkaiStarRail4.safetensors","trigger": ["trailblazer"],       "category": "character", "base": "sd15"},
-
+    "firefly": {
+        "file": "Firefly-1024-v1.safetensors",
+        "trigger": ["firefly"],
+        "category": "character",
+        "base": "sdxl",
+    },
+    "kafka": {
+        "file": "kafka-v2-naivae-final-6ep.safetensors",
+        "trigger": ["kafka"],
+        "category": "character",
+        "base": "sdxl",
+    },
+    "jingliu": {
+        "file": "JingliuV4-09.safetensors",
+        "trigger": ["jingliu"],
+        "category": "character",
+        "base": "sdxl",
+    },
+    "seele": {
+        "file": "Seele.safetensors",
+        "trigger": ["seele"],
+        "category": "character",
+        "base": "sd15",
+    },
+    "clara": {
+        "file": "Clara.safetensors",
+        "trigger": ["clara"],
+        "category": "character",
+        "base": "sd15",
+    },
+    "march7th": {
+        "file": "March 7th.safetensors",
+        "trigger": ["march 7th"],
+        "category": "character",
+        "base": "sd15",
+    },
+    "bronya": {
+        "file": "Bronya Rand.safetensors",
+        "trigger": ["bronya rand"],
+        "category": "character",
+        "base": "sd15",
+    },
+    "trailblazer": {
+        "file": "TrailblazerHonkaiStarRail4.safetensors",
+        "trigger": ["trailblazer"],
+        "category": "character",
+        "base": "sd15",
+    },
     # -- HSR characters discovered via inventory scan (Illustrious base) --
-    "huohuo":         {"file": "Huohuo-07.safetensors",                 "trigger": ["huohuo"],            "category": "character", "base": "ilxl", "weight": 0.8},
-    "stelle":         {"file": "StelleHSR-Aesthetic.safetensors",       "trigger": ["stelle", "trailblazer (female)"], "category": "character", "base": "ilxl", "weight": 0.75},
-    "silver_wolf":    {"file": "silver_wolf_starrail.safetensors",      "trigger": ["silver wolf"],       "category": "character", "base": "ilxl", "weight": 0.8},
-    "firefly_pony":   {"file": "firefly_V3_pony.safetensors",           "trigger": ["firefly"],           "category": "character", "base": "ponyxl", "weight": 0.8},
-
+    "huohuo": {
+        "file": "Huohuo-07.safetensors",
+        "trigger": ["huohuo"],
+        "category": "character",
+        "base": "ilxl",
+        "weight": 0.8,
+    },
+    "stelle": {
+        "file": "StelleHSR-Aesthetic.safetensors",
+        "trigger": ["stelle", "trailblazer (female)"],
+        "category": "character",
+        "base": "ilxl",
+        "weight": 0.75,
+    },
+    "silver_wolf": {
+        "file": "silver_wolf_starrail.safetensors",
+        "trigger": ["silver wolf"],
+        "category": "character",
+        "base": "ilxl",
+        "weight": 0.8,
+    },
+    "firefly_pony": {
+        "file": "firefly_V3_pony.safetensors",
+        "trigger": ["firefly"],
+        "category": "character",
+        "base": "ponyxl",
+        "weight": 0.8,
+    },
     # -- Character LoRAs (Genshin Impact) ---------------------------------
-    "nahida":         {"file": "Nahida3.safetensors",                   "trigger": ["nahida"],            "category": "character", "base": "sd15"},
-    "furina":         {"file": "furina-lora-nochekaiser.safetensors",   "trigger": ["furina"],            "category": "character", "base": "sdxl"},
-    "eula":           {"file": "Eula-1.0.safetensors",                  "trigger": ["eula"],              "category": "character", "base": "sd15"},
-    "raiden":         {"file": "raiden shogun_LoRA.safetensors",        "trigger": ["raiden shogun"],     "category": "character", "base": "sd15"},
-    "yae_miko":       {"file": "yaemiko1.safetensors",                  "trigger": ["yae miko"],          "category": "character", "base": "sd15"},
-
+    "nahida": {
+        "file": "Nahida3.safetensors",
+        "trigger": ["nahida"],
+        "category": "character",
+        "base": "sd15",
+    },
+    "furina": {
+        "file": "furina-lora-nochekaiser.safetensors",
+        "trigger": ["furina"],
+        "category": "character",
+        "base": "sdxl",
+    },
+    "eula": {
+        "file": "Eula-1.0.safetensors",
+        "trigger": ["eula"],
+        "category": "character",
+        "base": "sd15",
+    },
+    "raiden": {
+        "file": "raiden shogun_LoRA.safetensors",
+        "trigger": ["raiden shogun"],
+        "category": "character",
+        "base": "sd15",
+    },
+    "yae_miko": {
+        "file": "yaemiko1.safetensors",
+        "trigger": ["yae miko"],
+        "category": "character",
+        "base": "sd15",
+    },
     # -- Character LoRAs (Other) ------------------------------------------
-    "tatsumaki":      {"file": "tatsumaki.safetensors",                 "trigger": ["tatsumaki"],         "category": "character", "base": "sd15"},
-    "atri":           {"file": "atri.safetensors",                      "trigger": ["atri"],              "category": "character", "base": "sd15"},
-
+    "tatsumaki": {
+        "file": "tatsumaki.safetensors",
+        "trigger": ["tatsumaki"],
+        "category": "character",
+        "base": "sd15",
+    },
+    "atri": {
+        "file": "atri.safetensors",
+        "trigger": ["atri"],
+        "category": "character",
+        "base": "sd15",
+    },
     # -- Style LoRAs ------------------------------------------------------
-    "outline":        {"file": "SIC_outline_v1.01.safetensors",         "trigger": [],                    "category": "style",     "base": "sdxl"},
-    "dilation_tape":  {"file": "dilationTapeLora-05.safetensors",       "trigger": [],                    "category": "style",     "base": "sd15"},
-
+    "outline": {
+        "file": "SIC_outline_v1.01.safetensors",
+        "trigger": [],
+        "category": "style",
+        "base": "sdxl",
+    },
+    "dilation_tape": {
+        "file": "dilationTapeLora-05.safetensors",
+        "trigger": [],
+        "category": "style",
+        "base": "sd15",
+    },
     # -- Anatomy / Quality LoRAs ------------------------------------------
-    "detail_tweaker": {"file": "add_detail.safetensors",                "trigger": [],                    "category": "anatomy",   "base": "sd15"},
-
+    "detail_tweaker": {
+        "file": "add_detail.safetensors",
+        "trigger": [],
+        "category": "anatomy",
+        "base": "sd15",
+    },
     # -- Custom trained ---------------------------------------------------
-    "maki_custom":    {"file": "maki_lora.safetensors",                 "trigger": ["maki"],              "category": "character", "base": "sd15"},
-
+    "maki_custom": {
+        "file": "maki_lora.safetensors",
+        "trigger": ["maki"],
+        "category": "character",
+        "base": "sd15",
+    },
     # -- NSFW LoRAs � Illustrious XL base (compatible with ChenkinNoob-XL) --
     # These LoRAs are confirmed ILXL/Illustrious � use ChenkinNoob-XL-V0.2.safetensors
-    "xray_ilxl":              {"file": "x-ray_ilxl_v1.safetensors",                                              "trigger": ["xray view", "x-ray view", "internal view", "see through body"],  "category": "nsfw", "base": "ilxl"},
-    "speculum_ilxl":          {"file": "speculum_illustrious_V1.0.safetensors",                                   "trigger": ["speculum"],                                                       "category": "nsfw", "base": "ilxl"},
-    "speculum_insertion_ilxl":{"file": "LoraILXL10_speculum_insertion_v1.safetensors",                            "trigger": ["speculum insertion"],                                             "category": "nsfw", "base": "ilxl"},
-    "vibrator_clit_ilxl":     {"file": "LoraILXL10_vibrator_on_clitoris_v1.safetensors",                         "trigger": ["vibrator on clitoris"],                                           "category": "nsfw", "base": "ilxl"},
-    "vibrator_panties_ilxl":  {"file": "vibrator-under-panties-illustriousxl-lora-nochekaiser.safetensors",       "trigger": ["vibrator under panties", "vibrator panties"],                    "category": "nsfw", "base": "ilxl"},
-    "spread_anal_il":         {"file": "ExtremeSpreadPussyAnal_Anime_IL_V1.safetensors",                          "trigger": ["spread pussy", "extreme spread"],                                 "category": "nsfw", "base": "ilxl"},
-    "ifl_il":                 {"file": "IFL_v1.0_IL.safetensors",                                                 "trigger": [],                                                                 "category": "nsfw", "base": "ilxl"},
-    "cameltoe_ilxl":          {"file": "Cameltoe_THICK_-_Anime-000009.safetensors",                               "trigger": ["cameltoe", "camel toe"],                                          "category": "nsfw", "base": "ilxl"},
-    "eyes_ilxl":              {"file": "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors",                "trigger": [],                                                                 "category": "quality", "base": "ilxl"},
-
+    "xray_ilxl": {
+        "file": "x-ray_ilxl_v1.safetensors",
+        "trigger": ["xray view", "x-ray view", "internal view", "see through body"],
+        "category": "nsfw",
+        "base": "ilxl",
+    },
+    "speculum_ilxl": {
+        "file": "speculum_illustrious_V1.0.safetensors",
+        "trigger": ["speculum"],
+        "category": "nsfw",
+        "base": "ilxl",
+    },
+    "speculum_insertion_ilxl": {
+        "file": "LoraILXL10_speculum_insertion_v1.safetensors",
+        "trigger": ["speculum insertion"],
+        "category": "nsfw",
+        "base": "ilxl",
+    },
+    "vibrator_clit_ilxl": {
+        "file": "LoraILXL10_vibrator_on_clitoris_v1.safetensors",
+        "trigger": ["vibrator on clitoris"],
+        "category": "nsfw",
+        "base": "ilxl",
+    },
+    "vibrator_panties_ilxl": {
+        "file": "vibrator-under-panties-illustriousxl-lora-nochekaiser.safetensors",
+        "trigger": ["vibrator under panties", "vibrator panties"],
+        "category": "nsfw",
+        "base": "ilxl",
+    },
+    "spread_anal_il": {
+        "file": "ExtremeSpreadPussyAnal_Anime_IL_V1.safetensors",
+        "trigger": ["spread pussy", "extreme spread"],
+        "category": "nsfw",
+        "base": "ilxl",
+    },
+    "ifl_il": {
+        "file": "IFL_v1.0_IL.safetensors",
+        "trigger": [],
+        "category": "nsfw",
+        "base": "ilxl",
+    },
+    "cameltoe_ilxl": {
+        "file": "Cameltoe_THICK_-_Anime-000009.safetensors",
+        "trigger": ["cameltoe", "camel toe"],
+        "category": "nsfw",
+        "base": "ilxl",
+    },
+    "eyes_ilxl": {
+        "file": "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors",
+        "trigger": [],
+        "category": "quality",
+        "base": "ilxl",
+    },
     # -- NSFW LoRAs � likely SDXL/anime base (ambiguous, attempt with ChenkinNoob) --
-    "xray_v2":                {"file": "xray2.5.safetensors",                                                     "trigger": [],                                                                 "category": "nsfw", "base": "sdxl"},
-    "xray_window":            {"file": "Johns_X-Ray_Window_LORA.safetensors",                                     "trigger": ["x-ray window", "xray window"],                                    "category": "nsfw", "base": "sdxl"},
-    "xray_creampie":          {"file": "X-ray_creampie_high.safetensors",                                         "trigger": ["xray creampie", "x-ray creampie"],                                "category": "nsfw", "base": "sdxl"},
-    "xray_cum":               {"file": "X-ray_cum_inflation.safetensors",                                         "trigger": ["cum inflation", "xray inflation"],                                "category": "nsfw", "base": "sdxl"},
-    "tape_gape":              {"file": "TapeGape-000037.safetensors",                                             "trigger": ["tape gape"],                                                      "category": "nsfw", "base": "sdxl"},
-    "tape_spread":            {"file": "Tape_Spread-000023.safetensors",                                          "trigger": ["tape spread"],                                                    "category": "nsfw", "base": "sdxl"},
-    "taped_eyes_il":          {"file": "taped_eyes_while_sleep.safetensors",                                       "trigger": ["eyes taped open with hand", "duct tape forcing eyes wide open", "thick silver duct tape wrapped around head", "hands pressing tape on eyes", "fingers holding eyelids open", "taped eyes unable to blink", "bulging wide eyes", "bloodshot glassy eyes", "unconscious with taped eyes"], "weight": 1.0, "clip_weight": 0.9, "category": "nsfw", "base": "ilxl"},
-    "sleeping_eyes_open_il":   {"file": "Unconscious_with_eyes_open.safetensors",                                    "trigger": ["0utc0ld"],                                                                                                                                                                                                                                                                                                                                                                                                                                                       "weight": 0.80, "clip_weight": 0.70, "category": "nsfw", "base": "ilxl"},
-    "vibrator_thigh":         {"file": "vibrator_in_thighhighs.safetensors",                                      "trigger": ["vibrator thighhighs", "vibrator thigh highs"],                   "category": "nsfw", "base": "sdxl"},
-    "vibrator_underwear":     {"file": "Vibrator in underwear and legs spread.safetensors",                       "trigger": ["vibrator in underwear"],                                          "category": "nsfw", "base": "sdxl"},
-    "cervix":                 {"file": "cervix.safetensors",                                                      "trigger": ["cervix view", "cervix"],                                          "category": "nsfw", "base": "sdxl"},
-    "armpit_hair":            {"file": "my_girls_armpit_hair_anime_style.safetensors",                            "trigger": ["armpit hair", "hairy armpit"],                                    "category": "nsfw", "base": "sdxl"},
-    "expressive_h":           {"file": "Expressive_H-000001.safetensors",                                         "trigger": [],                                                                 "category": "nsfw", "base": "sdxl"},
-    "dasv3":                  {"file": "DASV3.safetensors",                                                       "trigger": [],                                                                 "category": "nsfw", "base": "sdxl"},
+    "xray_v2": {
+        "file": "xray2.5.safetensors",
+        "trigger": [],
+        "category": "nsfw",
+        "base": "sdxl",
+    },
+    "xray_window": {
+        "file": "Johns_X-Ray_Window_LORA.safetensors",
+        "trigger": ["x-ray window", "xray window"],
+        "category": "nsfw",
+        "base": "sdxl",
+    },
+    "xray_creampie": {
+        "file": "X-ray_creampie_high.safetensors",
+        "trigger": ["xray creampie", "x-ray creampie"],
+        "category": "nsfw",
+        "base": "sdxl",
+    },
+    "xray_cum": {
+        "file": "X-ray_cum_inflation.safetensors",
+        "trigger": ["cum inflation", "xray inflation"],
+        "category": "nsfw",
+        "base": "sdxl",
+    },
+    "tape_gape": {
+        "file": "TapeGape-000037.safetensors",
+        "trigger": ["tape gape"],
+        "category": "nsfw",
+        "base": "sdxl",
+    },
+    "tape_spread": {
+        "file": "Tape_Spread-000023.safetensors",
+        "trigger": ["tape spread"],
+        "category": "nsfw",
+        "base": "sdxl",
+    },
+    "taped_eyes_il": {
+        "file": "taped_eyes_while_sleep.safetensors",
+        "trigger": [
+            "eyes taped open with hand",
+            "duct tape forcing eyes wide open",
+            "thick silver duct tape wrapped around head",
+            "hands pressing tape on eyes",
+            "fingers holding eyelids open",
+            "taped eyes unable to blink",
+            "bulging wide eyes",
+            "bloodshot glassy eyes",
+            "unconscious with taped eyes",
+        ],
+        "weight": 1.0,
+        "clip_weight": 0.9,
+        "category": "nsfw",
+        "base": "ilxl",
+    },
+    "sleeping_eyes_open_il": {
+        "file": "Unconscious_with_eyes_open.safetensors",
+        "trigger": ["0utc0ld"],
+        "weight": 0.80,
+        "clip_weight": 0.70,
+        "category": "nsfw",
+        "base": "ilxl",
+    },
+    "vibrator_thigh": {
+        "file": "vibrator_in_thighhighs.safetensors",
+        "trigger": ["vibrator thighhighs", "vibrator thigh highs"],
+        "category": "nsfw",
+        "base": "sdxl",
+    },
+    "vibrator_underwear": {
+        "file": "Vibrator in underwear and legs spread.safetensors",
+        "trigger": ["vibrator in underwear"],
+        "category": "nsfw",
+        "base": "sdxl",
+    },
+    "cervix": {
+        "file": "cervix.safetensors",
+        "trigger": ["cervix view", "cervix"],
+        "category": "nsfw",
+        "base": "sdxl",
+    },
+    "armpit_hair": {
+        "file": "my_girls_armpit_hair_anime_style.safetensors",
+        "trigger": ["armpit hair", "hairy armpit"],
+        "category": "nsfw",
+        "base": "sdxl",
+    },
+    "expressive_h": {
+        "file": "Expressive_H-000001.safetensors",
+        "trigger": [],
+        "category": "nsfw",
+        "base": "sdxl",
+    },
+    "dasv3": {
+        "file": "DASV3.safetensors",
+        "trigger": [],
+        "category": "nsfw",
+        "base": "sdxl",
+    },
 }
 
 
@@ -91,8 +331,22 @@ WORKFLOW_PRESETS = {
         "live_lora_limit": 2,
         "live_lora_weight": 0.55,
         "live_lora_include_keywords": [
-            "il", "ilxl", "illustrious", "xl", "xray", "x-ray", "eye", "speculum",
-            "vibrator", "tape", "cervix", "cameltoe", "armpit", "uncensored", "das", "dskb",
+            "il",
+            "ilxl",
+            "illustrious",
+            "xl",
+            "xray",
+            "x-ray",
+            "eye",
+            "speculum",
+            "vibrator",
+            "tape",
+            "cervix",
+            "cameltoe",
+            "armpit",
+            "uncensored",
+            "das",
+            "dskb",
         ],
         "live_lora_exclude_keywords": ["pony", "flux"],
         "negative_prompt": "worst quality, low quality, blurry, bad anatomy, watermark, text, signature",
@@ -104,20 +358,19 @@ WORKFLOW_PRESETS = {
         "category": "anime",
         "hires_fix": False,
     },
-
     # -- Unconscious sleeping-eyes-open + taped-eyes combo (ILXL stacked) -
     "anime_unconscious_taped_eyes": {
         "name": "Unconscious Eyes — Taped Open (Combo)",
         "description": "Stacks sleeping-eyes-open (0utc0ld) + taped-eyes LoRAs for an unconscious "
-                       "character whose eyelids are forced open by duct tape. Both LoRAs run at "
-                       "reduced stacking weights (~25% cut). All trigger phrases auto-injected.",
+        "character whose eyelids are forced open by duct tape. Both LoRAs run at "
+        "reduced stacking weights (~25% cut). All trigger phrases auto-injected.",
         "checkpoint": "ChenkinNoob-XL-V0.2.safetensors",
         "default_loras": [
             {"key": "sleeping_eyes_open_il", "weight": 0.65},
-            {"key": "taped_eyes_il",         "weight": 0.75},
+            {"key": "taped_eyes_il", "weight": 0.75},
         ],
         "negative_prompt": "worst quality, low quality, blurry, bad anatomy, bad hands, watermark, "
-                           "text, signature, closed eyes, eyes shut, normal eyes, healthy eyes",
+        "text, signature, closed eyes, eyes shut, normal eyes, healthy eyes",
         "cfg_scale": 5.5,
         "steps": 28,
         "sampler": "euler_ancestral",
@@ -126,16 +379,15 @@ WORKFLOW_PRESETS = {
         "category": "nsfw",
         "hires_fix": False,
     },
-
     # -- NSFW Illustrious XL preset (ChenkinNoob + ILXL LoRAs) -----------
     "anime_nsfw_ilxl": {
         "name": "NSFW Illustrious XL",
         "description": "NSFW anime generation using ChenkinNoob-XL (NoobAI/Illustrious base). "
-                       "Compatible with ILXL LoRAs. Pass lora_models: [{name: 'xray_ilxl', weight: 0.8}] etc.",
+        "Compatible with ILXL LoRAs. Pass lora_models: [{name: 'xray_ilxl', weight: 0.8}] etc.",
         "checkpoint": "ChenkinNoob-XL-V0.2.safetensors",
         "default_loras": [],
         "negative_prompt": "worst quality, low quality, blurry, bad anatomy, bad hands, watermark, text, signature, "
-                           "deformed, ugly, poorly drawn",
+        "deformed, ugly, poorly drawn",
         "cfg_scale": 5.0,
         "steps": 28,
         "sampler": "euler_ancestral",
@@ -144,7 +396,6 @@ WORKFLOW_PRESETS = {
         "category": "nsfw",
         "hires_fix": False,
     },
-
     # -- Anime character generation (SDXL) --------------------------------
     "anime_character_xl": {
         "name": "Anime Character (XL)",
@@ -225,7 +476,6 @@ WORKFLOW_PRESETS = {
         "category": "anime",
         "hires_fix": False,
     },
-
     # -- Realistic presets ------------------------------------------------
     "realistic_portrait": {
         "name": "Realistic Portrait",
@@ -255,7 +505,6 @@ WORKFLOW_PRESETS = {
         "category": "realistic",
         "hires_fix": False,
     },
-
     # -- Fantasy / artistic -----------------------------------------------
     "fantasy_anime": {
         "name": "Fantasy Anime",
@@ -291,11 +540,13 @@ def resolve_loras_for_preset(preset_id: str) -> list[dict]:
         weight = lora_ref.get("weight", 0.8)
         entry = LORA_CATALOG.get(key)
         if entry:
-            result.append({
-                "file": entry["file"],
-                "weight": weight,
-                "trigger": entry.get("trigger", []),
-            })
+            result.append(
+                {
+                    "file": entry["file"],
+                    "weight": weight,
+                    "trigger": entry.get("trigger", []),
+                }
+            )
     return result
 
 
@@ -339,7 +590,7 @@ MODEL_PRESETS = {
         "sampler": "euler_ancestral",
         "width": 1024,
         "height": 1024,
-        "category": "anime"
+        "category": "anime",
     },
     "anime_counterfeit": {
         "name": "Anime Classic",
@@ -351,7 +602,7 @@ MODEL_PRESETS = {
         "sampler": "euler_ancestral",
         "width": 512,
         "height": 768,
-        "category": "anime"
+        "category": "anime",
     },
     "anime_dreamshaper": {
         "name": "Anime Fantasy",
@@ -363,9 +614,8 @@ MODEL_PRESETS = {
         "sampler": "dpmpp_2m",
         "width": 1024,
         "height": 1024,
-        "category": "anime"
+        "category": "anime",
     },
-    
     # === REALISTIC STYLES ===
     "realistic_xl": {
         "name": "Realistic XL",
@@ -377,7 +627,7 @@ MODEL_PRESETS = {
         "sampler": "euler",
         "width": 1024,
         "height": 1024,
-        "category": "realistic"
+        "category": "realistic",
     },
     "realistic_juggernaut": {
         "name": "Realistic Pro",
@@ -389,7 +639,7 @@ MODEL_PRESETS = {
         "sampler": "dpmpp_2m_sde",
         "width": 1024,
         "height": 1344,
-        "category": "realistic"
+        "category": "realistic",
     },
     "realistic_vision": {
         "name": "Realistic Vision",
@@ -401,9 +651,8 @@ MODEL_PRESETS = {
         "sampler": "dpmpp_sde",
         "width": 512,
         "height": 768,
-        "category": "realistic"
+        "category": "realistic",
     },
-    
     # === VERSATILE STYLES ===
     "sdxl_base": {
         "name": "SDXL Base",
@@ -415,8 +664,8 @@ MODEL_PRESETS = {
         "sampler": "euler",
         "width": 1024,
         "height": 1024,
-        "category": "versatile"
-    }
+        "category": "versatile",
+    },
 }
 
 # Category descriptions
@@ -424,42 +673,38 @@ CATEGORIES = {
     "anime": {
         "name": "🎨 Anime",
         "description": "Anime & illustration styles",
-        "icon": "🎨"
+        "icon": "🎨",
     },
     "realistic": {
         "name": "📷 Realistic",
         "description": "Photorealistic human portraits",
-        "icon": "📷"
+        "icon": "📷",
     },
     "versatile": {
         "name": "✨ Versatile",
         "description": "General purpose models",
-        "icon": "✨"
-    }
+        "icon": "✨",
+    },
 }
 
 # Quick presets for UI buttons
 QUICK_PRESETS = [
-    {
-        "id": "anime_xl",
-        "name": "🎨 Anime XL",
-        "description": "High quality anime"
-    },
+    {"id": "anime_xl", "name": "🎨 Anime XL", "description": "High quality anime"},
     {
         "id": "realistic_xl",
         "name": "📷 Realistic (Fast)",
-        "description": "Photorealistic Lightning"
+        "description": "Photorealistic Lightning",
     },
     {
         "id": "realistic_juggernaut",
         "name": "📷 Realistic Pro",
-        "description": "Professional photos"
+        "description": "Professional photos",
     },
     {
         "id": "anime_counterfeit",
         "name": "🎨 Anime Classic",
-        "description": "Classic anime style"
-    }
+        "description": "Classic anime style",
+    },
 ]
 
 
@@ -471,8 +716,8 @@ def get_preset(preset_id: str) -> dict:
 def get_presets_by_category(category: str) -> list:
     """Get all presets for a category"""
     return [
-        {"id": k, **v} 
-        for k, v in MODEL_PRESETS.items() 
+        {"id": k, **v}
+        for k, v in MODEL_PRESETS.items()
         if v.get("category") == category
     ]
 
@@ -481,8 +726,5 @@ def get_all_presets() -> dict:
     """Get all presets grouped by category"""
     result = {}
     for cat_id, cat_info in CATEGORIES.items():
-        result[cat_id] = {
-            "info": cat_info,
-            "presets": get_presets_by_category(cat_id)
-        }
+        result[cat_id] = {"info": cat_info, "presets": get_presets_by_category(cat_id)}
     return result

@@ -3,6 +3,7 @@ from torch import nn
 
 from .model import JointTransformerBlock
 
+
 class ZImageControlTransformerBlock(JointTransformerBlock):
     def __init__(
         self,
@@ -18,11 +19,33 @@ class ZImageControlTransformerBlock(JointTransformerBlock):
         block_id=0,
         operation_settings=None,
     ):
-        super().__init__(layer_id, dim, n_heads, n_kv_heads, multiple_of, ffn_dim_multiplier, norm_eps, qk_norm, modulation, z_image_modulation=True, operation_settings=operation_settings)
+        super().__init__(
+            layer_id,
+            dim,
+            n_heads,
+            n_kv_heads,
+            multiple_of,
+            ffn_dim_multiplier,
+            norm_eps,
+            qk_norm,
+            modulation,
+            z_image_modulation=True,
+            operation_settings=operation_settings,
+        )
         self.block_id = block_id
         if block_id == 0:
-            self.before_proj = operation_settings.get("operations").Linear(self.dim, self.dim, device=operation_settings.get("device"), dtype=operation_settings.get("dtype"))
-        self.after_proj = operation_settings.get("operations").Linear(self.dim, self.dim, device=operation_settings.get("device"), dtype=operation_settings.get("dtype"))
+            self.before_proj = operation_settings.get("operations").Linear(
+                self.dim,
+                self.dim,
+                device=operation_settings.get("device"),
+                dtype=operation_settings.get("dtype"),
+            )
+        self.after_proj = operation_settings.get("operations").Linear(
+            self.dim,
+            self.dim,
+            device=operation_settings.get("device"),
+            dtype=operation_settings.get("dtype"),
+        )
 
     def forward(self, c, x, **kwargs):
         if self.block_id == 0:
@@ -30,6 +53,7 @@ class ZImageControlTransformerBlock(JointTransformerBlock):
         c = super().forward(c, **kwargs)
         c_skip = self.after_proj(c)
         return c_skip, c
+
 
 class ZImage_Control(torch.nn.Module):
     def __init__(
@@ -49,10 +73,14 @@ class ZImage_Control(torch.nn.Module):
         dtype=None,
         device=None,
         operations=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
-        operation_settings = {"operations": operations, "device": device, "dtype": dtype}
+        operation_settings = {
+            "operations": operations,
+            "device": device,
+            "dtype": dtype,
+        }
 
         self.broken = broken
         self.additional_in_dim = additional_in_dim
@@ -80,7 +108,16 @@ class ZImage_Control(torch.nn.Module):
         all_x_embedder = {}
         patch_size = 2
         f_patch_size = 1
-        x_embedder = operations.Linear(f_patch_size * patch_size * patch_size * (self.control_in_dim + self.additional_in_dim), dim, bias=True, device=device, dtype=dtype)
+        x_embedder = operations.Linear(
+            f_patch_size
+            * patch_size
+            * patch_size
+            * (self.control_in_dim + self.additional_in_dim),
+            dim,
+            bias=True,
+            device=device,
+            dtype=dtype,
+        )
         all_x_embedder[f"{patch_size}-{f_patch_size}"] = x_embedder
 
         self.refiner_control = refiner_control
@@ -129,32 +166,78 @@ class ZImage_Control(torch.nn.Module):
         f_patch_size = 1
         pH = pW = patch_size
         B, C, H, W = control_context.shape
-        control_context = self.control_all_x_embedder[f"{patch_size}-{f_patch_size}"](control_context.view(B, C, H // pH, pH, W // pW, pW).permute(0, 2, 4, 3, 5, 1).flatten(3).flatten(1, 2))
+        control_context = self.control_all_x_embedder[f"{patch_size}-{f_patch_size}"](
+            control_context.view(B, C, H // pH, pH, W // pW, pW)
+            .permute(0, 2, 4, 3, 5, 1)
+            .flatten(3)
+            .flatten(1, 2)
+        )
 
         x_attn_mask = None
         if not self.refiner_control:
             for layer in self.control_noise_refiner:
-                control_context = layer(control_context, x_attn_mask, x_freqs_cis[:control_context.shape[0], :control_context.shape[1]], adaln_input)
+                control_context = layer(
+                    control_context,
+                    x_attn_mask,
+                    x_freqs_cis[: control_context.shape[0], : control_context.shape[1]],
+                    adaln_input,
+                )
 
         return control_context
 
-    def forward_noise_refiner_block(self, layer_id, control_context, x, x_attn_mask, x_freqs_cis, adaln_input):
+    def forward_noise_refiner_block(
+        self, layer_id, control_context, x, x_attn_mask, x_freqs_cis, adaln_input
+    ):
         if self.refiner_control:
             if self.broken:
                 if layer_id == 0:
-                    return self.control_layers[layer_id](control_context, x, x_mask=x_attn_mask, freqs_cis=x_freqs_cis[:control_context.shape[0], :control_context.shape[1]], adaln_input=adaln_input)
+                    return self.control_layers[layer_id](
+                        control_context,
+                        x,
+                        x_mask=x_attn_mask,
+                        freqs_cis=x_freqs_cis[
+                            : control_context.shape[0], : control_context.shape[1]
+                        ],
+                        adaln_input=adaln_input,
+                    )
                 if layer_id > 0:
                     out = None
                     for i in range(1, len(self.control_layers)):
-                        o, control_context = self.control_layers[i](control_context, x, x_mask=x_attn_mask, freqs_cis=x_freqs_cis[:control_context.shape[0], :control_context.shape[1]], adaln_input=adaln_input)
+                        o, control_context = self.control_layers[i](
+                            control_context,
+                            x,
+                            x_mask=x_attn_mask,
+                            freqs_cis=x_freqs_cis[
+                                : control_context.shape[0], : control_context.shape[1]
+                            ],
+                            adaln_input=adaln_input,
+                        )
                         if out is None:
                             out = o
 
                     return (out, control_context)
             else:
-                return self.control_noise_refiner[layer_id](control_context, x, x_mask=x_attn_mask, freqs_cis=x_freqs_cis[:control_context.shape[0], :control_context.shape[1]], adaln_input=adaln_input)
+                return self.control_noise_refiner[layer_id](
+                    control_context,
+                    x,
+                    x_mask=x_attn_mask,
+                    freqs_cis=x_freqs_cis[
+                        : control_context.shape[0], : control_context.shape[1]
+                    ],
+                    adaln_input=adaln_input,
+                )
         else:
             return (None, control_context)
 
-    def forward_control_block(self, layer_id, control_context, x, x_attn_mask, x_freqs_cis, adaln_input):
-        return self.control_layers[layer_id](control_context, x, x_mask=x_attn_mask, freqs_cis=x_freqs_cis[:control_context.shape[0], :control_context.shape[1]], adaln_input=adaln_input)
+    def forward_control_block(
+        self, layer_id, control_context, x, x_attn_mask, x_freqs_cis, adaln_input
+    ):
+        return self.control_layers[layer_id](
+            control_context,
+            x,
+            x_mask=x_attn_mask,
+            freqs_cis=x_freqs_cis[
+                : control_context.shape[0], : control_context.shape[1]
+            ],
+            adaln_input=adaln_input,
+        )

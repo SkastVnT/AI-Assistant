@@ -12,6 +12,7 @@ The public API is intentionally synchronous; the async ingestion service
 runs these calls in a thread-pool executor (or the single-thread FastAPI
 default) so they do not block the event loop.
 """
+
 from __future__ import annotations
 
 import logging
@@ -47,7 +48,7 @@ class RagFileStore:
         access_key: str | None = None,
         secret_key: str | None = None,
         bucket: str | None = None,
-        local_root: "Path | str | None" = None,
+        local_root: Path | str | None = None,
     ) -> None:
         from core.rag_settings import get_rag_settings
 
@@ -75,7 +76,9 @@ class RagFileStore:
             if not client.bucket_exists(self._bucket):
                 client.make_bucket(self._bucket)
             self._minio = client
-            logger.info("RagFileStore: using MinIO at %s (bucket=%s)", _endpoint, self._bucket)
+            logger.info(
+                "RagFileStore: using MinIO at %s (bucket=%s)", _endpoint, self._bucket
+            )
         except ImportError:
             logger.debug("RagFileStore: minio package not installed — using local disk")
         except OSError as exc:
@@ -156,7 +159,7 @@ class RagFileStore:
                 length=len(data),
             )
         except S3Error as exc:
-            raise IOError(f"MinIO upload failed for {object_path!r}: {exc}") from exc
+            raise OSError(f"MinIO upload failed for {object_path!r}: {exc}") from exc
 
     def _delete_minio(self, object_path: str) -> None:
         assert self._minio is not None

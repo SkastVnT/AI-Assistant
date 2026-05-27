@@ -9,7 +9,8 @@ from pathlib import Path
 
 
 def normalize_path(path):
-    return path.replace('\\', '/')
+    return path.replace("\\", "/")
+
 
 class Load3D(IO.ComfyNode):
     @classmethod
@@ -24,7 +25,7 @@ class Load3D(IO.ComfyNode):
         files = [
             normalize_path(str(file_path.relative_to(base_path)))
             for file_path in input_path.rglob("*")
-            if file_path.suffix.lower() in {'.gltf', '.glb', '.obj', '.fbx', '.stl'}
+            if file_path.suffix.lower() in {".gltf", ".glb", ".obj", ".fbx", ".stl"}
         ]
         return IO.Schema(
             node_id="Load3D",
@@ -32,7 +33,9 @@ class Load3D(IO.ComfyNode):
             category="3d",
             is_experimental=True,
             inputs=[
-                IO.Combo.Input("model_file", options=sorted(files), upload=IO.UploadType.model),
+                IO.Combo.Input(
+                    "model_file", options=sorted(files), upload=IO.UploadType.model
+                ),
                 IO.Load3D.Input("image"),
                 IO.Int.Input("width", default=1024, min=1, max=4096, step=1),
                 IO.Int.Input("height", default=1024, min=1, max=4096, step=1),
@@ -49,9 +52,9 @@ class Load3D(IO.ComfyNode):
 
     @classmethod
     def execute(cls, model_file, image, **kwargs) -> IO.NodeOutput:
-        image_path = folder_paths.get_annotated_filepath(image['image'])
-        mask_path = folder_paths.get_annotated_filepath(image['mask'])
-        normal_path = folder_paths.get_annotated_filepath(image['normal'])
+        image_path = folder_paths.get_annotated_filepath(image["image"])
+        mask_path = folder_paths.get_annotated_filepath(image["mask"])
+        normal_path = folder_paths.get_annotated_filepath(image["normal"])
 
         load_image_node = nodes.LoadImage()
         output_image, ignore_mask = load_image_node.load_image(image=image_path)
@@ -60,12 +63,21 @@ class Load3D(IO.ComfyNode):
 
         video = None
 
-        if image['recording'] != "":
-            recording_video_path = folder_paths.get_annotated_filepath(image['recording'])
+        if image["recording"] != "":
+            recording_video_path = folder_paths.get_annotated_filepath(
+                image["recording"]
+            )
 
             video = InputImpl.VideoFromFile(recording_video_path)
 
-        return IO.NodeOutput(output_image, output_mask, model_file, normal_image, image['camera_info'], video)
+        return IO.NodeOutput(
+            output_image,
+            output_mask,
+            model_file,
+            normal_image,
+            image["camera_info"],
+            video,
+        )
 
     process = execute  # TODO: remove
 
@@ -91,7 +103,9 @@ class Preview3D(IO.ComfyNode):
     def execute(cls, model_file, **kwargs) -> IO.NodeOutput:
         camera_info = kwargs.get("camera_info", None)
         bg_image = kwargs.get("bg_image", None)
-        return IO.NodeOutput(ui=UI.PreviewUI3D(model_file, camera_info, bg_image=bg_image))
+        return IO.NodeOutput(
+            ui=UI.PreviewUI3D(model_file, camera_info, bg_image=bg_image)
+        )
 
     process = execute  # TODO: remove
 

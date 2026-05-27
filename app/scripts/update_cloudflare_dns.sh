@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # Script to update Cloudflare DNS with current tunnel URL
 # Usage: ./update_cloudflare_dns.sh
 
@@ -17,14 +17,14 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 echo "=========================================="
-echo "🌐 Cloudflare DNS Updater for $DOMAIN_NAME"
+echo "ðŸŒ Cloudflare DNS Updater for $DOMAIN_NAME"
 echo "=========================================="
 
 # Get current tunnel URL
 TUNNEL_URL=$(grep -oE "https://[a-z0-9-]+\.trycloudflare\.com" "$LOG_FILE" 2>/dev/null | head -1)
 
 if [ -z "$TUNNEL_URL" ]; then
-    echo -e "${RED}❌ No tunnel URL found in $LOG_FILE${NC}"
+    echo -e "${RED}âŒ No tunnel URL found in $LOG_FILE${NC}"
     echo "Make sure cloudflared tunnel is running first"
     exit 1
 fi
@@ -32,7 +32,7 @@ fi
 # Extract just the hostname (remove https://)
 TUNNEL_HOST=$(echo "$TUNNEL_URL" | sed 's|https://||')
 
-echo -e "${GREEN}✅ Current tunnel: $TUNNEL_URL${NC}"
+echo -e "${GREEN}âœ… Current tunnel: $TUNNEL_URL${NC}"
 echo -e "   Hostname: $TUNNEL_HOST"
 echo ""
 
@@ -43,7 +43,7 @@ echo ""
 
 # Check if API credentials are set
 if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ZONE_ID" ]; then
-    echo -e "${YELLOW}⚠️  Cloudflare API credentials not set${NC}"
+    echo -e "${YELLOW}âš ï¸  Cloudflare API credentials not set${NC}"
     echo ""
     echo "To enable automatic DNS updates, set these environment variables:"
     echo "  export CLOUDFLARE_API_TOKEN='your_api_token'"
@@ -52,7 +52,7 @@ if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ZONE_ID" ]; then
     echo "Or add them to /workspace/AI-Assistant/.env"
     echo ""
     echo "=========================================="
-    echo "📋 MANUAL STEPS:"
+    echo "ðŸ“‹ MANUAL STEPS:"
     echo "=========================================="
     echo ""
     echo "1. Go to https://dash.cloudflare.com"
@@ -106,9 +106,9 @@ update_dns_record() {
     SUCCESS=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('success', False))" 2>/dev/null)
     
     if [ "$SUCCESS" = "True" ]; then
-        echo -e "  ${GREEN}✅ $full_name -> $TUNNEL_HOST${NC}"
+        echo -e "  ${GREEN}âœ… $full_name -> $TUNNEL_HOST${NC}"
     else
-        echo -e "  ${RED}❌ Failed to update $full_name${NC}"
+        echo -e "  ${RED}âŒ Failed to update $full_name${NC}"
         echo "$RESULT" | python3 -m json.tool 2>/dev/null || echo "$RESULT"
     fi
 }
@@ -123,7 +123,7 @@ update_dns_record "www" "www.$DOMAIN_NAME"
 
 echo ""
 echo "=========================================="
-echo -e "${GREEN}✅ DNS update complete!${NC}"
+echo -e "${GREEN}âœ… DNS update complete!${NC}"
 echo ""
 echo "Your app should be accessible at:"
 echo "  - https://$DOMAIN_NAME"

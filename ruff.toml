@@ -1,0 +1,41 @@
+# Ruff configuration for AI-Assistant.
+# Lint scope: services/ app/src/ app/config/ — ComfyUI, private, venv excluded.
+
+exclude = [
+    "venv-core",
+    "venv-image",
+    "ComfyUI",
+    "app/ComfyUI",
+    "services/edit-image/ComfyUI",
+    "services/stable-diffusion/repositories",
+    "character_select_stand_alone_app-main",
+    "image_pipeline",
+    "private",
+    "private copy",
+    "rag",
+    ".git",
+    "node_modules",
+]
+
+[lint]
+# Rules: E/W = pycodestyle, F = pyflakes, I = isort, UP = pyupgrade.
+select = ["E", "W", "F", "I", "UP", "B", "C4", "SIM", "TID252"]
+ignore = [
+    "E501",   # Line too long; handled by formatter
+    "B008",   # Do not perform function calls in default args (Flask patterns)
+    "B904",   # raise ... from ...; too noisy for existing code
+    "UP007",  # Use X | Y for unions; requires Python 3.10+
+    "SIM105", # Use contextlib.suppress; style preference
+]
+
+[lint.per-file-ignores]
+"services/chatbot/tests/**" = ["S101"]  # Allow assert in tests
+"**/migrations/**" = ["ALL"]
+
+[lint.isort]
+known-first-party = ["services", "app", "core", "database"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

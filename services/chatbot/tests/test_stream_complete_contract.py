@@ -2,7 +2,6 @@
 
 from routes.stream import _build_complete_event_payload
 
-
 REQUIRED_COMPLETE_FIELDS = {
     "response",
     "model",

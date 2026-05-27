@@ -8,16 +8,26 @@ class ImageEnhanceRequest(BaseModel):
     output_format: str = Field("jpeg")
     subject_detection: str = Field("All")
     face_enhancement: bool = Field(True)
-    face_enhancement_creativity: float = Field(0, description="Is ignored if face_enhancement is false")
-    face_enhancement_strength: float = Field(0.8, description="Is ignored if face_enhancement is false")
+    face_enhancement_creativity: float = Field(
+        0, description="Is ignored if face_enhancement is false"
+    )
+    face_enhancement_strength: float = Field(
+        0.8, description="Is ignored if face_enhancement is false"
+    )
     source_url: str = Field(...)
     output_width: Optional[int] = Field(None)
     output_height: Optional[int] = Field(None)
     crop_to_fill: bool = Field(False)
-    prompt: Optional[str] = Field(None, description="Text prompt for creative upscaling guidance")
+    prompt: Optional[str] = Field(
+        None, description="Text prompt for creative upscaling guidance"
+    )
     creativity: int = Field(3, description="Creativity settings range from 1 to 9")
-    face_preservation: str = Field("true", description="To preserve the identity of characters")
-    color_preservation: str = Field("true", description="To preserve the original color")
+    face_preservation: str = Field(
+        "true", description="To preserve the identity of characters"
+    )
+    color_preservation: str = Field(
+        "true", description="To preserve the original color"
+    )
 
 
 class ImageAsyncTaskResponse(BaseModel):
@@ -61,25 +71,43 @@ class VideoFrameInterpolationFilter(BaseModel):
 class VideoEnhancementFilter(BaseModel):
     model: str = Field(...)
     auto: Optional[str] = Field(None, description="Auto, Manual, Relative")
-    focusFixLevel: Optional[str] = Field(None, description="Downscales video input for correction of blurred subjects")
-    compression: Optional[float] = Field(None, description="Strength of compression recovery")
-    details: Optional[float] = Field(None, description="Amount of detail reconstruction")
-    prenoise: Optional[float] = Field(None, description="Amount of noise to add to input to reduce over-smoothing")
+    focusFixLevel: Optional[str] = Field(
+        None, description="Downscales video input for correction of blurred subjects"
+    )
+    compression: Optional[float] = Field(
+        None, description="Strength of compression recovery"
+    )
+    details: Optional[float] = Field(
+        None, description="Amount of detail reconstruction"
+    )
+    prenoise: Optional[float] = Field(
+        None, description="Amount of noise to add to input to reduce over-smoothing"
+    )
     noise: Optional[float] = Field(None, description="Amount of noise reduction")
     halo: Optional[float] = Field(None, description="Amount of halo reduction")
-    preblur: Optional[float] = Field(None, description="Anti-aliasing and deblurring strength")
+    preblur: Optional[float] = Field(
+        None, description="Anti-aliasing and deblurring strength"
+    )
     blur: Optional[float] = Field(None, description="Amount of sharpness applied")
     grain: Optional[float] = Field(None, description="Grain after AI model processing")
     grainSize: Optional[float] = Field(None, description="Size of generated grain")
-    recoverOriginalDetailValue: Optional[float] = Field(None, description="Source details into the output video")
-    creativity: Optional[str] = Field(None, description="Creativity level(high, low) for slc-1 only")
-    isOptimizedMode: Optional[bool] = Field(None, description="Set to true for Starlight Creative (slc-1) only")
+    recoverOriginalDetailValue: Optional[float] = Field(
+        None, description="Source details into the output video"
+    )
+    creativity: Optional[str] = Field(
+        None, description="Creativity level(high, low) for slc-1 only"
+    )
+    isOptimizedMode: Optional[bool] = Field(
+        None, description="Set to true for Starlight Creative (slc-1) only"
+    )
 
 
 class OutputInformationVideo(BaseModel):
     resolution: Resolution = Field(...)
     frameRate: int = Field(...)
-    audioCodec: Optional[str] = Field(..., description="Required if audioTransfer is Copy or Convert")
+    audioCodec: Optional[str] = Field(
+        ..., description="Required if audioTransfer is Copy or Convert"
+    )
     audioTransfer: str = Field(..., description="Copy, Convert, None")
     dynamicCompressionLevel: str = Field(..., description="Low, Mid, High")
 
@@ -90,7 +118,9 @@ class Overrides(BaseModel):
 
 class CreateVideoRequest(BaseModel):
     source: CreateCreateVideoRequestSource = Field(...)
-    filters: list[Union[VideoFrameInterpolationFilter, VideoEnhancementFilter]] = Field(...)
+    filters: list[Union[VideoFrameInterpolationFilter, VideoEnhancementFilter]] = Field(
+        ...
+    )
     output: OutputInformationVideo = Field(...)
     overrides: Overrides = Field(Overrides(isPaidDiffusion=True))
 

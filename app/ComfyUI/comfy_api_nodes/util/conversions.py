@@ -36,7 +36,9 @@ def bytesio_to_image_tensor(image_bytesio: BytesIO, mode: str = "RGBA") -> torch
     return torch.from_numpy(image_array).unsqueeze(0)
 
 
-def image_tensor_pair_to_batch(image1: torch.Tensor, image2: torch.Tensor) -> torch.Tensor:
+def image_tensor_pair_to_batch(
+    image1: torch.Tensor, image2: torch.Tensor
+) -> torch.Tensor:
     """
     Converts a pair of image tensors to a batch tensor.
     If the images are not the same size, the smaller image is resized to
@@ -75,7 +77,9 @@ def tensor_to_bytesio(
 
     pil_image = tensor_to_pil(image, total_pixels=total_pixels)
     img_binary = pil_to_bytesio(pil_image, mime_type=mime_type)
-    img_binary.name = f"{name if name else uuid.uuid4()}.{mimetype_to_extension(mime_type)}"
+    img_binary.name = (
+        f"{name if name else uuid.uuid4()}.{mimetype_to_extension(mime_type)}"
+    )
     return img_binary
 
 
@@ -85,7 +89,9 @@ def tensor_to_pil(image: torch.Tensor, total_pixels: int = 2048 * 2048) -> Image
         image = image[0]
     # TODO: remove alpha if not allowed and present
     input_tensor = image.cpu()
-    input_tensor = downscale_image_tensor(input_tensor.unsqueeze(0), total_pixels=total_pixels).squeeze()
+    input_tensor = downscale_image_tensor(
+        input_tensor.unsqueeze(0), total_pixels=total_pixels
+    ).squeeze()
     image_np = (input_tensor.numpy() * 255).astype(np.uint8)
     img = Image.fromarray(image_np)
     return img
@@ -129,7 +135,9 @@ def pil_to_bytesio(img: Image.Image, mime_type: str = "image/png") -> BytesIO:
     return img_byte_arr
 
 
-def downscale_image_tensor(image: torch.Tensor, total_pixels: int = 1536 * 1024) -> torch.Tensor:
+def downscale_image_tensor(
+    image: torch.Tensor, total_pixels: int = 1536 * 1024
+) -> torch.Tensor:
     """Downscale input image tensor to roughly the specified total pixels."""
     samples = image.movedim(-1, 1)
     total = int(total_pixels)
@@ -163,12 +171,16 @@ def tensor_to_data_uri(
     return f"data:{mime_type};base64,{base64_string}"
 
 
-def audio_to_base64_string(audio: Input.Audio, container_format: str = "mp4", codec_name: str = "aac") -> str:
+def audio_to_base64_string(
+    audio: Input.Audio, container_format: str = "mp4", codec_name: str = "aac"
+) -> str:
     """Converts an audio input to a base64 string."""
     sample_rate: int = audio["sample_rate"]
     waveform: torch.Tensor = audio["waveform"]
     audio_data_np = audio_tensor_to_contiguous_ndarray(waveform)
-    audio_bytes_io = audio_ndarray_to_bytesio(audio_data_np, sample_rate, container_format, codec_name)
+    audio_bytes_io = audio_ndarray_to_bytesio(
+        audio_data_np, sample_rate, container_format, codec_name
+    )
     audio_bytes = audio_bytes_io.getvalue()
     return base64.b64encode(audio_bytes).decode("utf-8")
 
@@ -189,7 +201,8 @@ def video_to_base64_string(
     video_bytes_io = BytesIO()
     video.save_to(
         video_bytes_io,
-        format=container_format or getattr(video, "container", Types.VideoContainer.MP4),
+        format=container_format
+        or getattr(video, "container", Types.VideoContainer.MP4),
         codec=codec or getattr(video, "codec", Types.VideoCodec.H264),
     )
     video_bytes_io.seek(0)
@@ -309,22 +322,37 @@ def trim_video(video: Input.Video, duration_sec: float) -> Input.Video:
             logging.info("Found stream: type=%s, class=%s", stream.type, type(stream))
             if isinstance(stream, av.VideoStream):
                 # Create output video stream with same parameters
-                video_stream = output_container.add_stream("h264", rate=stream.average_rate)
+                video_stream = output_container.add_stream(
+                    "h264", rate=stream.average_rate
+                )
                 video_stream.width = stream.width
                 video_stream.height = stream.height
                 video_stream.pix_fmt = "yuv420p"
-                logging.info("Added video stream: %sx%s @ %sfps", stream.width, stream.height, stream.average_rate)
+                logging.info(
+                    "Added video stream: %sx%s @ %sfps",
+                    stream.width,
+                    stream.height,
+                    stream.average_rate,
+                )
             elif isinstance(stream, av.AudioStream):
                 # Create output audio stream with same parameters
-                audio_stream = output_container.add_stream("aac", rate=stream.sample_rate)
+                audio_stream = output_container.add_stream(
+                    "aac", rate=stream.sample_rate
+                )
                 audio_stream.sample_rate = stream.sample_rate
                 audio_stream.layout = stream.layout
-                logging.info("Added audio stream: %sHz, %s channels", stream.sample_rate, stream.channels)
+                logging.info(
+                    "Added audio stream: %sHz, %s channels",
+                    stream.sample_rate,
+                    stream.channels,
+                )
 
         # Calculate target frame count that's divisible by 16
         fps = input_container.streams.video[0].average_rate
         estimated_frames = int(duration_sec * fps)
-        target_frames = (estimated_frames // 16) * 16  # Round down to nearest multiple of 16
+        target_frames = (
+            estimated_frames // 16
+        ) * 16  # Round down to nearest multiple of 16
 
         if target_frames == 0:
             raise ValueError("Video too short: need at least 16 frames for Moonvalley")
@@ -347,7 +375,9 @@ def trim_video(video: Input.Video, duration_sec: float) -> Input.Video:
             for packet in video_stream.encode():
                 output_container.mux(packet)
 
-            logging.info("Encoded %s video frames (target: %s)", frame_count, target_frames)
+            logging.info(
+                "Encoded %s video frames (target: %s)", frame_count, target_frames
+            )
 
         # Decode and re-encode audio frames
         if audio_stream:
@@ -442,7 +472,9 @@ def resize_mask_to_image(
     _, height, width, _ = image.shape
     mask = mask.unsqueeze(-1)
     mask = mask.movedim(-1, 1)
-    mask = common_upscale(mask, width=width, height=height, upscale_method=upscale_method, crop=crop)
+    mask = common_upscale(
+        mask, width=width, height=height, upscale_method=upscale_method, crop=crop
+    )
     mask = mask.movedim(1, -1)
     if not add_channel_dim:
         mask = mask.squeeze(-1)

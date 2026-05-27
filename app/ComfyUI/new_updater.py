@@ -11,10 +11,12 @@ def update_windows_updater():
 
     dest_updater_path = os.path.join(top_path, "update/update.py")
     dest_bat_path = os.path.join(top_path, "update/update_comfyui.bat")
-    dest_bat_deps_path = os.path.join(top_path, "update/update_comfyui_and_python_dependencies.bat")
+    dest_bat_deps_path = os.path.join(
+        top_path, "update/update_comfyui_and_python_dependencies.bat"
+    )
 
     try:
-        with open(dest_bat_path, 'rb') as f:
+        with open(dest_bat_path, "rb") as f:
             contents = f.read()
     except:
         return
@@ -24,10 +26,13 @@ def update_windows_updater():
 
     shutil.copy(updater_path, dest_updater_path)
     try:
-        with open(dest_bat_deps_path, 'rb') as f:
+        with open(dest_bat_deps_path, "rb") as f:
             contents = f.read()
-            contents = contents.replace(b'..\\python_embeded\\python.exe .\\update.py ..\\ComfyUI\\', b'call update_comfyui.bat nopause')
-        with open(dest_bat_deps_path, 'wb') as f:
+            contents = contents.replace(
+                b"..\\python_embeded\\python.exe .\\update.py ..\\ComfyUI\\",
+                b"call update_comfyui.bat nopause",
+            )
+        with open(dest_bat_deps_path, "wb") as f:
             f.write(contents)
     except:
         pass

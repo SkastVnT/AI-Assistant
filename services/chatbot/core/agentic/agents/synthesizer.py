@@ -4,6 +4,7 @@ Agentic Council — Synthesizer agent
 Produces the final user-facing answer from the accumulated evidence
 and critique.  This is always the *last* agent to run.
 """
+
 from __future__ import annotations
 
 import logging
@@ -117,7 +118,9 @@ class SynthesizerAgent(BaseAgent):
         try:
             data = self._parse_json(raw)
         except ValueError as exc:
-            logger.warning("[Synthesizer] JSON extraction failed: %s — using raw text", exc)
+            logger.warning(
+                "[Synthesizer] JSON extraction failed: %s — using raw text", exc
+            )
             return self._fallback_output(raw)
 
         # Normalise content
@@ -131,7 +134,9 @@ class SynthesizerAgent(BaseAgent):
 
         # Normalise key_points
         raw_points = data.get("key_points", [])
-        key_points = [str(p) for p in raw_points[:6]] if isinstance(raw_points, list) else []
+        key_points = (
+            [str(p) for p in raw_points[:6]] if isinstance(raw_points, list) else []
+        )
 
         # Normalise citations
         raw_citations = data.get("citations", [])
@@ -139,11 +144,13 @@ class SynthesizerAgent(BaseAgent):
         if isinstance(raw_citations, list):
             for c in raw_citations[:10]:
                 if isinstance(c, dict):
-                    citations.append({
-                        "source": str(c.get("source", "llm")),
-                        "url": c.get("url"),
-                        "title": str(c.get("title", "")),
-                    })
+                    citations.append(
+                        {
+                            "source": str(c.get("source", "llm")),
+                            "url": c.get("url"),
+                            "title": str(c.get("title", "")),
+                        }
+                    )
 
         return SynthesizerOutput(
             answer=FinalAnswer(

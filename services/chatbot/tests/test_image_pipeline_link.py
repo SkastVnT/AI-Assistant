@@ -5,13 +5,12 @@ Scope (verbatim from task):
   * a follow-up turn sees the latest image asset context
   * missing manifest degrades gracefully
 """
+
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 from types import SimpleNamespace
-
-import pytest
 
 _CHATBOT_DIR = Path(__file__).resolve().parents[1]
 if str(_CHATBOT_DIR) not in sys.path:
@@ -46,20 +45,20 @@ def _install_fake_queue(monkeypatch, jobs):
 
 
 def _job(**fields):
-    base = dict(
-        job_id="job_abc123",
-        state="completed",
-        prompt="Raiden Shogun in Genshin Impact, lightning",
-        character_key="raiden_shogun_genshin_impact",
-        character_display="Raiden Shogun",
-        series_key="genshin_impact",
-        preset="anime_quality",
-        progress_stage="composition_pass",
-        progress_pct=100.0,
-        manifest_path="storage/metadata/job_abc123.json",
-        final_image_path="storage/output/job_abc123.png",
-        error=None,
-    )
+    base = {
+        "job_id": "job_abc123",
+        "state": "completed",
+        "prompt": "Raiden Shogun in Genshin Impact, lightning",
+        "character_key": "raiden_shogun_genshin_impact",
+        "character_display": "Raiden Shogun",
+        "series_key": "genshin_impact",
+        "preset": "anime_quality",
+        "progress_stage": "composition_pass",
+        "progress_pct": 100.0,
+        "manifest_path": "storage/metadata/job_abc123.json",
+        "final_image_path": "storage/output/job_abc123.png",
+        "error": None,
+    }
     base.update(fields)
     return _FakeJob(**base)
 
@@ -96,7 +95,11 @@ def test_summarize_when_queue_unavailable(monkeypatch):
     """Importing core.job_queue raises -> summarize_job degrades to None."""
     monkeypatch.delitem(sys.modules, "core.job_queue", raising=False)
 
-    real_import = __builtins__["__import__"] if isinstance(__builtins__, dict) else __builtins__.__import__
+    real_import = (
+        __builtins__["__import__"]
+        if isinstance(__builtins__, dict)
+        else __builtins__.__import__
+    )
 
     def _broken_import(name, *a, **kw):
         if name == "core.job_queue":
@@ -165,7 +168,7 @@ def test_enrich_caps_lookup_count(monkeypatch):
     """Reject DOS via huge generated_images arrays."""
     jobs = {f"job_{i}": _job(job_id=f"job_{i}") for i in range(20)}
     _install_fake_queue(monkeypatch, jobs)
-    from core.image_pipeline_link import enrich_records_with_live_state, MAX_LOOKUPS
+    from core.image_pipeline_link import MAX_LOOKUPS, enrich_records_with_live_state
 
     records = [{"job_id": f"job_{i}"} for i in range(20)]
     out = enrich_records_with_live_state(records)
@@ -205,9 +208,15 @@ def test_followup_turn_sees_image_context(monkeypatch):
 def test_followup_turn_with_running_job_shows_progress(monkeypatch):
     _install_fake_queue(
         monkeypatch,
-        {"job_abc123": _job(state="running", progress_pct=42.0,
-                            progress_stage="critique", manifest_path=None,
-                            final_image_path=None)},
+        {
+            "job_abc123": _job(
+                state="running",
+                progress_pct=42.0,
+                progress_stage="critique",
+                manifest_path=None,
+                final_image_path=None,
+            )
+        },
     )
     sys.modules.pop("core.image_pipeline_link", None)
     sys.modules.pop("core.request_normalizer", None)
@@ -256,8 +265,13 @@ def test_unknown_job_record_passes_through(monkeypatch):
 
     msg_out, injected = apply_image_context(
         "explain",
-        [{"job_id": "ghost_job", "prompt": "the prompt user typed",
-          "url": "/static/img.png"}],
+        [
+            {
+                "job_id": "ghost_job",
+                "prompt": "the prompt user typed",
+                "url": "/static/img.png",
+            }
+        ],
     )
     assert injected == 1
     assert "ghost_job" in msg_out
@@ -273,16 +287,29 @@ def test_unknown_job_record_passes_through(monkeypatch):
 def test_format_pipeline_hint_completed():
     from core.image_pipeline_link import format_pipeline_hint
 
-    rec = {"job_id": "x", "pipeline": {"state": "completed", "progress_pct": 100,
-                                       "progress_stage": "done", "error": None}}
+    rec = {
+        "job_id": "x",
+        "pipeline": {
+            "state": "completed",
+            "progress_pct": 100,
+            "progress_stage": "done",
+            "error": None,
+        },
+    }
     assert format_pipeline_hint(rec) == "pipeline: completed"
 
 
 def test_format_pipeline_hint_running_with_stage():
     from core.image_pipeline_link import format_pipeline_hint
 
-    rec = {"pipeline": {"state": "running", "progress_pct": 33.3,
-                        "progress_stage": "composition_pass", "error": None}}
+    rec = {
+        "pipeline": {
+            "state": "running",
+            "progress_pct": 33.3,
+            "progress_stage": "composition_pass",
+            "error": None,
+        }
+    }
     out = format_pipeline_hint(rec)
     assert out is not None
     assert "running" in out
@@ -293,8 +320,14 @@ def test_format_pipeline_hint_running_with_stage():
 def test_format_pipeline_hint_failed_carries_error():
     from core.image_pipeline_link import format_pipeline_hint
 
-    rec = {"pipeline": {"state": "failed", "progress_pct": 0,
-                        "progress_stage": None, "error": "OOM in upscaler"}}
+    rec = {
+        "pipeline": {
+            "state": "failed",
+            "progress_pct": 0,
+            "progress_stage": None,
+            "error": "OOM in upscaler",
+        }
+    }
     out = format_pipeline_hint(rec)
     assert out is not None
     assert "failed" in out

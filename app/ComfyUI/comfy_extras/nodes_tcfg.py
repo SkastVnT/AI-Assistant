@@ -6,7 +6,9 @@ import torch
 from comfy_api.latest import ComfyExtension, io
 
 
-def score_tangential_damping(cond_score: torch.Tensor, uncond_score: torch.Tensor) -> torch.Tensor:
+def score_tangential_damping(
+    cond_score: torch.Tensor, uncond_score: torch.Tensor
+) -> torch.Tensor:
     """Drop tangential components from uncond score to align with cond score."""
     # (B, 1, ...)
     batch_num = cond_score.shape[0]

@@ -2,8 +2,10 @@
 Monitor và Dashboard cho Rate Limits & Cache
 Hiển thị real-time stats về API usage
 """
+
 import sys
 from pathlib import Path
+
 from flask import Blueprint, jsonify, make_response
 
 # Import utilities
@@ -26,28 +28,29 @@ try:
     from .rate_limiter import get_rate_limit_stats
     from .response_cache import get_all_cache_stats
 except Exception:
+
     def get_rate_limit_stats():
         return {"enabled": False, "error": "rate_limiter module unavailable"}
 
     def get_all_cache_stats():
         return {"enabled": False, "error": "response_cache module unavailable"}
 
+
 # Blueprint
-monitor_bp = Blueprint('monitor', __name__)
+monitor_bp = Blueprint("monitor", __name__)
 
 
-@monitor_bp.route('/api/stats')
+@monitor_bp.route("/api/stats")
 def get_stats():
     """
     API endpoint để lấy stats
     """
-    return jsonify({
-        'rate_limits': get_rate_limit_stats(),
-        'cache': get_all_cache_stats()
-    })
+    return jsonify(
+        {"rate_limits": get_rate_limit_stats(), "cache": get_all_cache_stats()}
+    )
 
 
-@monitor_bp.route('/monitor')
+@monitor_bp.route("/monitor")
 def monitor_dashboard():
     """
     Dashboard hiển thị stats
@@ -170,26 +173,26 @@ def monitor_dashboard():
 <body>
     <div class="container">
         <h1>🎯 API Monitor Dashboard</h1>
-        
+
         <div class="section">
             <h2>⏱️ Rate Limits - Gemini API</h2>
             <div class="stats-grid" id="gemini-stats"></div>
         </div>
-        
+
         <div class="section">
             <h2>⏱️ Rate Limits - OpenAI</h2>
             <div class="stats-grid" id="openai-stats"></div>
         </div>
-        
+
         <div class="section">
             <h2>💾 Response Cache</h2>
             <div class="stats-grid" id="cache-stats"></div>
         </div>
-        
+
         <button class="refresh-btn" onclick="loadStats()">🔄 Refresh</button>
         <div class="last-update" id="last-update"></div>
     </div>
-    
+
     <script>
         function loadStats() {
             fetch('/api/stats')
@@ -198,24 +201,24 @@ def monitor_dashboard():
                     renderGeminiStats(data.rate_limits.gemini);
                     renderOpenAIStats(data.rate_limits.openai);
                     renderCacheStats(data.cache);
-                    
-                    document.getElementById('last-update').textContent = 
+
+                    document.getElementById('last-update').textContent =
                         'Last updated: ' + new Date().toLocaleString();
                 })
                 .catch(err => console.error('Error loading stats:', err));
         }
-        
+
         function renderGeminiStats(gemini) {
             const container = document.getElementById('gemini-stats');
             container.innerHTML = '';
-            
+
             Object.entries(gemini).forEach(([key, stats]) => {
                 const card = document.createElement('div');
                 card.className = 'stat-card';
-                
+
                 const usage = stats.usage_percentage;
                 const statusClass = usage > 80 ? 'danger' : (usage > 60 ? 'warning' : 'success');
-                
+
                 card.innerHTML = `
                     <h3>${key.toUpperCase()}</h3>
                     <div class="stat-item">
@@ -236,19 +239,19 @@ def monitor_dashboard():
                         </div>
                     </div>
                 `;
-                
+
                 container.appendChild(card);
             });
         }
-        
+
         function renderOpenAIStats(openai) {
             const container = document.getElementById('openai-stats');
             const card = document.createElement('div');
             card.className = 'stat-card';
-            
+
             const usage = openai.usage_percentage;
             const statusClass = usage > 80 ? 'danger' : (usage > 60 ? 'warning' : 'success');
-            
+
             card.innerHTML = `
                 <h3>OPENAI GPT-4O-MINI</h3>
                 <div class="stat-item">
@@ -269,22 +272,22 @@ def monitor_dashboard():
                     </div>
                 </div>
             `;
-            
+
             container.innerHTML = '';
             container.appendChild(card);
         }
-        
+
         function renderCacheStats(cache) {
             const container = document.getElementById('cache-stats');
             container.innerHTML = '';
-            
+
             Object.entries(cache).forEach(([key, stats]) => {
                 const card = document.createElement('div');
                 card.className = 'stat-card';
-                
+
                 const hitRate = stats.hit_rate_percentage;
                 const statusClass = hitRate > 70 ? 'success' : (hitRate > 40 ? 'warning' : 'danger');
-                
+
                 card.innerHTML = `
                     <h3>${key.toUpperCase()}</h3>
                     <div class="stat-item">
@@ -313,11 +316,11 @@ def monitor_dashboard():
                         </div>
                     </div>
                 `;
-                
+
                 container.appendChild(card);
             });
         }
-        
+
         // Auto refresh every 5 seconds
         loadStats();
         setInterval(loadStats, 5000);
@@ -326,14 +329,14 @@ def monitor_dashboard():
 </html>
     """
     response = make_response(html)
-    response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    response.headers["Content-Type"] = "text/html; charset=utf-8"
     return response
 
 
 def register_monitor(app):
     """
     Register monitor blueprint vào Flask app
-    
+
     Usage:
         from config.monitor import register_monitor
         register_monitor(app)

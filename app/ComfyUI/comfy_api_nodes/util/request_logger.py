@@ -28,8 +28,12 @@ def get_log_directory():
 def _sanitize_filename_component(name: str) -> str:
     if not name:
         return "log"
-    sanitized = re.sub(r"[^A-Za-z0-9._-]+", "_", name)  # Replace disallowed characters with underscore
-    sanitized = sanitized.strip(" ._")  # Windows: trailing dots or spaces are not allowed
+    sanitized = re.sub(
+        r"[^A-Za-z0-9._-]+", "_", name
+    )  # Replace disallowed characters with underscore
+    sanitized = sanitized.strip(
+        " ._"
+    )  # Windows: trailing dots or spaces are not allowed
     if not sanitized:
         sanitized = "log"
     return sanitized
@@ -42,8 +46,12 @@ def _short_hash(*parts: str, length: int = 10) -> str:
 def _build_log_filepath(log_dir: str, operation_id: str, request_url: str) -> str:
     """Build log filepath. We keep it well under common path length limits aiming for <= 240 characters total."""
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-    slug = _sanitize_filename_component(operation_id)  # Best-effort human-readable slug from operation_id
-    h = _short_hash(operation_id or "", request_url or "")  # Short hash ties log to the full operation and URL
+    slug = _sanitize_filename_component(
+        operation_id
+    )  # Best-effort human-readable slug from operation_id
+    h = _short_hash(
+        operation_id or "", request_url or ""
+    )  # Short hash ties log to the full operation and URL
 
     # Compute how much room we have for the slug given the directory length
     # Keep total path length reasonably below ~260 on Windows.
@@ -125,17 +133,19 @@ def log_request_response(
         logger.error("Error writing API log to %s: %s", filepath, str(e))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Example usage (for testing the logger directly)
     logger.setLevel(logging.DEBUG)
     # Mock folder_paths for direct execution if not running within ComfyUI full context
-    if not hasattr(folder_paths, 'get_temp_directory'):
+    if not hasattr(folder_paths, "get_temp_directory"):
+
         class MockFolderPaths:
             def get_temp_directory(self):
                 # Create a local temp dir for testing if needed
-                p = os.path.join(os.path.dirname(__file__), 'temp_test_logs')
+                p = os.path.join(os.path.dirname(__file__), "temp_test_logs")
                 os.makedirs(p, exist_ok=True)
                 return p
+
         folder_paths = MockFolderPaths()
 
     log_request_response(
@@ -145,19 +155,19 @@ if __name__ == '__main__':
         request_headers={"Authorization": "Bearer testtoken"},
         request_params={"param1": "value1"},
         response_status_code=200,
-        response_content={"message": "Success!"}
+        response_content={"message": "Success!"},
     )
     log_request_response(
         operation_id="test_operation_post_error",
         request_method="POST",
         request_url="https://api.example.com/submit",
         request_data={"key": "value", "nested": {"num": 123}},
-        error_message="Connection timed out"
+        error_message="Connection timed out",
     )
     log_request_response(
         operation_id="test_binary_response",
         request_method="GET",
         request_url="https://api.example.com/image.png",
         response_status_code=200,
-        response_content=b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR...' # Sample binary data
+        response_content=b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR...",  # Sample binary data
     )

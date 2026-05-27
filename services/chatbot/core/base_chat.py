@@ -1,13 +1,15 @@
-﻿"""
+"""
 Base Chat Module - Unified chat logic with streaming, retry, and fallback support
 """
-import time
-import logging
+
 import functools
-from typing import Optional, List, Dict, Any, Generator, Callable
+import logging
+import time
+from abc import ABC, abstractmethod
+from collections.abc import Callable, Generator
 from dataclasses import dataclass, field
 from enum import Enum
-from abc import ABC, abstractmethod
+
 import openai
 import requests
 
@@ -16,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 class ModelProvider(Enum):
     """Supported model providers"""
+
     OPENAI = "openai"
     DEEPSEEK = "deepseek"
     GROK = "grok"
@@ -30,6 +33,7 @@ class ModelProvider(Enum):
 @dataclass
 class ModelConfig:
     """Configuration for a model"""
+
     name: str
     provider: ModelProvider
     api_key: str = ""
@@ -42,37 +46,39 @@ class ModelConfig:
     timeout: int = 60
     supports_streaming: bool = True
     supports_vision: bool = False
-    fallback_model: Optional[str] = None
+    fallback_model: str | None = None
 
 
 @dataclass
 class ChatContext:
     """Context for a chat request"""
+
     message: str
     context: str = "casual"
     deep_thinking: bool = False
     language: str = "vi"
-    custom_prompt: Optional[str] = None
-    history: Optional[List[Dict]] = None
-    memories: Optional[List[Dict]] = None
-    conversation_history: List[Dict] = field(default_factory=list)
-    images: Optional[List[str]] = None  # base64 data-URLs for vision models
+    custom_prompt: str | None = None
+    history: list[dict] | None = None
+    memories: list[dict] | None = None
+    conversation_history: list[dict] = field(default_factory=list)
+    images: list[str] | None = None  # base64 data-URLs for vision models
     # Per-request parameter overrides (None = fall back to ModelConfig defaults)
-    temperature: Optional[float] = None
-    temperature_deep: Optional[float] = None
-    max_tokens_deep: Optional[int] = None
-    top_p: Optional[float] = None
+    temperature: float | None = None
+    temperature_deep: float | None = None
+    max_tokens_deep: int | None = None
+    top_p: float | None = None
 
 
 @dataclass
 class ChatResponse:
     """Standardized chat response"""
+
     content: str
     model: str
     provider: str
     success: bool = True
-    error: Optional[str] = None
-    thinking_process: Optional[str] = None
+    error: str | None = None
+    thinking_process: str | None = None
     is_fallback: bool = False
     retry_count: int = 0
 
@@ -80,29 +86,32 @@ class ChatResponse:
 @dataclass
 class RetryConfig:
     """Retry configuration"""
+
     max_retries: int = 3
     base_delay: float = 1.0
     max_delay: float = 30.0
     exponential_base: float = 2.0
-    retryable_errors: tuple = field(default_factory=lambda: (
-        requests.exceptions.Timeout,
-        requests.exceptions.ConnectionError,
-        openai.APIConnectionError,
-        openai.RateLimitError,
-        openai.APITimeoutError,
-    ))
+    retryable_errors: tuple = field(
+        default_factory=lambda: (
+            requests.exceptions.Timeout,
+            requests.exceptions.ConnectionError,
+            openai.APIConnectionError,
+            openai.RateLimitError,
+            openai.APITimeoutError,
+        )
+    )
 
 
-def with_retry(retry_config: Optional[RetryConfig] = None):
+def with_retry(retry_config: RetryConfig | None = None):
     """Decorator for retry logic with exponential backoff"""
     if retry_config is None:
         retry_config = RetryConfig()
-    
+
     def decorator(func: Callable):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             last_error = None
-            
+
             for attempt in range(retry_config.max_retries):
                 try:
                     return func(*args, **kwargs)
@@ -110,28 +119,30 @@ def with_retry(retry_config: Optional[RetryConfig] = None):
                     last_error = e
                     if attempt < retry_config.max_retries - 1:
                         delay = min(
-                            retry_config.base_delay * (retry_config.exponential_base ** attempt),
-                            retry_config.max_delay
+                            retry_config.base_delay
+                            * (retry_config.exponential_base**attempt),
+                            retry_config.max_delay,
                         )
                         logger.warning(
                             f"[Retry] Attempt {attempt + 1}/{retry_config.max_retries} failed: {e}. "
                             f"Retrying in {delay:.1f}s..."
                         )
                         time.sleep(delay)
-                except Exception as e:
+                except Exception:
                     # Non-retryable error
                     raise
-            
+
             # All retries exhausted
             raise last_error
-        
+
         return wrapper
+
     return decorator
 
 
 class ContextWindowManager:
     """Smart context window management"""
-    
+
     # Approximate token limits per model
     MODEL_CONTEXT_LIMITS = {
         "gpt-4o-mini": 128000,
@@ -141,27 +152,27 @@ class ContextWindowManager:
         "bloomvn": 4000,
         "step-3.5-flash": 128000,
         "gemini-2.0-flash": 1000000,
-        "default": 8000
+        "default": 8000,
     }
-    
+
     # Target context usage (leave room for response)
     TARGET_USAGE = 0.7
-    
+
     @classmethod
     def estimate_tokens(cls, text: str) -> int:
         """Estimate token count (rough approximation)"""
         # Vietnamese and mixed text: ~1.5 chars per token average
         return int(len(text) / 1.5)
-    
+
     @classmethod
     def get_smart_history(
         cls,
-        conversation_history: List[Dict],
+        conversation_history: list[dict],
         model_id: str = "default",
         system_prompt: str = "",
         current_message: str = "",
-        max_messages: Optional[int] = None
-    ) -> List[Dict]:
+        max_messages: int | None = None,
+    ) -> list[dict]:
         """
         Get conversation history with smart truncation based on:
         1. Model context limit
@@ -170,65 +181,85 @@ class ContextWindowManager:
         """
         if not conversation_history:
             return []
-        
-        context_limit = cls.MODEL_CONTEXT_LIMITS.get(model_id, cls.MODEL_CONTEXT_LIMITS["default"])
+
+        context_limit = cls.MODEL_CONTEXT_LIMITS.get(
+            model_id, cls.MODEL_CONTEXT_LIMITS["default"]
+        )
         available_tokens = int(context_limit * cls.TARGET_USAGE)
-        
+
         # Reserve tokens for system prompt and current message
-        reserved_tokens = cls.estimate_tokens(system_prompt) + cls.estimate_tokens(current_message) + 500
+        reserved_tokens = (
+            cls.estimate_tokens(system_prompt)
+            + cls.estimate_tokens(current_message)
+            + 500
+        )
         available_tokens -= reserved_tokens
-        
+
         if available_tokens <= 0:
             return []
-        
+
         # Apply max_messages limit if specified
         if max_messages:
             conversation_history = conversation_history[-max_messages:]
-        
+
         # Build history from most recent
         result = []
         used_tokens = 0
-        
+
         for msg in reversed(conversation_history):
-            user_content = msg.get('user', msg.get('content', ''))
-            assistant_content = msg.get('assistant', '')
-            
-            msg_tokens = cls.estimate_tokens(user_content) + cls.estimate_tokens(assistant_content)
-            
+            user_content = msg.get("user", msg.get("content", ""))
+            assistant_content = msg.get("assistant", "")
+
+            msg_tokens = cls.estimate_tokens(user_content) + cls.estimate_tokens(
+                assistant_content
+            )
+
             if used_tokens + msg_tokens > available_tokens:
                 break
-            
+
             result.insert(0, msg)
             used_tokens += msg_tokens
-        
+
         return result
 
 
 class BaseModelChat(ABC):
     """Abstract base class for model-specific chat implementations"""
-    
+
     def __init__(self, config: ModelConfig):
         self.config = config
         self.retry_config = RetryConfig()
-    
+
     @abstractmethod
-    def _call_api(self, messages: List[Dict], temperature: float, max_tokens: int, top_p: Optional[float] = None) -> str:
+    def _call_api(
+        self,
+        messages: list[dict],
+        temperature: float,
+        max_tokens: int,
+        top_p: float | None = None,
+    ) -> str:
         """Make the actual API call"""
         pass
-    
+
     @abstractmethod
-    def _call_api_stream(self, messages: List[Dict], temperature: float, max_tokens: int, top_p: Optional[float] = None) -> Generator[str, None, None]:
+    def _call_api_stream(
+        self,
+        messages: list[dict],
+        temperature: float,
+        max_tokens: int,
+        top_p: float | None = None,
+    ) -> Generator[str, None, None]:
         """Make streaming API call"""
         pass
-    
+
     def build_system_prompt(self, ctx: ChatContext, prompts_getter: Callable) -> str:
         """Build system prompt with context and memories"""
         if ctx.custom_prompt and ctx.custom_prompt.strip():
             system_prompt = ctx.custom_prompt
         else:
             prompts = prompts_getter(ctx.language)
-            system_prompt = prompts.get(ctx.context, prompts.get('casual', ''))
-        
+            system_prompt = prompts.get(ctx.context, prompts.get("casual", ""))
+
         if ctx.deep_thinking:
             system_prompt += (
                 "\n\n=== DEEP THINKING MODE ==="
@@ -245,35 +276,41 @@ class BaseModelChat(ABC):
                 "\n\n[Your final answer here]"
                 "\n=== END DEEP THINKING MODE ==="
             )
-        
+
         if ctx.memories:
             system_prompt += "\n\n=== KNOWLEDGE BASE ===\n"
             for mem in ctx.memories:
-                system_prompt += f"\nðŸ“š {mem.get('title', 'Memory')}:\n{mem.get('content', '')}\n"
+                system_prompt += (
+                    f"\nðŸ“š {mem.get('title', 'Memory')}:\n{mem.get('content', '')}\n"
+                )
             system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
-        
+
         return system_prompt
-    
-    def build_messages(self, ctx: ChatContext, system_prompt: str) -> List[Dict]:
+
+    def build_messages(self, ctx: ChatContext, system_prompt: str) -> list[dict]:
         """Build message list for API call"""
         messages = [{"role": "system", "content": system_prompt}]
-        
+
         # Get smart history
-        history_to_use = ctx.history if ctx.history else ContextWindowManager.get_smart_history(
-            ctx.conversation_history,
-            model_id=self.config.model_id,
-            system_prompt=system_prompt,
-            current_message=ctx.message
+        history_to_use = (
+            ctx.history
+            if ctx.history
+            else ContextWindowManager.get_smart_history(
+                ctx.conversation_history,
+                model_id=self.config.model_id,
+                system_prompt=system_prompt,
+                current_message=ctx.message,
+            )
         )
-        
+
         for hist in history_to_use:
-            if 'role' in hist and 'content' in hist:
-                messages.append({"role": hist['role'], "content": hist['content']})
-            elif 'user' in hist:
-                messages.append({"role": "user", "content": hist['user']})
-                if 'assistant' in hist:
-                    messages.append({"role": "assistant", "content": hist['assistant']})
-        
+            if "role" in hist and "content" in hist:
+                messages.append({"role": hist["role"], "content": hist["content"]})
+            elif "user" in hist:
+                messages.append({"role": "user", "content": hist["user"]})
+                if "assistant" in hist:
+                    messages.append({"role": "assistant", "content": hist["assistant"]})
+
         # Build user content — multimodal if images are attached
         if ctx.images:
             user_content = []
@@ -282,53 +319,74 @@ class BaseModelChat(ABC):
                 user_content.append({"type": "text", "text": ctx.message})
             # Add each image as an image_url part
             for img_data_url in ctx.images:
-                user_content.append({
-                    "type": "image_url",
-                    "image_url": {"url": img_data_url, "detail": "auto"}
-                })
+                user_content.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": img_data_url, "detail": "auto"},
+                    }
+                )
             messages.append({"role": "user", "content": user_content})
         else:
             messages.append({"role": "user", "content": ctx.message})
         return messages
-    
-    def chat(self, ctx: ChatContext, prompts_getter: Callable, stream: bool = False) -> ChatResponse:
+
+    def chat(
+        self, ctx: ChatContext, prompts_getter: Callable, stream: bool = False
+    ) -> ChatResponse:
         """Execute chat with retry logic"""
         system_prompt = self.build_system_prompt(ctx, prompts_getter)
         messages = self.build_messages(ctx, system_prompt)
-        
+
         if ctx.deep_thinking:
-            temperature = ctx.temperature_deep if ctx.temperature_deep is not None else self.config.temperature_deep
-            max_tokens = ctx.max_tokens_deep if ctx.max_tokens_deep is not None else self.config.max_tokens_deep
+            temperature = (
+                ctx.temperature_deep
+                if ctx.temperature_deep is not None
+                else self.config.temperature_deep
+            )
+            max_tokens = (
+                ctx.max_tokens_deep
+                if ctx.max_tokens_deep is not None
+                else self.config.max_tokens_deep
+            )
         else:
-            temperature = ctx.temperature if ctx.temperature is not None else self.config.temperature
+            temperature = (
+                ctx.temperature
+                if ctx.temperature is not None
+                else self.config.temperature
+            )
             max_tokens = self.config.max_tokens
         top_p = ctx.top_p
-        
+
         retry_count = 0
         last_error = None
-        
+
         for attempt in range(self.retry_config.max_retries):
             try:
                 if stream and self.config.supports_streaming:
                     # Return generator for streaming
-                    return self._call_api_stream(messages, temperature, max_tokens, top_p)
+                    return self._call_api_stream(
+                        messages, temperature, max_tokens, top_p
+                    )
                 else:
                     content = self._call_api(messages, temperature, max_tokens, top_p)
                     return ChatResponse(
                         content=content,
                         model=self.config.name,
                         provider=self.config.provider.value,
-                        retry_count=retry_count
+                        retry_count=retry_count,
                     )
             except self.retry_config.retryable_errors as e:
                 last_error = e
                 retry_count = attempt + 1
                 if attempt < self.retry_config.max_retries - 1:
                     delay = min(
-                        self.retry_config.base_delay * (self.retry_config.exponential_base ** attempt),
-                        self.retry_config.max_delay
+                        self.retry_config.base_delay
+                        * (self.retry_config.exponential_base**attempt),
+                        self.retry_config.max_delay,
                     )
-                    logger.warning(f"[{self.config.name}] Retry {attempt + 1}: {e}. Waiting {delay:.1f}s...")
+                    logger.warning(
+                        f"[{self.config.name}] Retry {attempt + 1}: {e}. Waiting {delay:.1f}s..."
+                    )
                     time.sleep(delay)
             except Exception as e:
                 return ChatResponse(
@@ -337,106 +395,155 @@ class BaseModelChat(ABC):
                     provider=self.config.provider.value,
                     success=False,
                     error=str(e),
-                    retry_count=retry_count
+                    retry_count=retry_count,
                 )
-        
+
         return ChatResponse(
             content="",
             model=self.config.name,
             provider=self.config.provider.value,
             success=False,
             error=f"All {self.retry_config.max_retries} retries failed: {last_error}",
-            retry_count=retry_count
+            retry_count=retry_count,
         )
 
 
 class OpenAICompatibleChat(BaseModelChat):
     """Chat implementation for OpenAI-compatible APIs (OpenAI, DeepSeek, Grok)"""
-    
+
     def __init__(self, config: ModelConfig):
         super().__init__(config)
         self.client = openai.OpenAI(
             api_key=config.api_key,
-            base_url=config.base_url if config.base_url else None
+            base_url=config.base_url if config.base_url else None,
         )
-    
-    def _call_api(self, messages: List[Dict], temperature: float, max_tokens: int, top_p: Optional[float] = None) -> str:
-        kwargs = dict(model=self.config.model_id, messages=messages, temperature=temperature, max_tokens=max_tokens)
+
+    def _call_api(
+        self,
+        messages: list[dict],
+        temperature: float,
+        max_tokens: int,
+        top_p: float | None = None,
+    ) -> str:
+        kwargs = {
+            "model": self.config.model_id,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
         if top_p is not None:
-            kwargs['top_p'] = top_p
+            kwargs["top_p"] = top_p
         response = self.client.chat.completions.create(**kwargs)
         return response.choices[0].message.content
-    
-    def _call_api_stream(self, messages: List[Dict], temperature: float, max_tokens: int, top_p: Optional[float] = None) -> Generator[str, None, None]:
-        kwargs = dict(model=self.config.model_id, messages=messages, temperature=temperature, max_tokens=max_tokens, stream=True)
+
+    def _call_api_stream(
+        self,
+        messages: list[dict],
+        temperature: float,
+        max_tokens: int,
+        top_p: float | None = None,
+    ) -> Generator[str, None, None]:
+        kwargs = {
+            "model": self.config.model_id,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": True,
+        }
         if top_p is not None:
-            kwargs['top_p'] = top_p
+            kwargs["top_p"] = top_p
         stream = self.client.chat.completions.create(**kwargs)
         for chunk in stream:
             if chunk.choices:
                 delta = chunk.choices[0].delta
                 # Capture reasoning_content from models that support it
                 # (Grok, DeepSeek R1, etc.)
-                reasoning = getattr(delta, 'reasoning_content', None)
+                reasoning = getattr(delta, "reasoning_content", None)
                 if reasoning:
                     from core.thinking_generator import REASONING_PREFIX
-                    yield f'{REASONING_PREFIX}{reasoning}'
+
+                    yield f"{REASONING_PREFIX}{reasoning}"
                 if delta.content:
                     yield delta.content
 
 
 class QwenChat(BaseModelChat):
     """Chat implementation for Qwen API"""
-    
-    def _call_api(self, messages: List[Dict], temperature: float, max_tokens: int, top_p: Optional[float] = None) -> str:
-        payload = {"model": self.config.model_id, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+
+    def _call_api(
+        self,
+        messages: list[dict],
+        temperature: float,
+        max_tokens: int,
+        top_p: float | None = None,
+    ) -> str:
+        payload = {
+            "model": self.config.model_id,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
         if top_p is not None:
-            payload['top_p'] = top_p
+            payload["top_p"] = top_p
         response = requests.post(
             "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
             headers={
                 "Authorization": f"Bearer {self.config.api_key}",
-                "Content-Type": "application/json"
-            },
-            json=payload,
-            timeout=self.config.timeout
-        )
-        
-        if response.status_code == 200:
-            return response.json()['choices'][0]['message']['content']
-        raise Exception(f"Qwen API error: {response.status_code}")
-    
-    def _call_api_stream(self, messages: List[Dict], temperature: float, max_tokens: int, top_p: Optional[float] = None) -> Generator[str, None, None]:
-        payload = {"model": self.config.model_id, "messages": messages, "temperature": temperature, "max_tokens": max_tokens, "stream": True}
-        if top_p is not None:
-            payload['top_p'] = top_p
-        response = requests.post(
-            "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {self.config.api_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             },
             json=payload,
             timeout=self.config.timeout,
-            stream=True
         )
-        
+
+        if response.status_code == 200:
+            return response.json()["choices"][0]["message"]["content"]
+        raise Exception(f"Qwen API error: {response.status_code}")
+
+    def _call_api_stream(
+        self,
+        messages: list[dict],
+        temperature: float,
+        max_tokens: int,
+        top_p: float | None = None,
+    ) -> Generator[str, None, None]:
+        payload = {
+            "model": self.config.model_id,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": True,
+        }
+        if top_p is not None:
+            payload["top_p"] = top_p
+        response = requests.post(
+            "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {self.config.api_key}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=self.config.timeout,
+            stream=True,
+        )
+
         if response.status_code == 200:
             for line in response.iter_lines():
                 if line:
-                    line = line.decode('utf-8')
-                    if line.startswith('data: '):
+                    line = line.decode("utf-8")
+                    if line.startswith("data: "):
                         data = line[6:]
-                        if data != '[DONE]':
+                        if data != "[DONE]":
                             try:
                                 import json
+
                                 chunk = json.loads(data)
-                                delta = chunk.get('choices', [{}])[0].get('delta', {})
-                                reasoning = delta.get('reasoning_content', '')
+                                delta = chunk.get("choices", [{}])[0].get("delta", {})
+                                reasoning = delta.get("reasoning_content", "")
                                 if reasoning:
                                     from core.thinking_generator import REASONING_PREFIX
-                                    yield f'{REASONING_PREFIX}{reasoning}'
-                                content = delta.get('content', '')
+
+                                    yield f"{REASONING_PREFIX}{reasoning}"
+                                content = delta.get("content", "")
                                 if content:
                                     yield content
                             except Exception:
@@ -446,25 +553,31 @@ class QwenChat(BaseModelChat):
 
 class BloomVNChat(BaseModelChat):
     """Chat implementation for BloomVN via HuggingFace"""
-    
-    def _build_conversation(self, messages: List[Dict]) -> str:
+
+    def _build_conversation(self, messages: list[dict]) -> str:
         """Build conversation string for BloomVN"""
         conversation = ""
         for msg in messages:
-            role = msg.get('role', 'user')
-            content = msg.get('content', '')
-            if role == 'system':
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            if role == "system":
                 conversation = f"{content}\n\n"
-            elif role == 'user':
+            elif role == "user":
                 conversation += f"User: {content}\n"
-            elif role == 'assistant':
+            elif role == "assistant":
                 conversation += f"Assistant: {content}\n\n"
         conversation += "Assistant:"
         return conversation
-    
-    def _call_api(self, messages: List[Dict], temperature: float, max_tokens: int, top_p: Optional[float] = None) -> str:
+
+    def _call_api(
+        self,
+        messages: list[dict],
+        temperature: float,
+        max_tokens: int,
+        top_p: float | None = None,
+    ) -> str:
         conversation = self._build_conversation(messages)
-        
+
         response = requests.post(
             "https://api-inference.huggingface.co/models/BlossomsAI/BloomVN-8B-chat",
             headers={"Authorization": f"Bearer {self.config.api_key}"},
@@ -474,22 +587,28 @@ class BloomVNChat(BaseModelChat):
                     "max_new_tokens": max_tokens,
                     "temperature": temperature,
                     "do_sample": True,
-                    **({"top_p": top_p} if top_p is not None else {})
-                }
+                    **({"top_p": top_p} if top_p is not None else {}),
+                },
             },
-            timeout=self.config.timeout
+            timeout=self.config.timeout,
         )
-        
+
         if response.status_code == 200:
             result = response.json()
             if isinstance(result, list) and len(result) > 0:
-                return result[0].get('generated_text', '')
+                return result[0].get("generated_text", "")
             return str(result)
         elif response.status_code == 503:
             raise Exception("BloomVN is loading, try again in 20-30 seconds")
         raise Exception(f"BloomVN API error: {response.status_code}")
-    
-    def _call_api_stream(self, messages: List[Dict], temperature: float, max_tokens: int, top_p: Optional[float] = None) -> Generator[str, None, None]:
+
+    def _call_api_stream(
+        self,
+        messages: list[dict],
+        temperature: float,
+        max_tokens: int,
+        top_p: float | None = None,
+    ) -> Generator[str, None, None]:
         # BloomVN doesn't support streaming, yield full response
         content = self._call_api(messages, temperature, max_tokens, top_p)
         yield content
@@ -497,18 +616,18 @@ class BloomVNChat(BaseModelChat):
 
 class ModelFallbackManager:
     """Manages model fallback chain"""
-    
-    def __init__(self, fallback_chain: Dict[str, List[str]]):
+
+    def __init__(self, fallback_chain: dict[str, list[str]]):
         """
         fallback_chain: Dict mapping model name to list of fallback models
         Example: {'grok': ['deepseek', 'openai'], 'openai': ['deepseek']}
         """
         self.fallback_chain = fallback_chain
-    
-    def get_fallbacks(self, model: str) -> List[str]:
+
+    def get_fallbacks(self, model: str) -> list[str]:
         """Get fallback models for a given model"""
         return self.fallback_chain.get(model, [])
-    
+
     def execute_with_fallback(
         self,
         primary_model: str,
@@ -519,9 +638,11 @@ class ModelFallbackManager:
         response = chat_func(primary_model)
         if response.success:
             return response
-        
-        logger.warning(f"[Fallback] Primary model {primary_model} failed: {response.error}")
-        
+
+        logger.warning(
+            f"[Fallback] Primary model {primary_model} failed: {response.error}"
+        )
+
         # Try fallback models
         for fallback_model in self.get_fallbacks(primary_model):
             logger.info(f"[Fallback] Trying fallback model: {fallback_model}")
@@ -531,23 +652,23 @@ class ModelFallbackManager:
                 logger.info(f"[Fallback] Success with {fallback_model}")
                 return response
             logger.warning(f"[Fallback] {fallback_model} also failed: {response.error}")
-        
+
         return response
 
 
 # Default fallback chain
 DEFAULT_FALLBACK_CHAIN = {
-    'grok': ['deepseek', 'step-flash', 'openai'],
-    'openai': ['deepseek', 'grok', 'step-flash'],
-    'deepseek': ['step-flash', 'openai', 'grok'],
-    'qwen': ['deepseek', 'step-flash', 'openai'],
-    'bloomvn': ['qwen', 'deepseek', 'step-flash'],
-    'step-flash': ['deepseek', 'grok', 'openai'],
-    'gemma4': ['deepseek', 'step-flash', 'openai'],
-    'laguna': ['deepseek', 'step-flash', 'openai'],
-    'r1-free': ['deepseek', 'step-flash', 'openai'],
-    'hermes3': ['deepseek', 'step-flash', 'openai'],
-    'ling26': ['hermes3', 'deepseek', 'step-flash', 'openai'],
-    'lyria': ['gemini', 'openai', 'deepseek'],
-    'gemini': ['grok', 'deepseek', 'step-flash'],
+    "grok": ["deepseek", "step-flash", "openai"],
+    "openai": ["deepseek", "grok", "step-flash"],
+    "deepseek": ["step-flash", "openai", "grok"],
+    "qwen": ["deepseek", "step-flash", "openai"],
+    "bloomvn": ["qwen", "deepseek", "step-flash"],
+    "step-flash": ["deepseek", "grok", "openai"],
+    "gemma4": ["deepseek", "step-flash", "openai"],
+    "laguna": ["deepseek", "step-flash", "openai"],
+    "r1-free": ["deepseek", "step-flash", "openai"],
+    "hermes3": ["deepseek", "step-flash", "openai"],
+    "ling26": ["hermes3", "deepseek", "step-flash", "openai"],
+    "lyria": ["gemini", "openai", "deepseek"],
+    "gemini": ["grok", "deepseek", "step-flash"],
 }

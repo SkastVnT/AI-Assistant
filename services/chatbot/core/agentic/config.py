@@ -11,13 +11,13 @@ Default model assignments come from ``model_resolver.ROLE_FALLBACK_CHAINS``
 (first entry in each chain).  At runtime the resolver picks the first
 *available* model — see :func:`model_resolver.resolve_model`.
 """
+
 from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
 from core.agentic.contracts import AgentRole
 from core.agentic.model_resolver import ROLE_FALLBACK_CHAINS
-
 
 # ── Per-agent model mapping ────────────────────────────────────────────
 
@@ -34,12 +34,14 @@ Derived from the *first* entry in each resolver fallback chain:
 
 # ── Client-facing config ───────────────────────────────────────────────
 
+
 class CouncilConfig(BaseModel):
     """Optional overrides sent by the client inside ``ChatRequest``.
 
     Every field has a default so the client can simply send
     ``{"agent_mode": "council"}`` without any ``council_config``.
     """
+
     max_rounds: int = Field(
         2,
         ge=1,
@@ -72,9 +74,15 @@ class CouncilConfig(BaseModel):
     )
 
     # Feature toggles
-    enable_tools: bool = Field(True, description="Allow Researcher to call tools (web search, etc.)")
-    enable_rag: bool = Field(True, description="Allow Researcher to query RAG collections")
-    enable_mcp: bool = Field(True, description="Allow Researcher to read MCP file context")
+    enable_tools: bool = Field(
+        True, description="Allow Researcher to call tools (web search, etc.)"
+    )
+    enable_rag: bool = Field(
+        True, description="Allow Researcher to query RAG collections"
+    )
+    enable_mcp: bool = Field(
+        True, description="Allow Researcher to read MCP file context"
+    )
 
     def model_for_role(self, role: AgentRole) -> str:
         """Return the configured model name for *role*."""

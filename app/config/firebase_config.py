@@ -5,10 +5,10 @@ Auto data sampling to keep services active
 NOTE: API keys are loaded from environment variables (.env file)
 Never commit API keys directly in code!
 """
-import os
+
 import json
 import logging
-from datetime import datetime
+import os
 from pathlib import Path
 
 try:
@@ -35,37 +35,36 @@ FIREBASE_CONFIG = {
     "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET", ""),
     "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID", ""),
     "appId": os.getenv("FIREBASE_APP_ID", ""),
-    "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID", "")
+    "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID", ""),
 }
 
 # Firebase domains
-FIREBASE_DOMAINS = [
-    "ai-assistant-7dbb8.web.app",
-    "ai-assistant-7dbb8.firebaseapp.com"
-]
+FIREBASE_DOMAINS = ["ai-assistant-7dbb8.web.app", "ai-assistant-7dbb8.firebaseapp.com"]
+
 
 def get_firebase_config():
     """Get Firebase configuration"""
     return FIREBASE_CONFIG
 
+
 def get_firebase_script_tag():
     """Generate Firebase script tag for HTML"""
-    return f'''
+    return f"""
 <script type="module">
   import {{ initializeApp }} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
   import {{ getAnalytics }} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
   import {{ getFirestore, collection, addDoc, serverTimestamp }} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
-  
+
   const firebaseConfig = {json.dumps(FIREBASE_CONFIG, indent=4)};
-  
+
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
   const db = getFirestore(app);
-  
+
   // Auto log page view
   window.firebaseApp = app;
   window.firebaseDb = db;
-  
+
   // Function to log events to Firestore
   window.logToFirebase = async function(collectionName, data) {{
     try {{
@@ -82,7 +81,7 @@ def get_firebase_script_tag():
       return null;
     }}
   }};
-  
+
   // Log page view on load
   window.addEventListener('load', () => {{
     window.logToFirebase('page_views', {{
@@ -91,4 +90,4 @@ def get_firebase_script_tag():
     }});
   }});
 </script>
-'''
+"""

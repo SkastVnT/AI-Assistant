@@ -14,19 +14,18 @@ Covers:
   • ResearcherAgent._format_evidence_for_llm — compact formatting
   • ResearcherAgent._tools_from_evidence — source→tool mapping
 """
+
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from core.agentic.contracts import EvidenceItem, PlannerOutput, ResearcherOutput, TaskNode
+from core.agentic.agents.researcher import ResearcherAgent
+from core.agentic.config import CouncilConfig
+from core.agentic.contracts import EvidenceItem, ResearcherOutput
 from core.agentic.evidence_gathering import (
-    DEFAULT_BUDGET_CHARS,
     MAX_MCP_ITEMS,
     MAX_RAG_ITEMS,
-    MAX_SNIPPET_CHARS,
     MAX_UPLOAD_ITEMS,
     SOURCE_DIRECT,
     SOURCE_MCP,
@@ -40,10 +39,7 @@ from core.agentic.evidence_gathering import (
     _truncate,
     gather_all,
 )
-from core.agentic.agents.researcher import ResearcherAgent
-from core.agentic.config import CouncilConfig
 from core.agentic.state import PreContext
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # _truncate
@@ -123,8 +119,16 @@ class TestRAGEvidence:
 
     def test_basic_chunks(self):
         chunks = [
-            {"content": "Paris is the capital of France.", "score": 0.95, "chunk_id": "c1"},
-            {"content": "Berlin is the capital of Germany.", "score": 0.88, "chunk_id": "c2"},
+            {
+                "content": "Paris is the capital of France.",
+                "score": 0.95,
+                "chunk_id": "c1",
+            },
+            {
+                "content": "Berlin is the capital of Germany.",
+                "score": 0.88,
+                "chunk_id": "c2",
+            },
         ]
         result = _extract_rag_evidence(chunks, [])
         assert len(result) == 2
@@ -183,7 +187,9 @@ This is a description.
         assert result[1].url == "README.md"
 
     def test_fallback_single_block(self):
-        mcp = "Here is some relevant code context that was retrieved from the workspace."
+        mcp = (
+            "Here is some relevant code context that was retrieved from the workspace."
+        )
         result = _extract_mcp_evidence(mcp)
         assert len(result) == 1
         assert result[0].source == SOURCE_MCP
@@ -312,9 +318,14 @@ def analyze(data):
 ```
 What does this data show?"""
         rag_chunks = [
-            {"content": "CSV analysis best practices include validation of headers.", "score": 0.8},
+            {
+                "content": "CSV analysis best practices include validation of headers.",
+                "score": 0.8,
+            },
         ]
-        mcp_context = "Some workspace context about the project configuration and setup details."
+        mcp_context = (
+            "Some workspace context about the project configuration and setup details."
+        )
 
         result = gather_all(
             rag_chunks=rag_chunks,
@@ -330,9 +341,7 @@ What does this data show?"""
         assert SOURCE_DIRECT in sources
 
     def test_budget_respected(self):
-        big_chunks = [
-            {"content": "x" * 3000, "score": 0.9} for _ in range(10)
-        ]
+        big_chunks = [{"content": "x" * 3000, "score": 0.9} for _ in range(10)]
         result = gather_all(
             rag_chunks=big_chunks,
             budget_chars=5_000,
@@ -412,9 +421,13 @@ class TestResearcherMergeEvidence:
         assert result.evidence[1].source == "llm"
 
     def test_dedup_by_prefix(self):
-        pre = [EvidenceItem(source=SOURCE_RAG, content="Same content that appears in both")]
+        pre = [
+            EvidenceItem(source=SOURCE_RAG, content="Same content that appears in both")
+        ]
         output = ResearcherOutput(
-            evidence=[EvidenceItem(source="llm", content="Same content that appears in both")],
+            evidence=[
+                EvidenceItem(source="llm", content="Same content that appears in both")
+            ],
             summary="test",
         )
         result = ResearcherAgent._merge_evidence(output, pre)
@@ -434,7 +447,12 @@ class TestResearcherFormatEvidence:
 
     def test_formatted_output(self):
         evidence = [
-            EvidenceItem(source=SOURCE_RAG, content="Paris is capital", url="geo.pdf", relevance=0.95),
+            EvidenceItem(
+                source=SOURCE_RAG,
+                content="Paris is capital",
+                url="geo.pdf",
+                relevance=0.95,
+            ),
         ]
         result = ResearcherAgent._format_evidence_for_llm(evidence)
         assert "Pre-gathered evidence" in result

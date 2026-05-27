@@ -13,9 +13,9 @@ Covers:
 Run from services/chatbot/:
     python -m pytest tests/test_agentic_critic_loop.py -v
 """
+
 from __future__ import annotations
 
-import asyncio
 import sys
 from pathlib import Path
 from unittest.mock import AsyncMock
@@ -33,19 +33,17 @@ from core.agentic.contracts import (
     CritiqueIssue,
     EvidenceItem,
     FinalAnswer,
-    FinalDecision,
     PlannerOutput,
     ResearcherOutput,
     RetryTarget,
-    RunStatus,
     SynthesizerOutput,
     TaskNode,
 )
 from core.agentic.orchestrator import CouncilOrchestrator
 from core.agentic.state import AgentRunState, PreContext
 
-
 # ── Helpers ────────────────────────────────────────────────────────────
+
 
 def _pre_ctx(msg: str = "Explain recursion") -> PreContext:
     return PreContext(original_message=msg, language="en")
@@ -61,7 +59,11 @@ def _plan() -> PlannerOutput:
 
 def _research() -> ResearcherOutput:
     return ResearcherOutput(
-        evidence=[EvidenceItem(source="llm", content="Recursion is self-reference.", relevance=0.9)],
+        evidence=[
+            EvidenceItem(
+                source="llm", content="Recursion is self-reference.", relevance=0.9
+            )
+        ],
         summary="Recursion is a function calling itself.",
         tools_used=[],
     )
@@ -131,13 +133,16 @@ class _MockOrchestrator(CouncilOrchestrator):
         idx = min(self._critic_idx, len(self._critic_seq) - 1)
         critique = self._critic_seq[idx]
         state.critic_outputs.append(critique)
-        state.record_step(AgentRole.critic, output_summary=f"score={critique.quality_score}")
+        state.record_step(
+            AgentRole.critic, output_summary=f"score={critique.quality_score}"
+        )
         self._critic_idx += 1
 
 
 # ═══════════════════════════════════════════════════════════════════════
 # Selective retry targets
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestSelectiveRetry:
     """Verify that retry_target controls which agents are re-run."""
@@ -197,6 +202,7 @@ class TestSelectiveRetry:
 # Critic feedback injection
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestFeedbackInjection:
     """Verify critic feedback is appended to pre_context.custom_prompt."""
 
@@ -205,7 +211,11 @@ class TestFeedbackInjection:
         orch = _MockOrchestrator(
             CouncilConfig(max_rounds=3),
             critic_outputs=[
-                _critic_fail(score=4, target=RetryTarget.researcher, feedback="Add recursion examples"),
+                _critic_fail(
+                    score=4,
+                    target=RetryTarget.researcher,
+                    feedback="Add recursion examples",
+                ),
                 _critic_pass(score=8),
             ],
         )
@@ -235,6 +245,7 @@ class TestFeedbackInjection:
 # ═══════════════════════════════════════════════════════════════════════
 # Circuit breaker edge cases
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestCircuitBreakerEdges:
     @pytest.mark.asyncio
@@ -288,6 +299,7 @@ class TestCircuitBreakerEdges:
 # Quality threshold overrides verdict
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestQualityThresholdOverride:
     @pytest.mark.asyncio
     async def test_needs_work_but_high_score(self):
@@ -322,10 +334,18 @@ class TestQualityThresholdOverride:
         orch = _MockOrchestrator(
             CouncilConfig(max_rounds=2, quality_threshold=8),
             critic_outputs=[
-                CriticOutput(quality_score=5, verdict="needs_work",
-                             issues=[CritiqueIssue(severity="high", description="Incomplete")]),
-                CriticOutput(quality_score=5, verdict="needs_work",
-                             issues=[CritiqueIssue(severity="high", description="Still incomplete")]),
+                CriticOutput(
+                    quality_score=5,
+                    verdict="needs_work",
+                    issues=[CritiqueIssue(severity="high", description="Incomplete")],
+                ),
+                CriticOutput(
+                    quality_score=5,
+                    verdict="needs_work",
+                    issues=[
+                        CritiqueIssue(severity="high", description="Still incomplete")
+                    ],
+                ),
             ],
         )
         result = await orch.run(_pre_ctx())
@@ -337,35 +357,51 @@ class TestQualityThresholdOverride:
 # CriticAgent._infer_retry_target
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestInferRetryTarget:
     """Focus on the keyword-based heuristic in CriticAgent."""
 
     def _infer(self, issues: list[CritiqueIssue]) -> RetryTarget:
         from core.agentic.agents.critic import CriticAgent
+
         return CriticAgent._infer_retry_target(issues)
 
     def test_evidence_keywords(self):
-        issues = [CritiqueIssue(severity="high", description="Missing evidence from sources")]
+        issues = [
+            CritiqueIssue(severity="high", description="Missing evidence from sources")
+        ]
         assert self._infer(issues) == RetryTarget.researcher
 
     def test_data_keyword(self):
-        issues = [CritiqueIssue(severity="medium", description="Insufficient data provided")]
+        issues = [
+            CritiqueIssue(severity="medium", description="Insufficient data provided")
+        ]
         assert self._infer(issues) == RetryTarget.researcher
 
     def test_source_keyword(self):
-        issues = [CritiqueIssue(severity="medium", description="Need better source for claim")]
+        issues = [
+            CritiqueIssue(severity="medium", description="Need better source for claim")
+        ]
         assert self._infer(issues) == RetryTarget.researcher
 
     def test_format_keywords(self):
-        issues = [CritiqueIssue(severity="low", description="Answer format needs improvement")]
+        issues = [
+            CritiqueIssue(severity="low", description="Answer format needs improvement")
+        ]
         assert self._infer(issues) == RetryTarget.synthesizer
 
     def test_clarity_keyword(self):
-        issues = [CritiqueIssue(severity="medium", description="Improve clarity of explanation")]
+        issues = [
+            CritiqueIssue(
+                severity="medium", description="Improve clarity of explanation"
+            )
+        ]
         assert self._infer(issues) == RetryTarget.synthesizer
 
     def test_structure_keyword(self):
-        issues = [CritiqueIssue(severity="medium", description="Draft needs coherent rewrite")]
+        issues = [
+            CritiqueIssue(severity="medium", description="Draft needs coherent rewrite")
+        ]
         assert self._infer(issues) == RetryTarget.synthesizer
 
     def test_mixed_research_and_synth(self):
@@ -386,6 +422,7 @@ class TestInferRetryTarget:
 # ═══════════════════════════════════════════════════════════════════════
 # Critic output normalization
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestCriticOutputNormalization:
     def test_quality_score_clamped(self):
@@ -410,7 +447,9 @@ class TestCriticOutputNormalization:
             quality_score=6,
             issues=[
                 CritiqueIssue(severity="high", description="Missing data"),
-                CritiqueIssue(severity="low", description="Minor typo", suggestion="Fix it"),
+                CritiqueIssue(
+                    severity="low", description="Minor typo", suggestion="Fix it"
+                ),
             ],
             verdict="needs_work",
             retry_target=RetryTarget.researcher,

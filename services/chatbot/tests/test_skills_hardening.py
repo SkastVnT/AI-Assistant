@@ -12,27 +12,35 @@ Covers scenarios missing from the initial test suites:
   - API contract: activate disabled skill, non-JSON body
   - Route-level precedence: explicit > session > auto
 """
+
 import json
 import sys
-import threading
 from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.skills.registry import SkillDefinition, SkillRegistry, _parse_yaml, get_skill_registry
-from core.skills.router import SkillRouter, RouteMatch, MIN_AUTO_ROUTE_SCORE, MIN_MESSAGE_WORDS
+from core.skills.applicator import apply_skill_overrides
+from core.skills.registry import (
+    SkillDefinition,
+    SkillRegistry,
+    _parse_yaml,
+    get_skill_registry,
+)
 from core.skills.resolver import (
-    SkillOverrides,
-    resolve_skill,
+    SOURCE_AUTO,
     SOURCE_EXPLICIT,
     SOURCE_SESSION,
-    SOURCE_AUTO,
+    SkillOverrides,
+    resolve_skill,
 )
-from core.skills.applicator import AppliedSkill, apply_skill_overrides
-from core.skills.session import SkillSessionStore, set_session_skill, get_session_skill
-
+from core.skills.router import (
+    MIN_AUTO_ROUTE_SCORE,
+    MIN_MESSAGE_WORDS,
+    SkillRouter,
+)
+from core.skills.session import SkillSessionStore, set_session_skill
 
 # ═════════════════════════════════════════════════════════════════════════
 # 1. apply_skill_overrides — previously ZERO coverage
@@ -43,8 +51,14 @@ class TestApplyNoSkill:
     """When no skill is resolved, request values pass through unchanged."""
 
     def test_passthrough_keeps_request_values(self):
-        data = {"model": "deepseek", "context": "programming", "tools": ["google-search"]}
-        result = apply_skill_overrides(data=data, skill_overrides=SkillOverrides(), language="vi")
+        data = {
+            "model": "deepseek",
+            "context": "programming",
+            "tools": ["google-search"],
+        }
+        result = apply_skill_overrides(
+            data=data, skill_overrides=SkillOverrides(), language="vi"
+        )
         assert result.was_applied is False
         assert result.model == "deepseek"
         assert result.context == "programming"
@@ -52,7 +66,9 @@ class TestApplyNoSkill:
         assert result.custom_prompt == ""
 
     def test_empty_request_gets_defaults(self):
-        result = apply_skill_overrides(data={}, skill_overrides=SkillOverrides(), language="vi")
+        result = apply_skill_overrides(
+            data={}, skill_overrides=SkillOverrides(), language="vi"
+        )
         assert result.model == "grok"
         assert result.context == "casual"
         assert result.thinking_mode == "auto"
@@ -61,22 +77,30 @@ class TestApplyNoSkill:
 
     def test_deep_thinking_string_true(self):
         data = {"deep_thinking": "true"}
-        result = apply_skill_overrides(data=data, skill_overrides=SkillOverrides(), language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=SkillOverrides(), language="vi"
+        )
         assert result.deep_thinking is False  # thinking_mode='auto' forces False
 
     def test_thinking_mode_drives_deep_thinking(self):
         data = {"thinking_mode": "thinking"}
-        result = apply_skill_overrides(data=data, skill_overrides=SkillOverrides(), language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=SkillOverrides(), language="vi"
+        )
         assert result.deep_thinking is True
 
     def test_tools_as_json_string(self):
         data = {"tools": '["google-search", "saucenao"]'}
-        result = apply_skill_overrides(data=data, skill_overrides=SkillOverrides(), language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=SkillOverrides(), language="vi"
+        )
         assert result.tools == ["google-search", "saucenao"]
 
     def test_tools_as_invalid_json_string(self):
         data = {"tools": "not-json"}
-        result = apply_skill_overrides(data=data, skill_overrides=SkillOverrides(), language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=SkillOverrides(), language="vi"
+        )
         assert result.tools == []
 
 
@@ -99,56 +123,76 @@ class TestApplyExplicitSkill:
 
     def test_overrides_model(self, skill_overrides):
         data = {"model": "grok", "skill": "coding-assistant"}
-        result = apply_skill_overrides(data=data, skill_overrides=skill_overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=skill_overrides, language="vi"
+        )
         assert result.model == "deepseek"
         assert result.was_applied is True
 
     def test_overrides_model_even_when_user_set_different(self, skill_overrides):
         """Explicit skill overrides EVERYTHING — even user's model choice."""
         data = {"model": "gemini", "skill": "coding-assistant"}
-        result = apply_skill_overrides(data=data, skill_overrides=skill_overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=skill_overrides, language="vi"
+        )
         assert result.model == "deepseek"
 
     def test_overrides_context(self, skill_overrides):
         data = {"context": "casual", "skill": "coding-assistant"}
-        result = apply_skill_overrides(data=data, skill_overrides=skill_overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=skill_overrides, language="vi"
+        )
         assert result.context == "programming"
 
     def test_overrides_thinking_mode(self, skill_overrides):
         data = {"thinking_mode": "instant", "skill": "coding-assistant"}
-        result = apply_skill_overrides(data=data, skill_overrides=skill_overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=skill_overrides, language="vi"
+        )
         assert result.thinking_mode == "thinking"
         assert result.deep_thinking is True
 
     def test_removes_blocked_tools(self, skill_overrides):
         data = {"tools": ["google-search", "saucenao"], "skill": "coding-assistant"}
-        result = apply_skill_overrides(data=data, skill_overrides=skill_overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=skill_overrides, language="vi"
+        )
         assert "saucenao" not in result.tools
 
     def test_adds_preferred_tools(self, skill_overrides):
         data = {"tools": [], "skill": "coding-assistant"}
-        result = apply_skill_overrides(data=data, skill_overrides=skill_overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=skill_overrides, language="vi"
+        )
         assert "google-search" in result.tools
 
     def test_preferred_tools_no_duplication(self, skill_overrides):
         data = {"tools": ["google-search"], "skill": "coding-assistant"}
-        result = apply_skill_overrides(data=data, skill_overrides=skill_overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=skill_overrides, language="vi"
+        )
         assert result.tools.count("google-search") == 1
 
     def test_prompt_injection_with_existing_custom_prompt(self, skill_overrides):
         data = {"custom_prompt": "Be concise.", "skill": "coding-assistant"}
-        result = apply_skill_overrides(data=data, skill_overrides=skill_overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=skill_overrides, language="vi"
+        )
         assert "Be concise." in result.custom_prompt
         assert "expert Python coder" in result.custom_prompt
 
     def test_prompt_injection_without_custom_prompt(self, skill_overrides):
         data = {"skill": "coding-assistant"}
-        result = apply_skill_overrides(data=data, skill_overrides=skill_overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=skill_overrides, language="vi"
+        )
         assert "expert Python coder" in result.custom_prompt
 
     def test_skill_identity_propagated(self, skill_overrides):
         data = {"skill": "coding-assistant"}
-        result = apply_skill_overrides(data=data, skill_overrides=skill_overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=skill_overrides, language="vi"
+        )
         assert result.skill_id == "coding-assistant"
         assert result.skill_name == "Coding Assistant"
 
@@ -171,34 +215,46 @@ class TestApplyAutoRoutedSkill:
     def test_auto_overrides_default_model(self, skill_overrides):
         """Auto-route overrides model when user left it at default."""
         data = {"model": "grok"}  # grok is the default
-        result = apply_skill_overrides(data=data, skill_overrides=skill_overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=skill_overrides, language="vi"
+        )
         assert result.model == "deepseek"
 
     def test_auto_respects_user_model(self, skill_overrides):
         """Auto-route does NOT override when user explicitly set a model."""
         data = {"model": "gemini"}  # not default → user chose this
-        result = apply_skill_overrides(data=data, skill_overrides=skill_overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=skill_overrides, language="vi"
+        )
         assert result.model == "gemini"
 
     def test_auto_respects_user_thinking_mode(self, skill_overrides):
         data = {"thinking_mode": "instant"}  # not default → user chose this
-        result = apply_skill_overrides(data=data, skill_overrides=skill_overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=skill_overrides, language="vi"
+        )
         assert result.thinking_mode == "instant"
 
     def test_auto_overrides_default_thinking_mode(self, skill_overrides):
         data = {"thinking_mode": "auto"}  # default
-        result = apply_skill_overrides(data=data, skill_overrides=skill_overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=skill_overrides, language="vi"
+        )
         assert result.thinking_mode == "thinking"
         assert result.deep_thinking is True
 
     def test_auto_respects_user_context(self, skill_overrides):
         data = {"context": "programming"}  # not default
-        result = apply_skill_overrides(data=data, skill_overrides=skill_overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=skill_overrides, language="vi"
+        )
         assert result.context == "programming"
 
     def test_auto_overrides_default_context(self, skill_overrides):
         data = {"context": "casual"}  # default
-        result = apply_skill_overrides(data=data, skill_overrides=skill_overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=skill_overrides, language="vi"
+        )
         assert result.context == "research"
 
 
@@ -207,28 +263,42 @@ class TestApplyMCPPreference:
 
     def test_mcp_tagged_skill_sets_prefer_mcp(self):
         reg = get_skill_registry()
-        reg.register(SkillDefinition(
-            id="mcp-test-skill", name="MCP Test", tags=["mcp"],
-        ))
+        reg.register(
+            SkillDefinition(
+                id="mcp-test-skill",
+                name="MCP Test",
+                tags=["mcp"],
+            )
+        )
         overrides = SkillOverrides(
-            skill_id="mcp-test-skill", skill_name="MCP Test",
+            skill_id="mcp-test-skill",
+            skill_name="MCP Test",
             source=SOURCE_EXPLICIT,
         )
         data = {"skill": "mcp-test-skill"}
-        result = apply_skill_overrides(data=data, skill_overrides=overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=overrides, language="vi"
+        )
         assert result.prefer_mcp is True
 
     def test_non_mcp_skill_no_prefer(self):
         reg = get_skill_registry()
-        reg.register(SkillDefinition(
-            id="non-mcp-skill", name="Non MCP", tags=["coding"],
-        ))
+        reg.register(
+            SkillDefinition(
+                id="non-mcp-skill",
+                name="Non MCP",
+                tags=["coding"],
+            )
+        )
         overrides = SkillOverrides(
-            skill_id="non-mcp-skill", skill_name="Non MCP",
+            skill_id="non-mcp-skill",
+            skill_name="Non MCP",
             source=SOURCE_EXPLICIT,
         )
         data = {"skill": "non-mcp-skill"}
-        result = apply_skill_overrides(data=data, skill_overrides=overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=overrides, language="vi"
+        )
         assert result.prefer_mcp is False
 
 
@@ -242,10 +312,14 @@ class TestRouterSubstringMatching:
 
     def _build_router_with(self, keywords, priority=10):
         reg = SkillRegistry()
-        reg.register(SkillDefinition(
-            id="target", name="Target",
-            trigger_keywords=keywords, priority=priority,
-        ))
+        reg.register(
+            SkillDefinition(
+                id="target",
+                name="Target",
+                trigger_keywords=keywords,
+                priority=priority,
+            )
+        )
         return SkillRouter(registry=reg)
 
     def test_keyword_code_matches_unicode(self):
@@ -283,9 +357,14 @@ class TestRouterScoring:
 
     def test_score_formula(self):
         reg = SkillRegistry()
-        reg.register(SkillDefinition(
-            id="s1", name="S1", trigger_keywords=["alpha", "beta"], priority=10,
-        ))
+        reg.register(
+            SkillDefinition(
+                id="s1",
+                name="S1",
+                trigger_keywords=["alpha", "beta"],
+                priority=10,
+            )
+        )
         router = SkillRouter(registry=reg)
         result = router.match_detailed("alpha and beta are important concepts")
         assert result is not None
@@ -518,7 +597,9 @@ class TestFullPipeline:
             message="test",
             explicit_skill_id="coding-assistant",
         )
-        result = apply_skill_overrides(data=data, skill_overrides=overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=overrides, language="vi"
+        )
         assert result.was_applied is True
         assert result.skill_id == "coding-assistant"
         assert result.context == "programming"
@@ -529,17 +610,24 @@ class TestFullPipeline:
     def test_no_skill_full_pipeline(self):
         data = {"message": "hello", "model": "grok"}
         overrides = resolve_skill(message="hello, how are you?", auto_route=False)
-        result = apply_skill_overrides(data=data, skill_overrides=overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=overrides, language="vi"
+        )
         assert result.was_applied is False
         assert result.model == "grok"
         assert result.skill_id is None
 
     def test_auto_route_full_pipeline(self):
-        data = {"message": "search the web for Python tutorials and documentation", "model": "grok"}
+        data = {
+            "message": "search the web for Python tutorials and documentation",
+            "model": "grok",
+        }
         overrides = resolve_skill(
             message="search the web for Python tutorials and documentation",
         )
-        result = apply_skill_overrides(data=data, skill_overrides=overrides, language="vi")
+        result = apply_skill_overrides(
+            data=data, skill_overrides=overrides, language="vi"
+        )
         # May or may not match depending on keywords — just verify no crash
         if overrides.active:
             assert result.was_applied is True
@@ -557,6 +645,7 @@ class TestAPIContractHardening:
     @pytest.fixture()
     def client(self):
         from app import app as flask_app
+
         flask_app.config["TESTING"] = True
         with flask_app.test_client() as c:
             yield c
@@ -610,8 +699,13 @@ class TestAPIContractHardening:
         assert resp.status_code == 200
         data = resp.get_json()
         expected_fields = {
-            "id", "name", "description", "tags", "enabled",
-            "priority", "trigger_keywords",
+            "id",
+            "name",
+            "description",
+            "tags",
+            "enabled",
+            "priority",
+            "trigger_keywords",
         }
         assert expected_fields.issubset(set(data.get("skill", {}).keys()))
 
@@ -628,6 +722,7 @@ class TestAPIContractHardening:
     def test_stream_metadata_includes_skill_source(self, client):
         """The /chat/stream metadata SSE event should include skill_source field."""
         import re
+
         reg = get_skill_registry()
         reg.load_builtins()
         resp = client.post(

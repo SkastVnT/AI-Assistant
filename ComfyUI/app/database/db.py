@@ -19,15 +19,13 @@ try:
 
     _DB_AVAILABLE = True
 except ImportError as e:
-    log_startup_warning(
-        f"""
+    log_startup_warning(f"""
 ------------------------------------------------------------------------
 Error importing dependencies: {e}
 {get_missing_requirements_message()}
 This error is happening because ComfyUI now uses a local sqlite database.
 ------------------------------------------------------------------------
-""".strip()
-    )
+""".strip())
 
 
 def dependencies_available():

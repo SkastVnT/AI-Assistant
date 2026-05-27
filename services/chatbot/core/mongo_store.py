@@ -29,13 +29,15 @@ Design rules:
 * No GridFS.
 * Index creation is best-effort and never required for save calls.
 """
+
 from __future__ import annotations
 
 import logging
 import os
 import threading
+from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import Any, Mapping
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +154,11 @@ def health_check() -> dict:
 
     _init()
     if _state.db is None:
-        return {"ok": False, "reason": _state.disabled_reason or "not initialized", "db": None}
+        return {
+            "ok": False,
+            "reason": _state.disabled_reason or "not initialized",
+            "db": None,
+        }
 
     try:
         start = time.monotonic()
@@ -187,14 +193,18 @@ def _ensure_indexes_internal(*, force: bool = False) -> dict:
     created: list[str] = []
     try:
         from pymongo import ASCENDING  # noqa: PLC0415
+
         # conversations
         _state.db["conversations"].create_index("conversation_id", unique=True)
         created.append("conversations.conversation_id")
         # messages
         _state.db["messages"].create_index("message_id", unique=True)
-        _state.db["messages"].create_index([
-            ("conversation_id", ASCENDING), ("created_at", ASCENDING),
-        ])
+        _state.db["messages"].create_index(
+            [
+                ("conversation_id", ASCENDING),
+                ("created_at", ASCENDING),
+            ]
+        )
         created.append("messages.message_id+conversation_id+created_at")
         # tool_calls
         _state.db["tool_calls"].create_index("tool_call_id", unique=True)
@@ -231,8 +241,14 @@ def _disabled_response() -> dict:
 # Keys forbidden in any persisted document — defense-in-depth so callers
 # can't accidentally store binary blobs / base64 / file bytes.
 _FORBIDDEN_KEYS = (
-    "data", "data_b64", "image_b64", "bytes", "binary",
-    "file_bytes", "file_b64", "content_b64",
+    "data",
+    "data_b64",
+    "image_b64",
+    "bytes",
+    "binary",
+    "file_bytes",
+    "file_b64",
+    "content_b64",
 )
 
 

@@ -10,6 +10,7 @@ Future additions:
     - Confidence-gated templates (high/low confidence)
     - System-prompt vs user-message injection strategies
 """
+
 from .templates import (
     RAG_CONTEXT_TEMPLATE,
     RAG_GROUNDED_SYSTEM_INSTRUCTION,

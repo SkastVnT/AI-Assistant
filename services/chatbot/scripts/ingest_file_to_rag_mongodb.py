@@ -22,16 +22,17 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from config.mongodb_config import get_db, test_connection, DATABASE_NAME
+from config.mongodb_config import DATABASE_NAME, get_db, test_connection
 
 SUPPORTED_EXTENSIONS = {".txt", ".md", ".html", ".htm", ".pdf"}
-CHUNK_SIZE = 512          # target tokens per chunk
-CHUNK_OVERLAP = 64        # overlap tokens between chunks
+CHUNK_SIZE = 512  # target tokens per chunk
+CHUNK_OVERLAP = 64  # overlap tokens between chunks
 
 
 # ============================================================================
 # Text extraction
 # ============================================================================
+
 
 def extract_text_txt(file_path):
     """Read plain text file. Returns [(page, text)]."""
@@ -94,9 +95,11 @@ EXTRACTORS = {
 # Chunking (token-based using tiktoken)
 # ============================================================================
 
+
 def _get_tokenizer():
     """Get a tiktoken tokenizer (cl100k_base, used by most embedding models)."""
     import tiktoken
+
     return tiktoken.get_encoding("cl100k_base")
 
 
@@ -121,10 +124,12 @@ def chunk_pages(pages, chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP):
             chunk_tokens = tokens[start:end]
             chunk_text = enc.decode(chunk_tokens).strip()
             if chunk_text:
-                chunks.append({
-                    "content": chunk_text,
-                    "metadata": {"page": page_num},
-                })
+                chunks.append(
+                    {
+                        "content": chunk_text,
+                        "metadata": {"page": page_num},
+                    }
+                )
             if end >= len(tokens):
                 break
             start = end - chunk_overlap
@@ -135,6 +140,7 @@ def chunk_pages(pages, chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP):
 # ============================================================================
 # Embedding (optional)
 # ============================================================================
+
 
 def embed_chunks(chunks, model):
     """
@@ -167,11 +173,14 @@ def embed_chunks(chunks, model):
 # MongoDB insertion
 # ============================================================================
 
+
 def _uid():
     return str(uuid.uuid4())
 
 
-def build_records(tenant_id, document_id, file_path, title, source_uri, chunks, embeddings):
+def build_records(
+    tenant_id, document_id, file_path, title, source_uri, chunks, embeddings
+):
     """Build MongoDB-ready records for documents, chunks, and jobs."""
     now = datetime.utcnow()
     suffix = file_path.suffix.lstrip(".")
@@ -203,18 +212,20 @@ def build_records(tenant_id, document_id, file_path, title, source_uri, chunks, 
     }
 
     chunk_records = []
-    for i, (chunk, emb) in enumerate(zip(chunks, embeddings)):
-        chunk_records.append({
-            "_id": _uid(),
-            "tenant_id": tenant_id,
-            "document_id": document_id,
-            "chunk_id": f"{document_id}-chunk-{i}",
-            "chunk_index": i,
-            "content": chunk["content"],
-            "embedding": emb,
-            "metadata": chunk["metadata"],
-            "created_at": now,
-        })
+    for i, (chunk, emb) in enumerate(zip(chunks, embeddings, strict=False)):
+        chunk_records.append(
+            {
+                "_id": _uid(),
+                "tenant_id": tenant_id,
+                "document_id": document_id,
+                "chunk_id": f"{document_id}-chunk-{i}",
+                "chunk_index": i,
+                "content": chunk["content"],
+                "embedding": emb,
+                "metadata": chunk["metadata"],
+                "created_at": now,
+            }
+        )
 
     job_record = {
         "_id": _uid(),
@@ -226,7 +237,9 @@ def build_records(tenant_id, document_id, file_path, title, source_uri, chunks, 
         "steps": {
             "extract": {"status": "done"},
             "chunk": {"status": "done", "num_chunks": len(chunks)},
-            "embed": {"status": "done" if any(emb for emb in embeddings) else "skipped"},
+            "embed": {
+                "status": "done" if any(emb for emb in embeddings) else "skipped"
+            },
         },
         "num_chunks": len(chunks),
         "error_message": None,
@@ -254,7 +267,10 @@ def insert_to_db(db, doc_record, chunk_records, job_record, dry_run):
 
     _upsert(
         db.rag_documents,
-        {"tenant_id": doc_record["tenant_id"], "document_id": doc_record["document_id"]},
+        {
+            "tenant_id": doc_record["tenant_id"],
+            "document_id": doc_record["document_id"],
+        },
         doc_record,
     )
 
@@ -268,17 +284,32 @@ def insert_to_db(db, doc_record, chunk_records, job_record, dry_run):
 # Main
 # ============================================================================
 
+
 def main():
-    parser = argparse.ArgumentParser(description="Ingest a file into RAG MongoDB collections")
+    parser = argparse.ArgumentParser(
+        description="Ingest a file into RAG MongoDB collections"
+    )
     parser.add_argument("--tenant-id", required=True, help="Tenant identifier")
     parser.add_argument("--file", required=True, help="Path to file to ingest")
-    parser.add_argument("--title", default=None, help="Document title (default: filename)")
+    parser.add_argument(
+        "--title", default=None, help="Document title (default: filename)"
+    )
     parser.add_argument("--source-uri", default=None, help="Original source URI")
-    parser.add_argument("--embed", action="store_true",
-                        help="Generate embeddings (requires OPENAI_API_KEY)")
-    parser.add_argument("--embed-model", default=None,
-                        help="Embedding model (default: RAG_EMBED_MODEL env or text-embedding-3-small)")
-    parser.add_argument("--dry-run", action="store_true", help="Extract and chunk only, do not write to DB")
+    parser.add_argument(
+        "--embed",
+        action="store_true",
+        help="Generate embeddings (requires OPENAI_API_KEY)",
+    )
+    parser.add_argument(
+        "--embed-model",
+        default=None,
+        help="Embedding model (default: RAG_EMBED_MODEL env or text-embedding-3-small)",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Extract and chunk only, do not write to DB",
+    )
     args = parser.parse_args()
 
     file_path = Path(args.file)
@@ -288,12 +319,16 @@ def main():
 
     ext = file_path.suffix.lower()
     if ext not in SUPPORTED_EXTENSIONS:
-        print(f"ERROR: unsupported file type '{ext}'. Supported: {', '.join(sorted(SUPPORTED_EXTENSIONS))}")
+        print(
+            f"ERROR: unsupported file type '{ext}'. Supported: {', '.join(sorted(SUPPORTED_EXTENSIONS))}"
+        )
         sys.exit(1)
 
     title = args.title or file_path.stem
     document_id = f"doc-{file_path.stem.lower().replace(' ', '-')}"
-    embed_model = args.embed_model or os.getenv("RAG_EMBED_MODEL", "text-embedding-3-small")
+    embed_model = args.embed_model or os.getenv(
+        "RAG_EMBED_MODEL", "text-embedding-3-small"
+    )
 
     print(f"=== RAG Ingest | {DATABASE_NAME} ===\n")
     print(f"  tenant:      {args.tenant_id}")
@@ -317,7 +352,9 @@ def main():
     # 2. Chunk
     print("\n[chunk]")
     chunks = chunk_pages(pages)
-    print(f"  chunks: {len(chunks)} (target {CHUNK_SIZE} tokens, overlap {CHUNK_OVERLAP})")
+    print(
+        f"  chunks: {len(chunks)} (target {CHUNK_SIZE} tokens, overlap {CHUNK_OVERLAP})"
+    )
 
     if not chunks:
         print("  ERROR: no chunks produced")
@@ -335,7 +372,13 @@ def main():
 
     # 4. Build records
     doc_record, chunk_records, job_record = build_records(
-        args.tenant_id, document_id, file_path, title, args.source_uri, chunks, embeddings
+        args.tenant_id,
+        document_id,
+        file_path,
+        title,
+        args.source_uri,
+        chunks,
+        embeddings,
     )
 
     # 5. Insert
@@ -351,12 +394,12 @@ def main():
     mode = "dry-run" if args.dry_run else "upsert"
     print(f"\n[{mode}]")
     insert_to_db(db, doc_record, chunk_records, job_record, args.dry_run)
-    print(f"  rag_documents:      1")
+    print("  rag_documents:      1")
     print(f"  rag_chunks:         {len(chunk_records)}")
-    print(f"  rag_ingestion_jobs: 1")
+    print("  rag_ingestion_jobs: 1")
 
     # 6. Summary
-    print(f"\n[result]")
+    print("\n[result]")
     print(f"  document_id: {document_id}")
     print(f"  chunks:      {len(chunk_records)}")
     print(f"  embedded:    {args.embed}")

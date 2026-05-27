@@ -1,5 +1,3 @@
-
-
 def model_options_long_clip(sd, tokenizer_data, model_options):
     w = sd.get("clip_l.text_model.embeddings.position_embedding.weight", None)
     if w is None:

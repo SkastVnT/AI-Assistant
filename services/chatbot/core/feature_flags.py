@@ -5,6 +5,7 @@ Usage in any module:
     if features.quota_enabled:
         ...
 """
+
 import json
 import logging
 from pathlib import Path
@@ -90,6 +91,7 @@ class FeatureFlags:
         Explicitly disabled: IMAGE_PIPELINE_V2=false/0/no/off
         """
         import os
+
         env_flag = os.getenv("IMAGE_PIPELINE_V2", "").lower().strip()
         if env_flag in ("1", "true", "yes", "on"):
             return True

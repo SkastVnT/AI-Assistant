@@ -1,0 +1,82 @@
+# electron-builder config — Windows NSIS installer for AI-Assistant.
+# Output goes to <repo-root>/private/install per user request.
+appId: com.skastvnt.ai-assistant
+productName: AI-Assistant
+copyright: Copyright © 2026 SkastVnT
+artifactName: AI-Assistant-Setup-${version}.exe
+
+directories:
+  # Path is relative to this electron-builder.yml file (app/electron/).
+  # Resolves to <repo-root>/private/install.
+  output: ../../private/install
+  buildResources: build
+
+# Files baked into app.asar (Electron renderer + main only).
+files:
+  - "src/**/*"
+  - "package.json"
+  - "!**/*.map"
+  - "!**/*.md"
+
+# Heavy payload (Python, ComfyUI, models, services, .env.example) lives outside asar
+# so it is writable, debuggable, and survives auto-update file-diff.
+# `prepare-payload.js` populates `payload/` before electron-builder runs.
+extraResources:
+  - from: "payload"
+    to: "app-payload"
+    filter:
+      - "**/*"
+
+asar: true
+asarUnpack:
+  - "**/*.node"
+
+win:
+  target:
+    # nsis-web: small Setup.exe + sidecar .7z (ship both together).
+    # Required because plain `nsis` uses 32-bit makensis with a 4 GB mmap
+    # limit, and our payload (~90 GB) compresses to >>4 GB.
+    - target: nsis-web
+      arch: [x64]
+  icon: build/icon.ico
+  # Code signing — set CSC_LINK + CSC_KEY_PASSWORD env vars at build time.
+  # Leave commented when no cert is available; SmartScreen will warn first run.
+  # certificateFile: build/codesign.pfx
+  # certificatePassword: ${env.CSC_KEY_PASSWORD}
+  publisherName: SkastVnT
+  requestedExecutionLevel: asInvoker
+
+nsis:
+  oneClick: false
+  perMachine: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: AI-Assistant
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico
+  deleteAppDataOnUninstall: false
+  include: build/installer.nsh
+
+# nsis-web specific: where to look for the sidecar .7z if not adjacent to setup.exe.
+# Set to a LAN/VPN URL for over-the-network installs. When the sidecar is shipped
+# next to Setup.exe (recommended for offline / internal use), this URL is unused.
+nsisWeb:
+  appPackageUrl: http://updates.local/ai-assistant/
+
+# Auto-update via internal HTTP server. Replace `url` with your LAN/VPN URL.
+# Disable by removing this block or setting `provider: null` at runtime.
+publish:
+  - provider: generic
+    url: http://updates.local/ai-assistant/
+    channel: latest
+
+# Compression: 'normal' is faster; 'maximum' shrinks installer at cost of build time.
+# With multi-GB payload, 'normal' is recommended.
+compression: normal
+
+# Skip rebuilding native modules — we have none beyond Electron's own.
+buildDependenciesFromSource: false
+nodeGypRebuild: false
+npmRebuild: false

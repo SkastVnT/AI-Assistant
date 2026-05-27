@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # =============================================================================
 # Start Edit Image (Grok UI) Service
 # Port: 7861
@@ -7,7 +7,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
+PROJECT_ROOT="$(dirname "$(dirname "${SCRIPT_DIR}")")"
 SERVICE_DIR="${PROJECT_ROOT}/services/edit-image"
 LOGS_DIR="${PROJECT_ROOT}/logs"
 PORT=7861
@@ -44,7 +44,7 @@ echo "${PID}" > "${LOGS_DIR}/edit-image.pid"
 sleep 5
 
 if netstat -tlnp 2>/dev/null | grep -q ":${PORT} " || ss -tlnp 2>/dev/null | grep -q ":${PORT} "; then
-    echo -e "${GREEN}✓ Edit Image started successfully (PID: ${PID})${NC}"
+    echo -e "${GREEN}âœ“ Edit Image started successfully (PID: ${PID})${NC}"
     echo -e "${GREEN}  URL: http://localhost:${PORT}${NC}"
 else
     echo -e "${YELLOW}Edit Image starting... Check log: ${LOGS_DIR}/edit-image.log${NC}"

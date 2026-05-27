@@ -1,5 +1,5 @@
-#original code from https://github.com/genmoai/models under apache 2.0 license
-#adapted to ComfyUI
+# original code from https://github.com/genmoai/models under apache 2.0 license
+# adapted to ComfyUI
 
 from typing import List, Optional, Tuple, Union
 from functools import partial
@@ -13,6 +13,7 @@ from einops import rearrange
 from comfy.ldm.modules.attention import optimized_attention
 
 import comfy.ops
+
 ops = comfy.ops.disable_weight_init
 
 # import mochi_preview.dit.joint_model.context_parallel as cp
@@ -36,6 +37,7 @@ class GroupNormSpatial(ops.GroupNorm):
         for b in range(0, B * T, chunk_size):
             output[b : b + chunk_size] = super().forward(x[b : b + chunk_size])
         return rearrange(output, "(B T) C H W -> B C T H W", B=B, T=T)
+
 
 class PConv3d(ops.Conv3d):
     def __init__(
@@ -135,7 +137,7 @@ class DepthToSpaceTime(nn.Module):
         )
 
         # cp_rank, _ = cp.get_cp_rank_size()
-        if self.temporal_expansion > 1: # and cp_rank == 0:
+        if self.temporal_expansion > 1:  # and cp_rank == 0:
             # Drop the first self.temporal_expansion - 1 frames.
             # This is because we always want the 3x3x3 conv filter to only apply
             # to the first frame, and the first frame doesn't need to be repeated.
@@ -258,7 +260,11 @@ class Attention(nn.Module):
 
         # Input: qkv with shape [B, t, 3 * num_heads * head_dim]
         # Output: x with shape [B, num_heads, t, head_dim]
-        q, k, v = qkv.view(qkv.shape[0], qkv.shape[1], 3, self.num_heads, self.head_dim).transpose(1, 3).unbind(2)
+        q, k, v = (
+            qkv.view(qkv.shape[0], qkv.shape[1], 3, self.num_heads, self.head_dim)
+            .transpose(1, 3)
+            .unbind(2)
+        )
 
         if self.qk_norm:
             q = F.normalize(q, p=2, dim=-1)
@@ -325,7 +331,9 @@ class CausalUpsampleBlock(nn.Module):
         return x
 
 
-def block_fn(channels, *, affine: bool = True, has_attention: bool = False, **block_kwargs):
+def block_fn(
+    channels, *, affine: bool = True, has_attention: bool = False, **block_kwargs
+):
     attn_block = AttentionBlock(channels) if has_attention else None
     return ResBlock(channels, affine=affine, attn_block=attn_block, **block_kwargs)
 
@@ -529,6 +537,7 @@ class Decoder(nn.Module):
 
         return self.output_proj(x).contiguous()
 
+
 class LatentDistribution:
     def __init__(self, mean: torch.Tensor, logvar: torch.Tensor):
         """Initialize latent distribution.
@@ -546,7 +555,12 @@ class LatentDistribution:
             return self.mean
 
         if noise is None:
-            noise = torch.randn(self.mean.shape, device=self.mean.device, dtype=self.mean.dtype, generator=generator)
+            noise = torch.randn(
+                self.mean.shape,
+                device=self.mean.device,
+                dtype=self.mean.dtype,
+                generator=generator,
+            )
         else:
             assert noise.device == self.mean.device
             noise = noise.to(self.mean.dtype)
@@ -559,6 +573,7 @@ class LatentDistribution:
 
     def mode(self):
         return self.mean
+
 
 class Encoder(nn.Module):
     def __init__(
@@ -602,7 +617,13 @@ class Encoder(nn.Module):
         block = partial(block_fn, padding_mode=padding_mode, affine=affine, bias=bias)
 
         for _ in range(num_res_blocks[0]):
-            layers.append(block(ch[0], has_attention=has_attentions[0], prune_bottleneck=prune_bottlenecks[0]))
+            layers.append(
+                block(
+                    ch[0],
+                    has_attention=has_attentions[0],
+                    prune_bottleneck=prune_bottlenecks[0],
+                )
+            )
         prune_bottlenecks = prune_bottlenecks[1:]
         has_attentions = has_attentions[1:]
 
@@ -625,7 +646,13 @@ class Encoder(nn.Module):
 
         # Additional blocks.
         for _ in range(num_res_blocks[-1]):
-            layers.append(block(ch[-1], has_attention=has_attentions[-1], prune_bottleneck=prune_bottlenecks[-1]))
+            layers.append(
+                block(
+                    ch[-1],
+                    has_attention=has_attentions[-1],
+                    prune_bottleneck=prune_bottlenecks[-1],
+                )
+            )
 
         self.layers = nn.Sequential(*layers)
 
@@ -686,7 +713,7 @@ class VideoVAE(nn.Module):
             affine=True,
             bias=True,
             input_is_conv_1x1=True,
-            padding_mode="replicate"
+            padding_mode="replicate",
         )
         self.decoder = Decoder(
             out_channels=3,

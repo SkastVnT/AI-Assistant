@@ -11,6 +11,7 @@ Covers:
   • SynthesizerAgent._parse_output — valid JSON, raw-text fallback
   • Full orchestrator smoke test through all 4 agents
 """
+
 import asyncio
 import json
 import sys
@@ -20,10 +21,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from core.agentic.agents.base import BaseAgent, LLMCallResult
+from core.agentic.agents.base import BaseAgent
+from core.agentic.agents.critic import CriticAgent
 from core.agentic.agents.planner import PlannerAgent
 from core.agentic.agents.researcher import ResearcherAgent
-from core.agentic.agents.critic import CriticAgent
 from core.agentic.agents.synthesizer import SynthesizerAgent
 from core.agentic.config import CouncilConfig
 from core.agentic.contracts import (
@@ -41,8 +42,8 @@ from core.agentic.contracts import (
 from core.agentic.prompts import get_system_prompt
 from core.agentic.state import AgentRunState, PreContext
 
-
 # ── Fixtures ───────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def config() -> CouncilConfig:
@@ -64,6 +65,7 @@ def state(pre_ctx: PreContext) -> AgentRunState:
 
 
 # ── BaseAgent._parse_json ─────────────────────────────────────────────
+
 
 class TestParseJson:
     """Test the JSON extraction logic on the base class."""
@@ -103,6 +105,7 @@ class TestParseJson:
 
 # ── BaseAgent._validate ──────────────────────────────────────────────
 
+
 class TestValidate:
     def test_valid_task_node(self):
         data = {"question": "What is X?", "priority": 2}
@@ -112,11 +115,13 @@ class TestValidate:
 
     def test_invalid_raises(self):
         from pydantic import ValidationError
+
         with pytest.raises(ValidationError):
             BaseAgent._validate({"priority": "not_a_number"}, TaskNode)
 
 
 # ── Prompts ───────────────────────────────────────────────────────────
+
 
 class TestPrompts:
     @pytest.mark.parametrize("role", ["planner", "researcher", "critic", "synthesizer"])
@@ -136,20 +141,27 @@ class TestPrompts:
 
 # ── PlannerAgent ──────────────────────────────────────────────────────
 
+
 class TestPlannerAgent:
     def _agent(self, config: CouncilConfig) -> PlannerAgent:
         return PlannerAgent(config)
 
     def test_parse_valid_json(self, config: CouncilConfig):
         agent = self._agent(config)
-        raw = json.dumps({
-            "approach": "Split into geography sub-questions",
-            "tasks": [
-                {"question": "What country is it in?", "suggested_tools": ["web_search"], "priority": 1},
-                {"question": "What is the capital?", "priority": 2},
-            ],
-            "estimated_complexity": 3,
-        })
+        raw = json.dumps(
+            {
+                "approach": "Split into geography sub-questions",
+                "tasks": [
+                    {
+                        "question": "What country is it in?",
+                        "suggested_tools": ["web_search"],
+                        "priority": 1,
+                    },
+                    {"question": "What is the capital?", "priority": 2},
+                ],
+                "estimated_complexity": 3,
+            }
+        )
         output = agent._parse_output(raw)
         assert isinstance(output, PlannerOutput)
         assert output.approach == "Split into geography sub-questions"
@@ -161,7 +173,9 @@ class TestPlannerAgent:
         output = self._agent(config)._parse_output("")
         assert isinstance(output, PlannerOutput)
         assert len(output.tasks) == 1
-        assert "fallback" in output.approach.lower() or "empty" in output.approach.lower()
+        assert (
+            "fallback" in output.approach.lower() or "empty" in output.approach.lower()
+        )
 
     def test_parse_garbage_fallback(self, config: CouncilConfig):
         output = self._agent(config)._parse_output("This isn't JSON at all!")
@@ -170,12 +184,16 @@ class TestPlannerAgent:
 
     def test_parse_caps_tasks_at_6(self, config: CouncilConfig):
         tasks = [{"question": f"Task {i}"} for i in range(10)]
-        raw = json.dumps({"approach": "many", "tasks": tasks, "estimated_complexity": 5})
+        raw = json.dumps(
+            {"approach": "many", "tasks": tasks, "estimated_complexity": 5}
+        )
         output = self._agent(config)._parse_output(raw)
         assert len(output.tasks) <= 6
 
     def test_parse_clamps_complexity(self, config: CouncilConfig):
-        raw = json.dumps({"approach": "x", "tasks": [{"question": "q"}], "estimated_complexity": 99})
+        raw = json.dumps(
+            {"approach": "x", "tasks": [{"question": "q"}], "estimated_complexity": 99}
+        )
         output = self._agent(config)._parse_output(raw)
         assert output.estimated_complexity == 10
 
@@ -190,20 +208,32 @@ class TestPlannerAgent:
 
 # ── ResearcherAgent ───────────────────────────────────────────────────
 
+
 class TestResearcherAgent:
     def _agent(self, config: CouncilConfig) -> ResearcherAgent:
         return ResearcherAgent(config)
 
     def test_parse_valid_json(self, config: CouncilConfig):
         agent = self._agent(config)
-        raw = json.dumps({
-            "evidence": [
-                {"source": "web", "content": "Paris is the capital.", "relevance": 0.95},
-                {"source": "rag", "content": "France info.", "url": "http://example.com", "relevance": 0.8},
-            ],
-            "summary": "Paris is the capital of France.",
-            "tools_used": ["web_search"],
-        })
+        raw = json.dumps(
+            {
+                "evidence": [
+                    {
+                        "source": "web",
+                        "content": "Paris is the capital.",
+                        "relevance": 0.95,
+                    },
+                    {
+                        "source": "rag",
+                        "content": "France info.",
+                        "url": "http://example.com",
+                        "relevance": 0.8,
+                    },
+                ],
+                "summary": "Paris is the capital of France.",
+                "tools_used": ["web_search"],
+            }
+        )
         output = agent._parse_output(raw, ["web_search"])
         assert isinstance(output, ResearcherOutput)
         assert len(output.evidence) == 2
@@ -213,7 +243,9 @@ class TestResearcherAgent:
     def test_parse_empty_fallback(self, config: CouncilConfig):
         output = self._agent(config)._parse_output("", [])
         assert output.evidence == []
-        assert "fallback" in output.summary.lower() or "failure" in output.summary.lower()
+        assert (
+            "fallback" in output.summary.lower() or "failure" in output.summary.lower()
+        )
 
     def test_no_plan_guard(self, config: CouncilConfig, state: AgentRunState):
         """Researcher with no plan should produce a degraded output, not crash."""
@@ -224,9 +256,12 @@ class TestResearcherAgent:
 
     def test_execute_with_plan(self, config: CouncilConfig, state: AgentRunState):
         """After adding a plan, researcher should run and record a step."""
-        state.planner_outputs.append(PlannerOutput(
-            approach="test", tasks=[TaskNode(question="Q1")],
-        ))
+        state.planner_outputs.append(
+            PlannerOutput(
+                approach="test",
+                tasks=[TaskNode(question="Q1")],
+            )
+        )
         agent = self._agent(config)
         asyncio.get_event_loop().run_until_complete(agent.research(state))
         assert len(state.researcher_outputs) == 1
@@ -234,7 +269,10 @@ class TestResearcherAgent:
         assert state.steps[0].agent == AgentRole.researcher
 
     def test_caps_evidence_at_10(self, config: CouncilConfig):
-        evidence = [{"source": "llm", "content": f"Fact {i}", "relevance": 0.5} for i in range(15)]
+        evidence = [
+            {"source": "llm", "content": f"Fact {i}", "relevance": 0.5}
+            for i in range(15)
+        ]
         raw = json.dumps({"evidence": evidence, "summary": "lots", "tools_used": []})
         output = self._agent(config)._parse_output(raw, [])
         assert len(output.evidence) <= 10
@@ -242,30 +280,43 @@ class TestResearcherAgent:
 
 # ── CriticAgent ───────────────────────────────────────────────────────
 
+
 class TestCriticAgent:
     def _agent(self, config: CouncilConfig) -> CriticAgent:
         return CriticAgent(config)
 
     def test_parse_valid_pass(self, config: CouncilConfig):
-        raw = json.dumps({
-            "quality_score": 9,
-            "issues": [],
-            "verdict": "pass",
-        })
+        raw = json.dumps(
+            {
+                "quality_score": 9,
+                "issues": [],
+                "verdict": "pass",
+            }
+        )
         output = self._agent(config)._parse_output(raw)
         assert isinstance(output, CriticOutput)
         assert output.quality_score == 9
         assert output.verdict == "pass"
 
     def test_parse_valid_needs_work(self, config: CouncilConfig):
-        raw = json.dumps({
-            "quality_score": 4,
-            "issues": [
-                {"severity": "high", "description": "Missing key evidence", "suggestion": "Search more"},
-                {"severity": "low", "description": "Minor formatting", "suggestion": "Fix bullets"},
-            ],
-            "verdict": "needs_work",
-        })
+        raw = json.dumps(
+            {
+                "quality_score": 4,
+                "issues": [
+                    {
+                        "severity": "high",
+                        "description": "Missing key evidence",
+                        "suggestion": "Search more",
+                    },
+                    {
+                        "severity": "low",
+                        "description": "Minor formatting",
+                        "suggestion": "Fix bullets",
+                    },
+                ],
+                "verdict": "needs_work",
+            }
+        )
         output = self._agent(config)._parse_output(raw)
         assert output.quality_score == 4
         assert output.verdict == "needs_work"
@@ -273,11 +324,13 @@ class TestCriticAgent:
         assert output.issues[0].severity == "high"
 
     def test_severity_normalisation(self, config: CouncilConfig):
-        raw = json.dumps({
-            "quality_score": 5,
-            "issues": [{"severity": "CRITICAL", "description": "bad"}],
-            "verdict": "needs_work",
-        })
+        raw = json.dumps(
+            {
+                "quality_score": 5,
+                "issues": [{"severity": "CRITICAL", "description": "bad"}],
+                "verdict": "needs_work",
+            }
+        )
         output = self._agent(config)._parse_output(raw)
         # Invalid severity gets normalised to "medium"
         assert output.issues[0].severity == "medium"
@@ -311,19 +364,22 @@ class TestCriticAgent:
 
 # ── SynthesizerAgent ──────────────────────────────────────────────────
 
+
 class TestSynthesizerAgent:
     def _agent(self, config: CouncilConfig) -> SynthesizerAgent:
         return SynthesizerAgent(config)
 
     def test_parse_valid_json(self, config: CouncilConfig):
-        raw = json.dumps({
-            "content": "## Answer\nParis is the capital of France.",
-            "confidence": 0.92,
-            "key_points": ["Paris is the capital", "France is in Europe"],
-            "citations": [
-                {"source": "web", "url": "https://example.com", "title": "Wiki"},
-            ],
-        })
+        raw = json.dumps(
+            {
+                "content": "## Answer\nParis is the capital of France.",
+                "confidence": 0.92,
+                "key_points": ["Paris is the capital", "France is in Europe"],
+                "citations": [
+                    {"source": "web", "url": "https://example.com", "title": "Wiki"},
+                ],
+            }
+        )
         output = self._agent(config)._parse_output(raw)
         assert isinstance(output, SynthesizerOutput)
         assert output.answer.confidence == 0.92
@@ -357,6 +413,7 @@ class TestSynthesizerAgent:
 
 # ── Full orchestrator smoke test ──────────────────────────────────────
 
+
 class TestOrchestrator:
     def test_full_pipeline_smoke(self, config: CouncilConfig, pre_ctx: PreContext):
         """Run all 4 agents end-to-end through the orchestrator."""
@@ -371,6 +428,7 @@ class TestOrchestrator:
 
 
 # ── Structured output serializability ─────────────────────────────────
+
 
 class TestOutputSerialization:
     """All agent outputs must be JSON-serializable."""
@@ -403,9 +461,13 @@ class TestOutputSerialization:
         assert d["verdict"] == "pass"
 
     def test_synthesizer_output(self):
-        o = SynthesizerOutput(answer=FinalAnswer(
-            content="Answer", confidence=0.9,
-            key_points=["p1"], citations=[{"source": "web"}],
-        ))
+        o = SynthesizerOutput(
+            answer=FinalAnswer(
+                content="Answer",
+                confidence=0.9,
+                key_points=["p1"],
+                citations=[{"source": "web"}],
+            )
+        )
         d = json.loads(o.model_dump_json())
         assert d["answer"]["confidence"] == 0.9

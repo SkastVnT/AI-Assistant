@@ -22,34 +22,25 @@ _root = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(_root))
 sys.path.insert(0, str(_root / "services" / "chatbot"))
 
-import pytest
-from unittest.mock import patch, MagicMock
-from dataclasses import replace
 
+import pytest
+from image_pipeline.anime_pipeline.agents.layer_planner import (
+    LayerPlannerAgent,
+    make_layer_plan,
+)
 from image_pipeline.anime_pipeline.config import (
     AnimePipelineConfig,
     ModelConfig,
-    VRAMProfile,
-    VRAMProfileConfig,
-    load_config,
 )
 from image_pipeline.anime_pipeline.schemas import (
     AnimePipelineJob,
     CritiqueReport,
     LayerPlan,
-    PassConfig,
     VisionAnalysis,
 )
-from image_pipeline.anime_pipeline.agents.layer_planner import (
-    LayerPlannerAgent,
-    make_layer_plan,
-    _PORTRAIT_HINTS,
-    _LANDSCAPE_HINTS,
-    _SQUARE_HINTS,
-)
-
 
 # ── Fixtures ─────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def config():
@@ -57,11 +48,17 @@ def config():
     return AnimePipelineConfig(
         composition_model=ModelConfig(
             checkpoint="animagine-xl-4.0-opt.safetensors",
-            sampler="euler_a", scheduler="normal", steps=28, cfg=5.0,
+            sampler="euler_a",
+            scheduler="normal",
+            steps=28,
+            cfg=5.0,
         ),
         beauty_model=ModelConfig(
             checkpoint="noobai-xl-1.1.safetensors",
-            sampler="dpmpp_2m_sde", scheduler="karras", steps=28, cfg=5.5,
+            sampler="dpmpp_2m_sde",
+            scheduler="karras",
+            steps=28,
+            cfg=5.5,
             denoise_strength=0.30,
         ),
         final_model=ModelConfig(
@@ -111,6 +108,7 @@ def vision_analysis():
 # make_layer_plan (standalone)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestMakeLayerPlan:
     def test_returns_layer_plan(self, config):
         plan = make_layer_plan("1girl, anime style", config=config)
@@ -159,6 +157,7 @@ class TestMakeLayerPlan:
 # Orientation detection
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestOrientationDetection:
     def test_portrait_keyword(self, planner):
         job = AnimePipelineJob(user_prompt="full body standing pose")
@@ -188,6 +187,7 @@ class TestOrientationDetection:
 # Resolution
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestResolution:
     def test_portrait_resolution(self, planner, config):
         assert planner._get_resolution("portrait") == config.portrait_res
@@ -200,18 +200,26 @@ class TestResolution:
 
     def test_clamp_rounds_to_8(self):
         from image_pipeline.anime_pipeline.planner_presets import get_preset
+
         preset = get_preset("anime_quality")
         w, h = LayerPlannerAgent._clamp_resolution(
-            833, 1217, {"max_dim": 1216}, preset,
+            833,
+            1217,
+            {"max_dim": 1216},
+            preset,
         )
         assert w % 8 == 0
         assert h % 8 == 0
 
     def test_clamp_caps_to_vram(self):
         from image_pipeline.anime_pipeline.planner_presets import get_preset
+
         preset = get_preset("anime_quality")
         w, h = LayerPlannerAgent._clamp_resolution(
-            1344, 1344, {"max_dim": 1024}, preset,
+            1344,
+            1344,
+            {"max_dim": 1024},
+            preset,
         )
         assert w <= 1024
         assert h <= 1024
@@ -220,6 +228,7 @@ class TestResolution:
 # ═══════════════════════════════════════════════════════════════════
 # Pass ordering
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestPassOrdering:
     def test_quality_preset_full_passes(self, planner, basic_job):
@@ -255,6 +264,7 @@ class TestPassOrdering:
 # Prompt construction
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestPromptConstruction:
     def test_quality_prefix_in_positive(self, planner, basic_job):
         plan = planner.build_plan(basic_job)
@@ -285,11 +295,16 @@ class TestPromptConstruction:
 # Critique integration
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestCritiqueIntegration:
     def test_critique_patches_positive(self, planner, basic_job):
         critique = CritiqueReport(
-            anatomy_score=7, face_score=7, hands_score=7,
-            composition_score=7, color_score=7, style_score=7,
+            anatomy_score=7,
+            face_score=7,
+            hands_score=7,
+            composition_score=7,
+            color_score=7,
+            style_score=7,
             background_score=7,
             prompt_patch=["better eyes", "sharper lineart"],
         )
@@ -300,8 +315,12 @@ class TestCritiqueIntegration:
 
     def test_critique_patches_negative(self, planner, basic_job):
         critique = CritiqueReport(
-            anatomy_score=7, face_score=7, hands_score=7,
-            composition_score=7, color_score=7, style_score=7,
+            anatomy_score=7,
+            face_score=7,
+            hands_score=7,
+            composition_score=7,
+            color_score=7,
+            style_score=7,
             background_score=7,
             anatomy_issues=["twisted arm"],
         )
@@ -314,10 +333,12 @@ class TestCritiqueIntegration:
 # Metadata population
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestMetadata:
     def test_scene_summary_from_vision(self, planner, vision_analysis):
         job = AnimePipelineJob(
-            user_prompt="test", vision_analysis=vision_analysis,
+            user_prompt="test",
+            vision_analysis=vision_analysis,
         )
         plan = planner.build_plan(job)
         assert plan.scene_summary == vision_analysis.caption_short
@@ -328,7 +349,8 @@ class TestMetadata:
 
     def test_palette_from_vision(self, planner, vision_analysis):
         job = AnimePipelineJob(
-            user_prompt="test", vision_analysis=vision_analysis,
+            user_prompt="test",
+            vision_analysis=vision_analysis,
         )
         plan = planner.build_plan(job)
         assert "pink" in plan.palette
@@ -341,6 +363,7 @@ class TestMetadata:
 # ═══════════════════════════════════════════════════════════════════
 # Execute (orchestrator interface)
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestPlannerExecute:
     def test_sets_status_and_plan(self, planner, basic_job):
@@ -357,6 +380,7 @@ class TestPlannerExecute:
 # ═══════════════════════════════════════════════════════════════════
 # Img2img composition
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestImg2ImgComposition:
     def test_source_image_caps_denoise(self, planner):

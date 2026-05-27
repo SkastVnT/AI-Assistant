@@ -20,12 +20,14 @@ The companion frontend lives in
 The two sides agree on field names; new fields are all optional so old
 sessions keep working.
 """
+
 from __future__ import annotations
 
 import json
 import logging
 import os
-from typing import Any, Iterable, Optional
+from collections.abc import Iterable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +57,7 @@ ASSET_RECORD_FIELDS = (
 )
 
 
-def _clip(value: Any, limit: int) -> Optional[str]:
+def _clip(value: Any, limit: int) -> str | None:
     """Return a stringified, length-capped value or None for empties."""
     if value is None:
         return None
@@ -68,7 +70,7 @@ def _clip(value: Any, limit: int) -> Optional[str]:
     return s[:limit]
 
 
-def _coerce_int(value: Any) -> Optional[int]:
+def _coerce_int(value: Any) -> int | None:
     if value is None or isinstance(value, bool):
         return None
     try:
@@ -80,8 +82,8 @@ def _coerce_int(value: Any) -> Optional[int]:
 def normalize_asset_record(
     raw: Any,
     *,
-    default_conversation_id: Optional[str] = None,
-) -> Optional[dict]:
+    default_conversation_id: str | None = None,
+) -> dict | None:
     """Coerce *raw* (legacy or new shape) into the canonical asset record.
 
     Returns ``None`` when the input cannot be salvaged into something
@@ -122,7 +124,7 @@ def normalize_asset_record(
     return record
 
 
-def _safe_load_manifest(manifest_path: str) -> Optional[dict]:
+def _safe_load_manifest(manifest_path: str) -> dict | None:
     """Read a manifest JSON file with strict bounds and no path traversal.
 
     The check rejects paths containing ``..`` segments and refuses files
@@ -132,7 +134,9 @@ def _safe_load_manifest(manifest_path: str) -> Optional[dict]:
     if not manifest_path:
         return None
     if ".." in manifest_path.replace("\\", "/").split("/"):
-        logger.debug("asset_memory: rejecting manifest path with .. segment: %r", manifest_path)
+        logger.debug(
+            "asset_memory: rejecting manifest path with .. segment: %r", manifest_path
+        )
         return None
     try:
         if not os.path.isfile(manifest_path):
@@ -141,10 +145,12 @@ def _safe_load_manifest(manifest_path: str) -> Optional[dict]:
         if size <= 0 or size > MAX_MANIFEST_BYTES:
             logger.debug("asset_memory: manifest size out of bounds (%d bytes)", size)
             return None
-        with open(manifest_path, "r", encoding="utf-8") as fh:
+        with open(manifest_path, encoding="utf-8") as fh:
             data = json.load(fh)
     except (OSError, ValueError) as exc:
-        logger.debug("asset_memory: manifest read failed for %r: %s", manifest_path, exc)
+        logger.debug(
+            "asset_memory: manifest read failed for %r: %s", manifest_path, exc
+        )
         return None
     return data if isinstance(data, dict) else None
 

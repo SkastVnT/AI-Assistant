@@ -13,12 +13,11 @@ The real ``image_pipeline.reasoning`` import path is intact; the comfy
 client is replaced with a sentinel that fails the test if invoked when
 preflight should have blocked.
 """
+
 from __future__ import annotations
 
 import sys
 from pathlib import Path
-
-import pytest
 
 _ROOT = Path(__file__).resolve().parents[3]
 if str(_ROOT) not in sys.path:
@@ -29,6 +28,7 @@ if str(_CHATBOT_DIR) not in sys.path:
 
 
 # ── Test scaffolding ────────────────────────────────────────────────────────
+
 
 class _ExplodingComfyClient:
     """Any submit_workflow call fails the test — preflight must NEVER run gen."""
@@ -54,6 +54,7 @@ def _make_app():
 class TestPreflightOnly:
     def test_unknown_iroha_returns_high_risk_and_no_generation(self, monkeypatch):
         from routes import reasoning_image_gen as route_mod
+
         monkeypatch.setattr(
             route_mod, "_default_comfy_client", lambda: _ExplodingComfyClient()
         )
@@ -83,6 +84,7 @@ class TestPreflightOnly:
 
     def test_known_character_returns_low_or_medium(self, monkeypatch):
         from routes import reasoning_image_gen as route_mod
+
         monkeypatch.setattr(
             route_mod, "_default_comfy_client", lambda: _ExplodingComfyClient()
         )
@@ -106,6 +108,7 @@ class TestPreflightOnly:
 
     def test_generic_prompt_no_named_character_is_low(self, monkeypatch):
         from routes import reasoning_image_gen as route_mod
+
         monkeypatch.setattr(
             route_mod, "_default_comfy_client", lambda: _ExplodingComfyClient()
         )
@@ -125,6 +128,7 @@ class TestPreflightOnly:
 
     def test_multiple_characters_is_high(self, monkeypatch):
         from routes import reasoning_image_gen as route_mod
+
         monkeypatch.setattr(
             route_mod, "_default_comfy_client", lambda: _ExplodingComfyClient()
         )
@@ -142,6 +146,7 @@ class TestPreflightOnly:
 
     def test_explicit_character_hint_pins_low_risk(self, monkeypatch):
         from routes import reasoning_image_gen as route_mod
+
         monkeypatch.setattr(
             route_mod, "_default_comfy_client", lambda: _ExplodingComfyClient()
         )
@@ -170,6 +175,7 @@ class TestPreflightOnly:
 class TestRequirePreflightPass:
     def test_high_risk_blocks_generation(self, monkeypatch):
         from routes import reasoning_image_gen as route_mod
+
         monkeypatch.setattr(
             route_mod, "_default_comfy_client", lambda: _ExplodingComfyClient()
         )
@@ -195,6 +201,7 @@ class TestRequirePreflightPass:
         # actually runs to completion when not blocked.
         import base64
         import io
+
         from PIL import Image
 
         class _OkResult:
@@ -217,6 +224,7 @@ class TestRequirePreflightPass:
                 return _OkResult(self._b64)
 
         from routes import reasoning_image_gen as route_mod
+
         stub = _OkClient()
         monkeypatch.setattr(route_mod, "_default_comfy_client", lambda: stub)
 
@@ -244,6 +252,7 @@ class TestBackwardCompatibility:
     def test_old_payload_without_flags_still_generates(self, monkeypatch):
         import base64
         import io
+
         from PIL import Image
 
         class _OkResult:
@@ -266,6 +275,7 @@ class TestBackwardCompatibility:
                 return _OkResult(self._b64)
 
         from routes import reasoning_image_gen as route_mod
+
         stub = _OkClient()
         monkeypatch.setattr(route_mod, "_default_comfy_client", lambda: stub)
 
@@ -293,6 +303,7 @@ class TestBackwardCompatibility:
 class TestProvisionalId:
     def test_unknown_with_traits_returns_provisional_id(self, monkeypatch):
         from routes import reasoning_image_gen as route_mod
+
         monkeypatch.setattr(
             route_mod, "_default_comfy_client", lambda: _ExplodingComfyClient()
         )
@@ -317,6 +328,7 @@ class TestProvisionalId:
 
     def test_low_risk_default_has_no_provisional_id(self, monkeypatch):
         from routes import reasoning_image_gen as route_mod
+
         monkeypatch.setattr(
             route_mod, "_default_comfy_client", lambda: _ExplodingComfyClient()
         )

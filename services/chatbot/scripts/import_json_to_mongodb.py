@@ -23,11 +23,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from config.mongodb_config import get_db, test_connection, DATABASE_NAME
+from config.mongodb_config import DATABASE_NAME, get_db, test_connection
 
 VALID_COLLECTIONS = {
-    "conversations", "messages", "learning_data",
-    "rag_documents", "rag_chunks", "rag_ingestion_jobs",
+    "conversations",
+    "messages",
+    "learning_data",
+    "rag_documents",
+    "rag_chunks",
+    "rag_ingestion_jobs",
 }
 
 # ============================================================================
@@ -38,9 +42,30 @@ REQUIRED_FIELDS = {
     "conversations": ["user_id", "title", "model", "created_at"],
     "messages": ["conversation_id", "role", "content", "created_at"],
     "learning_data": ["source", "category", "data", "created_at"],
-    "rag_documents": ["tenant_id", "document_id", "title", "source_type", "status", "created_at"],
-    "rag_chunks": ["tenant_id", "document_id", "chunk_id", "chunk_index", "content", "created_at"],
-    "rag_ingestion_jobs": ["job_id", "tenant_id", "document_id", "filename", "status", "started_at"],
+    "rag_documents": [
+        "tenant_id",
+        "document_id",
+        "title",
+        "source_type",
+        "status",
+        "created_at",
+    ],
+    "rag_chunks": [
+        "tenant_id",
+        "document_id",
+        "chunk_id",
+        "chunk_index",
+        "content",
+        "created_at",
+    ],
+    "rag_ingestion_jobs": [
+        "job_id",
+        "tenant_id",
+        "document_id",
+        "filename",
+        "status",
+        "started_at",
+    ],
 }
 
 FIELD_TYPES = {
@@ -138,6 +163,7 @@ DATE_FIELDS = {
 # Validation
 # ============================================================================
 
+
 def validate_record(record, collection, index):
     """Validate a single record. Returns (cleaned_record, errors)."""
     errors = []
@@ -160,7 +186,9 @@ def validate_record(record, collection, index):
     # Role enum check for messages
     if collection == "messages" and "role" in record:
         if record["role"] not in VALID_ROLES:
-            errors.append(f"field 'role': must be one of {VALID_ROLES}, got '{record['role']}'")
+            errors.append(
+                f"field 'role': must be one of {VALID_ROLES}, got '{record['role']}'"
+            )
 
     # Assign UUID _id if missing
     if "_id" not in record:
@@ -176,12 +204,18 @@ def validate_record(record, collection, index):
             try:
                 record[field] = datetime.fromisoformat(record[field])
             except ValueError:
-                errors.append(f"field '{field}': invalid ISO date string '{record[field]}'")
+                errors.append(
+                    f"field '{field}': invalid ISO date string '{record[field]}'"
+                )
 
     # Parse any extra *_at fields that look like ISO dates (round-trip support)
     known_dates = set(DATE_FIELDS.get(collection, []))
     for field, value in record.items():
-        if field.endswith("_at") and field not in known_dates and isinstance(value, str):
+        if (
+            field.endswith("_at")
+            and field not in known_dates
+            and isinstance(value, str)
+        ):
             try:
                 record[field] = datetime.fromisoformat(value)
             except ValueError:
@@ -193,6 +227,7 @@ def validate_record(record, collection, index):
 # ============================================================================
 # Import logic
 # ============================================================================
+
 
 def import_records(db, collection, records, upsert_key, dry_run):
     """Import validated records into MongoDB. Returns stats dict."""
@@ -216,7 +251,9 @@ def import_records(db, collection, records, upsert_key, dry_run):
                 key_val = record.get(upsert_key)
                 if key_val is None:
                     stats["skipped"] += 1
-                    error_details.append((i, [f"upsert key '{upsert_key}' is missing or null"]))
+                    error_details.append(
+                        (i, [f"upsert key '{upsert_key}' is missing or null"])
+                    )
                     continue
                 result = coll.update_one(
                     {upsert_key: key_val},
@@ -247,16 +284,27 @@ def import_records(db, collection, records, upsert_key, dry_run):
 # Main
 # ============================================================================
 
+
 def main():
     parser = argparse.ArgumentParser(description="Import JSON data into MongoDB")
-    parser.add_argument("--collection", required=True, choices=sorted(VALID_COLLECTIONS),
-                        help="Target collection")
-    parser.add_argument("--file", required=True, type=str,
-                        help="Path to JSON file (array of objects)")
-    parser.add_argument("--upsert-key", type=str, default=None,
-                        help="Field to use as upsert key (e.g. _id). Without this, plain insert is used.")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Validate only, do not write to database")
+    parser.add_argument(
+        "--collection",
+        required=True,
+        choices=sorted(VALID_COLLECTIONS),
+        help="Target collection",
+    )
+    parser.add_argument(
+        "--file", required=True, type=str, help="Path to JSON file (array of objects)"
+    )
+    parser.add_argument(
+        "--upsert-key",
+        type=str,
+        default=None,
+        help="Field to use as upsert key (e.g. _id). Without this, plain insert is used.",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Validate only, do not write to database"
+    )
     args = parser.parse_args()
 
     # Load JSON
@@ -265,7 +313,7 @@ def main():
         print(f"ERROR: file not found: {json_path}")
         sys.exit(1)
 
-    with open(json_path, "r", encoding="utf-8") as f:
+    with open(json_path, encoding="utf-8") as f:
         try:
             data = json.load(f)
         except json.JSONDecodeError as e:
@@ -297,17 +345,19 @@ def main():
 
     # Import
     print(f"[import] Processing {len(data)} records...")
-    stats, error_details = import_records(db, args.collection, data, args.upsert_key, args.dry_run)
+    stats, error_details = import_records(
+        db, args.collection, data, args.upsert_key, args.dry_run
+    )
 
     # Results
-    print(f"\n[results]")
+    print("\n[results]")
     print(f"  inserted: {stats['inserted']}")
     print(f"  updated:  {stats['updated']}")
     print(f"  skipped:  {stats['skipped']}")
     print(f"  errors:   {stats['errors']}")
 
     if error_details:
-        print(f"\n[errors]")
+        print("\n[errors]")
         for idx, errs in error_details:
             for e in errs:
                 print(f"  record {idx}: {e}")

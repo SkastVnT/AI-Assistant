@@ -5,10 +5,9 @@ integration with the ingest/retrieval/chat-helper flows.
 Run from services/chatbot/:
     python -m pytest tests/test_rag_security.py -v
 """
+
 from __future__ import annotations
 
-import uuid
-from dataclasses import replace as dc_replace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -16,7 +15,6 @@ import pytest
 # ---------------------------------------------------------------------------
 # Policies
 # ---------------------------------------------------------------------------
-
 from src.rag.security.policies import RAGPolicies, get_rag_policies
 
 
@@ -47,8 +45,6 @@ class TestRAGPolicies:
 # ---------------------------------------------------------------------------
 
 from src.rag.security.prompt_injection import (
-    InjectionFlag,
-    SanitizeResult,
     cap_top_k,
     enforce_query_length,
     sanitize_chunk,
@@ -234,6 +230,7 @@ class TestRagHelpersGuardrails:
     @pytest.fixture()
     def _fake_hit(self):
         from src.rag.service.retrieval_service import RetrievalHit
+
         return RetrievalHit(
             chunk_id="c1",
             document_id="d1",
@@ -245,6 +242,7 @@ class TestRagHelpersGuardrails:
     @pytest.fixture()
     def _malicious_hit(self):
         from src.rag.service.retrieval_service import RetrievalHit
+
         return RetrievalHit(
             chunk_id="c2",
             document_id="d2",
@@ -321,6 +319,7 @@ class TestRagHelpersGuardrails:
 
         # Create a hit with long content
         from src.rag.service.retrieval_service import RetrievalHit
+
         big_hit = RetrievalHit(
             chunk_id="big",
             document_id="d1",

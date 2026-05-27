@@ -75,11 +75,21 @@ class _PollUIState:
     price: float | None = None
     estimated_duration: int | None = None
     base_processing_elapsed: float = 0.0  # sum of completed active intervals
-    active_since: float | None = None  # start time of current active interval (None if queued)
+    active_since: float | None = (
+        None  # start time of current active interval (None if queued)
+    )
 
 
 _RETRY_STATUS = {408, 429, 500, 502, 503, 504}
-COMPLETED_STATUSES = ["succeeded", "succeed", "success", "completed", "finished", "done", "complete"]
+COMPLETED_STATUSES = [
+    "succeeded",
+    "succeed",
+    "success",
+    "completed",
+    "finished",
+    "done",
+    "complete",
+]
 FAILED_STATUSES = ["cancelled", "canceled", "canceling", "fail", "failed", "error"]
 QUEUED_STATUSES = ["created", "queued", "queueing", "submitted", "initializing"]
 
@@ -124,7 +134,9 @@ async def sync_op(
         monitor_progress=monitor_progress,
     )
     if not isinstance(raw, dict):
-        raise Exception("Expected JSON response to validate into a Pydantic model, got non-JSON (binary or text).")
+        raise Exception(
+            "Expected JSON response to validate into a Pydantic model, got non-JSON (binary or text)."
+        )
     return _validate_or_raise(response_model, raw)
 
 
@@ -171,7 +183,9 @@ async def poll_op(
         cancel_timeout=cancel_timeout,
     )
     if not isinstance(raw, dict):
-        raise Exception("Expected JSON response to validate into a Pydantic model, got non-JSON (binary or text).")
+        raise Exception(
+            "Expected JSON response to validate into a Pydantic model, got non-JSON (binary or text)."
+        )
     return _validate_or_raise(response_model, raw)
 
 
@@ -255,9 +269,15 @@ async def poll_op_raw(
 
     Returns the final JSON response from the poll endpoint.
     """
-    completed_states = _normalize_statuses(COMPLETED_STATUSES if completed_statuses is None else completed_statuses)
-    failed_states = _normalize_statuses(FAILED_STATUSES if failed_statuses is None else failed_statuses)
-    queued_states = _normalize_statuses(QUEUED_STATUSES if queued_statuses is None else queued_statuses)
+    completed_states = _normalize_statuses(
+        COMPLETED_STATUSES if completed_statuses is None else completed_statuses
+    )
+    failed_states = _normalize_statuses(
+        FAILED_STATUSES if failed_statuses is None else failed_statuses
+    )
+    queued_states = _normalize_statuses(
+        QUEUED_STATUSES if queued_statuses is None else queued_statuses
+    )
     started = time.monotonic()
     consumed_attempts = 0  # counts only non-queued polls
 
@@ -275,7 +295,9 @@ async def poll_op_raw(
                     break
                 now = time.monotonic()
                 proc_elapsed = state.base_processing_elapsed + (
-                    (now - state.active_since) if state.active_since is not None else 0.0
+                    (now - state.active_since)
+                    if state.active_since is not None
+                    else 0.0
                 )
                 _display_time_progress(
                     cls,
@@ -347,11 +369,15 @@ async def poll_op_raw(
             is_queued = status in queued_states
 
             if is_queued:
-                if state.active_since is not None:  # If we just moved from active -> queued, close the active interval
+                if (
+                    state.active_since is not None
+                ):  # If we just moved from active -> queued, close the active interval
                     state.base_processing_elapsed += now_ts - state.active_since
                     state.active_since = None
             else:
-                if state.active_since is None:  # If we just moved from queued -> active, open a new active interval
+                if (
+                    state.active_since is None
+                ):  # If we just moved from queued -> active, open a new active interval
                     state.active_since = now_ts
 
             state.is_queued = is_queued
@@ -428,7 +454,9 @@ def _display_text(
 ) -> None:
     display_lines: list[str] = []
     if status:
-        display_lines.append(f"Status: {status.capitalize() if isinstance(status, str) else status}")
+        display_lines.append(
+            f"Status: {status.capitalize() if isinstance(status, str) else status}"
+        )
     if price is not None:
         p = f"{float(price) * 211:,.1f}".rstrip("0").rstrip(".")
         if p != "0":
@@ -436,7 +464,9 @@ def _display_text(
     if text is not None:
         display_lines.append(text)
     if display_lines:
-        PromptServer.instance.send_progress_text("\n".join(display_lines), get_node_id(node_cls))
+        PromptServer.instance.send_progress_text(
+            "\n".join(display_lines), get_node_id(node_cls)
+        )
 
 
 def _display_time_progress(
@@ -450,7 +480,11 @@ def _display_time_progress(
     processing_elapsed_seconds: int | None = None,
 ) -> None:
     if estimated_total is not None and estimated_total > 0 and is_queued is False:
-        pe = processing_elapsed_seconds if processing_elapsed_seconds is not None else elapsed_seconds
+        pe = (
+            processing_elapsed_seconds
+            if processing_elapsed_seconds is not None
+            else elapsed_seconds
+        )
         remaining = max(0, int(estimated_total) - int(pe))
         time_line = f"Time elapsed: {int(elapsed_seconds)}s (~{remaining}s remaining)"
     else:
@@ -489,7 +523,9 @@ def _unpack_tuple(t: tuple) -> tuple[str, Any, str]:
     raise ValueError("files tuple must be (filename, file[, content_type])")
 
 
-def _merge_params(endpoint_params: dict[str, Any], method: str, data: dict[str, Any] | None) -> dict[str, Any]:
+def _merge_params(
+    endpoint_params: dict[str, Any], method: str, data: dict[str, Any] | None
+) -> dict[str, Any]:
     params = dict(endpoint_params or {})
     if method.upper() == "GET" and data:
         for k, v in data.items():
@@ -552,8 +588,14 @@ def _snapshot_request_body_for_logging(
                     filename = file_obj[0]
                 else:
                     filename = getattr(file_obj, "name", field_name)
-                file_fields.append({"field": field_name, "filename": str(filename or "")})
-        return {"_multipart": True, "form_fields": form_fields, "file_fields": file_fields}
+                file_fields.append(
+                    {"field": field_name, "filename": str(filename or "")}
+                )
+        return {
+            "_multipart": True,
+            "form_fields": form_fields,
+            "file_fields": file_fields,
+        }
     if content_type == "application/x-www-form-urlencoded":
         return data or {}
     return data or {}
@@ -567,7 +609,9 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
         url = urljoin(default_base_url().rstrip("/") + "/", url.lstrip("/"))
 
     method = cfg.endpoint.method
-    params = _merge_params(cfg.endpoint.query_params, method, cfg.data if method == "GET" else None)
+    params = _merge_params(
+        cfg.endpoint.query_params, method, cfg.data if method == "GET" else None
+    )
 
     async def _monitor(stop_evt: asyncio.Event, start_ts: float):
         """Every second: update elapsed time and signal interruption."""
@@ -577,13 +621,20 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
                     return
                 if cfg.monitor_progress:
                     _display_time_progress(
-                        cfg.node_cls, cfg.wait_label, int(time.monotonic() - start_ts), cfg.estimated_total
+                        cfg.node_cls,
+                        cfg.wait_label,
+                        int(time.monotonic() - start_ts),
+                        cfg.estimated_total,
                     )
                 await asyncio.sleep(1.0)
         except asyncio.CancelledError:
             return  # normal shutdown
 
-    start_time = cfg.progress_origin_ts if cfg.progress_origin_ts is not None else time.monotonic()
+    start_time = (
+        cfg.progress_origin_ts
+        if cfg.progress_origin_ts is not None
+        else time.monotonic()
+    )
     attempt = 0
     delay = cfg.retry_delay
     operation_succeeded: bool = False
@@ -598,7 +649,9 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
         operation_id = _generate_operation_id(method, cfg.endpoint.path, attempt)
         logging.debug("[DEBUG] HTTP %s %s (attempt %d)", method, url, attempt)
 
-        payload_headers = {"Accept": "*/*"} if expect_binary else {"Accept": "application/json"}
+        payload_headers = (
+            {"Accept": "*/*"} if expect_binary else {"Accept": "application/json"}
+        )
         if not parsed_url.scheme and not parsed_url.netloc:  # is URL relative?
             payload_headers.update(get_auth_header(cfg.node_cls))
         if cfg.endpoint.headers:
@@ -607,7 +660,9 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
         payload_kw: dict[str, Any] = {"headers": payload_headers}
         if method == "GET":
             payload_headers.pop("Content-Type", None)
-        request_body_log = _snapshot_request_body_for_logging(cfg.content_type, method, cfg.data, cfg.files)
+        request_body_log = _snapshot_request_body_for_logging(
+            cfg.content_type, method, cfg.data, cfg.files
+        )
         try:
             if cfg.monitor_progress:
                 monitor_task = asyncio.create_task(_monitor(stop_event, start_time))
@@ -621,16 +676,23 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
                 if cfg.multipart_parser and cfg.data:
                     form = cfg.multipart_parser(cfg.data)
                     if not isinstance(form, aiohttp.FormData):
-                        raise ValueError("multipart_parser must return aiohttp.FormData")
+                        raise ValueError(
+                            "multipart_parser must return aiohttp.FormData"
+                        )
                 else:
                     form = aiohttp.FormData(default_to_multipart=True)
                     if cfg.data:
                         for k, v in cfg.data.items():
                             if v is None:
                                 continue
-                            form.add_field(k, str(v) if not isinstance(v, (bytes, bytearray)) else v)
+                            form.add_field(
+                                k,
+                                str(v) if not isinstance(v, (bytes, bytearray)) else v,
+                            )
                 if cfg.files:
-                    file_iter = cfg.files if isinstance(cfg.files, list) else cfg.files.items()
+                    file_iter = (
+                        cfg.files if isinstance(cfg.files, list) else cfg.files.items()
+                    )
                     for field_name, file_obj in file_iter:
                         if file_obj is None:
                             continue
@@ -644,9 +706,17 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
                         if isinstance(file_value, BytesIO):
                             with contextlib.suppress(Exception):
                                 file_value.seek(0)
-                        form.add_field(field_name, file_value, filename=filename, content_type=content_type)
+                        form.add_field(
+                            field_name,
+                            file_value,
+                            filename=filename,
+                            content_type=content_type,
+                        )
                 payload_kw["data"] = form
-            elif cfg.content_type == "application/x-www-form-urlencoded" and method != "GET":
+            elif (
+                cfg.content_type == "application/x-www-form-urlencoded"
+                and method != "GET"
+            ):
                 payload_headers["Content-Type"] = "application/x-www-form-urlencoded"
                 payload_kw["data"] = cfg.data or {}
             elif method != "GET":
@@ -672,7 +742,9 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
             tasks = {req_task}
             if monitor_task:
                 tasks.add(monitor_task)
-            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            done, pending = await asyncio.wait(
+                tasks, return_when=asyncio.FIRST_COMPLETED
+            )
 
             if monitor_task and monitor_task in done:
                 # Interrupted – cancel the request and abort
@@ -717,7 +789,9 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
                             cfg.wait_label if cfg.monitor_progress else None,
                             start_time if cfg.monitor_progress else None,
                             cfg.estimated_total,
-                            display_callback=_display_time_progress if cfg.monitor_progress else None,
+                            display_callback=(
+                                _display_time_progress if cfg.monitor_progress else None
+                            ),
                         )
                         delay *= cfg.retry_backoff
                         continue
@@ -748,7 +822,10 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
                                 raise ProcessingInterrupted("Task cancelled")
                             if cfg.monitor_progress:
                                 _display_time_progress(
-                                    cfg.node_cls, cfg.wait_label, int(now - start_time), cfg.estimated_total
+                                    cfg.node_cls,
+                                    cfg.wait_label,
+                                    int(now - start_time),
+                                    cfg.estimated_total,
                                 )
                     bytes_payload = bytes(buff)
                     operation_succeeded = True
@@ -775,9 +852,15 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
                             payload = json.loads(text) if text else {}
                         except json.JSONDecodeError:
                             payload = {"_raw": text}
-                        response_content_to_log = payload if isinstance(payload, dict) else text
+                        response_content_to_log = (
+                            payload if isinstance(payload, dict) else text
+                        )
                     with contextlib.suppress(Exception):
-                        extracted_price = cfg.price_extractor(payload) if cfg.price_extractor else None
+                        extracted_price = (
+                            cfg.price_extractor(payload)
+                            if cfg.price_extractor
+                            else None
+                        )
                     operation_succeeded = True
                     final_elapsed_seconds = int(time.monotonic() - start_time)
                     try:
@@ -812,7 +895,9 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
                         operation_id=operation_id,
                         request_method=method,
                         request_url=url,
-                        request_headers=dict(payload_headers) if payload_headers else None,
+                        request_headers=(
+                            dict(payload_headers) if payload_headers else None
+                        ),
                         request_params=dict(params) if params else None,
                         request_data=request_body_log,
                         error_message=f"{type(e).__name__}: {str(e)} (will retry)",
@@ -825,7 +910,9 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
                     cfg.wait_label if cfg.monitor_progress else None,
                     start_time if cfg.monitor_progress else None,
                     cfg.estimated_total,
-                    display_callback=_display_time_progress if cfg.monitor_progress else None,
+                    display_callback=(
+                        _display_time_progress if cfg.monitor_progress else None
+                    ),
                 )
                 delay *= cfg.retry_backoff
                 continue
@@ -836,7 +923,9 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
                         operation_id=operation_id,
                         request_method=method,
                         request_url=url,
-                        request_headers=dict(payload_headers) if payload_headers else None,
+                        request_headers=(
+                            dict(payload_headers) if payload_headers else None
+                        ),
                         request_params=dict(params) if params else None,
                         request_data=request_body_log,
                         error_message=f"LocalNetworkError: {str(e)}",
@@ -872,7 +961,11 @@ async def _request_base(cfg: _RequestConfig, expect_binary: bool):
             if sess:
                 with contextlib.suppress(Exception):
                     await sess.close()
-            if operation_succeeded and cfg.monitor_progress and cfg.final_label_on_success:
+            if (
+                operation_succeeded
+                and cfg.monitor_progress
+                and cfg.final_label_on_success
+            ):
                 _display_time_progress(
                     cfg.node_cls,
                     status=cfg.final_label_on_success,

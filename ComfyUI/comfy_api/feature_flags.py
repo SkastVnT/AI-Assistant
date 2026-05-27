@@ -12,7 +12,7 @@ from comfy.cli_args import args
 # Default server capabilities
 SERVER_FEATURE_FLAGS: dict[str, Any] = {
     "supports_preview_metadata": True,
-    "max_upload_size": args.max_upload_size * 1024 * 1024, # Convert MB to bytes
+    "max_upload_size": args.max_upload_size * 1024 * 1024,  # Convert MB to bytes
     "extension": {"manager": {"supports_v4": True}},
 }
 
@@ -21,7 +21,7 @@ def get_connection_feature(
     sockets_metadata: dict[str, dict[str, Any]],
     sid: str,
     feature_name: str,
-    default: Any = False
+    default: Any = False,
 ) -> Any:
     """
     Get a feature flag value for a specific connection.
@@ -42,9 +42,7 @@ def get_connection_feature(
 
 
 def supports_feature(
-    sockets_metadata: dict[str, dict[str, Any]],
-    sid: str,
-    feature_name: str
+    sockets_metadata: dict[str, dict[str, Any]], sid: str, feature_name: str
 ) -> bool:
     """
     Check if a connection supports a specific feature.

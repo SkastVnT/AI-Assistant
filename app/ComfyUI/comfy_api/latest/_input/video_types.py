@@ -6,6 +6,7 @@ import io
 import av
 from .._util import VideoContainer, VideoCodec, VideoComponents
 
+
 class VideoInput(ABC):
     """
     Abstract base class for video input types.
@@ -27,7 +28,7 @@ class VideoInput(ABC):
         path: Union[str, IO[bytes]],
         format: VideoContainer = VideoContainer.AUTO,
         codec: VideoCodec = VideoCodec.AUTO,
-        metadata: Optional[dict] = None
+        metadata: Optional[dict] = None,
     ):
         """
         Abstract method to save the video input to a file.

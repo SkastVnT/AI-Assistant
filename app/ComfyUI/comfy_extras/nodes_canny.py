@@ -13,8 +13,12 @@ class Canny(io.ComfyNode):
             category="image/preprocessors",
             inputs=[
                 io.Image.Input("image"),
-                io.Float.Input("low_threshold", default=0.4, min=0.01, max=0.99, step=0.01),
-                io.Float.Input("high_threshold", default=0.8, min=0.01, max=0.99, step=0.01),
+                io.Float.Input(
+                    "low_threshold", default=0.4, min=0.01, max=0.99, step=0.01
+                ),
+                io.Float.Input(
+                    "high_threshold", default=0.8, min=0.01, max=0.99, step=0.01
+                ),
             ],
             outputs=[io.Image.Output()],
         )
@@ -26,8 +30,17 @@ class Canny(io.ComfyNode):
 
     @classmethod
     def execute(cls, image, low_threshold, high_threshold) -> io.NodeOutput:
-        output = canny(image.to(comfy.model_management.get_torch_device()).movedim(-1, 1), low_threshold, high_threshold)
-        img_out = output[1].to(comfy.model_management.intermediate_device()).repeat(1, 3, 1, 1).movedim(1, -1)
+        output = canny(
+            image.to(comfy.model_management.get_torch_device()).movedim(-1, 1),
+            low_threshold,
+            high_threshold,
+        )
+        img_out = (
+            output[1]
+            .to(comfy.model_management.intermediate_device())
+            .repeat(1, 3, 1, 1)
+            .movedim(1, -1)
+        )
         return io.NodeOutput(img_out)
 
 

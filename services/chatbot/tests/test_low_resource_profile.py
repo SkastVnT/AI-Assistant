@@ -14,12 +14,13 @@ Run:
     cd services/chatbot
     python tests/test_low_resource_profile.py
 """
+
 from __future__ import annotations
 
 import os
 import sys
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 # ── Simulate laptop env BEFORE any imports touch os.getenv ────────────
 _LAPTOP_ENV = {
@@ -43,18 +44,22 @@ def _apply_laptop_env():
 def _clear_singletons():
     """Reset module-level singletons so they re-read env vars."""
     from app.services.image_orchestrator import runtime_profile
+
     runtime_profile.reset_runtime_profile()
 
     from app.services.image_orchestrator import orchestrator
+
     orchestrator._scene_planner = None
     orchestrator._prompt_builder = None
     orchestrator._provider_router = None
     orchestrator._service_instance = None
 
     from app.services.image_orchestrator.provider_router import ProviderRouter
+
     ProviderRouter._shared_router = None
 
     from app.services.image_orchestrator import session_memory
+
     session_memory._store = None
 
 
@@ -62,8 +67,8 @@ def _clear_singletons():
 # Test class
 # ─────────────────────────────────────────────────────────────────────
 
-class TestLowResourceProfile(unittest.TestCase):
 
+class TestLowResourceProfile(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         _apply_laptop_env()
@@ -75,6 +80,7 @@ class TestLowResourceProfile(unittest.TestCase):
         from app.services.image_orchestrator.runtime_profile import (
             get_runtime_profile,
         )
+
         profile = get_runtime_profile()
 
         self.assertEqual(profile.mode, "low_resource")
@@ -95,13 +101,17 @@ class TestLowResourceProfile(unittest.TestCase):
         router = ImageGenerationRouter()
         provider_names = list(router._providers.keys())
 
-        self.assertNotIn("comfyui", provider_names,
-                         "ComfyUI should NOT be registered in low-resource mode")
+        self.assertNotIn(
+            "comfyui",
+            provider_names,
+            "ComfyUI should NOT be registered in low-resource mode",
+        )
 
         # Should have at least one remote provider
         remote_names = [n for n in provider_names if n != "comfyui"]
-        self.assertGreater(len(remote_names), 0,
-                           "Must have at least one remote provider")
+        self.assertGreater(
+            len(remote_names), 0, "Must have at least one remote provider"
+        )
 
         print(f"\n✅ Test 2: Registered providers = {provider_names}")
         print(f"   ComfyUI excluded ✓, remote count = {len(remote_names)}")
@@ -109,8 +119,8 @@ class TestLowResourceProfile(unittest.TestCase):
     # ── Test 3: ScenePlanner + PromptBuilder work without local ─────
 
     def test_03_scene_planner_works(self):
-        from app.services.image_orchestrator.scene_planner import ScenePlanner
         from app.services.image_orchestrator.prompt_builder import PromptBuilder
+        from app.services.image_orchestrator.scene_planner import ScenePlanner
 
         planner = ScenePlanner()
         builder = PromptBuilder(use_llm_enhancer=False)
@@ -123,8 +133,9 @@ class TestLowResourceProfile(unittest.TestCase):
         self.assertEqual(r.classification.value, "generate")
         self.assertTrue(r.scene.subject)
 
-        prompt = builder.build(r.scene, language="vi",
-                               original_message="vẽ cô gái anime tóc hồng")
+        prompt = builder.build(
+            r.scene, language="vi", original_message="vẽ cô gái anime tóc hồng"
+        )
         self.assertGreater(len(prompt), 20)
 
         neg = builder.build_negative(r.scene)
@@ -143,6 +154,7 @@ class TestLowResourceProfile(unittest.TestCase):
         """
         # Build a fake ImageResult that mimics a remote provider success
         from core.image_gen.providers.base import ImageResult
+
         fake_result = ImageResult(
             success=True,
             images_b64=[],
@@ -183,7 +195,9 @@ class TestLowResourceProfile(unittest.TestCase):
                 quality="auto",
             )
 
-            self.assertTrue(result.is_image, f"Expected image, got error: {result.error}")
+            self.assertTrue(
+                result.is_image, f"Expected image, got error: {result.error}"
+            )
             self.assertFalse(result.fallback_to_llm)
             self.assertEqual(result.provider, "fal")
             self.assertIn("https://fal.run/test/image.png", result.images_url)
@@ -192,12 +206,13 @@ class TestLowResourceProfile(unittest.TestCase):
             mock_router.generate.assert_called_once()
             call_kwargs = mock_router.generate.call_args
             # provider_name should NOT be 'comfyui'
-            provider_arg = call_kwargs.kwargs.get("provider_name") or \
-                           (call_kwargs[1].get("provider_name") if len(call_kwargs) > 1 else None)
+            provider_arg = call_kwargs.kwargs.get("provider_name") or (
+                call_kwargs[1].get("provider_name") if len(call_kwargs) > 1 else None
+            )
             if provider_arg:
                 self.assertNotEqual(provider_arg, "comfyui")
 
-            print(f"\n✅ Test 4a: GENERATE success")
+            print("\n✅ Test 4a: GENERATE success")
             print(f"   provider={result.provider}, model={result.model}")
             print(f"   images_url={result.images_url}")
 
@@ -210,7 +225,7 @@ class TestLowResourceProfile(unittest.TestCase):
             self.assertIsNotNone(mem.last_scene_spec)
             self.assertEqual(mem.last_scene_spec.style, "anime")
 
-            print(f"\n✅ Test 4b: Session memory populated")
+            print("\n✅ Test 4b: Session memory populated")
             print(f"   last_provider={mem.last_provider}")
             print(f"   last_image_ref={mem.last_image_reference}")
             print(f"   last_scene style={mem.last_scene_spec.style}")
@@ -236,21 +251,26 @@ class TestLowResourceProfile(unittest.TestCase):
                 language="vi",
             )
 
-            self.assertTrue(edit_result.is_image,
-                            f"Edit should succeed, got: {edit_result.error}")
+            self.assertTrue(
+                edit_result.is_image, f"Edit should succeed, got: {edit_result.error}"
+            )
 
-            print(f"\n✅ Test 4c: FOLLOW-UP EDIT success")
+            print("\n✅ Test 4c: FOLLOW-UP EDIT success")
             print(f"   provider={edit_result.provider}")
             print(f"   intent={edit_result.intent.value}")
 
             # ── Step 4d: Session memory updated after edit ────────
             mem2 = mem_store.get(session_id)
             self.assertEqual(mem2.last_provider, "fal")
-            self.assertEqual(mem2.last_image_reference, "https://fal.run/test/edited.png")
+            self.assertEqual(
+                mem2.last_image_reference, "https://fal.run/test/edited.png"
+            )
             # Scene spec should have white hair in attributes after edit
-            print(f"\n✅ Test 4d: Session memory updated after edit")
+            print("\n✅ Test 4d: Session memory updated after edit")
             print(f"   last_image_ref={mem2.last_image_reference}")
-            print(f"   last_scene attrs={mem2.last_scene_spec.subject_attributes if mem2.last_scene_spec else 'N/A'}")
+            print(
+                f"   last_scene attrs={mem2.last_scene_spec.subject_attributes if mem2.last_scene_spec else 'N/A'}"
+            )
 
     # ── Test 5: Confirm no local provider path ──────────────────────
 
@@ -258,24 +278,34 @@ class TestLowResourceProfile(unittest.TestCase):
         """
         Verify _select_providers() never returns comfyui in low-resource mode.
         """
-        from core.image_gen.router import ImageGenerationRouter, QualityMode
         from core.image_gen.providers.base import ImageMode
+        from core.image_gen.router import ImageGenerationRouter, QualityMode
 
         router = ImageGenerationRouter()
 
-        for quality in [QualityMode.AUTO, QualityMode.FAST, QualityMode.QUALITY,
-                        QualityMode.CHEAP]:
+        for quality in [
+            QualityMode.AUTO,
+            QualityMode.FAST,
+            QualityMode.QUALITY,
+            QualityMode.CHEAP,
+        ]:
             providers = router._select_providers(quality, ImageMode.TEXT_TO_IMAGE)
             names = [c.provider.name for c in providers]
-            self.assertNotIn("comfyui", names,
-                             f"ComfyUI should not appear for quality={quality}")
+            self.assertNotIn(
+                "comfyui", names, f"ComfyUI should not appear for quality={quality}"
+            )
 
         # Even QualityMode.FREE should return empty (no local provider)
-        free_providers = router._select_providers(QualityMode.FREE, ImageMode.TEXT_TO_IMAGE)
-        self.assertEqual(len(free_providers), 0,
-                         "FREE mode should return empty when local is disabled")
+        free_providers = router._select_providers(
+            QualityMode.FREE, ImageMode.TEXT_TO_IMAGE
+        )
+        self.assertEqual(
+            len(free_providers),
+            0,
+            "FREE mode should return empty when local is disabled",
+        )
 
-        print(f"\n✅ Test 5: No comfyui in any quality mode provider selection")
+        print("\n✅ Test 5: No comfyui in any quality mode provider selection")
 
     # ── Test 6: Legacy mode still works (full mode simulation) ──────
 
@@ -284,7 +314,8 @@ class TestLowResourceProfile(unittest.TestCase):
         Temporarily set env to full mode and confirm ComfyUI IS registered.
         """
         from app.services.image_orchestrator.runtime_profile import (
-            reset_runtime_profile, get_runtime_profile,
+            get_runtime_profile,
+            reset_runtime_profile,
         )
 
         # Save and override
@@ -301,11 +332,13 @@ class TestLowResourceProfile(unittest.TestCase):
             self.assertFalse(profile.skip_comfyui_provider)
 
             from core.image_gen.router import ImageGenerationRouter
-            router = ImageGenerationRouter()
-            self.assertIn("comfyui", router._providers,
-                          "ComfyUI MUST be registered in full mode")
 
-            print(f"\n✅ Test 6: Legacy full mode → comfyui registered ✓")
+            router = ImageGenerationRouter()
+            self.assertIn(
+                "comfyui", router._providers, "ComfyUI MUST be registered in full mode"
+            )
+
+            print("\n✅ Test 6: Legacy full mode → comfyui registered ✓")
         finally:
             # Restore laptop env
             for k, v in saved.items():

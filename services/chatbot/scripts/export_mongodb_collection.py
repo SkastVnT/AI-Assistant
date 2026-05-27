@@ -22,17 +22,22 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from bson import ObjectId
-from config.mongodb_config import get_db, test_connection, DATABASE_NAME
+from config.mongodb_config import DATABASE_NAME, get_db, test_connection
 
 VALID_COLLECTIONS = {
-    "conversations", "messages", "learning_data",
-    "rag_documents", "rag_chunks", "rag_ingestion_jobs",
+    "conversations",
+    "messages",
+    "learning_data",
+    "rag_documents",
+    "rag_chunks",
+    "rag_ingestion_jobs",
 }
 
 
 # ============================================================================
 # BSON -> JSON-safe conversion
 # ============================================================================
+
 
 def bson_to_json(value):
     """Recursively convert BSON types to JSON-serialisable Python types."""
@@ -54,6 +59,7 @@ def bson_to_json(value):
 # Export logic
 # ============================================================================
 
+
 def export_collection(db, collection, query, limit):
     """Query the collection and return a list of JSON-safe dicts."""
     cursor = db[collection].find(query)
@@ -70,16 +76,30 @@ def export_collection(db, collection, query, limit):
 # Main
 # ============================================================================
 
+
 def main():
     parser = argparse.ArgumentParser(description="Export MongoDB collection to JSON")
-    parser.add_argument("--collection", required=True, choices=sorted(VALID_COLLECTIONS),
-                        help="Collection to export")
-    parser.add_argument("--out", type=str, default=None,
-                        help="Output file path (default: <collection>_export.json)")
-    parser.add_argument("--query", type=str, default="{}",
-                        help='MongoDB query filter as JSON string (default: "{}")')
-    parser.add_argument("--limit", type=int, default=None,
-                        help="Maximum number of documents to export")
+    parser.add_argument(
+        "--collection",
+        required=True,
+        choices=sorted(VALID_COLLECTIONS),
+        help="Collection to export",
+    )
+    parser.add_argument(
+        "--out",
+        type=str,
+        default=None,
+        help="Output file path (default: <collection>_export.json)",
+    )
+    parser.add_argument(
+        "--query",
+        type=str,
+        default="{}",
+        help='MongoDB query filter as JSON string (default: "{}")',
+    )
+    parser.add_argument(
+        "--limit", type=int, default=None, help="Maximum number of documents to export"
+    )
     args = parser.parse_args()
 
     # Parse query

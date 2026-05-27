@@ -10,7 +10,6 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import pytest
-
 from image_pipeline.reasoning.panel_spec_validator import (
     validate_panel,
     validate_sequence,
@@ -24,14 +23,12 @@ from image_pipeline.reasoning.schemas import (
     OverlayElement,
     OverlayKind,
     OverlayPlan,
-    PanelRole,
     PropRequirement,
     PropState,
     SceneState,
     ShotType,
     SinglePanelSpec,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -50,7 +47,12 @@ def alice():
 
 @pytest.fixture
 def red_phone():
-    return PropState(prop_key="red_phone", label="red phone", color="red", canonical_tags=("red", "phone"))
+    return PropState(
+        prop_key="red_phone",
+        label="red phone",
+        color="red",
+        canonical_tags=("red", "phone"),
+    )
 
 
 @pytest.fixture
@@ -155,7 +157,9 @@ class TestOverlayValidation:
     def test_speech_bubble_requires_text(self):
         plan = OverlayPlan(
             elements=(
-                OverlayElement(element_id="b1", kind=OverlayKind.SPEECH_BUBBLE, text=""),
+                OverlayElement(
+                    element_id="b1", kind=OverlayKind.SPEECH_BUBBLE, text=""
+                ),
             )
         )
         panel = SinglePanelSpec(
@@ -168,8 +172,12 @@ class TestOverlayValidation:
     def test_z_order_collision_warning(self):
         plan = OverlayPlan(
             elements=(
-                OverlayElement(element_id="o1", kind=OverlayKind.CAPTION, text="hi", z_order=1),
-                OverlayElement(element_id="o2", kind=OverlayKind.CAPTION, text="bye", z_order=1),
+                OverlayElement(
+                    element_id="o1", kind=OverlayKind.CAPTION, text="hi", z_order=1
+                ),
+                OverlayElement(
+                    element_id="o2", kind=OverlayKind.CAPTION, text="bye", z_order=1
+                ),
             )
         )
         panel = SinglePanelSpec(
@@ -288,7 +296,9 @@ class TestSequenceLayoutDefense:
 
 class TestResultShape:
     def test_result_to_dict(self, basic_panel):
-        v = validate_panel(basic_panel, known_character_keys={"alice"}, known_prop_keys={"red_phone"})
+        v = validate_panel(
+            basic_panel, known_character_keys={"alice"}, known_prop_keys={"red_phone"}
+        )
         d = v.to_dict()
         assert d["ok"] is True
         assert isinstance(d["issues"], list)

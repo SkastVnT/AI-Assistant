@@ -20,11 +20,7 @@ class LoraDiff(WeightAdapterTrainBase):
         rank, in_dim = mat2.shape[0], mat2.shape[1]
         if mid is not None:
             convdim = mid.ndim - 2
-            layer = (
-                torch.nn.Conv1d,
-                torch.nn.Conv2d,
-                torch.nn.Conv3d
-            )[convdim]
+            layer = (torch.nn.Conv1d, torch.nn.Conv2d, torch.nn.Conv3d)[convdim]
         else:
             layer = torch.nn.Linear
         self.lora_up = layer(rank, out_dim, bias=False)
@@ -70,9 +66,7 @@ class LoRAAdapter(WeightAdapterBase):
         mat2 = torch.empty(rank, in_dim, device=weight.device, dtype=torch.float32)
         torch.nn.init.kaiming_uniform_(mat1, a=5**0.5)
         torch.nn.init.constant_(mat2, 0.0)
-        return LoraDiff(
-            (mat1, mat2, alpha, None, None, None)
-        )
+        return LoraDiff((mat1, mat2, alpha, None, None, None))
 
     def to_train(self):
         return LoraDiff(self.weights)

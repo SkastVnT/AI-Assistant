@@ -13,12 +13,12 @@ Returns
 -------
 ``IngestResult`` with ``document_id``, ``num_chunks``, ``object_path``.
 """
+
 from __future__ import annotations
 
 import logging
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
 
 from sqlalchemy import func, select
 
@@ -179,7 +179,9 @@ class IngestService:
 
             logger.info(
                 "Parsed %s → %d pages, %d chunks",
-                filename, parsed.page_count, len(chunks),
+                filename,
+                parsed.page_count,
+                len(chunks),
             )
 
             # 4 ── Embed (batched) ────────────────────────────────────
@@ -208,7 +210,9 @@ class IngestService:
 
         logger.info(
             "Ingested doc=%s  chunks=%d  storage=%s",
-            doc_id, len(chunks), object_path,
+            doc_id,
+            len(chunks),
+            object_path,
         )
         return IngestResult(
             document_id=doc_id,
@@ -252,38 +256,41 @@ class IngestService:
         """Write RagDocument + RagChunk rows in one atomic transaction."""
         session_factory = get_session_factory()
 
-        async with session_factory() as session:
-            async with session.begin():
-                doc = RagDocument(
-                    id=doc_id,
-                    tenant_id=tenant_id,
-                    source_type=source_type,
-                    source_uri=source_uri,
-                    title=title,
-                    mime_type=mime_type,
-                    object_path=object_path,
-                )
-                session.add(doc)
+        async with session_factory() as session, session.begin():
+            doc = RagDocument(
+                id=doc_id,
+                tenant_id=tenant_id,
+                source_type=source_type,
+                source_uri=source_uri,
+                title=title,
+                mime_type=mime_type,
+                object_path=object_path,
+            )
+            session.add(doc)
 
-                for chunk, vector in zip(chunks, embeddings):
-                    row = RagChunk(
-                        tenant_id=tenant_id,
-                        document_id=doc_id,
-                        chunk_index=chunk.chunk_index,
-                        content=chunk.text,
-                        embedding=vector,
-                        metadata_json=chunk.metadata,
-                    )
-                    session.add(row)
+            for chunk, vector in zip(chunks, embeddings):
+                row = RagChunk(
+                    tenant_id=tenant_id,
+                    document_id=doc_id,
+                    chunk_index=chunk.chunk_index,
+                    content=chunk.text,
+                    embedding=vector,
+                    metadata_json=chunk.metadata,
+                )
+                session.add(row)
 
     async def _check_tenant_doc_limit(
-        self, tenant_id: str, max_docs: int,
+        self,
+        tenant_id: str,
+        max_docs: int,
     ) -> None:
         """Raise ``IngestError`` if the tenant already has *max_docs*."""
         session_factory = get_session_factory()
         async with session_factory() as session:
             result = await session.execute(
-                select(func.count()).select_from(RagDocument).where(
+                select(func.count())
+                .select_from(RagDocument)
+                .where(
                     RagDocument.tenant_id == tenant_id,
                 ),
             )

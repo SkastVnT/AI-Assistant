@@ -149,10 +149,10 @@ graph TD
     end
     
     subgraph "Files"
-        F1[config/model_config.py]
-        F2[config/logging_config.py]
+        F1[app/config/model_config.py]
+        F2[app/config/logging_config.py]
         F3[README.md]
-        F4[docs/STRUCTURE.md]
+        F4[app/docs/REPO_STRUCTURE.md]
     end
     
     R1 -->|Read| F1

@@ -3,6 +3,8 @@ from comfy_execution.graph import ExecutionBlocker
 from .tools import VariantSupport
 
 NUM_FLOW_SOCKETS = 5
+
+
 @VariantSupport()
 class TestWhileLoopOpen:
     def __init__(self):
@@ -14,15 +16,16 @@ class TestWhileLoopOpen:
             "required": {
                 "condition": ("BOOLEAN", {"default": True}),
             },
-            "optional": {
-            },
+            "optional": {},
         }
         for i in range(NUM_FLOW_SOCKETS):
             inputs["optional"][f"initial_value{i}"] = ("*",)
         return inputs
 
     RETURN_TYPES = tuple(["FLOW_CONTROL"] + ["*"] * NUM_FLOW_SOCKETS)
-    RETURN_NAMES = tuple(["FLOW_CONTROL"] + [f"value{i}" for i in range(NUM_FLOW_SOCKETS)])
+    RETURN_NAMES = tuple(
+        ["FLOW_CONTROL"] + [f"value{i}" for i in range(NUM_FLOW_SOCKETS)]
+    )
     FUNCTION = "while_loop_open"
 
     CATEGORY = "Testing/Flow"
@@ -32,6 +35,7 @@ class TestWhileLoopOpen:
         for i in range(NUM_FLOW_SOCKETS):
             values.append(kwargs.get(f"initial_value{i}", None))
         return tuple(["stub"] + values)
+
 
 @VariantSupport()
 class TestWhileLoopClose:
@@ -45,12 +49,11 @@ class TestWhileLoopClose:
                 "flow_control": ("FLOW_CONTROL", {"rawLink": True}),
                 "condition": ("BOOLEAN", {"forceInput": True}),
             },
-            "optional": {
-            },
+            "optional": {},
             "hidden": {
                 "dynprompt": "DYNPROMPT",
                 "unique_id": "UNIQUE_ID",
-            }
+            },
         }
         for i in range(NUM_FLOW_SOCKETS):
             inputs["optional"][f"initial_value{i}"] = ("*",)
@@ -82,8 +85,9 @@ class TestWhileLoopClose:
                 contained[child_id] = True
                 self.collect_contained(child_id, upstream, contained)
 
-
-    def while_loop_close(self, flow_control, condition, dynprompt=None, unique_id=None, **kwargs):
+    def while_loop_close(
+        self, flow_control, condition, dynprompt=None, unique_id=None, **kwargs
+    ):
         assert dynprompt is not None
         if not condition:
             # We're done with the loop
@@ -108,7 +112,10 @@ class TestWhileLoopClose:
         graph = GraphBuilder()
         for node_id in contained:
             original_node = dynprompt.get_node(node_id)
-            node = graph.node(original_node["class_type"], "Recurse" if node_id == unique_id else node_id)
+            node = graph.node(
+                original_node["class_type"],
+                "Recurse" if node_id == unique_id else node_id,
+            )
             node.set_override_display_id(node_id)
         for node_id in contained:
             original_node = dynprompt.get_node(node_id)
@@ -133,6 +140,7 @@ class TestWhileLoopClose:
             "result": tuple(result),
             "expand": graph.finalize(),
         }
+
 
 @VariantSupport()
 class TestExecutionBlockerNode:
@@ -160,6 +168,7 @@ class TestExecutionBlockerNode:
         if block:
             return (ExecutionBlocker("Blocked Execution" if verbose else None),)
         return (input,)
+
 
 FLOW_CONTROL_NODE_CLASS_MAPPINGS = {
     "TestWhileLoopOpen": TestWhileLoopOpen,

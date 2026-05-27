@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 #===============================================================================
 # AI-Assistant Public Deployment Script
 # Quick start script to deploy all services with public ngrok URLs
@@ -17,7 +17,7 @@ NC='\033[0m' # No Color
 
 # Project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 LOG_DIR="$PROJECT_ROOT/logs"
 
 # Create log directory
@@ -38,37 +38,37 @@ PID_FILE="$PROJECT_ROOT/.deploy_pids"
 
 print_banner() {
     echo -e "${CYAN}"
-    echo "╔══════════════════════════════════════════════════════════════════════════════╗"
-    echo "║                                                                              ║"
-    echo "║   █████╗ ██╗    ███████╗███████╗██████╗ ██╗   ██╗██╗ ██████╗███████╗        ║"
-    echo "║  ██╔══██╗██║    ██╔════╝██╔════╝██╔══██╗██║   ██║██║██╔════╝██╔════╝        ║"
-    echo "║  ███████║██║    ███████╗█████╗  ██████╔╝██║   ██║██║██║     █████╗          ║"
-    echo "║  ██╔══██║██║    ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██║██║     ██╔══╝          ║"
-    echo "║  ██║  ██║██║    ███████║███████╗██║  ██║ ╚████╔╝ ██║╚██████╗███████╗        ║"
-    echo "║  ╚═╝  ╚═╝╚═╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚═╝ ╚═════╝╚══════╝        ║"
-    echo "║                                                                              ║"
-    echo "║                    🌐 Public Deployment Script v1.0 🌐                       ║"
-    echo "╚══════════════════════════════════════════════════════════════════════════════╝"
+    echo "â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—"
+    echo "â•‘                                                                              â•‘"
+    echo "â•‘   â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•— â–ˆâ–ˆâ•—    â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•— â–ˆâ–ˆâ•—   â–ˆâ–ˆâ•—â–ˆâ–ˆâ•— â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—        â•‘"
+    echo "â•‘  â–ˆâ–ˆâ•”â•â•â–ˆâ–ˆâ•—â–ˆâ–ˆâ•‘    â–ˆâ–ˆâ•”â•â•â•â•â•â–ˆâ–ˆâ•”â•â•â•â•â•â–ˆâ–ˆâ•”â•â•â–ˆâ–ˆâ•—â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•”â•â•â•â•â•â–ˆâ–ˆâ•”â•â•â•â•â•        â•‘"
+    echo "â•‘  â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘    â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—  â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•”â•â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘     â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—          â•‘"
+    echo "â•‘  â–ˆâ–ˆâ•”â•â•â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘    â•šâ•â•â•â•â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•”â•â•â•  â–ˆâ–ˆâ•”â•â•â–ˆâ–ˆâ•—â•šâ–ˆâ–ˆâ•— â–ˆâ–ˆâ•”â•â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘     â–ˆâ–ˆâ•”â•â•â•          â•‘"
+    echo "â•‘  â–ˆâ–ˆâ•‘  â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘    â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•‘â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•‘  â–ˆâ–ˆâ•‘ â•šâ–ˆâ–ˆâ–ˆâ–ˆâ•”â• â–ˆâ–ˆâ•‘â•šâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—        â•‘"
+    echo "â•‘  â•šâ•â•  â•šâ•â•â•šâ•â•    â•šâ•â•â•â•â•â•â•â•šâ•â•â•â•â•â•â•â•šâ•â•  â•šâ•â•  â•šâ•â•â•â•  â•šâ•â• â•šâ•â•â•â•â•â•â•šâ•â•â•â•â•â•â•        â•‘"
+    echo "â•‘                                                                              â•‘"
+    echo "â•‘                    ðŸŒ Public Deployment Script v1.0 ðŸŒ                       â•‘"
+    echo "â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•"
     echo -e "${NC}"
 }
 
 check_ngrok() {
     if ! command -v ngrok &> /dev/null; then
-        echo -e "${YELLOW}📦 ngrok not found. Installing via pip...${NC}"
+        echo -e "${YELLOW}ðŸ“¦ ngrok not found. Installing via pip...${NC}"
         pip install pyngrok -q
         
         # Try to get ngrok path
         if python3 -c "from pyngrok import ngrok; print(ngrok.get_ngrok_process())" 2>/dev/null; then
-            echo -e "${GREEN}✓ pyngrok installed${NC}"
+            echo -e "${GREEN}âœ“ pyngrok installed${NC}"
         else
-            echo -e "${RED}⚠️  Please install ngrok manually:${NC}"
+            echo -e "${RED}âš ï¸  Please install ngrok manually:${NC}"
             echo "   Linux: snap install ngrok"
             echo "   macOS: brew install ngrok"
             echo "   Or download from: https://ngrok.com/download"
             exit 1
         fi
     else
-        echo -e "${GREEN}✓ ngrok is installed${NC}"
+        echo -e "${GREEN}âœ“ ngrok is installed${NC}"
     fi
 }
 
@@ -97,7 +97,7 @@ start_service() {
     local config=${SERVICES[$name]}
     
     if [ -z "$config" ]; then
-        echo -e "${RED}❌ Unknown service: $name${NC}"
+        echo -e "${RED}âŒ Unknown service: $name${NC}"
         return 1
     fi
     
@@ -105,11 +105,11 @@ start_service() {
     local service_dir="$PROJECT_ROOT/$dir"
     
     if [ ! -d "$service_dir" ]; then
-        echo -e "${YELLOW}⚠️  Directory not found: $dir${NC}"
+        echo -e "${YELLOW}âš ï¸  Directory not found: $dir${NC}"
         return 1
     fi
     
-    echo -e "${BLUE}🚀 Starting $name on port $port...${NC}"
+    echo -e "${BLUE}ðŸš€ Starting $name on port $port...${NC}"
     
     # Kill existing process
     kill_port $port
@@ -123,10 +123,10 @@ start_service() {
     
     # Wait for port
     if wait_for_port $port 30; then
-        echo -e "${GREEN}   ✓ $name started (PID: $pid)${NC}"
+        echo -e "${GREEN}   âœ“ $name started (PID: $pid)${NC}"
         return 0
     else
-        echo -e "${YELLOW}   ⚠️  $name may still be starting...${NC}"
+        echo -e "${YELLOW}   âš ï¸  $name may still be starting...${NC}"
         return 0
     fi
 }
@@ -136,11 +136,11 @@ create_tunnel() {
     local port=$2
     
     if ! lsof -ti :$port &>/dev/null; then
-        echo -e "${YELLOW}   ⚠️  Port $port not listening, skipping tunnel${NC}"
+        echo -e "${YELLOW}   âš ï¸  Port $port not listening, skipping tunnel${NC}"
         return 1
     fi
     
-    echo -e "${CYAN}🔗 Creating tunnel for $name (port $port)...${NC}"
+    echo -e "${CYAN}ðŸ”— Creating tunnel for $name (port $port)...${NC}"
     
     # Use pyngrok to create tunnel
     python3 << EOF
@@ -161,7 +161,7 @@ EOF
 
 start_all() {
     echo ""
-    echo -e "${BOLD}📋 Starting services...${NC}"
+    echo -e "${BOLD}ðŸ“‹ Starting services...${NC}"
     echo ""
     
     # Clear old files
@@ -179,7 +179,7 @@ start_all() {
     done
     
     echo ""
-    echo -e "${BOLD}🔗 Creating ngrok tunnels...${NC}"
+    echo -e "${BOLD}ðŸ”— Creating ngrok tunnels...${NC}"
     echo ""
     
     for name in "${!SERVICES[@]}"; do
@@ -193,18 +193,18 @@ start_all() {
 
 show_status() {
     echo ""
-    echo -e "${BOLD}════════════════════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BOLD}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
     printf "${BOLD}%-25s %-8s %-12s %s${NC}\n" "SERVICE" "PORT" "STATUS" "PUBLIC URL"
-    echo -e "${BOLD}════════════════════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BOLD}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
     
     for name in "${!SERVICES[@]}"; do
         IFS=':' read -r port _ _ <<< "${SERVICES[$name]}"
         
         # Check if running
         if lsof -ti :$port &>/dev/null; then
-            status="${GREEN}✓ ONLINE${NC}"
+            status="${GREEN}âœ“ ONLINE${NC}"
         else
-            status="${RED}✗ OFFLINE${NC}"
+            status="${RED}âœ— OFFLINE${NC}"
         fi
         
         # Get tunnel URL
@@ -216,23 +216,23 @@ show_status() {
         printf "%-25s %-8s %-22b %s\n" "$name" "$port" "$status" "$url"
     done
     
-    echo "════════════════════════════════════════════════════════════════════════════════"
+    echo "â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•"
     echo ""
 }
 
 save_urls() {
     if [ -f "$PROJECT_ROOT/.tunnels" ]; then
-        echo -e "${GREEN}📄 Public URLs:${NC}"
+        echo -e "${GREEN}ðŸ“„ Public URLs:${NC}"
         cat "$PROJECT_ROOT/.tunnels"
         
         # Copy to public_urls.txt
         cp "$PROJECT_ROOT/.tunnels" "$PROJECT_ROOT/public_urls.txt"
-        echo -e "${GREEN}📄 URLs saved to: $PROJECT_ROOT/public_urls.txt${NC}"
+        echo -e "${GREEN}ðŸ“„ URLs saved to: $PROJECT_ROOT/public_urls.txt${NC}"
     fi
 }
 
 stop_all() {
-    echo -e "${YELLOW}🛑 Stopping all services...${NC}"
+    echo -e "${YELLOW}ðŸ›‘ Stopping all services...${NC}"
     
     # Kill ngrok
     pkill -f ngrok 2>/dev/null || true
@@ -253,7 +253,7 @@ stop_all() {
     done
     
     rm -f "$PROJECT_ROOT/.tunnels"
-    echo -e "${GREEN}✓ All services stopped${NC}"
+    echo -e "${GREEN}âœ“ All services stopped${NC}"
 }
 
 cleanup() {
@@ -274,7 +274,7 @@ main() {
             start_all
             show_status
             save_urls
-            echo -e "${GREEN}🎉 All services are running!${NC}"
+            echo -e "${GREEN}ðŸŽ‰ All services are running!${NC}"
             echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"
             echo ""
             # Keep running

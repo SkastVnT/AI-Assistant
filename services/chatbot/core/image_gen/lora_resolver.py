@@ -6,7 +6,7 @@ Lets the chatbot turn plain natural-language text into a usable
 Pipeline:
 1. Build a *runtime catalog* by merging the curated `LORA_CATALOG`
    (model_presets) with auto-derived entries from
-   `storage/lora_inventory.json` so all 328 files become reachable
+   `app/storage/lora_inventory.json` so all 328 files become reachable
    via plain-text triggers.
 2. Word-boundary scan of the prompt for every trigger phrase. Avoids
    false positives where short triggers used to substring-match
@@ -17,25 +17,28 @@ Pipeline:
 Side-effect free, dependency-light. Importable from both image-gen
 routes and chat router.
 """
+
 from __future__ import annotations
 
 import json
 import logging
 import re
 import unicodedata
+from collections.abc import Iterable
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Iterable
 
 from config.model_presets import LORA_CATALOG  # type: ignore
+
+try:
+    from core.project_paths import STORAGE_DIR
+except ImportError:  # pragma: no cover - package import fallback
+    from core.project_paths import STORAGE_DIR
 
 from .providers.base import LoraSpec
 
 logger = logging.getLogger(__name__)
 
-_INVENTORY_PATH = (
-    Path(__file__).resolve().parents[4] / "storage" / "lora_inventory.json"
-)
+_INVENTORY_PATH = STORAGE_DIR / "lora_inventory.json"
 
 # Trigger phrases shorter than this are dropped entirely.
 _MIN_TRIGGER_LEN = 4
@@ -44,12 +47,48 @@ _MAX_AUTO_LORAS = 4
 
 # Tokens that are noise-only when extracted from a filename.
 _FILENAME_NOISE = {
-    "lora", "lycoris", "lyco", "loha", "ckpt", "model", "merge",
-    "il", "ilxl", "illustrious", "illust", "sdxl", "sd15", "sd",
-    "xl", "pony", "pdxl", "ponyxl", "anime", "style", "test", "final",
-    "epoch", "epochs", "rank", "alpha", "att", "attn", "noxattn",
-    "fp16", "fp32", "bf16", "safetensors", "fix", "fixed",
-    "by", "for", "the", "and", "with", "from", "copy",
+    "lora",
+    "lycoris",
+    "lyco",
+    "loha",
+    "ckpt",
+    "model",
+    "merge",
+    "il",
+    "ilxl",
+    "illustrious",
+    "illust",
+    "sdxl",
+    "sd15",
+    "sd",
+    "xl",
+    "pony",
+    "pdxl",
+    "ponyxl",
+    "anime",
+    "style",
+    "test",
+    "final",
+    "epoch",
+    "epochs",
+    "rank",
+    "alpha",
+    "att",
+    "attn",
+    "noxattn",
+    "fp16",
+    "fp32",
+    "bf16",
+    "safetensors",
+    "fix",
+    "fixed",
+    "by",
+    "for",
+    "the",
+    "and",
+    "with",
+    "from",
+    "copy",
 }
 # Patterns dropped from filenames before tokenization.
 _VERSION_RE = re.compile(
@@ -96,7 +135,11 @@ def _derive_triggers_from_filename(fname: str) -> list[str]:
     if len(full) >= _MIN_TRIGGER_LEN and full not in _FILENAME_NOISE:
         triggers.append(full)
     for t in tokens:
-        if len(t) >= _MIN_TRIGGER_LEN and t not in _FILENAME_NOISE and t not in triggers:
+        if (
+            len(t) >= _MIN_TRIGGER_LEN
+            and t not in _FILENAME_NOISE
+            and t not in triggers
+        ):
             triggers.append(t)
     return triggers[:4]
 
@@ -117,9 +160,23 @@ def _detect_base_from_filename(fname: str) -> str:
 def _detect_category_from_filename(fname: str) -> str:
     f = fname.lower()
     nsfw_hints = (
-        "nsfw", "xray", "x-ray", "x_ray", "cervix", "cameltoe", "cum",
-        "speculum", "vibrator", "spread", "anal", "pussy", "nude",
-        "creampie", "tape_gape", "tapegape", "armpit_hair",
+        "nsfw",
+        "xray",
+        "x-ray",
+        "x_ray",
+        "cervix",
+        "cameltoe",
+        "cum",
+        "speculum",
+        "vibrator",
+        "spread",
+        "anal",
+        "pussy",
+        "nude",
+        "creampie",
+        "tape_gape",
+        "tapegape",
+        "armpit_hair",
     )
     if any(h in f for h in nsfw_hints):
         return "nsfw"
@@ -142,7 +199,7 @@ def _load_inventory() -> dict:
 def _build_runtime_catalog() -> dict[str, dict]:
     out: dict[str, dict] = {}
 
-    # 1) Curated catalog — also expand triggers with diacritic-stripped variants.
+    # 1) Curated catalog â€” also expand triggers with diacritic-stripped variants.
     for key, entry in LORA_CATALOG.items():
         triggers = list(entry.get("trigger") or [])
         extra = []
@@ -181,7 +238,9 @@ def _build_runtime_catalog() -> dict[str, dict]:
 
     logger.info(
         "[lora_resolver] runtime catalog built: %d curated + %d derived = %d",
-        len(LORA_CATALOG), derived, len(out),
+        len(LORA_CATALOG),
+        derived,
+        len(out),
     )
     return out
 
@@ -195,11 +254,13 @@ def _get_catalog(force_reload: bool = False) -> dict[str, dict]:
     return _RUNTIME_CATALOG
 
 
-def _compile_patterns(catalog: dict[str, dict]) -> list[tuple[re.Pattern, str, str, dict]]:
+def _compile_patterns(
+    catalog: dict[str, dict],
+) -> list[tuple[re.Pattern, str, str, dict]]:
     """Compile word-boundary anchored patterns per trigger.
 
     Patterns match against ASCII-folded text so 'huohuo' fires on
-    'hỏa hỏa' too. Boundaries use lookarounds instead of `\\b` to
+    'há»a há»a' too. Boundaries use lookarounds instead of `\\b` to
     keep behavior identical for ASCII and non-ASCII contexts.
     """
     patterns: list[tuple[re.Pattern, str, str, dict]] = []
@@ -224,7 +285,9 @@ def _compile_patterns(catalog: dict[str, dict]) -> list[tuple[re.Pattern, str, s
     return patterns
 
 
-def _get_patterns(force_reload: bool = False) -> list[tuple[re.Pattern, str, str, dict]]:
+def _get_patterns(
+    force_reload: bool = False,
+) -> list[tuple[re.Pattern, str, str, dict]]:
     global _COMPILED_PATTERNS
     if force_reload or _COMPILED_PATTERNS is None:
         _COMPILED_PATTERNS = _compile_patterns(_get_catalog(force_reload=force_reload))

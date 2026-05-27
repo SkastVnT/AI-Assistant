@@ -1203,7 +1203,9 @@ class ResolutionBucket(io.ComfyNode):
 
         # Convert buckets to output format
         output_latents = []  # list[{"samples": tensor}] where tensor is (Bi, ..., H, W)
-        output_conditions = []  # list[list[cond]] where each inner list has Bi conditions
+        output_conditions = (
+            []
+        )  # list[list[cond]] where each inner list has Bi conditions
 
         for (h, w), bucket_data in buckets.items():
             # Stack latents into batch: list of (..., H, W) -> (Bi, ..., H, W)
@@ -1217,7 +1219,9 @@ class ResolutionBucket(io.ComfyNode):
                 f"Resolution bucket ({h}x{w}): {len(bucket_data['latents'])} samples"
             )
 
-        logging.info(f"Created {len(buckets)} resolution buckets from {len(flat_latents)} samples")
+        logging.info(
+            f"Created {len(buckets)} resolution buckets from {len(flat_latents)} samples"
+        )
         return io.NodeOutput(output_latents, output_conditions)
 
 

@@ -7,6 +7,7 @@ Components:
     - chunking:     Legacy flat splitter (``split_text``).
     - pipeline:     Orchestrates chunk → embed → store.
 """
+
 from .chunking import split_text
 from .chunking_pkg import Chunker, RecursiveTextChunker, TextChunk, chunk_pages
 from .parsers import (

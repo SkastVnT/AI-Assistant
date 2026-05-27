@@ -4,26 +4,21 @@ AI-Assistant Service Health Check
 Tests all services and reports their status.
 
 Usage:
-    python scripts/health_check.py
+    python app/scripts/health_check.py
 """
 
-import os
-import sys
-import time
-import socket
 import logging
-import subprocess
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+import socket
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 # Add project root to path
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -31,14 +26,15 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ServiceStatus:
     """Status of a service."""
+
     name: str
     port: int
     status: str  # 'running', 'stopped', 'error', 'import_ok'
     message: str
     import_test: bool = False
-    
 
-def check_port(port: int, host: str = 'localhost', timeout: float = 2.0) -> bool:
+
+def check_port(port: int, host: str = "localhost", timeout: float = 2.0) -> bool:
     """Check if a port is listening."""
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -50,10 +46,11 @@ def check_port(port: int, host: str = 'localhost', timeout: float = 2.0) -> bool
         return False
 
 
-def test_import(module_path: str) -> Tuple[bool, str]:
+def test_import(module_path: str) -> tuple[bool, str]:
     """Test if a module can be imported."""
     try:
         import importlib
+
         importlib.import_module(module_path)
         return True, "Import OK"
     except Exception as e:
@@ -64,162 +61,168 @@ def check_chatbot() -> ServiceStatus:
     """Check ChatBot service."""
     name = "ChatBot"
     port = 5000
-    
+
     # Test import (using the fixed run.py approach)
     try:
-        chatbot_dir = PROJECT_ROOT / 'services' / 'chatbot'
+        chatbot_dir = PROJECT_ROOT / "services" / "chatbot"
         sys.path.insert(0, str(chatbot_dir))
-        
-        import importlib.util
-        app_py = chatbot_dir / 'app.py'
-        
+
+        app_py = chatbot_dir / "app.py"
+
         # Just check syntax
         import ast
-        with open(app_py, 'r', encoding='utf-8') as f:
+
+        with open(app_py, encoding="utf-8") as f:
             ast.parse(f.read())
-        
+
         import_ok = True
         msg = "Syntax OK"
     except Exception as e:
         import_ok = False
         msg = str(e)[:100]
-    
+
     if check_port(port):
-        return ServiceStatus(name, port, 'running', f"Running on port {port}", import_ok)
-    
+        return ServiceStatus(
+            name, port, "running", f"Running on port {port}", import_ok
+        )
+
     if import_ok:
-        return ServiceStatus(name, port, 'import_ok', msg, import_ok)
+        return ServiceStatus(name, port, "import_ok", msg, import_ok)
     else:
-        return ServiceStatus(name, port, 'error', msg, import_ok)
+        return ServiceStatus(name, port, "error", msg, import_ok)
 
 
 def check_edit_image() -> ServiceStatus:
     """Check Edit Image service."""
     name = "Edit Image"
     port = 8100
-    
+
     try:
-        edit_dir = PROJECT_ROOT / 'services' / 'edit-image'
+        edit_dir = PROJECT_ROOT / "services" / "edit-image"
         sys.path.insert(0, str(edit_dir))
-        
-        from app.core import Settings, get_settings
+
         import_ok = True
         msg = "Core config import OK"
     except Exception as e:
         import_ok = False
         msg = str(e)[:100]
-    
+
     if check_port(port):
-        return ServiceStatus(name, port, 'running', f"Running on port {port}", import_ok)
-    
+        return ServiceStatus(
+            name, port, "running", f"Running on port {port}", import_ok
+        )
+
     if import_ok:
-        return ServiceStatus(name, port, 'import_ok', msg, import_ok)
+        return ServiceStatus(name, port, "import_ok", msg, import_ok)
     else:
-        return ServiceStatus(name, port, 'error', msg, import_ok)
+        return ServiceStatus(name, port, "error", msg, import_ok)
 
 
 def check_mcp_server() -> ServiceStatus:
     """Check MCP Server service."""
     name = "MCP Server"
     port = 0  # MCP uses stdio
-    
+
     try:
-        mcp_dir = PROJECT_ROOT / 'services' / 'mcp-server'
+        mcp_dir = PROJECT_ROOT / "services" / "mcp-server"
         sys.path.insert(0, str(mcp_dir))
-        
-        import mcp
-        from server import mcp as mcp_server
+
         import_ok = True
         msg = "MCP library and server import OK"
     except Exception as e:
         import_ok = False
         msg = str(e)[:100]
-    
+
     if import_ok:
-        return ServiceStatus(name, port, 'import_ok', msg, import_ok)
+        return ServiceStatus(name, port, "import_ok", msg, import_ok)
     else:
-        return ServiceStatus(name, port, 'error', msg, import_ok)
+        return ServiceStatus(name, port, "error", msg, import_ok)
 
 
 def check_stable_diffusion() -> ServiceStatus:
     """Check Stable Diffusion service."""
     name = "Stable Diffusion"
     port = 7861
-    
+
     try:
         import torch
+
         import_ok = torch.cuda.is_available()
         msg = f"PyTorch OK, CUDA: {import_ok}"
     except Exception as e:
         import_ok = False
         msg = str(e)[:100]
-    
+
     if check_port(port):
-        return ServiceStatus(name, port, 'running', f"Running on port {port}", import_ok)
-    
+        return ServiceStatus(
+            name, port, "running", f"Running on port {port}", import_ok
+        )
+
     if import_ok:
-        return ServiceStatus(name, port, 'import_ok', msg, import_ok)
+        return ServiceStatus(name, port, "import_ok", msg, import_ok)
     else:
-        return ServiceStatus(name, port, 'error', msg, import_ok)
+        return ServiceStatus(name, port, "error", msg, import_ok)
 
 
-def print_report(services: List[ServiceStatus]) -> None:
+def print_report(services: list[ServiceStatus]) -> None:
     """Print service status report."""
     print("\n" + "=" * 70)
-    print("🏥 AI-ASSISTANT SERVICE HEALTH CHECK REPORT")
+    print("ðŸ¥ AI-ASSISTANT SERVICE HEALTH CHECK REPORT")
     print("=" * 70 + "\n")
-    
+
     # Group by status
-    running = [s for s in services if s.status == 'running']
-    ready = [s for s in services if s.status == 'import_ok']
-    failed = [s for s in services if s.status == 'error']
-    
+    running = [s for s in services if s.status == "running"]
+    ready = [s for s in services if s.status == "import_ok"]
+    failed = [s for s in services if s.status == "error"]
+
     # Running services
     if running:
-        print("🟢 RUNNING SERVICES:")
+        print("ðŸŸ¢ RUNNING SERVICES:")
         for s in running:
-            print(f"   ✅ {s.name:25s} Port {s.port:5d} - {s.message}")
+            print(f"   âœ… {s.name:25s} Port {s.port:5d} - {s.message}")
         print()
-    
+
     # Ready to start
     if ready:
-        print("🟡 READY TO START (imports OK):")
+        print("ðŸŸ¡ READY TO START (imports OK):")
         for s in ready:
             port_str = f"Port {s.port:5d}" if s.port > 0 else "stdio    "
-            print(f"   ⏸️  {s.name:25s} {port_str} - {s.message}")
+            print(f"   â¸ï¸  {s.name:25s} {port_str} - {s.message}")
         print()
-    
+
     # Failed
     if failed:
-        print("🔴 FAILED SERVICES:")
+        print("ðŸ”´ FAILED SERVICES:")
         for s in failed:
-            print(f"   ❌ {s.name:25s} - {s.message}")
+            print(f"   âŒ {s.name:25s} - {s.message}")
         print()
-    
+
     # Summary
     total = len(services)
     print("=" * 70)
-    print(f"SUMMARY: {len(running)}/{total} running, {len(ready)}/{total} ready, {len(failed)}/{total} failed")
+    print(
+        f"SUMMARY: {len(running)}/{total} running, {len(ready)}/{total} ready, {len(failed)}/{total} failed"
+    )
     print("=" * 70 + "\n")
 
 
 def main():
     """Run all health checks."""
     logger.info("Starting AI-Assistant health check...")
-    
+
     services = [
         check_chatbot(),
         check_edit_image(),
         check_mcp_server(),
         check_stable_diffusion(),
     ]
-    
+
     print_report(services)
-    
+
     # Return exit code
-    failed = [s for s in services if s.status == 'error']
+    failed = [s for s in services if s.status == "error"]
     return len(failed)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

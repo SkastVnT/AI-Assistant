@@ -18,8 +18,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import pytest
-
 # ── Ensure project root is importable ────────────────────────────────
 _root = Path(__file__).resolve().parents[3]  # AI-Assistant/
 sys.path.insert(0, str(_root))
@@ -37,10 +35,10 @@ from image_pipeline.anime_pipeline.schemas import (  # noqa: E402
     VisionAnalysis,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════
 # 1. Exact preposition parsing
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestExplicitPrepositionPatterns:
     """The four spec patterns must parse to explicit_pattern."""
@@ -88,6 +86,7 @@ class TestExplicitPrepositionPatterns:
 # 2. Alias normalization (HSR, ZZZ, GI, HI3)
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestSeriesAliases:
     def test_hsr_alias(self):
         r = parse_character_identity("Kafka HSR")
@@ -115,6 +114,7 @@ class TestSeriesAliases:
 # ═══════════════════════════════════════════════════════════════════════
 # 3. Ambiguous / homonym disambiguation
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestHomonymDisambiguation:
     def test_unqualified_name_no_series(self):
@@ -164,6 +164,7 @@ class TestHomonymDisambiguation:
 # 4. Solo-intent enforcement
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestSoloIntent:
     def test_solo_keyword(self):
         r = parse_character_identity("Hu Tao solo")
@@ -203,6 +204,7 @@ class TestSoloIntent:
 # 5. Collision-block content
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestCollisionBlocks:
     def test_kafka_off_domain_suppressors(self):
         r = parse_character_identity("Kafka HSR")
@@ -227,6 +229,7 @@ class TestCollisionBlocks:
 # 6. Backward-compat: detect_character still works
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestDetectCharacterBackwardCompat:
     def test_detect_character_returns_tuple(self):
         result = detect_character("Raiden Shogun trong Genshin Impact")
@@ -243,6 +246,7 @@ class TestDetectCharacterBackwardCompat:
 # 7. Orchestrator identity-override helper
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestIdentityOverrideInjection:
     """Verify the orchestrator's ``_apply_identity_overrides`` hook wires
     solo_intent and collision_blocks into vision_analysis.
@@ -254,6 +258,7 @@ class TestIdentityOverrideInjection:
         from image_pipeline.anime_pipeline.orchestrator import (
             AnimePipelineOrchestrator,
         )
+
         return AnimePipelineOrchestrator()
 
     def test_solo_injects_solo_tag(self):
@@ -302,6 +307,7 @@ class TestIdentityOverrideInjection:
 # ═══════════════════════════════════════════════════════════════════════
 # 8. AnimePipelineJob new fields
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestJobIdentityFields:
     def test_default_identity_fields_empty(self):

@@ -23,7 +23,7 @@ set "PROJECT_ROOT=%~dp0..\.."
 cd /d "%PROJECT_ROOT%"
 
 REM Setup virtual environment and dependencies
-call scripts\setup-venv.bat
+call app\scripts\setup-venv.bat
 if errorlevel 1 (
     echo.
     echo [ERROR] Failed to setup environment

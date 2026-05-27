@@ -13,9 +13,8 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 import httpx
+import pytest
 
 pytestmark = pytest.mark.image
 
@@ -29,11 +28,15 @@ sys.path.insert(0, str(_root / "services" / "chatbot"))
 # Schema tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestAnimePipelineSchemas:
     """Test dataclass constructors and serialisation."""
 
     def test_job_creation_defaults(self):
-        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob, AnimePipelineStatus
+        from image_pipeline.anime_pipeline.schemas import (
+            AnimePipelineJob,
+            AnimePipelineStatus,
+        )
 
         job = AnimePipelineJob(user_prompt="anime girl in sakura garden")
         assert job.user_prompt == "anime girl in sakura garden"
@@ -63,7 +66,9 @@ class TestAnimePipelineSchemas:
         from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
 
         job = AnimePipelineJob(user_prompt="test")
-        job.add_intermediate("composition_pass", "base64data", checkpoint="animagine-xl-4.0")
+        job.add_intermediate(
+            "composition_pass", "base64data", checkpoint="animagine-xl-4.0"
+        )
         assert len(job.intermediates) == 1
         assert job.intermediates[0].stage == "composition_pass"
         assert "animagine-xl-4.0" in job.models_used
@@ -122,8 +127,11 @@ class TestPassConfig:
             pass_name="composition",
             model_slot="base",
             checkpoint="animagine-xl-4.0-opt.safetensors",
-            width=832, height=1216,
-            steps=28, cfg=5.0, denoise=1.0,
+            width=832,
+            height=1216,
+            steps=28,
+            cfg=5.0,
+            denoise=1.0,
             positive_prompt="masterpiece, 1girl",
             negative_prompt="low quality",
         )
@@ -175,7 +183,11 @@ class TestLayerPlan:
     """Test LayerPlan with passes[] array, validation, and backward compat."""
 
     def _make_plan(self):
-        from image_pipeline.anime_pipeline.schemas import LayerPlan, PassConfig, ControlInput
+        from image_pipeline.anime_pipeline.schemas import (
+            ControlInput,
+            LayerPlan,
+            PassConfig,
+        )
 
         return LayerPlan(
             scene_summary="Girl in cherry blossoms",
@@ -192,7 +204,11 @@ class TestLayerPlan:
                     pass_name="composition",
                     model_slot="base",
                     checkpoint="animagine-xl-4.0.safetensors",
-                    width=832, height=1216, steps=28, cfg=5.0, denoise=1.0,
+                    width=832,
+                    height=1216,
+                    steps=28,
+                    cfg=5.0,
+                    denoise=1.0,
                     positive_prompt="masterpiece, 1girl",
                     negative_prompt="low quality",
                 ),
@@ -200,13 +216,21 @@ class TestLayerPlan:
                     pass_name="structure_lock",
                     model_slot="preprocessor",
                     checkpoint="",
-                    width=832, height=1216, steps=0, cfg=0, denoise=0,
+                    width=832,
+                    height=1216,
+                    steps=0,
+                    cfg=0,
+                    denoise=0,
                 ),
                 PassConfig(
                     pass_name="cleanup",
                     model_slot="cleanup",
                     checkpoint="animagine-xl-4.0.safetensors",
-                    width=832, height=1216, steps=24, cfg=5.5, denoise=0.35,
+                    width=832,
+                    height=1216,
+                    steps=24,
+                    cfg=5.5,
+                    denoise=0.35,
                     positive_prompt="masterpiece, 1girl",
                     negative_prompt="low quality",
                     control_inputs=[
@@ -217,7 +241,11 @@ class TestLayerPlan:
                     pass_name="beauty",
                     model_slot="final",
                     checkpoint="noobai-xl-1.1.safetensors",
-                    width=832, height=1216, steps=30, cfg=5.0, denoise=0.45,
+                    width=832,
+                    height=1216,
+                    steps=30,
+                    cfg=5.0,
+                    denoise=0.45,
                     positive_prompt="masterpiece, 1girl",
                     negative_prompt="low quality",
                 ),
@@ -225,7 +253,11 @@ class TestLayerPlan:
                     pass_name="upscale",
                     model_slot="upscaler",
                     checkpoint="RealESRGAN_x4plus_anime_6B.pth",
-                    width=1664, height=2432, steps=0, cfg=0, denoise=0,
+                    width=1664,
+                    height=2432,
+                    steps=0,
+                    cfg=0,
+                    denoise=0,
                 ),
             ],
         )
@@ -238,9 +270,13 @@ class TestLayerPlan:
     def test_validate_missing_scene_summary(self):
         from image_pipeline.anime_pipeline.schemas import LayerPlan, PassConfig
 
-        plan = LayerPlan(passes=[
-            PassConfig(pass_name="composition", checkpoint="x.safetensors", steps=20),
-        ])
+        plan = LayerPlan(
+            passes=[
+                PassConfig(
+                    pass_name="composition", checkpoint="x.safetensors", steps=20
+                ),
+            ]
+        )
         errors = plan.validate()
         assert "scene_summary is empty" in errors
 
@@ -249,7 +285,9 @@ class TestLayerPlan:
 
         plan = LayerPlan(
             scene_summary="test",
-            passes=[PassConfig(pass_name="beauty", checkpoint="x.safetensors", steps=20)],
+            passes=[
+                PassConfig(pass_name="beauty", checkpoint="x.safetensors", steps=20)
+            ],
         )
         errors = plan.validate()
         assert "missing composition pass" in errors
@@ -285,7 +323,13 @@ class TestLayerPlan:
         """Verify passes are in the expected order."""
         plan = self._make_plan()
         names = [p.pass_name for p in plan.passes]
-        assert names == ["composition", "structure_lock", "cleanup", "beauty", "upscale"]
+        assert names == [
+            "composition",
+            "structure_lock",
+            "cleanup",
+            "beauty",
+            "upscale",
+        ]
 
     def test_to_dict(self):
         plan = self._make_plan()
@@ -302,14 +346,33 @@ class TestCritiqueReport:
         from image_pipeline.anime_pipeline.schemas import CritiqueReport
 
         cr = CritiqueReport(
-            anatomy_score=8, face_score=9, eye_consistency_score=8,
-            hands_score=7, clothing_score=8,
-            composition_score=8, color_score=8, style_score=8,
-            background_score=7, accessories_score=7, pose_score=8,
+            anatomy_score=8,
+            face_score=9,
+            eye_consistency_score=8,
+            hands_score=7,
+            clothing_score=8,
+            composition_score=8,
+            color_score=8,
+            style_score=8,
+            background_score=7,
+            accessories_score=7,
+            pose_score=8,
         )
         # Weighted: 8*1.0 + 9*1.5 + 8*1.2 + 7*1.0 + 8*0.8 + 8*1.0 + 8*0.8 + 8*1.0 + 7*0.7 + 7*0.5 + 8*0.9
         total_weight = 1.0 + 1.5 + 1.2 + 1.0 + 0.8 + 1.0 + 0.8 + 1.0 + 0.7 + 0.5 + 0.9
-        weighted_sum = 8*1.0 + 9*1.5 + 8*1.2 + 7*1.0 + 8*0.8 + 8*1.0 + 8*0.8 + 8*1.0 + 7*0.7 + 7*0.5 + 8*0.9
+        weighted_sum = (
+            8 * 1.0
+            + 9 * 1.5
+            + 8 * 1.2
+            + 7 * 1.0
+            + 8 * 0.8
+            + 8 * 1.0
+            + 8 * 0.8
+            + 8 * 1.0
+            + 7 * 0.7
+            + 7 * 0.5
+            + 8 * 0.9
+        )
         expected = weighted_sum / total_weight
         assert abs(cr.overall_score - expected) < 0.01
 
@@ -317,10 +380,17 @@ class TestCritiqueReport:
         from image_pipeline.anime_pipeline.schemas import CritiqueReport
 
         cr = CritiqueReport(
-            anatomy_score=8, face_score=8, eye_consistency_score=8,
-            hands_score=8, clothing_score=8,
-            composition_score=8, color_score=8, style_score=8,
-            background_score=8, accessories_score=8, pose_score=8,
+            anatomy_score=8,
+            face_score=8,
+            eye_consistency_score=8,
+            hands_score=8,
+            clothing_score=8,
+            composition_score=8,
+            color_score=8,
+            style_score=8,
+            background_score=8,
+            accessories_score=8,
+            pose_score=8,
         )
         assert cr.overall_score >= 7.0
         assert cr.passed is True
@@ -329,10 +399,17 @@ class TestCritiqueReport:
         from image_pipeline.anime_pipeline.schemas import CritiqueReport
 
         cr = CritiqueReport(
-            anatomy_score=9, face_score=9, eye_consistency_score=9,
-            hands_score=9, clothing_score=9,
-            composition_score=9, color_score=9, style_score=9,
-            background_score=9, accessories_score=9, pose_score=9,
+            anatomy_score=9,
+            face_score=9,
+            eye_consistency_score=9,
+            hands_score=9,
+            clothing_score=9,
+            composition_score=9,
+            color_score=9,
+            style_score=9,
+            background_score=9,
+            accessories_score=9,
+            pose_score=9,
             retry_recommendation=True,
         )
         assert cr.passed is False  # despite high scores
@@ -341,10 +418,17 @@ class TestCritiqueReport:
         from image_pipeline.anime_pipeline.schemas import CritiqueReport
 
         cr = CritiqueReport(
-            anatomy_score=3, face_score=3, eye_consistency_score=3,
-            hands_score=3, clothing_score=3,
-            composition_score=3, color_score=3, style_score=3,
-            background_score=3, accessories_score=3, pose_score=3,
+            anatomy_score=3,
+            face_score=3,
+            eye_consistency_score=3,
+            hands_score=3,
+            clothing_score=3,
+            composition_score=3,
+            color_score=3,
+            style_score=3,
+            background_score=3,
+            accessories_score=3,
+            pose_score=3,
         )
         assert cr.overall_score < 7.0
         assert cr.passed is False
@@ -361,7 +445,7 @@ class TestCritiqueReport:
         assert "bad arm" in cr.all_issues
 
     def test_backward_compat_alias(self):
-        from image_pipeline.anime_pipeline.schemas import CritiqueResult, CritiqueReport
+        from image_pipeline.anime_pipeline.schemas import CritiqueReport, CritiqueResult
 
         assert CritiqueResult is CritiqueReport
 
@@ -379,6 +463,7 @@ class TestCritiqueReport:
 # Config tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestAnimePipelineConfig:
     """Test config loading and env overrides."""
 
@@ -394,7 +479,9 @@ class TestAnimePipelineConfig:
     def test_env_override_composition_model(self):
         from image_pipeline.anime_pipeline.config import load_config
 
-        with patch.dict(os.environ, {"ANIME_PIPELINE_COMPOSITION_MODEL": "test-model-v1"}):
+        with patch.dict(
+            os.environ, {"ANIME_PIPELINE_COMPOSITION_MODEL": "test-model-v1"}
+        ):
             config = load_config()
             assert config.composition_model.checkpoint == "test-model-v1"
 
@@ -420,6 +507,7 @@ class TestAnimePipelineConfig:
 # Orchestrator tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestAnimePipelineOrchestrator:
     """Test orchestrator flow control."""
 
@@ -427,11 +515,13 @@ class TestAnimePipelineOrchestrator:
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("IMAGE_PIPELINE_V2", None)
             from image_pipeline.anime_pipeline.orchestrator import _pipeline_enabled
+
             assert not _pipeline_enabled()
 
     def test_enabled_flag_true(self):
         with patch.dict(os.environ, {"IMAGE_PIPELINE_V2": "true"}):
             from image_pipeline.anime_pipeline.orchestrator import _pipeline_enabled
+
             assert _pipeline_enabled()
 
     def test_orchestrator_creates_all_agents(self):
@@ -454,7 +544,15 @@ class TestAnimePipelineOrchestrator:
         orch = AnimePipelineOrchestrator()
         job = AnimePipelineJob(user_prompt="test prompt")
 
-        for agent_attr in ("_vision", "_planner", "_composition", "_structure", "_beauty", "_critique", "_upscale"):
+        for agent_attr in (
+            "_vision",
+            "_planner",
+            "_composition",
+            "_structure",
+            "_beauty",
+            "_critique",
+            "_upscale",
+        ):
             mock_agent = MagicMock()
             mock_agent.execute = MagicMock(return_value=job)
             setattr(orch, agent_attr, mock_agent)
@@ -471,7 +569,15 @@ class TestAnimePipelineOrchestrator:
         orch = AnimePipelineOrchestrator()
         job = AnimePipelineJob(user_prompt="test prompt")
 
-        for agent_attr in ("_vision", "_planner", "_composition", "_structure", "_beauty", "_critique", "_upscale"):
+        for agent_attr in (
+            "_vision",
+            "_planner",
+            "_composition",
+            "_structure",
+            "_beauty",
+            "_critique",
+            "_upscale",
+        ):
             mock_agent = MagicMock()
             mock_agent.execute = MagicMock(return_value=job)
             setattr(orch, agent_attr, mock_agent)
@@ -501,13 +607,14 @@ class TestAnimePipelineOrchestrator:
 # Agent contract tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestLayerPlannerAgent:
     """Test the deterministic layer planner."""
 
     def test_execute_creates_layer_plan_with_passes(self):
         from image_pipeline.anime_pipeline.agents.layer_planner import LayerPlannerAgent
-        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
         from image_pipeline.anime_pipeline.config import load_config
+        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
 
         config = load_config()
         planner = LayerPlannerAgent(config)
@@ -524,8 +631,8 @@ class TestLayerPlannerAgent:
 
     def test_pass_sequencing(self):
         from image_pipeline.anime_pipeline.agents.layer_planner import LayerPlannerAgent
-        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
         from image_pipeline.anime_pipeline.config import load_config
+        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
 
         config = load_config()
         planner = LayerPlannerAgent(config)
@@ -539,8 +646,8 @@ class TestLayerPlannerAgent:
 
     def test_fast_quality_skips_upscale(self):
         from image_pipeline.anime_pipeline.agents.layer_planner import LayerPlannerAgent
-        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
         from image_pipeline.anime_pipeline.config import load_config
+        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
 
         config = load_config()
         planner = LayerPlannerAgent(config)
@@ -552,8 +659,8 @@ class TestLayerPlannerAgent:
 
     def test_orientation_detection_portrait(self):
         from image_pipeline.anime_pipeline.agents.layer_planner import LayerPlannerAgent
-        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
         from image_pipeline.anime_pipeline.config import load_config
+        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
 
         planner = LayerPlannerAgent(load_config())
         job = AnimePipelineJob(user_prompt="portrait of anime girl")
@@ -561,8 +668,8 @@ class TestLayerPlannerAgent:
 
     def test_orientation_detection_landscape(self):
         from image_pipeline.anime_pipeline.agents.layer_planner import LayerPlannerAgent
-        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
         from image_pipeline.anime_pipeline.config import load_config
+        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
 
         planner = LayerPlannerAgent(load_config())
         job = AnimePipelineJob(user_prompt="landscape scenery mountains")
@@ -570,8 +677,8 @@ class TestLayerPlannerAgent:
 
     def test_plan_validation_passes(self):
         from image_pipeline.anime_pipeline.agents.layer_planner import LayerPlannerAgent
-        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
         from image_pipeline.anime_pipeline.config import load_config
+        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
 
         planner = LayerPlannerAgent(load_config())
         job = AnimePipelineJob(user_prompt="anime girl with sword")
@@ -584,18 +691,25 @@ class TestLayerPlannerAgent:
 # Workflow builder tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestWorkflowBuilder:
     """Test ComfyUI workflow JSON generation."""
 
     def test_txt2img_has_required_nodes(self):
-        from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
         from image_pipeline.anime_pipeline.schemas import PassConfig
+        from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
 
         wb = WorkflowBuilder()
         pc = PassConfig(
-            pass_name="composition", checkpoint="test.safetensors",
-            width=832, height=1216, steps=28, cfg=5.0, denoise=1.0,
-            positive_prompt="masterpiece", negative_prompt="low quality",
+            pass_name="composition",
+            checkpoint="test.safetensors",
+            width=832,
+            height=1216,
+            steps=28,
+            cfg=5.0,
+            denoise=1.0,
+            positive_prompt="masterpiece",
+            negative_prompt="low quality",
         )
         wf = wb.build_txt2img(pc, seed=42)
 
@@ -607,8 +721,8 @@ class TestWorkflowBuilder:
         assert "SaveImage" in node_types
 
     def test_img2img_has_vae_encode(self):
-        from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
         from image_pipeline.anime_pipeline.schemas import PassConfig
+        from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
 
         wb = WorkflowBuilder()
         pc = PassConfig(pass_name="beauty", checkpoint="test.safetensors", steps=30)
@@ -619,18 +733,29 @@ class TestWorkflowBuilder:
         assert "VAEEncode" in node_types
 
     def test_controlnet_chain(self):
+        from image_pipeline.anime_pipeline.schemas import ControlInput, PassConfig
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
-        from image_pipeline.anime_pipeline.schemas import PassConfig, ControlInput
 
         wb = WorkflowBuilder()
         pc = PassConfig(
-            pass_name="beauty", checkpoint="test.safetensors", steps=30,
-            positive_prompt="test", negative_prompt="bad",
+            pass_name="beauty",
+            checkpoint="test.safetensors",
+            steps=30,
+            positive_prompt="test",
+            negative_prompt="bad",
             control_inputs=[
-                ControlInput(layer_type="lineart", controlnet_model="cn_lineart.safetensors",
-                             strength=0.8, image_b64="fake1"),
-                ControlInput(layer_type="depth", controlnet_model="cn_depth.safetensors",
-                             strength=0.5, image_b64="fake2"),
+                ControlInput(
+                    layer_type="lineart",
+                    controlnet_model="cn_lineart.safetensors",
+                    strength=0.8,
+                    image_b64="fake1",
+                ),
+                ControlInput(
+                    layer_type="depth",
+                    controlnet_model="cn_depth.safetensors",
+                    strength=0.5,
+                    image_b64="fake2",
+                ),
             ],
         )
         wf = wb.build_txt2img(pc, seed=42)
@@ -654,6 +779,7 @@ class TestWorkflowBuilder:
 # Feature flag integration
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestFeatureFlag:
     """Test IMAGE_PIPELINE_V2 feature flag."""
 
@@ -661,18 +787,21 @@ class TestFeatureFlag:
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("IMAGE_PIPELINE_V2", None)
             from core.feature_flags import FeatureFlags
+
             ff = FeatureFlags()
             assert not ff.image_pipeline_v2
 
     def test_flag_enabled_via_env(self):
         with patch.dict(os.environ, {"IMAGE_PIPELINE_V2": "true"}):
             from core.feature_flags import FeatureFlags
+
             ff = FeatureFlags()
             assert ff.image_pipeline_v2
 
     def test_flag_disabled_via_env(self):
         with patch.dict(os.environ, {"IMAGE_PIPELINE_V2": "false"}):
             from core.feature_flags import FeatureFlags
+
             ff = FeatureFlags()
             assert not ff.image_pipeline_v2
 
@@ -680,6 +809,7 @@ class TestFeatureFlag:
 # ═══════════════════════════════════════════════════════════════════════
 # Workflow Serializer tests
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestWorkflowSerializer:
     """Test the workflow metadata wrapper and version helper."""
@@ -712,15 +842,19 @@ class TestWorkflowSerializer:
         assert result["_meta"]["model"] == "animagine"
 
     def test_get_workflow_version(self):
-        from image_pipeline.anime_pipeline.workflow_serializer import get_workflow_version
+        from image_pipeline.anime_pipeline.workflow_serializer import (
+            get_workflow_version,
+        )
 
         v = get_workflow_version()
         assert isinstance(v, str)
         assert "." in v  # semver-like
 
     def test_version_matches_builder(self):
-        from image_pipeline.anime_pipeline.workflow_serializer import get_workflow_version
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+        from image_pipeline.anime_pipeline.workflow_serializer import (
+            get_workflow_version,
+        )
 
         wb = WorkflowBuilder()
         assert wb.version == get_workflow_version()
@@ -729,6 +863,7 @@ class TestWorkflowSerializer:
 # ═══════════════════════════════════════════════════════════════════════
 # ComfyClient integration tests (mocked HTTP)
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestComfyClientIntegration:
     """Integration tests for ComfyClient with mocked ComfyUI responses."""
@@ -761,7 +896,11 @@ class TestComfyClientIntegration:
                     "outputs": {
                         "9": {
                             "images": [
-                                {"filename": "test_00001_.png", "subfolder": "", "type": "output"}
+                                {
+                                    "filename": "test_00001_.png",
+                                    "subfolder": "",
+                                    "type": "output",
+                                }
                             ]
                         }
                     },
@@ -780,7 +919,6 @@ class TestComfyClientIntegration:
 
     def test_submit_workflow_success(self):
         """Full integration test: submit → poll → download, with mocked HTTP."""
-        import httpx as _httpx
         from image_pipeline.anime_pipeline.comfy_client import ComfyClient
 
         prompt_resp, history_resp, view_resp, fake_b64 = self._mock_comfy_success()
@@ -804,7 +942,9 @@ class TestComfyClientIntegration:
             max_retries=0,
         )
 
-        with patch("image_pipeline.anime_pipeline.comfy_client.httpx.Client") as MockClient:
+        with patch(
+            "image_pipeline.anime_pipeline.comfy_client.httpx.Client"
+        ) as MockClient:
             mock_instance = MagicMock()
             mock_instance.__enter__ = MagicMock(return_value=mock_instance)
             mock_instance.__exit__ = MagicMock(return_value=False)
@@ -834,7 +974,6 @@ class TestComfyClientIntegration:
 
     def test_submit_workflow_validation_error(self):
         """ComfyUI rejects invalid workflow with node errors."""
-        import httpx as _httpx
         from image_pipeline.anime_pipeline.comfy_client import ComfyClient
 
         error_resp = httpx.Response(
@@ -850,7 +989,9 @@ class TestComfyClientIntegration:
 
         client = ComfyClient(base_url="http://test:8188", max_retries=0)
 
-        with patch("image_pipeline.anime_pipeline.comfy_client.httpx.Client") as MockClient:
+        with patch(
+            "image_pipeline.anime_pipeline.comfy_client.httpx.Client"
+        ) as MockClient:
             mock_instance = MagicMock()
             mock_instance.__enter__ = MagicMock(return_value=mock_instance)
             mock_instance.__exit__ = MagicMock(return_value=False)
@@ -876,7 +1017,9 @@ class TestComfyClientIntegration:
         attempts = {"n": 0}
 
         client = ComfyClient(
-            base_url="http://test:8188", timeout_s=10, max_retries=2,
+            base_url="http://test:8188",
+            timeout_s=10,
+            max_retries=2,
         )
 
         def mock_post(url, **kwargs):
@@ -892,7 +1035,9 @@ class TestComfyClientIntegration:
                 return view_resp
             return httpx.Response(404, request=httpx.Request("GET", url))
 
-        with patch("image_pipeline.anime_pipeline.comfy_client.httpx.Client") as MockClient:
+        with patch(
+            "image_pipeline.anime_pipeline.comfy_client.httpx.Client"
+        ) as MockClient:
             mock_instance = MagicMock()
             mock_instance.__enter__ = MagicMock(return_value=mock_instance)
             mock_instance.__exit__ = MagicMock(return_value=False)
@@ -917,10 +1062,13 @@ class TestComfyClientIntegration:
         client = ComfyClient(base_url="http://test:8188")
 
         interrupt_resp = httpx.Response(
-            200, request=httpx.Request("POST", "http://test/interrupt"),
+            200,
+            request=httpx.Request("POST", "http://test/interrupt"),
         )
 
-        with patch("image_pipeline.anime_pipeline.comfy_client.httpx.Client") as MockClient:
+        with patch(
+            "image_pipeline.anime_pipeline.comfy_client.httpx.Client"
+        ) as MockClient:
             mock_instance = MagicMock()
             mock_instance.__enter__ = MagicMock(return_value=mock_instance)
             mock_instance.__exit__ = MagicMock(return_value=False)
@@ -943,7 +1091,9 @@ class TestComfyClientIntegration:
             request=httpx.Request("GET", "http://test/system_stats"),
         )
 
-        with patch("image_pipeline.anime_pipeline.comfy_client.httpx.Client") as MockClient:
+        with patch(
+            "image_pipeline.anime_pipeline.comfy_client.httpx.Client"
+        ) as MockClient:
             mock_instance = MagicMock()
             mock_instance.__enter__ = MagicMock(return_value=mock_instance)
             mock_instance.__exit__ = MagicMock(return_value=False)
@@ -958,7 +1108,9 @@ class TestComfyClientIntegration:
 
         client = ComfyClient(base_url="http://test:8188")
 
-        with patch("image_pipeline.anime_pipeline.comfy_client.httpx.Client") as MockClient:
+        with patch(
+            "image_pipeline.anime_pipeline.comfy_client.httpx.Client"
+        ) as MockClient:
             mock_instance = MagicMock()
             mock_instance.__enter__ = MagicMock(return_value=mock_instance)
             mock_instance.__exit__ = MagicMock(return_value=False)
@@ -989,7 +1141,9 @@ class TestComfyClientIntegration:
                 return view_resp
             return httpx.Response(404, request=httpx.Request("GET", url))
 
-        with patch("image_pipeline.anime_pipeline.comfy_client.httpx.Client") as MockClient:
+        with patch(
+            "image_pipeline.anime_pipeline.comfy_client.httpx.Client"
+        ) as MockClient:
             mock_instance = MagicMock()
             mock_instance.__enter__ = MagicMock(return_value=mock_instance)
             mock_instance.__exit__ = MagicMock(return_value=False)
@@ -1038,7 +1192,9 @@ class TestComfyClientIntegration:
                 return view_resp
             return httpx.Response(404, request=httpx.Request("GET", url))
 
-        with patch("image_pipeline.anime_pipeline.comfy_client.httpx.Client") as MockClient:
+        with patch(
+            "image_pipeline.anime_pipeline.comfy_client.httpx.Client"
+        ) as MockClient:
             mock_instance = MagicMock()
             mock_instance.__enter__ = MagicMock(return_value=mock_instance)
             mock_instance.__exit__ = MagicMock(return_value=False)
@@ -1071,7 +1227,9 @@ class TestComfyClientIntegration:
         """ComfyClient reads URL from ANIME_PIPELINE_COMFYUI_URL env."""
         from image_pipeline.anime_pipeline.comfy_client import ComfyClient
 
-        with patch.dict(os.environ, {"ANIME_PIPELINE_COMFYUI_URL": "http://gpu-box:9999"}):
+        with patch.dict(
+            os.environ, {"ANIME_PIPELINE_COMFYUI_URL": "http://gpu-box:9999"}
+        ):
             client = ComfyClient()
             assert client.base_url == "http://gpu-box:9999"
 
@@ -1096,6 +1254,7 @@ class TestComfyClientIntegration:
 # WorkflowBuilder version test
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestWorkflowBuilderVersion:
     """Test workflow builder version field."""
 
@@ -1108,7 +1267,9 @@ class TestWorkflowBuilderVersion:
 
     def test_builder_version_matches_serializer(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
-        from image_pipeline.anime_pipeline.workflow_serializer import get_workflow_version
+        from image_pipeline.anime_pipeline.workflow_serializer import (
+            get_workflow_version,
+        )
 
         assert WorkflowBuilder().version == get_workflow_version()
 
@@ -1117,14 +1278,20 @@ class TestWorkflowBuilderVersion:
 # Vision Service (Phase 3) — full rewrite tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestVisionPrompts:
     """Test prompt templates module."""
 
     def test_templates_registry_has_all_keys(self):
         from image_pipeline.anime_pipeline.vision_prompts import TEMPLATES
 
-        expected = {"caption_short", "caption_rich", "tag_extraction",
-                    "discrepancy", "full_analysis"}
+        expected = {
+            "caption_short",
+            "caption_rich",
+            "tag_extraction",
+            "discrepancy",
+            "full_analysis",
+        }
         assert set(TEMPLATES.keys()) == expected
 
     def test_each_template_has_system_and_builder(self):
@@ -1158,7 +1325,9 @@ class TestVisionPrompts:
     def test_discrepancy_user_builder(self):
         from image_pipeline.anime_pipeline.vision_prompts import discrepancy_user
 
-        msg = discrepancy_user("gen girl", "A girl in park", ["girl"], ["pink"], "standing")
+        msg = discrepancy_user(
+            "gen girl", "A girl in park", ["girl"], ["pink"], "standing"
+        )
         assert "TARGET PLAN" in msg
         assert "girl" in msg
         assert "pink" in msg
@@ -1208,10 +1377,20 @@ class TestDiscrepancyReport:
         report = DiscrepancyReport()
         d = report.to_dict()
         expected_keys = {
-            "match_score", "subject_match", "pose_match", "color_match",
-            "background_match", "missing_elements", "extra_elements",
-            "identity_drift", "style_drift", "prompt_corrections",
-            "control_corrections", "severity", "model_used", "latency_ms",
+            "match_score",
+            "subject_match",
+            "pose_match",
+            "color_match",
+            "background_match",
+            "missing_elements",
+            "extra_elements",
+            "identity_drift",
+            "style_drift",
+            "prompt_corrections",
+            "control_corrections",
+            "severity",
+            "model_used",
+            "latency_ms",
         }
         assert set(d.keys()) == expected_keys
 
@@ -1229,26 +1408,32 @@ class TestVisionServiceCore:
     def _mock_gemini_response(self, data: dict) -> httpx.Response:
         """Build a mock Gemini API response."""
         body = {
-            "candidates": [{
-                "content": {
-                    "parts": [{"text": json.dumps(data)}],
-                },
-            }],
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [{"text": json.dumps(data)}],
+                    },
+                }
+            ],
         }
         return httpx.Response(
-            200, json=body,
+            200,
+            json=body,
             request=httpx.Request("POST", "https://test.example.com"),
         )
 
     def _mock_openai_response(self, data: dict) -> httpx.Response:
         """Build a mock OpenAI API response."""
         body = {
-            "choices": [{
-                "message": {"content": json.dumps(data)},
-            }],
+            "choices": [
+                {
+                    "message": {"content": json.dumps(data)},
+                }
+            ],
         }
         return httpx.Response(
-            200, json=body,
+            200,
+            json=body,
             request=httpx.Request("POST", "https://test.example.com"),
         )
 
@@ -1273,7 +1458,9 @@ class TestVisionServiceCore:
         with patch("httpx.Client") as mock_client:
             mock_client.return_value.__enter__ = lambda s: s
             mock_client.return_value.__exit__ = MagicMock(return_value=False)
-            mock_client.return_value.post.return_value = self._mock_gemini_response(mock_data)
+            mock_client.return_value.post.return_value = self._mock_gemini_response(
+                mock_data
+            )
 
             result = svc.analyze_reference_images(
                 images_b64=["base64imgdata"],
@@ -1286,13 +1473,19 @@ class TestVisionServiceCore:
         assert result.confidence == 0.85
         assert result.latency_ms >= 0
 
-    @patch.dict(os.environ, {
-        "GROK_API_KEY": "", "XAI_API_KEY": "",
-        "STEPFUN_API_KEY": "",
-        "GEMINI_API_KEY": "test-key", "GOOGLE_API_KEY": "",
-        "OPENAI_API_KEY": "",
-        "FLORENCE2_ENDPOINT": "", "JOYCAPTION_ENDPOINT": "",
-    })
+    @patch.dict(
+        os.environ,
+        {
+            "GROK_API_KEY": "",
+            "XAI_API_KEY": "",
+            "STEPFUN_API_KEY": "",
+            "GEMINI_API_KEY": "test-key",
+            "GOOGLE_API_KEY": "",
+            "OPENAI_API_KEY": "",
+            "FLORENCE2_ENDPOINT": "",
+            "JOYCAPTION_ENDPOINT": "",
+        },
+    )
     def test_analyze_reference_images_cache_hit(self):
         svc = self._make_service()
         mock_data = {
@@ -1302,7 +1495,9 @@ class TestVisionServiceCore:
         with patch("httpx.Client") as mock_client:
             mock_client.return_value.__enter__ = lambda s: s
             mock_client.return_value.__exit__ = MagicMock(return_value=False)
-            mock_client.return_value.post.return_value = self._mock_gemini_response(mock_data)
+            mock_client.return_value.post.return_value = self._mock_gemini_response(
+                mock_data
+            )
 
             # First call populates cache
             r1 = svc.analyze_reference_images(["img1"], "prompt A")
@@ -1320,7 +1515,9 @@ class TestVisionServiceCore:
         with patch("httpx.Client") as mock_client:
             mock_client.return_value.__enter__ = lambda s: s
             mock_client.return_value.__exit__ = MagicMock(return_value=False)
-            mock_client.return_value.post.return_value = self._mock_gemini_response(mock_data)
+            mock_client.return_value.post.return_value = self._mock_gemini_response(
+                mock_data
+            )
 
             result = svc.analyze_intermediate_output(
                 image_b64="base64data",
@@ -1331,13 +1528,19 @@ class TestVisionServiceCore:
         assert result.caption_short == "composition output"
         assert result.model_used == "gemini-2.0-flash"
 
-    @patch.dict(os.environ, {
-        "GROK_API_KEY": "", "XAI_API_KEY": "",
-        "STEPFUN_API_KEY": "",
-        "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "",
-        "OPENAI_API_KEY": "",
-        "FLORENCE2_ENDPOINT": "", "JOYCAPTION_ENDPOINT": "",
-    })
+    @patch.dict(
+        os.environ,
+        {
+            "GROK_API_KEY": "",
+            "XAI_API_KEY": "",
+            "STEPFUN_API_KEY": "",
+            "GEMINI_API_KEY": "",
+            "GOOGLE_API_KEY": "",
+            "OPENAI_API_KEY": "",
+            "FLORENCE2_ENDPOINT": "",
+            "JOYCAPTION_ENDPOINT": "",
+        },
+    )
     def test_prompt_only_fallback(self):
         svc = self._make_service()
         # All vision API keys cleared → every provider in vision_model_priority
@@ -1349,13 +1552,19 @@ class TestVisionServiceCore:
         assert result.confidence == 0.3
         assert "anime girl" in result.caption_short
 
-    @patch.dict(os.environ, {
-        "GROK_API_KEY": "", "XAI_API_KEY": "",
-        "STEPFUN_API_KEY": "",
-        "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "",
-        "OPENAI_API_KEY": "",
-        "FLORENCE2_ENDPOINT": "", "JOYCAPTION_ENDPOINT": "",
-    })
+    @patch.dict(
+        os.environ,
+        {
+            "GROK_API_KEY": "",
+            "XAI_API_KEY": "",
+            "STEPFUN_API_KEY": "",
+            "GEMINI_API_KEY": "",
+            "GOOGLE_API_KEY": "",
+            "OPENAI_API_KEY": "",
+            "FLORENCE2_ENDPOINT": "",
+            "JOYCAPTION_ENDPOINT": "",
+        },
+    )
     def test_backward_compat_analyze(self):
         svc = self._make_service()
         result = svc.analyze("test prompt")
@@ -1379,7 +1588,8 @@ class TestVisionServiceCore:
             mock_client.return_value.__enter__ = lambda s: s
             mock_client.return_value.__exit__ = MagicMock(return_value=False)
             mock_client.return_value.post.return_value = httpx.Response(
-                200, json=body,
+                200,
+                json=body,
                 request=httpx.Request("POST", "https://test.example.com"),
             )
 
@@ -1387,21 +1597,29 @@ class TestVisionServiceCore:
 
         assert result.caption_short == "fenced"
 
-    @patch.dict(os.environ, {
-        # Clear NSFW providers so the fallback drops down to OpenAI.
-        "GROK_API_KEY": "", "XAI_API_KEY": "",
-        "STEPFUN_API_KEY": "",
-        "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "",
-        "OPENAI_API_KEY": "test-openai",
-        "FLORENCE2_ENDPOINT": "", "JOYCAPTION_ENDPOINT": "",
-    })
+    @patch.dict(
+        os.environ,
+        {
+            # Clear NSFW providers so the fallback drops down to OpenAI.
+            "GROK_API_KEY": "",
+            "XAI_API_KEY": "",
+            "STEPFUN_API_KEY": "",
+            "GEMINI_API_KEY": "",
+            "GOOGLE_API_KEY": "",
+            "OPENAI_API_KEY": "test-openai",
+            "FLORENCE2_ENDPOINT": "",
+            "JOYCAPTION_ENDPOINT": "",
+        },
+    )
     def test_openai_fallback(self):
         svc = self._make_service()
         mock_data = {"caption_short": "openai result", "subjects": ["girl"]}
         with patch("httpx.Client") as mock_client:
             mock_client.return_value.__enter__ = lambda s: s
             mock_client.return_value.__exit__ = MagicMock(return_value=False)
-            mock_client.return_value.post.return_value = self._mock_openai_response(mock_data)
+            mock_client.return_value.post.return_value = self._mock_openai_response(
+                mock_data
+            )
 
             result = svc.analyze_reference_images(["img"], "prompt")
 
@@ -1429,7 +1647,9 @@ class TestVisionServiceCore:
         with patch("httpx.Client") as mock_client:
             mock_client.return_value.__enter__ = lambda s: s
             mock_client.return_value.__exit__ = MagicMock(return_value=False)
-            mock_client.return_value.post.return_value = self._mock_gemini_response(mock_data)
+            mock_client.return_value.post.return_value = self._mock_gemini_response(
+                mock_data
+            )
 
             result = svc.analyze_reference_images(["img"], "test")
 
@@ -1455,7 +1675,8 @@ class TestVisionServiceFlorence2:
             mock_client.return_value.__enter__ = lambda s: s
             mock_client.return_value.__exit__ = MagicMock(return_value=False)
             mock_client.return_value.post.return_value = httpx.Response(
-                200, json={"result": "an anime girl with blue hair standing"},
+                200,
+                json={"result": "an anime girl with blue hair standing"},
                 request=httpx.Request("POST", "https://test.example.com"),
             )
 
@@ -1464,13 +1685,19 @@ class TestVisionServiceFlorence2:
         assert result.model_used == "florence-2"
         assert "blue hair" in result.caption_short
 
-    @patch.dict(os.environ, {
-        "GROK_API_KEY": "", "XAI_API_KEY": "",
-        "STEPFUN_API_KEY": "",
-        "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "",
-        "OPENAI_API_KEY": "",
-        "FLORENCE2_ENDPOINT": "", "JOYCAPTION_ENDPOINT": "",
-    })
+    @patch.dict(
+        os.environ,
+        {
+            "GROK_API_KEY": "",
+            "XAI_API_KEY": "",
+            "STEPFUN_API_KEY": "",
+            "GEMINI_API_KEY": "",
+            "GOOGLE_API_KEY": "",
+            "OPENAI_API_KEY": "",
+            "FLORENCE2_ENDPOINT": "",
+            "JOYCAPTION_ENDPOINT": "",
+        },
+    )
     def test_florence2_skipped_without_env(self):
         svc = self._make_service()
         # No FLORENCE2_ENDPOINT and no cloud keys → all providers skip →
@@ -1495,7 +1722,8 @@ class TestVisionServiceJoyCaption:
             mock_client.return_value.__enter__ = lambda s: s
             mock_client.return_value.__exit__ = MagicMock(return_value=False)
             mock_client.return_value.post.return_value = httpx.Response(
-                200, json={
+                200,
+                json={
                     "caption": "soft pastel anime illustration of a girl",
                     "tags": ["1girl", "pastel"],
                 },
@@ -1518,7 +1746,7 @@ class TestVisionServiceCompare:
         return VisionService(AnimePipelineConfig())
 
     def test_heuristic_compare_perfect_match(self):
-        from image_pipeline.anime_pipeline.schemas import VisionAnalysis, LayerPlan
+        from image_pipeline.anime_pipeline.schemas import LayerPlan, VisionAnalysis
 
         svc = self._make_service()
         plan = LayerPlan(
@@ -1541,7 +1769,7 @@ class TestVisionServiceCompare:
         assert report.severity in ("none", "minor")
 
     def test_heuristic_compare_mismatch(self):
-        from image_pipeline.anime_pipeline.schemas import VisionAnalysis, LayerPlan
+        from image_pipeline.anime_pipeline.schemas import LayerPlan, VisionAnalysis
 
         svc = self._make_service()
         plan = LayerPlan(
@@ -1565,7 +1793,7 @@ class TestVisionServiceCompare:
         assert report.severity in ("major", "critical")
 
     def test_heuristic_compare_empty_plan(self):
-        from image_pipeline.anime_pipeline.schemas import VisionAnalysis, LayerPlan
+        from image_pipeline.anime_pipeline.schemas import LayerPlan, VisionAnalysis
 
         svc = self._make_service()
         plan = LayerPlan()
@@ -1608,12 +1836,15 @@ class TestVisionServiceCompare:
             mock_client.return_value.__enter__ = lambda s: s
             mock_client.return_value.__exit__ = MagicMock(return_value=False)
             mock_client.return_value.post.return_value = httpx.Response(
-                200, json=body,
+                200,
+                json=body,
                 request=httpx.Request("POST", "https://test.example.com"),
             )
 
             report = svc.compare_target_vs_output(
-                plan, VisionAnalysis(), output_image_b64="img_b64",
+                plan,
+                VisionAnalysis(),
+                output_image_b64="img_b64",
             )
 
         assert report.match_score == 0.8
@@ -1631,7 +1862,7 @@ class TestBuildPromptPatch:
         return VisionService(AnimePipelineConfig())
 
     def test_missing_details_become_emphasis(self):
-        from image_pipeline.anime_pipeline.schemas import VisionAnalysis, LayerPlan
+        from image_pipeline.anime_pipeline.schemas import LayerPlan, VisionAnalysis
 
         svc = self._make_service()
         analysis = VisionAnalysis(
@@ -1647,7 +1878,7 @@ class TestBuildPromptPatch:
         assert any(":1.3" in p for p in patches)
 
     def test_missing_subjects_get_emphasis(self):
-        from image_pipeline.anime_pipeline.schemas import VisionAnalysis, LayerPlan
+        from image_pipeline.anime_pipeline.schemas import LayerPlan, VisionAnalysis
 
         svc = self._make_service()
         analysis = VisionAnalysis(subjects=["girl"])
@@ -1657,7 +1888,7 @@ class TestBuildPromptPatch:
         assert any("cat" in p.lower() for p in patches)
 
     def test_missing_colors_get_scheme(self):
-        from image_pipeline.anime_pipeline.schemas import VisionAnalysis, LayerPlan
+        from image_pipeline.anime_pipeline.schemas import LayerPlan, VisionAnalysis
 
         svc = self._make_service()
         analysis = VisionAnalysis(dominant_colors=["red"])
@@ -1667,7 +1898,7 @@ class TestBuildPromptPatch:
         assert any("blue" in p.lower() for p in patches)
 
     def test_quality_risks_added_to_negative(self):
-        from image_pipeline.anime_pipeline.schemas import VisionAnalysis, LayerPlan
+        from image_pipeline.anime_pipeline.schemas import LayerPlan, VisionAnalysis
 
         svc = self._make_service()
         analysis = VisionAnalysis(quality_risks=["bad hands", "blurry"])
@@ -1678,7 +1909,7 @@ class TestBuildPromptPatch:
         assert any("bad hands" in p for p in patches)
 
     def test_no_patches_when_everything_matches(self):
-        from image_pipeline.anime_pipeline.schemas import VisionAnalysis, LayerPlan
+        from image_pipeline.anime_pipeline.schemas import LayerPlan, VisionAnalysis
 
         svc = self._make_service()
         analysis = VisionAnalysis(
@@ -1722,10 +1953,12 @@ class TestPlannerPresets:
 
     def test_preset_registry_has_four(self):
         from image_pipeline.anime_pipeline.planner_presets import PRESETS
+
         assert len(PRESETS) == 4
 
     def test_list_presets(self):
         from image_pipeline.anime_pipeline.planner_presets import list_presets
+
         names = list_presets()
         assert "anime_quality" in names
         assert "anime_speed" in names
@@ -1734,6 +1967,7 @@ class TestPlannerPresets:
 
     def test_get_preset_known(self):
         from image_pipeline.anime_pipeline.planner_presets import get_preset
+
         p = get_preset("anime_speed")
         assert p.name == "anime_speed"
         assert p.skip_cleanup is True
@@ -1741,11 +1975,13 @@ class TestPlannerPresets:
 
     def test_get_preset_unknown_falls_back(self):
         from image_pipeline.anime_pipeline.planner_presets import get_preset
+
         p = get_preset("nonexistent_preset")
         assert p.name == "anime_quality"
 
     def test_pass_override_defaults(self):
         from image_pipeline.anime_pipeline.planner_presets import PassOverride
+
         o = PassOverride()
         assert o.steps is None
         assert o.cfg is None
@@ -1754,12 +1990,14 @@ class TestPlannerPresets:
 
     def test_anime_quality_preset_values(self):
         from image_pipeline.anime_pipeline.planner_presets import ANIME_QUALITY
+
         assert ANIME_QUALITY.pass_overrides["composition"].steps == 30
         assert ANIME_QUALITY.pass_overrides["beauty"].steps == 28
         assert ANIME_QUALITY.skip_upscale is False
 
     def test_anime_reference_strict_identity(self):
         from image_pipeline.anime_pipeline.planner_presets import ANIME_REFERENCE_STRICT
+
         assert ANIME_REFERENCE_STRICT.identity_emphasis == 1.5
         assert ANIME_REFERENCE_STRICT.reference_weight == 1.5
         beauty = ANIME_REFERENCE_STRICT.pass_overrides["beauty"]
@@ -1767,6 +2005,7 @@ class TestPlannerPresets:
 
     def test_anime_background_heavy_negatives(self):
         from image_pipeline.anime_pipeline.planner_presets import ANIME_BACKGROUND_HEAVY
+
         assert "simple background" in ANIME_BACKGROUND_HEAVY.negative_extra
 
 
@@ -1809,17 +2048,21 @@ class TestMakeLayerPlan:
         from image_pipeline.anime_pipeline.agents.layer_planner import make_layer_plan
 
         plan = make_layer_plan(
-            "forest scenery", preset="anime_background_heavy",
+            "forest scenery",
+            preset="anime_background_heavy",
         )
         comp = plan.get_pass("composition")
-        assert "detailed environment" in comp.positive_prompt.lower() or \
-               "scenic composition" in comp.positive_prompt.lower()
+        assert (
+            "detailed environment" in comp.positive_prompt.lower()
+            or "scenic composition" in comp.positive_prompt.lower()
+        )
 
     def test_background_heavy_negative_extra(self):
         from image_pipeline.anime_pipeline.agents.layer_planner import make_layer_plan
 
         plan = make_layer_plan(
-            "forest scenery", preset="anime_background_heavy",
+            "forest scenery",
+            preset="anime_background_heavy",
         )
         beauty = plan.get_pass("beauty")
         assert "simple background" in beauty.negative_prompt
@@ -1846,7 +2089,8 @@ class TestMakeLayerPlan:
         from image_pipeline.anime_pipeline.agents.layer_planner import make_layer_plan
 
         plan = make_layer_plan(
-            "anime girl", preset="anime_reference_strict",
+            "anime girl",
+            preset="anime_reference_strict",
         )
         beauty = plan.get_pass("beauty")
         # reference_strict beauty denoise is 0.35 (lower than quality's 0.45)
@@ -1856,7 +2100,8 @@ class TestMakeLayerPlan:
         from image_pipeline.anime_pipeline.agents.layer_planner import make_layer_plan
 
         plan = make_layer_plan(
-            "anime girl", quality_hint="fast",
+            "anime girl",
+            quality_hint="fast",
         )
         names = [p.pass_name for p in plan.passes]
         assert "upscale" not in names
@@ -1870,7 +2115,7 @@ class TestMakeLayerPlan:
         assert names[1] == "structure_lock"
         # beauty is always last render pass (before upscale if present)
         beauty_idx = names.index("beauty")
-        for n in names[beauty_idx + 1:]:
+        for n in names[beauty_idx + 1 :]:
             assert n == "upscale"
 
     def test_all_passes_have_expected_output(self):
@@ -1882,6 +2127,7 @@ class TestMakeLayerPlan:
 
     def test_importable_from_package(self):
         from image_pipeline.anime_pipeline import make_layer_plan
+
         assert callable(make_layer_plan)
 
 
@@ -1931,7 +2177,9 @@ class TestLayerPlannerVRAM:
         from image_pipeline.anime_pipeline.agents.layer_planner import make_layer_plan
 
         plan = make_layer_plan(
-            "anime girl", preset="anime_speed", vram_profile="8gb",
+            "anime girl",
+            preset="anime_speed",
+            vram_profile="8gb",
         )
         comp = plan.get_pass("composition")
         # speed preset vram_step_cap=20 and 8gb step_cap=25
@@ -1970,10 +2218,11 @@ class TestLayerPlannerCritique:
 
     def test_critique_via_execute(self):
         from image_pipeline.anime_pipeline.agents.layer_planner import LayerPlannerAgent
-        from image_pipeline.anime_pipeline.schemas import (
-            AnimePipelineJob, CritiqueReport,
-        )
         from image_pipeline.anime_pipeline.config import load_config
+        from image_pipeline.anime_pipeline.schemas import (
+            AnimePipelineJob,
+            CritiqueReport,
+        )
 
         critique = CritiqueReport(
             prompt_patch=["more detail on clothing"],
@@ -2013,7 +2262,8 @@ class TestLayerPlannerOrientation:
 
         # prompt says landscape but hint overrides to portrait
         plan = make_layer_plan(
-            "landscape scenery", orientation_hint="portrait",
+            "landscape scenery",
+            orientation_hint="portrait",
         )
         comp = plan.get_pass("composition")
         assert comp.height >= comp.width
@@ -2045,12 +2295,17 @@ class TestPlannerExports:
 
     def test_planner_presets_importable(self):
         from image_pipeline.anime_pipeline import planner_presets
+
         assert hasattr(planner_presets, "PRESETS")
 
     def test_preset_classes_importable(self):
         from image_pipeline.anime_pipeline import (
-            PlannerPreset, PassOverride, get_preset, list_presets,
+            PassOverride,
+            PlannerPreset,
+            get_preset,
+            list_presets,
         )
+
         assert callable(get_preset)
         assert callable(list_presets)
         assert PlannerPreset is not None
@@ -2058,6 +2313,7 @@ class TestPlannerExports:
 
     def test_make_layer_plan_importable(self):
         from image_pipeline.anime_pipeline import make_layer_plan
+
         assert callable(make_layer_plan)
 
 
@@ -2082,7 +2338,8 @@ class TestLayerPlannerValidation:
         from image_pipeline.anime_pipeline.agents.layer_planner import make_layer_plan
 
         plan = make_layer_plan(
-            "anime girl", preset="anime_reference_strict",
+            "anime girl",
+            preset="anime_reference_strict",
         )
         errors = plan.validate()
         assert errors == [], f"Validation errors: {errors}"
@@ -2091,7 +2348,8 @@ class TestLayerPlannerValidation:
         from image_pipeline.anime_pipeline.agents.layer_planner import make_layer_plan
 
         plan = make_layer_plan(
-            "forest scenery", preset="anime_background_heavy",
+            "forest scenery",
+            preset="anime_background_heavy",
         )
         errors = plan.validate()
         assert errors == [], f"Validation errors: {errors}"
@@ -2102,26 +2360,26 @@ class TestLayerPlannerValidation:
 # ═══════════════════════════════════════════════════════════════════════
 
 
-def _make_composition_pc(**overrides) -> "PassConfig":
+def _make_composition_pc(**overrides) -> PassConfig:
     """Helper to create a PassConfig for composition tests."""
     from image_pipeline.anime_pipeline.schemas import PassConfig
 
-    defaults = dict(
-        pass_name="composition",
-        model_slot="base",
-        checkpoint="animagine-xl-4.0-opt.safetensors",
-        width=832,
-        height=1216,
-        sampler="dpmpp_2m_sde",
-        scheduler="karras",
-        steps=30,
-        cfg=5.0,
-        denoise=1.0,
-        positive_prompt="masterpiece, best quality, 1girl standing in park, full body, anime",
-        negative_prompt="low quality, bad anatomy, blurry",
-        prompt_strategy="broad",
-        expected_output="Structurally sound draft with correct pose and composition",
-    )
+    defaults = {
+        "pass_name": "composition",
+        "model_slot": "base",
+        "checkpoint": "animagine-xl-4.0-opt.safetensors",
+        "width": 832,
+        "height": 1216,
+        "sampler": "dpmpp_2m_sde",
+        "scheduler": "karras",
+        "steps": 30,
+        "cfg": 5.0,
+        "denoise": 1.0,
+        "positive_prompt": "masterpiece, best quality, 1girl standing in park, full body, anime",
+        "negative_prompt": "low quality, bad anatomy, blurry",
+        "prompt_strategy": "broad",
+        "expected_output": "Structurally sound draft with correct pose and composition",
+    }
     defaults.update(overrides)
     return PassConfig(**defaults)
 
@@ -2148,7 +2406,9 @@ class TestCompositionWorkflowTxt2Img:
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
 
         wb = WorkflowBuilder()
-        pc = _make_composition_pc(steps=28, cfg=5.5, sampler="euler_a", scheduler="normal")
+        pc = _make_composition_pc(
+            steps=28, cfg=5.5, sampler="euler_a", scheduler="normal"
+        )
         wf = wb.build_composition(pc, seed=123)
 
         ks = [n for n in wf.values() if n["class_type"] == "KSampler"][0]
@@ -2192,7 +2452,9 @@ class TestCompositionWorkflowTxt2Img:
         pc = _make_composition_pc(checkpoint="my_model.safetensors")
         wf = wb.build_composition(pc, seed=42)
 
-        ckpt = [n for n in wf.values() if n["class_type"] == "CheckpointLoaderSimple"][0]
+        ckpt = [n for n in wf.values() if n["class_type"] == "CheckpointLoaderSimple"][
+            0
+        ]
         assert ckpt["inputs"]["ckpt_name"] == "my_model.safetensors"
 
     def test_save_image_filename_prefix(self):
@@ -2249,7 +2511,7 @@ class TestCompositionWorkflowTxt2Img:
         pc = _make_composition_pc()
         wf = wb.build_composition(pc, seed=42)
 
-        for nid in wf.keys():
+        for nid in wf:
             assert nid.isdigit(), f"Node ID '{nid}' is not a digit string"
 
 
@@ -2322,7 +2584,9 @@ class TestCompositionPromptRules:
     """Test composition prompt refinement rules."""
 
     def test_pose_tags_promoted(self):
-        from image_pipeline.anime_pipeline.agents.composition_pass import refine_composition_prompt
+        from image_pipeline.anime_pipeline.agents.composition_pass import (
+            refine_composition_prompt,
+        )
 
         prompt = "masterpiece, best quality, detailed eyes, 1girl standing, anime"
         result = refine_composition_prompt(prompt)
@@ -2333,7 +2597,9 @@ class TestCompositionPromptRules:
         assert standing_idx < anime_idx
 
     def test_detail_tags_removed(self):
-        from image_pipeline.anime_pipeline.agents.composition_pass import refine_composition_prompt
+        from image_pipeline.anime_pipeline.agents.composition_pass import (
+            refine_composition_prompt,
+        )
 
         prompt = "masterpiece, 1girl, intricate details, detailed fingers, anime"
         result = refine_composition_prompt(prompt)
@@ -2341,7 +2607,9 @@ class TestCompositionPromptRules:
         assert "detailed fingers" not in result
 
     def test_base_content_preserved(self):
-        from image_pipeline.anime_pipeline.agents.composition_pass import refine_composition_prompt
+        from image_pipeline.anime_pipeline.agents.composition_pass import (
+            refine_composition_prompt,
+        )
 
         prompt = "masterpiece, best quality, 1girl, anime, cherry blossoms"
         result = refine_composition_prompt(prompt)
@@ -2350,20 +2618,26 @@ class TestCompositionPromptRules:
         assert "cherry blossoms" in result
 
     def test_face_quality_preserved(self):
-        from image_pipeline.anime_pipeline.agents.composition_pass import refine_composition_prompt
+        from image_pipeline.anime_pipeline.agents.composition_pass import (
+            refine_composition_prompt,
+        )
 
         prompt = "masterpiece, beautiful face, 1girl, best quality"
         result = refine_composition_prompt(prompt)
         assert "beautiful face" in result
 
     def test_empty_prompt_returns_empty(self):
-        from image_pipeline.anime_pipeline.agents.composition_pass import refine_composition_prompt
+        from image_pipeline.anime_pipeline.agents.composition_pass import (
+            refine_composition_prompt,
+        )
 
         result = refine_composition_prompt("")
         assert result == ""
 
     def test_full_body_promoted(self):
-        from image_pipeline.anime_pipeline.agents.composition_pass import refine_composition_prompt
+        from image_pipeline.anime_pipeline.agents.composition_pass import (
+            refine_composition_prompt,
+        )
 
         prompt = "masterpiece, anime, 1girl, full body, detailed hair"
         result = refine_composition_prompt(prompt)
@@ -2376,7 +2650,9 @@ class TestCompositionPassAgent:
     """Test CompositionPassAgent workflow building (no actual ComfyUI)."""
 
     def test_build_workflow_returns_valid_json(self):
-        from image_pipeline.anime_pipeline.agents.composition_pass import CompositionPassAgent
+        from image_pipeline.anime_pipeline.agents.composition_pass import (
+            CompositionPassAgent,
+        )
         from image_pipeline.anime_pipeline.config import load_config
 
         config = load_config()
@@ -2389,7 +2665,9 @@ class TestCompositionPassAgent:
         assert "KSampler" in types
 
     def test_build_workflow_applies_prompt_rules(self):
-        from image_pipeline.anime_pipeline.agents.composition_pass import CompositionPassAgent
+        from image_pipeline.anime_pipeline.agents.composition_pass import (
+            CompositionPassAgent,
+        )
         from image_pipeline.anime_pipeline.config import load_config
 
         config = load_config()
@@ -2407,7 +2685,9 @@ class TestCompositionPassAgent:
                 assert "intricate details" not in text
 
     def test_build_workflow_with_clip_skip(self):
-        from image_pipeline.anime_pipeline.agents.composition_pass import CompositionPassAgent
+        from image_pipeline.anime_pipeline.agents.composition_pass import (
+            CompositionPassAgent,
+        )
         from image_pipeline.anime_pipeline.config import load_config
 
         config = load_config()
@@ -2419,7 +2699,9 @@ class TestCompositionPassAgent:
         assert "CLIPSetLastLayer" in types
 
     def test_build_workflow_img2img(self):
-        from image_pipeline.anime_pipeline.agents.composition_pass import CompositionPassAgent
+        from image_pipeline.anime_pipeline.agents.composition_pass import (
+            CompositionPassAgent,
+        )
         from image_pipeline.anime_pipeline.config import load_config
 
         config = load_config()
@@ -2432,9 +2714,14 @@ class TestCompositionPassAgent:
         assert "VAEEncode" in types
 
     def test_execute_fails_without_plan(self):
-        from image_pipeline.anime_pipeline.agents.composition_pass import CompositionPassAgent
-        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob, AnimePipelineStatus
+        from image_pipeline.anime_pipeline.agents.composition_pass import (
+            CompositionPassAgent,
+        )
         from image_pipeline.anime_pipeline.config import load_config
+        from image_pipeline.anime_pipeline.schemas import (
+            AnimePipelineJob,
+            AnimePipelineStatus,
+        )
 
         config = load_config()
         agent = CompositionPassAgent(config)
@@ -2454,17 +2741,17 @@ def _make_lineart_layer_config(**overrides):
     """Helper to create a StructureLayerConfig for lineart tests."""
     from image_pipeline.anime_pipeline.config import StructureLayerConfig
 
-    defaults = dict(
-        layer_type="lineart_anime",
-        preprocessor="AnimeLineArtPreprocessor",
-        controlnet_model="control_v11p_sd15_lineart_anime",
-        strength=0.85,
-        start_percent=0.0,
-        end_percent=0.8,
-        priority=1,
-        optional=False,
-        enabled=True,
-    )
+    defaults = {
+        "layer_type": "lineart_anime",
+        "preprocessor": "AnimeLineArtPreprocessor",
+        "controlnet_model": "control_v11p_sd15_lineart_anime",
+        "strength": 0.85,
+        "start_percent": 0.0,
+        "end_percent": 0.8,
+        "priority": 1,
+        "optional": False,
+        "enabled": True,
+    }
     defaults.update(overrides)
     return StructureLayerConfig(**defaults)
 
@@ -2473,17 +2760,17 @@ def _make_depth_layer_config(**overrides):
     """Helper to create a StructureLayerConfig for depth tests."""
     from image_pipeline.anime_pipeline.config import StructureLayerConfig
 
-    defaults = dict(
-        layer_type="depth",
-        preprocessor="DepthAnythingV2Preprocessor",
-        controlnet_model="control_v11f1p_sd15_depth",
-        strength=0.55,
-        start_percent=0.0,
-        end_percent=0.6,
-        priority=2,
-        optional=False,
-        enabled=True,
-    )
+    defaults = {
+        "layer_type": "depth",
+        "preprocessor": "DepthAnythingV2Preprocessor",
+        "controlnet_model": "control_v11f1p_sd15_depth",
+        "strength": 0.55,
+        "start_percent": 0.0,
+        "end_percent": 0.6,
+        "priority": 2,
+        "optional": False,
+        "enabled": True,
+    }
     defaults.update(overrides)
     return StructureLayerConfig(**defaults)
 
@@ -2492,17 +2779,17 @@ def _make_canny_layer_config(**overrides):
     """Helper to create a StructureLayerConfig for canny tests."""
     from image_pipeline.anime_pipeline.config import StructureLayerConfig
 
-    defaults = dict(
-        layer_type="canny",
-        preprocessor="CannyEdgePreprocessor",
-        controlnet_model="control_v11p_sd15_canny",
-        strength=0.35,
-        start_percent=0.0,
-        end_percent=0.4,
-        priority=3,
-        optional=True,
-        enabled=False,
-    )
+    defaults = {
+        "layer_type": "canny",
+        "preprocessor": "CannyEdgePreprocessor",
+        "controlnet_model": "control_v11p_sd15_canny",
+        "strength": 0.35,
+        "start_percent": 0.0,
+        "end_percent": 0.4,
+        "priority": 3,
+        "optional": True,
+        "enabled": False,
+    }
     defaults.update(overrides)
     return StructureLayerConfig(**defaults)
 
@@ -2539,7 +2826,9 @@ class TestStructureLockWorkflowLineart:
         lc = _make_lineart_layer_config()
         wf = wb.build_structure_lock_layer("fake_b64", lc)
 
-        proc = [n for n in wf.values() if n["class_type"] == "AnimeLineArtPreprocessor"][0]
+        proc = [
+            n for n in wf.values() if n["class_type"] == "AnimeLineArtPreprocessor"
+        ][0]
         assert proc["inputs"]["resolution"] == 1024
 
     def test_save_filename_has_layer_type(self):
@@ -2559,7 +2848,7 @@ class TestStructureLockWorkflowLineart:
         lc = _make_lineart_layer_config()
         wf = wb.build_structure_lock_layer("fake_b64", lc)
 
-        for nid in wf.keys():
+        for nid in wf:
             assert nid.isdigit(), f"Node ID '{nid}' is not a digit string"
 
     def test_all_nodes_have_class_type_and_inputs(self):
@@ -2607,7 +2896,9 @@ class TestStructureLockWorkflowDepth:
         lc = _make_depth_layer_config()
         wf = wb.build_structure_lock_layer("fake_b64", lc)
 
-        proc = [n for n in wf.values() if n["class_type"] == "DepthAnythingV2Preprocessor"][0]
+        proc = [
+            n for n in wf.values() if n["class_type"] == "DepthAnythingV2Preprocessor"
+        ][0]
         assert proc["inputs"]["resolution"] == 1024
 
     def test_depth_filename_prefix(self):
@@ -2661,30 +2952,40 @@ class TestStructureLockQualityCheck:
     """Test validate_hint_image quality gate."""
 
     def test_empty_string_fails(self):
-        from image_pipeline.anime_pipeline.agents.structure_lock import validate_hint_image
+        from image_pipeline.anime_pipeline.agents.structure_lock import (
+            validate_hint_image,
+        )
 
         assert validate_hint_image("", "lineart_anime") is False
 
     def test_none_coerced_fails(self):
-        from image_pipeline.anime_pipeline.agents.structure_lock import validate_hint_image
+        from image_pipeline.anime_pipeline.agents.structure_lock import (
+            validate_hint_image,
+        )
 
         # validate_hint_image expects str, but called with "" when None
         assert validate_hint_image("", "depth") is False
 
     def test_too_small_fails(self):
-        from image_pipeline.anime_pipeline.agents.structure_lock import validate_hint_image
+        from image_pipeline.anime_pipeline.agents.structure_lock import (
+            validate_hint_image,
+        )
 
         # 50 chars is well below the 200-char threshold
         assert validate_hint_image("x" * 50, "canny") is False
 
     def test_threshold_boundary(self):
-        from image_pipeline.anime_pipeline.agents.structure_lock import validate_hint_image
+        from image_pipeline.anime_pipeline.agents.structure_lock import (
+            validate_hint_image,
+        )
 
         assert validate_hint_image("x" * 199, "lineart") is False
         assert validate_hint_image("x" * 200, "lineart") is True
 
     def test_valid_image_passes(self):
-        from image_pipeline.anime_pipeline.agents.structure_lock import validate_hint_image
+        from image_pipeline.anime_pipeline.agents.structure_lock import (
+            validate_hint_image,
+        )
 
         # A real base64 image would be much longer
         assert validate_hint_image("x" * 5000, "depth") is True
@@ -2700,7 +3001,9 @@ class TestStructureLockConfigEnabled:
         assert lc.enabled is True
 
     def test_disabled_layer_excluded_from_resolve(self):
-        from image_pipeline.anime_pipeline.agents.structure_lock import StructureLockAgent
+        from image_pipeline.anime_pipeline.agents.structure_lock import (
+            StructureLockAgent,
+        )
         from image_pipeline.anime_pipeline.config import AnimePipelineConfig
 
         config = AnimePipelineConfig()
@@ -2718,7 +3021,9 @@ class TestStructureLockConfigEnabled:
         assert "canny" not in types
 
     def test_all_disabled_returns_empty(self):
-        from image_pipeline.anime_pipeline.agents.structure_lock import StructureLockAgent
+        from image_pipeline.anime_pipeline.agents.structure_lock import (
+            StructureLockAgent,
+        )
         from image_pipeline.anime_pipeline.config import AnimePipelineConfig
 
         config = AnimePipelineConfig()
@@ -2732,13 +3037,15 @@ class TestStructureLockConfigEnabled:
         assert layers == []
 
     def test_layers_sorted_by_priority(self):
-        from image_pipeline.anime_pipeline.agents.structure_lock import StructureLockAgent
+        from image_pipeline.anime_pipeline.agents.structure_lock import (
+            StructureLockAgent,
+        )
         from image_pipeline.anime_pipeline.config import AnimePipelineConfig
 
         config = AnimePipelineConfig()
         config.structure_layers = [
-            _make_depth_layer_config(priority=2),     # second
-            _make_lineart_layer_config(priority=1),   # first
+            _make_depth_layer_config(priority=2),  # second
+            _make_lineart_layer_config(priority=1),  # first
             _make_canny_layer_config(enabled=True, priority=3),  # third
         ]
         config.max_simultaneous_layers = 5
@@ -2749,7 +3056,9 @@ class TestStructureLockConfigEnabled:
         assert types == ["lineart_anime", "depth", "canny"]
 
     def test_max_simultaneous_layers_respected(self):
-        from image_pipeline.anime_pipeline.agents.structure_lock import StructureLockAgent
+        from image_pipeline.anime_pipeline.agents.structure_lock import (
+            StructureLockAgent,
+        )
         from image_pipeline.anime_pipeline.config import AnimePipelineConfig
 
         config = AnimePipelineConfig()
@@ -2773,7 +3082,9 @@ class TestStructureLockAgent:
     """Test StructureLockAgent workflow building (no actual ComfyUI)."""
 
     def test_build_workflow_returns_all_enabled_layers(self):
-        from image_pipeline.anime_pipeline.agents.structure_lock import StructureLockAgent
+        from image_pipeline.anime_pipeline.agents.structure_lock import (
+            StructureLockAgent,
+        )
         from image_pipeline.anime_pipeline.config import AnimePipelineConfig
 
         config = AnimePipelineConfig()
@@ -2790,7 +3101,9 @@ class TestStructureLockAgent:
         assert len(workflows) == 2
 
     def test_build_workflow_skips_disabled(self):
-        from image_pipeline.anime_pipeline.agents.structure_lock import StructureLockAgent
+        from image_pipeline.anime_pipeline.agents.structure_lock import (
+            StructureLockAgent,
+        )
         from image_pipeline.anime_pipeline.config import AnimePipelineConfig
 
         config = AnimePipelineConfig()
@@ -2806,7 +3119,9 @@ class TestStructureLockAgent:
         assert "depth" not in workflows
 
     def test_build_workflow_with_override_configs(self):
-        from image_pipeline.anime_pipeline.agents.structure_lock import StructureLockAgent
+        from image_pipeline.anime_pipeline.agents.structure_lock import (
+            StructureLockAgent,
+        )
         from image_pipeline.anime_pipeline.config import AnimePipelineConfig
 
         config = AnimePipelineConfig()
@@ -2814,12 +3129,16 @@ class TestStructureLockAgent:
         agent = StructureLockAgent(config)
 
         custom = [_make_canny_layer_config(enabled=True)]
-        workflows = agent.build_structure_lock_workflow("fake_b64", control_configs=custom)
+        workflows = agent.build_structure_lock_workflow(
+            "fake_b64", control_configs=custom
+        )
         assert "canny" in workflows
         assert "lineart_anime" not in workflows
 
     def test_each_workflow_is_valid(self):
-        from image_pipeline.anime_pipeline.agents.structure_lock import StructureLockAgent
+        from image_pipeline.anime_pipeline.agents.structure_lock import (
+            StructureLockAgent,
+        )
         from image_pipeline.anime_pipeline.config import AnimePipelineConfig
 
         config = AnimePipelineConfig()
@@ -2838,9 +3157,11 @@ class TestStructureLockAgent:
                 assert "inputs" in node
 
     def test_execute_skips_without_composition_image(self):
-        from image_pipeline.anime_pipeline.agents.structure_lock import StructureLockAgent
-        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+        from image_pipeline.anime_pipeline.agents.structure_lock import (
+            StructureLockAgent,
+        )
         from image_pipeline.anime_pipeline.config import load_config
+        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
 
         config = load_config()
         agent = StructureLockAgent(config)
@@ -2852,9 +3173,11 @@ class TestStructureLockAgent:
 
     def test_execute_uses_source_image_fallback(self):
         """When no composition intermediate exists, fall back to source_image_b64."""
-        from image_pipeline.anime_pipeline.agents.structure_lock import StructureLockAgent
-        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+        from image_pipeline.anime_pipeline.agents.structure_lock import (
+            StructureLockAgent,
+        )
         from image_pipeline.anime_pipeline.config import AnimePipelineConfig
+        from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
 
         config = AnimePipelineConfig()
         config.structure_layers = []  # no layers = no extraction
@@ -2866,7 +3189,9 @@ class TestStructureLockAgent:
         assert "structure_lock" in result.stages_executed
 
     def test_strength_configurable(self):
-        from image_pipeline.anime_pipeline.agents.structure_lock import StructureLockAgent
+        from image_pipeline.anime_pipeline.agents.structure_lock import (
+            StructureLockAgent,
+        )
         from image_pipeline.anime_pipeline.config import AnimePipelineConfig
 
         config = AnimePipelineConfig()
@@ -2931,30 +3256,33 @@ class TestStructureLockConfigYaml:
 
 _FAKE_IMG_B64 = "iVBORw0KGgoAAAANSUhEUg" + "A" * 200
 
-def _make_cleanup_pc(**overrides) -> "PassConfig":
-    from image_pipeline.anime_pipeline.schemas import PassConfig, ControlInput
-    defaults = dict(
-        pass_name="cleanup",
-        model_slot="base",
-        checkpoint="animagine-xl-4.0-opt.safetensors",
-        width=832,
-        height=1216,
-        sampler="euler_a",
-        scheduler="normal",
-        steps=20,
-        cfg=5.0,
-        denoise=0.45,
-        seed=42,
-        positive_prompt="1girl, school uniform, anime",
-        negative_prompt="worst quality, lowres",
-        control_inputs=[],
-    )
+
+def _make_cleanup_pc(**overrides) -> PassConfig:
+    from image_pipeline.anime_pipeline.schemas import PassConfig
+
+    defaults = {
+        "pass_name": "cleanup",
+        "model_slot": "base",
+        "checkpoint": "animagine-xl-4.0-opt.safetensors",
+        "width": 832,
+        "height": 1216,
+        "sampler": "euler_a",
+        "scheduler": "normal",
+        "steps": 20,
+        "cfg": 5.0,
+        "denoise": 0.45,
+        "seed": 42,
+        "positive_prompt": "1girl, school uniform, anime",
+        "negative_prompt": "worst quality, lowres",
+        "control_inputs": [],
+    }
     defaults.update(overrides)
     return PassConfig(**defaults)
 
 
 def _make_structure_layer(layer_type="lineart_anime", strength=0.85, **kw):
     from image_pipeline.anime_pipeline.schemas import StructureLayer, StructureLayerType
+
     layer_map = {
         "lineart_anime": StructureLayerType.LINEART_ANIME,
         "depth": StructureLayerType.DEPTH,
@@ -2970,33 +3298,34 @@ def _make_structure_layer(layer_type="lineart_anime", strength=0.85, **kw):
     )
 
 
-def _make_critique(**overrides) -> "CritiqueReport":
+def _make_critique(**overrides) -> CritiqueReport:
     from image_pipeline.anime_pipeline.schemas import CritiqueReport
-    defaults = dict(
-        anatomy_score=7,
-        face_score=7,
-        eye_consistency_score=7,
-        hands_score=7,
-        clothing_score=7,
-        composition_score=7,
-        color_score=7,
-        style_score=7,
-        background_score=7,
-        accessories_score=7,
-        pose_score=7,
-        anatomy_issues=[],
-        face_issues=[],
-        eye_issues=[],
-        hand_issues=[],
-        clothing_issues=[],
-        composition_issues=[],
-        color_issues=[],
-        style_drift=[],
-        background_issues=[],
-        accessories_issues=[],
-        pose_issues=[],
-        retry_recommendation=False,
-    )
+
+    defaults = {
+        "anatomy_score": 7,
+        "face_score": 7,
+        "eye_consistency_score": 7,
+        "hands_score": 7,
+        "clothing_score": 7,
+        "composition_score": 7,
+        "color_score": 7,
+        "style_score": 7,
+        "background_score": 7,
+        "accessories_score": 7,
+        "pose_score": 7,
+        "anatomy_issues": [],
+        "face_issues": [],
+        "eye_issues": [],
+        "hand_issues": [],
+        "clothing_issues": [],
+        "composition_issues": [],
+        "color_issues": [],
+        "style_drift": [],
+        "background_issues": [],
+        "accessories_issues": [],
+        "pose_issues": [],
+        "retry_recommendation": False,
+    }
     defaults.update(overrides)
     return CritiqueReport(**defaults)
 
@@ -3005,11 +3334,13 @@ def _make_critique(**overrides) -> "CritiqueReport":
 # Cleanup workflow builder tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestCleanupWorkflow:
     """WorkflowBuilder.build_cleanup() node-level tests."""
 
     def test_required_nodes_present(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_cleanup_pc()
         w = wb.build_cleanup(pc, _FAKE_IMG_B64, seed=42)
@@ -3023,15 +3354,19 @@ class TestCleanupWorkflow:
 
     def test_checkpoint_matches_config(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_cleanup_pc(checkpoint="my_model.safetensors")
         w = wb.build_cleanup(pc, _FAKE_IMG_B64, seed=99)
-        ckpt_nodes = [n for n in w.values() if n["class_type"] == "CheckpointLoaderSimple"]
+        ckpt_nodes = [
+            n for n in w.values() if n["class_type"] == "CheckpointLoaderSimple"
+        ]
         assert len(ckpt_nodes) == 1
         assert ckpt_nodes[0]["inputs"]["ckpt_name"] == "my_model.safetensors"
 
     def test_ksampler_denoise(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_cleanup_pc(denoise=0.35)
         w = wb.build_cleanup(pc, _FAKE_IMG_B64, seed=42)
@@ -3041,6 +3376,7 @@ class TestCleanupWorkflow:
 
     def test_ksampler_seed(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_cleanup_pc()
         w = wb.build_cleanup(pc, _FAKE_IMG_B64, seed=12345)
@@ -3049,6 +3385,7 @@ class TestCleanupWorkflow:
 
     def test_ksampler_steps_cfg(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_cleanup_pc(steps=25, cfg=6.5)
         w = wb.build_cleanup(pc, _FAKE_IMG_B64, seed=42)
@@ -3058,6 +3395,7 @@ class TestCleanupWorkflow:
 
     def test_clip_skip_1_no_extra_node(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_cleanup_pc()
         w = wb.build_cleanup(pc, _FAKE_IMG_B64, seed=42, clip_skip=1)
@@ -3066,6 +3404,7 @@ class TestCleanupWorkflow:
 
     def test_clip_skip_2_inserts_node(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_cleanup_pc()
         w = wb.build_cleanup(pc, _FAKE_IMG_B64, seed=42, clip_skip=2)
@@ -3075,6 +3414,7 @@ class TestCleanupWorkflow:
 
     def test_filename_prefix(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_cleanup_pc()
         w = wb.build_cleanup(pc, _FAKE_IMG_B64, seed=777)
@@ -3084,6 +3424,7 @@ class TestCleanupWorkflow:
 
     def test_prompts_encoded(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_cleanup_pc(
             positive_prompt="1girl, beautiful",
@@ -3098,6 +3439,7 @@ class TestCleanupWorkflow:
 
     def test_source_image_loaded(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_cleanup_pc()
         img = "AAAA" + "B" * 300
@@ -3111,8 +3453,9 @@ class TestCleanupWorkflowControlNet:
     """ControlNet wiring in cleanup workflow."""
 
     def test_controlnet_nodes_added(self):
-        from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
         from image_pipeline.anime_pipeline.schemas import ControlInput
+        from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         ci = ControlInput(
             layer_type="lineart_anime",
@@ -3124,12 +3467,15 @@ class TestCleanupWorkflowControlNet:
         )
         pc = _make_cleanup_pc(control_inputs=[ci])
         w = wb.build_cleanup(pc, _FAKE_IMG_B64, seed=42)
-        cn_nodes = [n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"]
+        cn_nodes = [
+            n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"
+        ]
         assert len(cn_nodes) >= 1
 
     def test_controlnet_strength(self):
-        from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
         from image_pipeline.anime_pipeline.schemas import ControlInput
+        from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         ci = ControlInput(
             layer_type="lineart_anime",
@@ -3141,14 +3487,17 @@ class TestCleanupWorkflowControlNet:
         )
         pc = _make_cleanup_pc(control_inputs=[ci])
         w = wb.build_cleanup(pc, _FAKE_IMG_B64, seed=42)
-        cn_nodes = [n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"]
+        cn_nodes = [
+            n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"
+        ]
         assert cn_nodes[0]["inputs"]["strength"] == 0.70
         assert cn_nodes[0]["inputs"]["start_percent"] == 0.1
         assert cn_nodes[0]["inputs"]["end_percent"] == 0.9
 
     def test_multiple_controlnets(self):
-        from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
         from image_pipeline.anime_pipeline.schemas import ControlInput
+        from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         ci1 = ControlInput(
             layer_type="lineart_anime",
@@ -3164,21 +3513,27 @@ class TestCleanupWorkflowControlNet:
         )
         pc = _make_cleanup_pc(control_inputs=[ci1, ci2])
         w = wb.build_cleanup(pc, _FAKE_IMG_B64, seed=42)
-        cn_nodes = [n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"]
+        cn_nodes = [
+            n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"
+        ]
         assert len(cn_nodes) == 2
 
     def test_no_controlnet_without_inputs(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_cleanup_pc(control_inputs=[])
         w = wb.build_cleanup(pc, _FAKE_IMG_B64, seed=42)
-        cn_nodes = [n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"]
+        cn_nodes = [
+            n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"
+        ]
         assert len(cn_nodes) == 0
 
 
 # ═══════════════════════════════════════════════════════════════════════
 # Cleanup critique adjustment tests
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestCleanupCritiqueAdjustment:
     """Tests for compute_cleanup_adjustments()."""
@@ -3187,6 +3542,7 @@ class TestCleanupCritiqueAdjustment:
         from image_pipeline.anime_pipeline.agents.cleanup_pass import (
             compute_cleanup_adjustments,
         )
+
         adj = compute_cleanup_adjustments(None, base_denoise=0.45)
         assert adj["denoise"] == 0.45
         assert adj["lineart_strength_delta"] == 0.0
@@ -3196,6 +3552,7 @@ class TestCleanupCritiqueAdjustment:
         from image_pipeline.anime_pipeline.agents.cleanup_pass import (
             compute_cleanup_adjustments,
         )
+
         critique = _make_critique(composition_score=9, anatomy_score=8)
         adj = compute_cleanup_adjustments(critique, base_denoise=0.45)
         assert adj["denoise"] < 0.45
@@ -3205,6 +3562,7 @@ class TestCleanupCritiqueAdjustment:
         from image_pipeline.anime_pipeline.agents.cleanup_pass import (
             compute_cleanup_adjustments,
         )
+
         critique = _make_critique(
             anatomy_score=3,
             anatomy_issues=["broken arm", "extra finger", "wrong proportion"],
@@ -3218,6 +3576,7 @@ class TestCleanupCritiqueAdjustment:
         from image_pipeline.anime_pipeline.agents.cleanup_pass import (
             compute_cleanup_adjustments,
         )
+
         critique = _make_critique(hands_score=2)
         adj = compute_cleanup_adjustments(critique, base_denoise=0.45)
         assert adj["denoise"] > 0.45
@@ -3227,6 +3586,7 @@ class TestCleanupCritiqueAdjustment:
         from image_pipeline.anime_pipeline.agents.cleanup_pass import (
             compute_cleanup_adjustments,
         )
+
         critique = _make_critique(
             background_score=3,
             background_issues=["busy background with too many objects"],
@@ -3238,6 +3598,7 @@ class TestCleanupCritiqueAdjustment:
         from image_pipeline.anime_pipeline.agents.cleanup_pass import (
             compute_cleanup_adjustments,
         )
+
         critique = _make_critique(
             background_score=6,
             background_issues=["slightly cluttered"],
@@ -3249,27 +3610,35 @@ class TestCleanupCritiqueAdjustment:
         from image_pipeline.anime_pipeline.agents.cleanup_pass import (
             compute_cleanup_adjustments,
         )
+
         # Good composition (would lower denoise) but bad face (should keep moderate)
         critique = _make_critique(
-            composition_score=9, anatomy_score=8, face_score=3,
+            composition_score=9,
+            anatomy_score=8,
+            face_score=3,
         )
         adj = compute_cleanup_adjustments(critique, base_denoise=0.45)
         assert adj["denoise"] >= 0.45
 
     def test_denoise_never_below_floor(self):
         from image_pipeline.anime_pipeline.agents.cleanup_pass import (
-            compute_cleanup_adjustments, _DENOISE_FLOOR,
+            _DENOISE_FLOOR,
+            compute_cleanup_adjustments,
         )
+
         critique = _make_critique(composition_score=10, anatomy_score=10)
         adj = compute_cleanup_adjustments(critique, base_denoise=0.20)
         assert adj["denoise"] >= _DENOISE_FLOOR
 
     def test_denoise_never_above_ceiling(self):
         from image_pipeline.anime_pipeline.agents.cleanup_pass import (
-            compute_cleanup_adjustments, _DENOISE_CEILING,
+            _DENOISE_CEILING,
+            compute_cleanup_adjustments,
         )
+
         critique = _make_critique(
-            anatomy_score=1, hands_score=1,
+            anatomy_score=1,
+            hands_score=1,
             anatomy_issues=["a", "b", "c", "d"],
         )
         adj = compute_cleanup_adjustments(critique, base_denoise=0.70)
@@ -3279,9 +3648,13 @@ class TestCleanupCritiqueAdjustment:
         from image_pipeline.anime_pipeline.agents.cleanup_pass import (
             compute_cleanup_adjustments,
         )
+
         critique = _make_critique(
-            anatomy_score=7, face_score=7, hands_score=7,
-            composition_score=7, background_score=7,
+            anatomy_score=7,
+            face_score=7,
+            hands_score=7,
+            composition_score=7,
+            background_score=7,
         )
         adj = compute_cleanup_adjustments(critique, base_denoise=0.45)
         # Not high enough for "good composition" (needs >=8), so stays default
@@ -3293,6 +3666,7 @@ class TestCleanupCritiqueAdjustment:
         from image_pipeline.anime_pipeline.agents.cleanup_pass import (
             compute_cleanup_adjustments,
         )
+
         critique = _make_critique(anatomy_score=2, background_score=3)
         adj = compute_cleanup_adjustments(critique, base_denoise=0.45)
         assert "anatomy" in adj["reason"]
@@ -3303,13 +3677,16 @@ class TestCleanupCritiqueAdjustment:
 # CleanupPassAgent tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestCleanupPassAgent:
     """Integration-level tests for CleanupPassAgent."""
 
     def _make_config(self):
         from image_pipeline.anime_pipeline.config import (
-            AnimePipelineConfig, ModelConfig,
+            AnimePipelineConfig,
+            ModelConfig,
         )
+
         return AnimePipelineConfig(
             comfyui_url="http://localhost:8188",
             composition_model=ModelConfig(
@@ -3322,13 +3699,19 @@ class TestCleanupPassAgent:
 
     def _make_job(self, with_composition=True, with_plan=True):
         from image_pipeline.anime_pipeline.schemas import (
-            AnimePipelineJob, LayerPlan, IntermediateImage,
+            AnimePipelineJob,
+            IntermediateImage,
+            LayerPlan,
         )
+
         job = AnimePipelineJob(job_id="test-cleanup-001")
         if with_composition:
-            job.intermediates.append(IntermediateImage(
-                stage="composition_pass", image_b64=_FAKE_IMG_B64,
-            ))
+            job.intermediates.append(
+                IntermediateImage(
+                    stage="composition_pass",
+                    image_b64=_FAKE_IMG_B64,
+                )
+            )
         if with_plan:
             job.layer_plan = LayerPlan(
                 scene_summary="test scene",
@@ -3338,6 +3721,7 @@ class TestCleanupPassAgent:
 
     def test_build_workflow_returns_dict(self):
         from image_pipeline.anime_pipeline.agents.cleanup_pass import CleanupPassAgent
+
         agent = CleanupPassAgent(self._make_config())
         pc = _make_cleanup_pc()
         w = agent.build_workflow(pc, _FAKE_IMG_B64, seed=42)
@@ -3347,6 +3731,7 @@ class TestCleanupPassAgent:
 
     def test_build_workflow_with_critique(self):
         from image_pipeline.anime_pipeline.agents.cleanup_pass import CleanupPassAgent
+
         agent = CleanupPassAgent(self._make_config())
         pc = _make_cleanup_pc(denoise=0.45)
         critique = _make_critique(composition_score=9, anatomy_score=8)
@@ -3357,31 +3742,44 @@ class TestCleanupPassAgent:
 
     def test_build_workflow_with_structure_layers(self):
         from image_pipeline.anime_pipeline.agents.cleanup_pass import CleanupPassAgent
+
         agent = CleanupPassAgent(self._make_config())
         pc = _make_cleanup_pc()
         layers = [_make_structure_layer("lineart_anime", 0.85)]
         w = agent.build_workflow(
-            pc, _FAKE_IMG_B64, seed=42, structure_layers=layers,
+            pc,
+            _FAKE_IMG_B64,
+            seed=42,
+            structure_layers=layers,
         )
-        cn_nodes = [n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"]
+        cn_nodes = [
+            n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"
+        ]
         assert len(cn_nodes) == 1
 
     def test_build_workflow_anatomy_critique_boosts_lineart(self):
         from image_pipeline.anime_pipeline.agents.cleanup_pass import CleanupPassAgent
+
         agent = CleanupPassAgent(self._make_config())
         pc = _make_cleanup_pc()
         layers = [_make_structure_layer("lineart_anime", 0.85)]
         critique = _make_critique(anatomy_score=2)
         w = agent.build_workflow(
-            pc, _FAKE_IMG_B64, seed=42,
-            structure_layers=layers, critique=critique,
+            pc,
+            _FAKE_IMG_B64,
+            seed=42,
+            structure_layers=layers,
+            critique=critique,
         )
-        cn_nodes = [n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"]
+        cn_nodes = [
+            n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"
+        ]
         # lineart strength should be boosted above 0.85
         assert cn_nodes[0]["inputs"]["strength"] > 0.85
 
     def test_build_workflow_clip_skip(self):
         from image_pipeline.anime_pipeline.agents.cleanup_pass import CleanupPassAgent
+
         agent = CleanupPassAgent(self._make_config())
         pc = _make_cleanup_pc()
         w = agent.build_workflow(pc, _FAKE_IMG_B64, seed=42, clip_skip=2)
@@ -3462,7 +3860,9 @@ class TestCleanupPassAgent:
         from image_pipeline.anime_pipeline.comfy_client import ComfyJobResult
 
         mock_result = ComfyJobResult(
-            success=True, images_b64=[_FAKE_IMG_B64], duration_ms=1200.0,
+            success=True,
+            images_b64=[_FAKE_IMG_B64],
+            duration_ms=1200.0,
         )
         mock_instance = MagicMock()
         mock_instance.submit_workflow.return_value = mock_result
@@ -3504,8 +3904,10 @@ class TestCleanupPassAgentApplyAdjustments:
 
     def _make_config(self):
         from image_pipeline.anime_pipeline.config import (
-            AnimePipelineConfig, ModelConfig,
+            AnimePipelineConfig,
+            ModelConfig,
         )
+
         return AnimePipelineConfig(
             comfyui_url="http://localhost:8188",
             composition_model=ModelConfig(checkpoint="test.safetensors"),
@@ -3515,6 +3917,7 @@ class TestCleanupPassAgentApplyAdjustments:
 
     def test_lineart_boost_applied(self):
         from image_pipeline.anime_pipeline.agents.cleanup_pass import CleanupPassAgent
+
         agent = CleanupPassAgent(self._make_config())
         pc = _make_cleanup_pc()
         layers = [_make_structure_layer("lineart_anime", 0.80)]
@@ -3530,6 +3933,7 @@ class TestCleanupPassAgentApplyAdjustments:
 
     def test_lineart_boost_capped_at_1(self):
         from image_pipeline.anime_pipeline.agents.cleanup_pass import CleanupPassAgent
+
         agent = CleanupPassAgent(self._make_config())
         pc = _make_cleanup_pc()
         layers = [_make_structure_layer("lineart_anime", 0.95)]
@@ -3543,6 +3947,7 @@ class TestCleanupPassAgentApplyAdjustments:
 
     def test_depth_layer_not_boosted(self):
         from image_pipeline.anime_pipeline.agents.cleanup_pass import CleanupPassAgent
+
         agent = CleanupPassAgent(self._make_config())
         pc = _make_cleanup_pc()
         layers = [_make_structure_layer("depth", 0.55)]
@@ -3556,6 +3961,7 @@ class TestCleanupPassAgentApplyAdjustments:
 
     def test_negative_extra_appended(self):
         from image_pipeline.anime_pipeline.agents.cleanup_pass import CleanupPassAgent
+
         agent = CleanupPassAgent(self._make_config())
         pc = _make_cleanup_pc(negative_prompt="worst quality")
         layers = []
@@ -3570,6 +3976,7 @@ class TestCleanupPassAgentApplyAdjustments:
 
     def test_denoise_from_adjustments(self):
         from image_pipeline.anime_pipeline.agents.cleanup_pass import CleanupPassAgent
+
         agent = CleanupPassAgent(self._make_config())
         pc = _make_cleanup_pc(denoise=0.45)
         adjustments = {
@@ -3582,6 +3989,7 @@ class TestCleanupPassAgentApplyAdjustments:
 
     def test_max_simultaneous_layers_respected(self):
         from image_pipeline.anime_pipeline.agents.cleanup_pass import CleanupPassAgent
+
         config = self._make_config()
         config.max_simultaneous_layers = 1
         agent = CleanupPassAgent(config)
@@ -3605,10 +4013,12 @@ class TestCleanupPassExport:
 
     def test_import_from_agents(self):
         from image_pipeline.anime_pipeline.agents import CleanupPassAgent
+
         assert CleanupPassAgent is not None
 
     def test_import_from_agents_all(self):
         from image_pipeline.anime_pipeline import agents
+
         assert "CleanupPassAgent" in agents.__all__
 
 
@@ -3616,43 +4026,48 @@ class TestCleanupPassExport:
 # Beauty pass — helpers
 # ═══════════════════════════════════════════════════════════════════════
 
-def _make_beauty_pc(**overrides) -> "PassConfig":
+
+def _make_beauty_pc(**overrides) -> PassConfig:
     from image_pipeline.anime_pipeline.schemas import PassConfig
-    defaults = dict(
-        pass_name="beauty",
-        model_slot="final",
-        checkpoint="noobaiXLNAIXL_vPred10Version.safetensors",
-        width=832,
-        height=1216,
-        sampler="euler_a",
-        scheduler="normal",
-        steps=28,
-        cfg=5.5,
-        denoise=0.30,
-        seed=42,
-        positive_prompt="1girl, school uniform, anime",
-        negative_prompt="worst quality, lowres",
-        control_inputs=[],
-    )
+
+    defaults = {
+        "pass_name": "beauty",
+        "model_slot": "final",
+        "checkpoint": "noobaiXLNAIXL_vPred10Version.safetensors",
+        "width": 832,
+        "height": 1216,
+        "sampler": "euler_a",
+        "scheduler": "normal",
+        "steps": 28,
+        "cfg": 5.5,
+        "denoise": 0.30,
+        "seed": 42,
+        "positive_prompt": "1girl, school uniform, anime",
+        "negative_prompt": "worst quality, lowres",
+        "control_inputs": [],
+    }
     defaults.update(overrides)
     return PassConfig(**defaults)
 
 
 def _make_beauty_config(**overrides):
     from image_pipeline.anime_pipeline.config import (
-        AnimePipelineConfig, ModelConfig, BeautyStrength,
+        AnimePipelineConfig,
+        BeautyStrength,
+        ModelConfig,
     )
-    defaults = dict(
-        comfyui_url="http://localhost:8188",
-        composition_model=ModelConfig(
+
+    defaults = {
+        "comfyui_url": "http://localhost:8188",
+        "composition_model": ModelConfig(
             checkpoint="animagine-xl-4.0-opt.safetensors",
             clip_skip=2,
         ),
-        beauty_model=ModelConfig(
+        "beauty_model": ModelConfig(
             checkpoint="flatpiececorexl_a1818.safetensors",
             denoise_strength=0.45,
         ),
-        final_model=ModelConfig(
+        "final_model": ModelConfig(
             checkpoint="noobaiXLNAIXL_vPred10Version.safetensors",
             sampler="euler_a",
             scheduler="normal",
@@ -3661,22 +4076,28 @@ def _make_beauty_config(**overrides):
             clip_skip=2,
             denoise_strength=0.30,
         ),
-        upscale_model="RealESRGAN_x4plus_anime_6B",
-        beauty_strength=BeautyStrength.BALANCED,
-    )
+        "upscale_model": "RealESRGAN_x4plus_anime_6B",
+        "beauty_strength": BeautyStrength.BALANCED,
+    }
     defaults.update(overrides)
     return AnimePipelineConfig(**defaults)
 
 
 def _make_beauty_job(with_cleanup=True, with_plan=True):
     from image_pipeline.anime_pipeline.schemas import (
-        AnimePipelineJob, LayerPlan, IntermediateImage,
+        AnimePipelineJob,
+        IntermediateImage,
+        LayerPlan,
     )
+
     job = AnimePipelineJob(job_id="test-beauty-001")
     if with_cleanup:
-        job.intermediates.append(IntermediateImage(
-            stage="cleanup_pass", image_b64=_FAKE_IMG_B64,
-        ))
+        job.intermediates.append(
+            IntermediateImage(
+                stage="cleanup_pass",
+                image_b64=_FAKE_IMG_B64,
+            )
+        )
     if with_plan:
         job.layer_plan = LayerPlan(
             scene_summary="test scene",
@@ -3689,63 +4110,78 @@ def _make_beauty_job(with_cleanup=True, with_plan=True):
 # Beauty config tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestBeautyConfig:
     """BeautyStrength, presets, final_model, and YAML loading."""
 
     def test_beauty_strength_enum_values(self):
         from image_pipeline.anime_pipeline.config import BeautyStrength
+
         assert BeautyStrength.SUBTLE.value == "subtle"
         assert BeautyStrength.BALANCED.value == "balanced"
         assert BeautyStrength.AGGRESSIVE.value == "aggressive"
 
     def test_get_beauty_preset_subtle(self):
         from image_pipeline.anime_pipeline.config import get_beauty_preset
+
         p = get_beauty_preset("subtle")
         assert p["denoise"] < 0.25
         assert "steps" in p and "cfg" in p
 
     def test_get_beauty_preset_balanced(self):
         from image_pipeline.anime_pipeline.config import get_beauty_preset
+
         p = get_beauty_preset("balanced")
         assert 0.25 <= p["denoise"] <= 0.40
 
     def test_get_beauty_preset_aggressive(self):
         from image_pipeline.anime_pipeline.config import get_beauty_preset
+
         p = get_beauty_preset("aggressive")
         assert p["denoise"] >= 0.40
 
     def test_get_beauty_preset_from_enum(self):
         from image_pipeline.anime_pipeline.config import (
-            get_beauty_preset, BeautyStrength,
+            BeautyStrength,
+            get_beauty_preset,
         )
+
         p = get_beauty_preset(BeautyStrength.BALANCED)
         assert p["denoise"] == pytest.approx(0.30)
 
     def test_final_model_in_config(self):
         config = _make_beauty_config()
-        assert config.final_model.checkpoint == "noobaiXLNAIXL_vPred10Version.safetensors"
+        assert (
+            config.final_model.checkpoint == "noobaiXLNAIXL_vPred10Version.safetensors"
+        )
         assert config.final_model.clip_skip == 2
 
     def test_final_model_defaults_to_beauty_model(self):
         from image_pipeline.anime_pipeline.config import load_config
+
         config = load_config()
         # final_model should be populated (either from YAML or fallback to beauty)
         assert config.final_model.checkpoint != ""
 
     def test_beauty_strength_from_yaml(self):
         from image_pipeline.anime_pipeline.config import load_config
+
         config = load_config()
         # Should be "balanced" from our YAML
         assert config.beauty_strength.value == "balanced"
 
     def test_final_model_env_override(self):
         from image_pipeline.anime_pipeline.config import load_config
-        with patch.dict(os.environ, {"ANIME_PIPELINE_FINAL_MODEL": "custom_final.safetensors"}):
+
+        with patch.dict(
+            os.environ, {"ANIME_PIPELINE_FINAL_MODEL": "custom_final.safetensors"}
+        ):
             config = load_config()
             assert config.final_model.checkpoint == "custom_final.safetensors"
 
     def test_beauty_strength_env_override(self):
-        from image_pipeline.anime_pipeline.config import load_config, BeautyStrength
+        from image_pipeline.anime_pipeline.config import BeautyStrength, load_config
+
         with patch.dict(os.environ, {"ANIME_PIPELINE_BEAUTY_STRENGTH": "aggressive"}):
             config = load_config()
             assert config.beauty_strength == BeautyStrength.AGGRESSIVE
@@ -3755,11 +4191,13 @@ class TestBeautyConfig:
 # Beauty workflow builder tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestBeautyWorkflow:
     """WorkflowBuilder.build_beauty() node-level tests."""
 
     def test_required_nodes_present(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_beauty_pc()
         w = wb.build_beauty(pc, _FAKE_IMG_B64, seed=42)
@@ -3773,15 +4211,19 @@ class TestBeautyWorkflow:
 
     def test_checkpoint_matches_config(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_beauty_pc(checkpoint="custom_model.safetensors")
         w = wb.build_beauty(pc, _FAKE_IMG_B64, seed=99)
-        ckpt_nodes = [n for n in w.values() if n["class_type"] == "CheckpointLoaderSimple"]
+        ckpt_nodes = [
+            n for n in w.values() if n["class_type"] == "CheckpointLoaderSimple"
+        ]
         assert len(ckpt_nodes) == 1
         assert ckpt_nodes[0]["inputs"]["ckpt_name"] == "custom_model.safetensors"
 
     def test_ksampler_denoise(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_beauty_pc(denoise=0.25)
         w = wb.build_beauty(pc, _FAKE_IMG_B64, seed=42)
@@ -3790,6 +4232,7 @@ class TestBeautyWorkflow:
 
     def test_ksampler_seed(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_beauty_pc()
         w = wb.build_beauty(pc, _FAKE_IMG_B64, seed=54321)
@@ -3798,6 +4241,7 @@ class TestBeautyWorkflow:
 
     def test_ksampler_steps_cfg(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_beauty_pc(steps=30, cfg=6.0)
         w = wb.build_beauty(pc, _FAKE_IMG_B64, seed=42)
@@ -3807,6 +4251,7 @@ class TestBeautyWorkflow:
 
     def test_clip_skip_1_no_extra_node(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_beauty_pc()
         w = wb.build_beauty(pc, _FAKE_IMG_B64, seed=42, clip_skip=1)
@@ -3815,6 +4260,7 @@ class TestBeautyWorkflow:
 
     def test_clip_skip_2_inserts_node(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_beauty_pc()
         w = wb.build_beauty(pc, _FAKE_IMG_B64, seed=42, clip_skip=2)
@@ -3824,6 +4270,7 @@ class TestBeautyWorkflow:
 
     def test_filename_prefix(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_beauty_pc()
         w = wb.build_beauty(pc, _FAKE_IMG_B64, seed=888)
@@ -3832,6 +4279,7 @@ class TestBeautyWorkflow:
 
     def test_prompts_encoded(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_beauty_pc(
             positive_prompt="1girl, masterpiece",
@@ -3846,6 +4294,7 @@ class TestBeautyWorkflow:
 
     def test_source_image_loaded(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_beauty_pc()
         img = "ZZZZ" + "Q" * 300
@@ -3859,8 +4308,9 @@ class TestBeautyWorkflowControlNet:
     """ControlNet wiring in beauty workflow."""
 
     def test_controlnet_nodes_added(self):
-        from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
         from image_pipeline.anime_pipeline.schemas import ControlInput
+        from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         ci = ControlInput(
             layer_type="lineart_anime",
@@ -3870,20 +4320,26 @@ class TestBeautyWorkflowControlNet:
         )
         pc = _make_beauty_pc(control_inputs=[ci])
         w = wb.build_beauty(pc, _FAKE_IMG_B64, seed=42)
-        cn_nodes = [n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"]
+        cn_nodes = [
+            n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"
+        ]
         assert len(cn_nodes) >= 1
 
     def test_no_controlnet_without_inputs(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         pc = _make_beauty_pc(control_inputs=[])
         w = wb.build_beauty(pc, _FAKE_IMG_B64, seed=42)
-        cn_nodes = [n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"]
+        cn_nodes = [
+            n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"
+        ]
         assert len(cn_nodes) == 0
 
     def test_multiple_controlnets(self):
-        from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
         from image_pipeline.anime_pipeline.schemas import ControlInput
+        from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         ci1 = ControlInput(
             layer_type="lineart_anime",
@@ -3899,13 +4355,16 @@ class TestBeautyWorkflowControlNet:
         )
         pc = _make_beauty_pc(control_inputs=[ci1, ci2])
         w = wb.build_beauty(pc, _FAKE_IMG_B64, seed=42)
-        cn_nodes = [n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"]
+        cn_nodes = [
+            n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"
+        ]
         assert len(cn_nodes) == 2
 
 
 # ═══════════════════════════════════════════════════════════════════════
 # Beauty prompt construction tests
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestBeautyPromptConstruction:
     """refine_beauty_prompt() and build_beauty_negative() tests."""
@@ -3914,6 +4373,7 @@ class TestBeautyPromptConstruction:
         from image_pipeline.anime_pipeline.agents.beauty_pass import (
             refine_beauty_prompt,
         )
+
         result = refine_beauty_prompt("1girl, school uniform")
         assert "masterpiece" in result
         assert "detailed eyes" in result
@@ -3923,6 +4383,7 @@ class TestBeautyPromptConstruction:
         from image_pipeline.anime_pipeline.agents.beauty_pass import (
             refine_beauty_prompt,
         )
+
         result = refine_beauty_prompt("masterpiece, detailed eyes, 1girl")
         # Should not add "masterpiece" or "detailed eyes" again
         assert result.count("masterpiece") == 1
@@ -3932,6 +4393,7 @@ class TestBeautyPromptConstruction:
         from image_pipeline.anime_pipeline.agents.beauty_pass import (
             build_beauty_negative,
         )
+
         result = build_beauty_negative("worst quality, lowres")
         assert "blurry face" in result
         assert "asymmetrical eyes" in result
@@ -3940,6 +4402,7 @@ class TestBeautyPromptConstruction:
         from image_pipeline.anime_pipeline.agents.beauty_pass import (
             build_beauty_negative,
         )
+
         result = build_beauty_negative("blurry face, asymmetrical eyes, ugly")
         assert result.count("blurry face") == 1
 
@@ -3948,11 +4411,13 @@ class TestBeautyPromptConstruction:
 # BeautyPassAgent tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestBeautyPassAgent:
     """Integration-level tests for BeautyPassAgent."""
 
     def test_build_workflow_returns_dict(self):
         from image_pipeline.anime_pipeline.agents.beauty_pass import BeautyPassAgent
+
         agent = BeautyPassAgent(_make_beauty_config())
         pc = _make_beauty_pc()
         w = agent.build_workflow(pc, _FAKE_IMG_B64, seed=42)
@@ -3962,57 +4427,79 @@ class TestBeautyPassAgent:
 
     def test_build_workflow_uses_final_model(self):
         from image_pipeline.anime_pipeline.agents.beauty_pass import BeautyPassAgent
+
         config = _make_beauty_config()
         agent = BeautyPassAgent(config)
         pc = _make_beauty_pc(checkpoint="should_be_overridden.safetensors")
         w = agent.build_workflow(pc, _FAKE_IMG_B64, seed=42)
         ckpt = [n for n in w.values() if n["class_type"] == "CheckpointLoaderSimple"]
         # Should use final_model checkpoint, not the pc's checkpoint
-        assert ckpt[0]["inputs"]["ckpt_name"] == "noobaiXLNAIXL_vPred10Version.safetensors"
+        assert (
+            ckpt[0]["inputs"]["ckpt_name"] == "noobaiXLNAIXL_vPred10Version.safetensors"
+        )
 
     def test_build_workflow_subtle_low_denoise(self):
         from image_pipeline.anime_pipeline.agents.beauty_pass import BeautyPassAgent
         from image_pipeline.anime_pipeline.config import BeautyStrength
+
         agent = BeautyPassAgent(_make_beauty_config())
         pc = _make_beauty_pc()
-        w = agent.build_workflow(pc, _FAKE_IMG_B64, seed=42, strength=BeautyStrength.SUBTLE)
+        w = agent.build_workflow(
+            pc, _FAKE_IMG_B64, seed=42, strength=BeautyStrength.SUBTLE
+        )
         ks = [n for n in w.values() if n["class_type"] == "KSampler"]
         assert ks[0]["inputs"]["denoise"] < 0.25
 
     def test_build_workflow_aggressive_high_denoise(self):
         from image_pipeline.anime_pipeline.agents.beauty_pass import BeautyPassAgent
         from image_pipeline.anime_pipeline.config import BeautyStrength
+
         agent = BeautyPassAgent(_make_beauty_config())
         pc = _make_beauty_pc()
-        w = agent.build_workflow(pc, _FAKE_IMG_B64, seed=42, strength=BeautyStrength.AGGRESSIVE)
+        w = agent.build_workflow(
+            pc, _FAKE_IMG_B64, seed=42, strength=BeautyStrength.AGGRESSIVE
+        )
         ks = [n for n in w.values() if n["class_type"] == "KSampler"]
         assert ks[0]["inputs"]["denoise"] >= 0.40
 
     def test_build_workflow_with_structure_layers(self):
         from image_pipeline.anime_pipeline.agents.beauty_pass import BeautyPassAgent
+
         agent = BeautyPassAgent(_make_beauty_config())
         pc = _make_beauty_pc()
         layers = [_make_structure_layer("lineart_anime", 0.85)]
         w = agent.build_workflow(
-            pc, _FAKE_IMG_B64, seed=42, structure_layers=layers,
+            pc,
+            _FAKE_IMG_B64,
+            seed=42,
+            structure_layers=layers,
         )
-        cn_nodes = [n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"]
+        cn_nodes = [
+            n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"
+        ]
         assert len(cn_nodes) == 1
 
     def test_control_strength_reduced(self):
         from image_pipeline.anime_pipeline.agents.beauty_pass import BeautyPassAgent
+
         agent = BeautyPassAgent(_make_beauty_config())
         pc = _make_beauty_pc()
         layers = [_make_structure_layer("lineart_anime", 0.85)]
         w = agent.build_workflow(
-            pc, _FAKE_IMG_B64, seed=42, structure_layers=layers,
+            pc,
+            _FAKE_IMG_B64,
+            seed=42,
+            structure_layers=layers,
         )
-        cn_nodes = [n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"]
+        cn_nodes = [
+            n for n in w.values() if n["class_type"] == "ControlNetApplyAdvanced"
+        ]
         # Strength should be reduced by _CONTROL_STRENGTH_FACTOR (0.70)
         assert cn_nodes[0]["inputs"]["strength"] == pytest.approx(0.85 * 0.70)
 
     def test_build_workflow_clip_skip(self):
         from image_pipeline.anime_pipeline.agents.beauty_pass import BeautyPassAgent
+
         agent = BeautyPassAgent(_make_beauty_config())
         pc = _make_beauty_pc()
         w = agent.build_workflow(pc, _FAKE_IMG_B64, seed=42, clip_skip=2)
@@ -4022,6 +4509,7 @@ class TestBeautyPassAgent:
 
     def test_build_workflow_prompt_enhanced(self):
         from image_pipeline.anime_pipeline.agents.beauty_pass import BeautyPassAgent
+
         agent = BeautyPassAgent(_make_beauty_config())
         pc = _make_beauty_pc(positive_prompt="1girl, school uniform")
         w = agent.build_workflow(pc, _FAKE_IMG_B64, seed=42)
@@ -4033,6 +4521,7 @@ class TestBeautyPassAgent:
 
     def test_build_workflow_negative_enhanced(self):
         from image_pipeline.anime_pipeline.agents.beauty_pass import BeautyPassAgent
+
         agent = BeautyPassAgent(_make_beauty_config())
         pc = _make_beauty_pc(negative_prompt="worst quality")
         w = agent.build_workflow(pc, _FAKE_IMG_B64, seed=42)
@@ -4133,7 +4622,9 @@ class TestBeautyPassAgent:
         from image_pipeline.anime_pipeline.comfy_client import ComfyJobResult
 
         mock_result = ComfyJobResult(
-            success=True, images_b64=[_FAKE_IMG_B64], duration_ms=1000.0,
+            success=True,
+            images_b64=[_FAKE_IMG_B64],
+            duration_ms=1000.0,
         )
         mock_instance = MagicMock()
         mock_instance.submit_workflow.return_value = mock_result
@@ -4156,7 +4647,9 @@ class TestBeautyPassAgent:
         from image_pipeline.anime_pipeline.comfy_client import ComfyJobResult
 
         mock_result = ComfyJobResult(
-            success=True, images_b64=[_FAKE_IMG_B64], duration_ms=1000.0,
+            success=True,
+            images_b64=[_FAKE_IMG_B64],
+            duration_ms=1000.0,
         )
         mock_instance = MagicMock()
         mock_instance.submit_workflow.return_value = mock_result
@@ -4179,7 +4672,9 @@ class TestBeautyPassAgent:
         from image_pipeline.anime_pipeline.schemas import IntermediateImage
 
         mock_result = ComfyJobResult(
-            success=True, images_b64=["output_img"], duration_ms=500.0,
+            success=True,
+            images_b64=["output_img"],
+            duration_ms=500.0,
         )
         mock_instance = MagicMock()
         mock_instance.submit_workflow.return_value = mock_result
@@ -4189,18 +4684,26 @@ class TestBeautyPassAgent:
         agent._client = mock_instance
         job = _make_beauty_job(with_cleanup=False)
         # Add both composition and cleanup
-        job.intermediates.append(IntermediateImage(
-            stage="composition_pass", image_b64="comp_image_data",
-        ))
-        job.intermediates.append(IntermediateImage(
-            stage="cleanup_pass", image_b64="cleanup_image_data",
-        ))
+        job.intermediates.append(
+            IntermediateImage(
+                stage="composition_pass",
+                image_b64="comp_image_data",
+            )
+        )
+        job.intermediates.append(
+            IntermediateImage(
+                stage="cleanup_pass",
+                image_b64="cleanup_image_data",
+            )
+        )
 
         result = agent.execute(job)
         assert result.error is None
         # Verify cleanup image was used as source (not composition)
         submitted = mock_instance.submit_workflow.call_args[0][0]
-        load_nodes = [n for n in submitted.values() if n["class_type"] == "LoadImageFromBase64"]
+        load_nodes = [
+            n for n in submitted.values() if n["class_type"] == "LoadImageFromBase64"
+        ]
         # The first LoadImageFromBase64 should have the cleanup image
         assert load_nodes[0]["inputs"]["base64_image"] == "cleanup_image_data"
 
@@ -4210,8 +4713,10 @@ class TestBeautyPassAgentBuildControls:
 
     def test_strength_reduced_by_factor(self):
         from image_pipeline.anime_pipeline.agents.beauty_pass import (
-            BeautyPassAgent, _CONTROL_STRENGTH_FACTOR,
+            _CONTROL_STRENGTH_FACTOR,
+            BeautyPassAgent,
         )
+
         agent = BeautyPassAgent(_make_beauty_config())
         layers = [_make_structure_layer("lineart_anime", 1.0)]
         controls = agent._build_controls(layers, [])
@@ -4220,7 +4725,7 @@ class TestBeautyPassAgentBuildControls:
 
     def test_max_simultaneous_respected(self):
         from image_pipeline.anime_pipeline.agents.beauty_pass import BeautyPassAgent
-        from image_pipeline.anime_pipeline.config import BeautyStrength
+
         config = _make_beauty_config()
         config.max_simultaneous_layers = 1
         agent = BeautyPassAgent(config)
@@ -4233,28 +4738,38 @@ class TestBeautyPassAgentBuildControls:
 
     def test_skips_layers_without_model(self):
         from image_pipeline.anime_pipeline.agents.beauty_pass import BeautyPassAgent
-        from image_pipeline.anime_pipeline.schemas import StructureLayer, StructureLayerType
+        from image_pipeline.anime_pipeline.schemas import (
+            StructureLayer,
+            StructureLayerType,
+        )
+
         agent = BeautyPassAgent(_make_beauty_config())
-        layers = [StructureLayer(
-            layer_type=StructureLayerType.LINEART_ANIME,
-            image_b64=_FAKE_IMG_B64,
-            controlnet_model="",  # no model
-        )]
+        layers = [
+            StructureLayer(
+                layer_type=StructureLayerType.LINEART_ANIME,
+                image_b64=_FAKE_IMG_B64,
+                controlnet_model="",  # no model
+            )
+        ]
         controls = agent._build_controls(layers, [])
         assert len(controls) == 0
 
     def test_existing_controls_also_reduced(self):
         from image_pipeline.anime_pipeline.agents.beauty_pass import (
-            BeautyPassAgent, _CONTROL_STRENGTH_FACTOR,
+            _CONTROL_STRENGTH_FACTOR,
+            BeautyPassAgent,
         )
         from image_pipeline.anime_pipeline.schemas import ControlInput
+
         agent = BeautyPassAgent(_make_beauty_config())
-        existing = [ControlInput(
-            layer_type="lineart_anime",
-            controlnet_model="model.safetensors",
-            strength=0.80,
-            image_b64=_FAKE_IMG_B64,
-        )]
+        existing = [
+            ControlInput(
+                layer_type="lineart_anime",
+                controlnet_model="model.safetensors",
+                strength=0.80,
+                image_b64=_FAKE_IMG_B64,
+            )
+        ]
         controls = agent._build_controls([], existing)
         assert len(controls) == 1
         assert controls[0].strength == pytest.approx(0.80 * _CONTROL_STRENGTH_FACTOR)
@@ -4266,6 +4781,7 @@ class TestBeautyPassModelSwap:
     def test_different_final_model_used(self):
         from image_pipeline.anime_pipeline.agents.beauty_pass import BeautyPassAgent
         from image_pipeline.anime_pipeline.config import ModelConfig
+
         config = _make_beauty_config()
         config.final_model = ModelConfig(
             checkpoint="illustrious-xl-v1.safetensors",
@@ -4284,6 +4800,7 @@ class TestBeautyPassModelSwap:
     def test_sampler_from_final_model(self):
         from image_pipeline.anime_pipeline.agents.beauty_pass import BeautyPassAgent
         from image_pipeline.anime_pipeline.config import ModelConfig
+
         config = _make_beauty_config()
         config.final_model = ModelConfig(
             checkpoint="test.safetensors",
@@ -4303,10 +4820,12 @@ class TestBeautyPassExport:
 
     def test_import_from_agents(self):
         from image_pipeline.anime_pipeline.agents import BeautyPassAgent
+
         assert BeautyPassAgent is not None
 
     def test_import_from_agents_all(self):
         from image_pipeline.anime_pipeline import agents
+
         assert "BeautyPassAgent" in agents.__all__
 
 
@@ -4314,22 +4833,26 @@ class TestBeautyPassExport:
 # Refine loop — helpers
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def _make_refine_config(**overrides):
     """Config with refine-relevant defaults. Extends _make_beauty_config."""
     from image_pipeline.anime_pipeline.config import (
-        AnimePipelineConfig, ModelConfig, BeautyStrength,
+        AnimePipelineConfig,
+        BeautyStrength,
+        ModelConfig,
     )
-    defaults = dict(
-        comfyui_url="http://localhost:8188",
-        composition_model=ModelConfig(
+
+    defaults = {
+        "comfyui_url": "http://localhost:8188",
+        "composition_model": ModelConfig(
             checkpoint="animagine-xl-4.0-opt.safetensors",
             clip_skip=2,
         ),
-        beauty_model=ModelConfig(
+        "beauty_model": ModelConfig(
             checkpoint="flatpiececorexl_a1818.safetensors",
             denoise_strength=0.45,
         ),
-        final_model=ModelConfig(
+        "final_model": ModelConfig(
             checkpoint="noobaiXLNAIXL_vPred10Version.safetensors",
             sampler="euler_a",
             scheduler="normal",
@@ -4338,26 +4861,32 @@ def _make_refine_config(**overrides):
             clip_skip=2,
             denoise_strength=0.30,
         ),
-        upscale_model="RealESRGAN_x4plus_anime_6B",
-        beauty_strength=BeautyStrength.BALANCED,
-        max_refine_rounds=2,
-        return_best_on_fail=True,
-        refine_score_threshold=7.0,
-        refine_denoise_step_up=0.05,
-        refine_denoise_step_down=0.03,
-        refine_denoise_floor=0.12,
-        refine_denoise_ceiling=0.55,
-        refine_control_boost=0.10,
-        refine_control_reduce=0.05,
-        refine_dimension_thresholds={
-            "anatomy": 5, "face_symmetry": 5, "eye_consistency": 5,
-            "hand_quality": 4, "clothing_consistency": 5,
-            "composition": 5, "color_drift": 5, "style_drift": 5,
-            "background_clutter": 4, "missing_accessories": 4,
+        "upscale_model": "RealESRGAN_x4plus_anime_6B",
+        "beauty_strength": BeautyStrength.BALANCED,
+        "max_refine_rounds": 2,
+        "return_best_on_fail": True,
+        "refine_score_threshold": 7.0,
+        "refine_denoise_step_up": 0.05,
+        "refine_denoise_step_down": 0.03,
+        "refine_denoise_floor": 0.12,
+        "refine_denoise_ceiling": 0.55,
+        "refine_control_boost": 0.10,
+        "refine_control_reduce": 0.05,
+        "refine_dimension_thresholds": {
+            "anatomy": 5,
+            "face_symmetry": 5,
+            "eye_consistency": 5,
+            "hand_quality": 4,
+            "clothing_consistency": 5,
+            "composition": 5,
+            "color_drift": 5,
+            "style_drift": 5,
+            "background_clutter": 4,
+            "missing_accessories": 4,
             "pose_drift": 5,
         },
-        refine_artifact_accumulation_limit=8,
-    )
+        "refine_artifact_accumulation_limit": 8,
+    }
     defaults.update(overrides)
     return AnimePipelineConfig(**defaults)
 
@@ -4365,13 +4894,19 @@ def _make_refine_config(**overrides):
 def _make_refine_job(with_beauty=True, with_plan=True):
     """Job with beauty_pass intermediate for refine loop testing."""
     from image_pipeline.anime_pipeline.schemas import (
-        AnimePipelineJob, LayerPlan, IntermediateImage,
+        AnimePipelineJob,
+        IntermediateImage,
+        LayerPlan,
     )
+
     job = AnimePipelineJob(job_id="test-refine-001")
     if with_beauty:
-        job.intermediates.append(IntermediateImage(
-            stage="beauty_pass", image_b64=_FAKE_IMG_B64,
-        ))
+        job.intermediates.append(
+            IntermediateImage(
+                stage="beauty_pass",
+                image_b64=_FAKE_IMG_B64,
+            )
+        )
     if with_plan:
         job.layer_plan = LayerPlan(
             scene_summary="test scene",
@@ -4384,17 +4919,28 @@ def _make_refine_job(with_beauty=True, with_plan=True):
 # CritiqueReport expanded — new dimension tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestCritiqueReportExpanded:
     """Verify CritiqueReport's new dimensions, weights, and properties."""
 
     def test_dimension_scores_returns_all_10(self):
         cr = _make_critique()
         ds = cr.dimension_scores
-        assert len(ds) == 11  # 11 dimensions (10 named + removed eye_reference_match_pct)
+        assert (
+            len(ds) == 11
+        )  # 11 dimensions (10 named + removed eye_reference_match_pct)
         expected_keys = {
-            "anatomy", "face_symmetry", "eye_consistency", "hand_quality",
-            "clothing_consistency", "composition", "color_drift", "style_drift",
-            "background_clutter", "missing_accessories", "pose_drift",
+            "anatomy",
+            "face_symmetry",
+            "eye_consistency",
+            "hand_quality",
+            "clothing_consistency",
+            "composition",
+            "color_drift",
+            "style_drift",
+            "background_clutter",
+            "missing_accessories",
+            "pose_drift",
         }
         assert set(ds.keys()) == expected_keys
 
@@ -4432,10 +4978,17 @@ class TestCritiqueReportExpanded:
 
     def test_passed_true_when_all_high(self):
         cr = _make_critique(
-            anatomy_score=8, face_score=8, eye_consistency_score=8,
-            hands_score=8, clothing_score=8, composition_score=8,
-            color_score=8, style_score=8, background_score=8,
-            accessories_score=8, pose_score=8,
+            anatomy_score=8,
+            face_score=8,
+            eye_consistency_score=8,
+            hands_score=8,
+            clothing_score=8,
+            composition_score=8,
+            color_score=8,
+            style_score=8,
+            background_score=8,
+            accessories_score=8,
+            pose_score=8,
         )
         assert cr.passed is True
 
@@ -4469,17 +5022,20 @@ class TestCritiqueReportExpanded:
 # RefineAction / RefineDecision schema tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestRefineSchemas:
     """Test RefineActionType, RefineAction, RefineDecision dataclasses."""
 
     def test_action_type_values(self):
         from image_pipeline.anime_pipeline.schemas import RefineActionType
+
         assert RefineActionType.ADJUST_DENOISE.value == "adjust_denoise"
         assert RefineActionType.PATCH_POSITIVE.value == "patch_positive"
         assert RefineActionType.SWITCH_PRESET.value == "switch_preset"
 
     def test_refine_action_to_dict(self):
         from image_pipeline.anime_pipeline.schemas import RefineAction, RefineActionType
+
         a = RefineAction(
             action_type=RefineActionType.PATCH_NEGATIVE,
             target="negative",
@@ -4494,14 +5050,20 @@ class TestRefineSchemas:
 
     def test_refine_decision_to_dict(self):
         from image_pipeline.anime_pipeline.schemas import (
-            RefineAction, RefineActionType, RefineDecision,
+            RefineAction,
+            RefineActionType,
+            RefineDecision,
         )
+
         dec = RefineDecision(
             should_refine=True,
-            actions=[RefineAction(
-                action_type=RefineActionType.ADJUST_DENOISE,
-                target="denoise", value=0.05,
-            )],
+            actions=[
+                RefineAction(
+                    action_type=RefineActionType.ADJUST_DENOISE,
+                    target="denoise",
+                    value=0.05,
+                )
+            ],
             reason="score below threshold",
             worst_dimensions=["anatomy", "hand_quality"],
         )
@@ -4512,6 +5074,7 @@ class TestRefineSchemas:
 
     def test_refine_decision_defaults(self):
         from image_pipeline.anime_pipeline.schemas import RefineDecision
+
         dec = RefineDecision()
         assert dec.should_refine is False
         assert dec.actions == []
@@ -4519,8 +5082,11 @@ class TestRefineSchemas:
 
     def test_import_from_package(self):
         from image_pipeline.anime_pipeline import (
-            RefineAction, RefineActionType, RefineDecision,
+            RefineAction,
+            RefineActionType,
+            RefineDecision,
         )
+
         assert RefineAction is not None
         assert RefineActionType is not None
         assert RefineDecision is not None
@@ -4529,6 +5095,7 @@ class TestRefineSchemas:
 # ═══════════════════════════════════════════════════════════════════════
 # Refine config tests
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestRefineConfig:
     """Test that refine fields load correctly from YAML and env."""
@@ -4550,6 +5117,7 @@ class TestRefineConfig:
 
     def test_yaml_loads_refine_section(self):
         from image_pipeline.anime_pipeline.config import load_config
+
         config = load_config()
         assert config.refine_score_threshold > 0
         assert config.refine_denoise_floor > 0
@@ -4557,6 +5125,7 @@ class TestRefineConfig:
 
     def test_max_refine_rounds_env_override(self):
         from image_pipeline.anime_pipeline.config import load_config
+
         with patch.dict(os.environ, {"ANIME_PIPELINE_MAX_REFINE_ROUNDS": "5"}):
             config = load_config()
             assert config.max_refine_rounds == 5
@@ -4566,23 +5135,37 @@ class TestRefineConfig:
 # decide_refine_action tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestDecideRefineAction:
     """Pure-logic tests for decide_refine_action()."""
 
     def test_high_scores_no_refine(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import decide_refine_action
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            decide_refine_action,
+        )
+
         critique = _make_critique(
-            anatomy_score=8, face_score=8, eye_consistency_score=8,
-            hands_score=8, clothing_score=8, composition_score=8,
-            color_score=8, style_score=8, background_score=8,
-            accessories_score=8, pose_score=8,
+            anatomy_score=8,
+            face_score=8,
+            eye_consistency_score=8,
+            hands_score=8,
+            clothing_score=8,
+            composition_score=8,
+            color_score=8,
+            style_score=8,
+            background_score=8,
+            accessories_score=8,
+            pose_score=8,
         )
         config = _make_refine_config(refine_score_threshold=7.0)
         decision = decide_refine_action(critique, round_num=1, config=config)
         assert decision.should_refine is False
 
     def test_max_rounds_stops(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import decide_refine_action
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            decide_refine_action,
+        )
+
         critique = _make_critique(anatomy_score=2, face_score=2)
         config = _make_refine_config(max_refine_rounds=2)
         decision = decide_refine_action(critique, round_num=2, config=config)
@@ -4590,8 +5173,11 @@ class TestDecideRefineAction:
         assert "max" in decision.reason.lower()
 
     def test_low_anatomy_triggers_denoise_up(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import decide_refine_action
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            decide_refine_action,
+        )
         from image_pipeline.anime_pipeline.schemas import RefineActionType
+
         critique = _make_critique(anatomy_score=3)  # below threshold 5
         config = _make_refine_config()
         decision = decide_refine_action(critique, round_num=1, config=config)
@@ -4599,12 +5185,19 @@ class TestDecideRefineAction:
         assert "anatomy" in decision.worst_dimensions
         action_types = [a.action_type for a in decision.actions]
         assert RefineActionType.ADJUST_DENOISE in action_types
-        denoise_action = [a for a in decision.actions if a.action_type == RefineActionType.ADJUST_DENOISE][0]
+        denoise_action = [
+            a
+            for a in decision.actions
+            if a.action_type == RefineActionType.ADJUST_DENOISE
+        ][0]
         assert denoise_action.value > 0  # denoise UP
 
     def test_low_hands_triggers_denoise_up(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import decide_refine_action
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            decide_refine_action,
+        )
         from image_pipeline.anime_pipeline.schemas import RefineActionType
+
         critique = _make_critique(hands_score=2)  # below threshold 4
         config = _make_refine_config()
         decision = decide_refine_action(critique, round_num=1, config=config)
@@ -4613,8 +5206,11 @@ class TestDecideRefineAction:
         assert RefineActionType.ADJUST_DENOISE in action_types
 
     def test_low_pose_triggers_control_boost(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import decide_refine_action
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            decide_refine_action,
+        )
         from image_pipeline.anime_pipeline.schemas import RefineActionType
+
         critique = _make_critique(pose_score=3)  # below threshold 5
         config = _make_refine_config()
         decision = decide_refine_action(critique, round_num=1, config=config)
@@ -4622,12 +5218,19 @@ class TestDecideRefineAction:
         assert "pose_drift" in decision.worst_dimensions
         action_types = [a.action_type for a in decision.actions]
         assert RefineActionType.ADJUST_CONTROL in action_types
-        ctrl_action = [a for a in decision.actions if a.action_type == RefineActionType.ADJUST_CONTROL][0]
+        ctrl_action = [
+            a
+            for a in decision.actions
+            if a.action_type == RefineActionType.ADJUST_CONTROL
+        ][0]
         assert ctrl_action.value > 0  # control strength UP
 
     def test_style_drift_triggers_control_reduce(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import decide_refine_action
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            decide_refine_action,
+        )
         from image_pipeline.anime_pipeline.schemas import RefineActionType
+
         critique = _make_critique(style_score=3)  # below threshold 5
         config = _make_refine_config()
         decision = decide_refine_action(critique, round_num=1, config=config)
@@ -4635,15 +5238,23 @@ class TestDecideRefineAction:
         assert "style_drift" in decision.worst_dimensions
         action_types = [a.action_type for a in decision.actions]
         assert RefineActionType.ADJUST_CONTROL in action_types
-        ctrl_action = [a for a in decision.actions if a.action_type == RefineActionType.ADJUST_CONTROL][0]
+        ctrl_action = [
+            a
+            for a in decision.actions
+            if a.action_type == RefineActionType.ADJUST_CONTROL
+        ][0]
         assert ctrl_action.value < 0  # control strength DOWN
 
     def test_artifact_accumulation_switches_preset(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import decide_refine_action
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            decide_refine_action,
+        )
         from image_pipeline.anime_pipeline.schemas import RefineActionType
+
         # Create a critique with many issues to exceed artifact limit
         critique = _make_critique(
-            anatomy_score=3, face_score=3,
+            anatomy_score=3,
+            face_score=3,
             anatomy_issues=["bad arm", "bad leg", "missing finger"],
             face_issues=["asymmetric", "blurry"],
             hand_issues=["extra finger", "merged hand"],
@@ -4654,19 +5265,33 @@ class TestDecideRefineAction:
         assert decision.should_refine is True
         action_types = [a.action_type for a in decision.actions]
         assert RefineActionType.SWITCH_PRESET in action_types
-        preset_action = [a for a in decision.actions if a.action_type == RefineActionType.SWITCH_PRESET][0]
+        preset_action = [
+            a
+            for a in decision.actions
+            if a.action_type == RefineActionType.SWITCH_PRESET
+        ][0]
         assert preset_action.value == "subtle"
 
     def test_below_threshold_no_single_dim_failing(self):
         """Overall below threshold but no single dimension critically bad → general boost."""
-        from image_pipeline.anime_pipeline.agents.refine_loop import decide_refine_action
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            decide_refine_action,
+        )
         from image_pipeline.anime_pipeline.schemas import RefineActionType
+
         # All scores at 6 = overall ~6.0 < 7.0 threshold, but each dim > its threshold (5)
         critique = _make_critique(
-            anatomy_score=6, face_score=6, eye_consistency_score=6,
-            hands_score=6, clothing_score=6, composition_score=6,
-            color_score=6, style_score=6, background_score=6,
-            accessories_score=6, pose_score=6,
+            anatomy_score=6,
+            face_score=6,
+            eye_consistency_score=6,
+            hands_score=6,
+            clothing_score=6,
+            composition_score=6,
+            color_score=6,
+            style_score=6,
+            background_score=6,
+            accessories_score=6,
+            pose_score=6,
         )
         config = _make_refine_config()
         decision = decide_refine_action(critique, round_num=1, config=config)
@@ -4677,40 +5302,62 @@ class TestDecideRefineAction:
         assert decision.worst_dimensions == []
 
     def test_negative_patch_added_for_failing_dim(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import decide_refine_action
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            decide_refine_action,
+        )
         from image_pipeline.anime_pipeline.schemas import RefineActionType
+
         critique = _make_critique(anatomy_score=3)
         config = _make_refine_config()
         decision = decide_refine_action(critique, round_num=1, config=config)
-        neg_patches = [a for a in decision.actions if a.action_type == RefineActionType.PATCH_NEGATIVE]
+        neg_patches = [
+            a
+            for a in decision.actions
+            if a.action_type == RefineActionType.PATCH_NEGATIVE
+        ]
         assert len(neg_patches) >= 1
         assert "bad anatomy" in neg_patches[0].value
 
     def test_positive_patch_from_issues(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import decide_refine_action
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            decide_refine_action,
+        )
         from image_pipeline.anime_pipeline.schemas import RefineActionType
+
         critique = _make_critique(
             face_score=3,
             face_issues=["eyes too far apart", "nose off center"],
         )
         config = _make_refine_config()
         decision = decide_refine_action(critique, round_num=1, config=config)
-        pos_patches = [a for a in decision.actions if a.action_type == RefineActionType.PATCH_POSITIVE]
+        pos_patches = [
+            a
+            for a in decision.actions
+            if a.action_type == RefineActionType.PATCH_POSITIVE
+        ]
         assert len(pos_patches) >= 1
         values = [a.value for a in pos_patches]
         assert "eyes too far apart" in values
 
     def test_round_0_always_allowed(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import decide_refine_action
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            decide_refine_action,
+        )
+
         critique = _make_critique(anatomy_score=2)
         config = _make_refine_config(max_refine_rounds=2)
         decision = decide_refine_action(critique, round_num=0, config=config)
         assert decision.should_refine is True
 
     def test_multiple_failing_dims(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import decide_refine_action
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            decide_refine_action,
+        )
+
         critique = _make_critique(
-            anatomy_score=2, hands_score=2, pose_score=2,
+            anatomy_score=2,
+            hands_score=2,
+            pose_score=2,
         )
         config = _make_refine_config()
         decision = decide_refine_action(critique, round_num=1, config=config)
@@ -4722,50 +5369,73 @@ class TestDecideRefineAction:
 # patch_plan_from_critique tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestPatchPlanFromCritique:
     """Pure-function tests for patch_plan_from_critique()."""
 
     def test_denoise_increase_clamped_to_ceiling(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import patch_plan_from_critique
-        from image_pipeline.anime_pipeline.schemas import (
-            RefineAction, RefineActionType, RefineDecision,
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            patch_plan_from_critique,
         )
+        from image_pipeline.anime_pipeline.schemas import (
+            RefineAction,
+            RefineActionType,
+            RefineDecision,
+        )
+
         pc = _make_beauty_pc(denoise=0.53)
         critique = _make_critique()
         decision = RefineDecision(
             should_refine=True,
-            actions=[RefineAction(
-                action_type=RefineActionType.ADJUST_DENOISE,
-                target="denoise", value=0.05,
-            )],
+            actions=[
+                RefineAction(
+                    action_type=RefineActionType.ADJUST_DENOISE,
+                    target="denoise",
+                    value=0.05,
+                )
+            ],
         )
         config = _make_refine_config(refine_denoise_ceiling=0.55)
         result = patch_plan_from_critique(pc, critique, decision, config)
         assert result.denoise <= 0.55
 
     def test_denoise_decrease_clamped_to_floor(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import patch_plan_from_critique
-        from image_pipeline.anime_pipeline.schemas import (
-            RefineAction, RefineActionType, RefineDecision,
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            patch_plan_from_critique,
         )
+        from image_pipeline.anime_pipeline.schemas import (
+            RefineAction,
+            RefineActionType,
+            RefineDecision,
+        )
+
         pc = _make_beauty_pc(denoise=0.13)
         critique = _make_critique()
         decision = RefineDecision(
             should_refine=True,
-            actions=[RefineAction(
-                action_type=RefineActionType.ADJUST_DENOISE,
-                target="denoise", value=-0.05,
-            )],
+            actions=[
+                RefineAction(
+                    action_type=RefineActionType.ADJUST_DENOISE,
+                    target="denoise",
+                    value=-0.05,
+                )
+            ],
         )
         config = _make_refine_config(refine_denoise_floor=0.12)
         result = patch_plan_from_critique(pc, critique, decision, config)
         assert result.denoise >= 0.12
 
     def test_control_strength_increase(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import patch_plan_from_critique
-        from image_pipeline.anime_pipeline.schemas import (
-            ControlInput, RefineAction, RefineActionType, RefineDecision,
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            patch_plan_from_critique,
         )
+        from image_pipeline.anime_pipeline.schemas import (
+            ControlInput,
+            RefineAction,
+            RefineActionType,
+            RefineDecision,
+        )
+
         ci = ControlInput(
             layer_type="lineart_anime",
             controlnet_model="model.safetensors",
@@ -4776,10 +5446,13 @@ class TestPatchPlanFromCritique:
         critique = _make_critique()
         decision = RefineDecision(
             should_refine=True,
-            actions=[RefineAction(
-                action_type=RefineActionType.ADJUST_CONTROL,
-                target="control_strength", value=0.10,
-            )],
+            actions=[
+                RefineAction(
+                    action_type=RefineActionType.ADJUST_CONTROL,
+                    target="control_strength",
+                    value=0.10,
+                )
+            ],
         )
         config = _make_refine_config()
         result = patch_plan_from_critique(pc, critique, decision, config)
@@ -4787,54 +5460,81 @@ class TestPatchPlanFromCritique:
         assert result.control_inputs[0].strength == pytest.approx(0.60)
 
     def test_control_strength_clamped_max(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import patch_plan_from_critique
-        from image_pipeline.anime_pipeline.schemas import (
-            ControlInput, RefineAction, RefineActionType, RefineDecision,
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            patch_plan_from_critique,
         )
+        from image_pipeline.anime_pipeline.schemas import (
+            ControlInput,
+            RefineAction,
+            RefineActionType,
+            RefineDecision,
+        )
+
         ci = ControlInput(
-            layer_type="depth", controlnet_model="m.safetensors",
-            strength=0.95, image_b64=_FAKE_IMG_B64,
+            layer_type="depth",
+            controlnet_model="m.safetensors",
+            strength=0.95,
+            image_b64=_FAKE_IMG_B64,
         )
         pc = _make_beauty_pc(control_inputs=[ci])
         critique = _make_critique()
         decision = RefineDecision(
             should_refine=True,
-            actions=[RefineAction(
-                action_type=RefineActionType.ADJUST_CONTROL,
-                target="control_strength", value=0.20,
-            )],
+            actions=[
+                RefineAction(
+                    action_type=RefineActionType.ADJUST_CONTROL,
+                    target="control_strength",
+                    value=0.20,
+                )
+            ],
         )
         config = _make_refine_config()
         result = patch_plan_from_critique(pc, critique, decision, config)
         assert result.control_inputs[0].strength == 1.0
 
     def test_control_strength_clamped_min(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import patch_plan_from_critique
-        from image_pipeline.anime_pipeline.schemas import (
-            ControlInput, RefineAction, RefineActionType, RefineDecision,
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            patch_plan_from_critique,
         )
+        from image_pipeline.anime_pipeline.schemas import (
+            ControlInput,
+            RefineAction,
+            RefineActionType,
+            RefineDecision,
+        )
+
         ci = ControlInput(
-            layer_type="depth", controlnet_model="m.safetensors",
-            strength=0.12, image_b64=_FAKE_IMG_B64,
+            layer_type="depth",
+            controlnet_model="m.safetensors",
+            strength=0.12,
+            image_b64=_FAKE_IMG_B64,
         )
         pc = _make_beauty_pc(control_inputs=[ci])
         critique = _make_critique()
         decision = RefineDecision(
             should_refine=True,
-            actions=[RefineAction(
-                action_type=RefineActionType.ADJUST_CONTROL,
-                target="control_strength", value=-0.10,
-            )],
+            actions=[
+                RefineAction(
+                    action_type=RefineActionType.ADJUST_CONTROL,
+                    target="control_strength",
+                    value=-0.10,
+                )
+            ],
         )
         config = _make_refine_config()
         result = patch_plan_from_critique(pc, critique, decision, config)
         assert result.control_inputs[0].strength == 0.1
 
     def test_positive_prompt_no_duplicate(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import patch_plan_from_critique
-        from image_pipeline.anime_pipeline.schemas import (
-            RefineAction, RefineActionType, RefineDecision,
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            patch_plan_from_critique,
         )
+        from image_pipeline.anime_pipeline.schemas import (
+            RefineAction,
+            RefineActionType,
+            RefineDecision,
+        )
+
         pc = _make_beauty_pc(positive_prompt="1girl, school uniform")
         critique = _make_critique()
         decision = RefineDecision(
@@ -4842,11 +5542,13 @@ class TestPatchPlanFromCritique:
             actions=[
                 RefineAction(
                     action_type=RefineActionType.PATCH_POSITIVE,
-                    target="positive", value="1girl",  # already present
+                    target="positive",
+                    value="1girl",  # already present
                 ),
                 RefineAction(
                     action_type=RefineActionType.PATCH_POSITIVE,
-                    target="positive", value="detailed hands",  # new
+                    target="positive",
+                    value="detailed hands",  # new
                 ),
             ],
         )
@@ -4856,10 +5558,15 @@ class TestPatchPlanFromCritique:
         assert "detailed hands" in result.positive_prompt
 
     def test_negative_prompt_no_duplicate(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import patch_plan_from_critique
-        from image_pipeline.anime_pipeline.schemas import (
-            RefineAction, RefineActionType, RefineDecision,
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            patch_plan_from_critique,
         )
+        from image_pipeline.anime_pipeline.schemas import (
+            RefineAction,
+            RefineActionType,
+            RefineDecision,
+        )
+
         pc = _make_beauty_pc(negative_prompt="worst quality, lowres")
         critique = _make_critique()
         decision = RefineDecision(
@@ -4867,11 +5574,13 @@ class TestPatchPlanFromCritique:
             actions=[
                 RefineAction(
                     action_type=RefineActionType.PATCH_NEGATIVE,
-                    target="negative", value="worst quality",  # already present
+                    target="negative",
+                    value="worst quality",  # already present
                 ),
                 RefineAction(
                     action_type=RefineActionType.PATCH_NEGATIVE,
-                    target="negative", value="bad anatomy",  # new
+                    target="negative",
+                    value="bad anatomy",  # new
                 ),
             ],
         )
@@ -4881,18 +5590,26 @@ class TestPatchPlanFromCritique:
         assert "bad anatomy" in result.negative_prompt
 
     def test_switch_preset_applies_values(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import patch_plan_from_critique
-        from image_pipeline.anime_pipeline.schemas import (
-            RefineAction, RefineActionType, RefineDecision,
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            patch_plan_from_critique,
         )
+        from image_pipeline.anime_pipeline.schemas import (
+            RefineAction,
+            RefineActionType,
+            RefineDecision,
+        )
+
         pc = _make_beauty_pc(denoise=0.40, steps=28, cfg=5.5)
         critique = _make_critique()
         decision = RefineDecision(
             should_refine=True,
-            actions=[RefineAction(
-                action_type=RefineActionType.SWITCH_PRESET,
-                target="beauty_strength", value="subtle",
-            )],
+            actions=[
+                RefineAction(
+                    action_type=RefineActionType.SWITCH_PRESET,
+                    target="beauty_strength",
+                    value="subtle",
+                )
+            ],
         )
         config = _make_refine_config()
         result = patch_plan_from_critique(pc, critique, decision, config)
@@ -4902,8 +5619,11 @@ class TestPatchPlanFromCritique:
         assert result.cfg == pytest.approx(5.0)
 
     def test_critique_prompt_patch_applied(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import patch_plan_from_critique
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            patch_plan_from_critique,
+        )
         from image_pipeline.anime_pipeline.schemas import RefineDecision
+
         pc = _make_beauty_pc(positive_prompt="1girl")
         critique = _make_critique(prompt_patch=["better lighting", "sharp focus"])
         decision = RefineDecision(should_refine=True)
@@ -4913,10 +5633,14 @@ class TestPatchPlanFromCritique:
         assert "sharp focus" in result.positive_prompt
 
     def test_critique_control_patch_applied(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import patch_plan_from_critique
-        from image_pipeline.anime_pipeline.schemas import (
-            ControlInput, RefineDecision,
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            patch_plan_from_critique,
         )
+        from image_pipeline.anime_pipeline.schemas import (
+            ControlInput,
+            RefineDecision,
+        )
+
         ci = ControlInput(
             layer_type="lineart_anime",
             controlnet_model="model.safetensors",
@@ -4931,26 +5655,37 @@ class TestPatchPlanFromCritique:
         assert result.control_inputs[0].strength == pytest.approx(0.65)
 
     def test_original_pc_not_mutated(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import patch_plan_from_critique
-        from image_pipeline.anime_pipeline.schemas import (
-            RefineAction, RefineActionType, RefineDecision,
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            patch_plan_from_critique,
         )
+        from image_pipeline.anime_pipeline.schemas import (
+            RefineAction,
+            RefineActionType,
+            RefineDecision,
+        )
+
         pc = _make_beauty_pc(denoise=0.30)
         critique = _make_critique()
         decision = RefineDecision(
             should_refine=True,
-            actions=[RefineAction(
-                action_type=RefineActionType.ADJUST_DENOISE,
-                target="denoise", value=0.05,
-            )],
+            actions=[
+                RefineAction(
+                    action_type=RefineActionType.ADJUST_DENOISE,
+                    target="denoise",
+                    value=0.05,
+                )
+            ],
         )
         config = _make_refine_config()
         patch_plan_from_critique(pc, critique, decision, config)
         assert pc.denoise == 0.30  # original unchanged
 
     def test_empty_actions_returns_copy(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import patch_plan_from_critique
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            patch_plan_from_critique,
+        )
         from image_pipeline.anime_pipeline.schemas import RefineDecision
+
         pc = _make_beauty_pc()
         critique = _make_critique()
         decision = RefineDecision(should_refine=True)
@@ -4960,18 +5695,26 @@ class TestPatchPlanFromCritique:
         assert result.positive_prompt == pc.positive_prompt
 
     def test_invalid_preset_logged_but_not_crash(self):
-        from image_pipeline.anime_pipeline.agents.refine_loop import patch_plan_from_critique
-        from image_pipeline.anime_pipeline.schemas import (
-            RefineAction, RefineActionType, RefineDecision,
+        from image_pipeline.anime_pipeline.agents.refine_loop import (
+            patch_plan_from_critique,
         )
+        from image_pipeline.anime_pipeline.schemas import (
+            RefineAction,
+            RefineActionType,
+            RefineDecision,
+        )
+
         pc = _make_beauty_pc(denoise=0.30)
         critique = _make_critique()
         decision = RefineDecision(
             should_refine=True,
-            actions=[RefineAction(
-                action_type=RefineActionType.SWITCH_PRESET,
-                target="beauty_strength", value="nonexistent_preset",
-            )],
+            actions=[
+                RefineAction(
+                    action_type=RefineActionType.SWITCH_PRESET,
+                    target="beauty_strength",
+                    value="nonexistent_preset",
+                )
+            ],
         )
         config = _make_refine_config()
         result = patch_plan_from_critique(pc, critique, decision, config)
@@ -4982,6 +5725,7 @@ class TestPatchPlanFromCritique:
 # ═══════════════════════════════════════════════════════════════════════
 # critique_image function tests
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestCritiqueImageFunction:
     """Test critique_image() wrapper function."""
@@ -5028,6 +5772,7 @@ class TestCritiqueImageFunction:
 # run_refine_round tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestRunRefineRound:
     """Integration-level tests for run_refine_round()."""
 
@@ -5035,10 +5780,17 @@ class TestRunRefineRound:
         from image_pipeline.anime_pipeline.agents.refine_loop import run_refine_round
 
         critique = _make_critique(
-            anatomy_score=8, face_score=8, eye_consistency_score=8,
-            hands_score=8, clothing_score=8, composition_score=8,
-            color_score=8, style_score=8, background_score=8,
-            accessories_score=8, pose_score=8,
+            anatomy_score=8,
+            face_score=8,
+            eye_consistency_score=8,
+            hands_score=8,
+            clothing_score=8,
+            composition_score=8,
+            color_score=8,
+            style_score=8,
+            background_score=8,
+            accessories_score=8,
+            pose_score=8,
         )  # passes threshold
         config = _make_refine_config()
         job = _make_refine_job()
@@ -5048,7 +5800,9 @@ class TestRunRefineRound:
         critique_agent = MagicMock()
 
         result_job, result_crit, result_pc = run_refine_round(
-            job, config, round_num=1,
+            job,
+            config,
+            round_num=1,
             beauty_agent=beauty_agent,
             critique_agent=critique_agent,
             last_critique=critique,
@@ -5074,7 +5828,9 @@ class TestRunRefineRound:
         # Mock beauty agent
         beauty_agent = MagicMock()
         beauty_result = ComfyJobResult(
-            success=True, images_b64=[_FAKE_IMG_B64], duration_ms=1500.0,
+            success=True,
+            images_b64=[_FAKE_IMG_B64],
+            duration_ms=1500.0,
         )
         beauty_agent._builder.build_beauty.return_value = {"test": "workflow"}
         beauty_agent._client.submit_workflow.return_value = beauty_result
@@ -5090,7 +5846,9 @@ class TestRunRefineRound:
         critique_agent.execute.side_effect = mock_critique_execute
 
         result_job, result_crit, result_pc = run_refine_round(
-            job, config, round_num=1,
+            job,
+            config,
+            round_num=1,
             beauty_agent=beauty_agent,
             critique_agent=critique_agent,
             last_critique=critique,
@@ -5100,7 +5858,9 @@ class TestRunRefineRound:
         assert result_crit.anatomy_score == 7
         assert result_job.refine_rounds == 1
         # Should have added intermediate
-        refine_imgs = [i for i in result_job.intermediates if i.stage == "refine_round_1"]
+        refine_imgs = [
+            i for i in result_job.intermediates if i.stage == "refine_round_1"
+        ]
         assert len(refine_imgs) == 1
 
     @patch("image_pipeline.anime_pipeline.agents.refine_loop.random")
@@ -5118,12 +5878,15 @@ class TestRunRefineRound:
         beauty_agent = MagicMock()
         beauty_agent._builder.build_beauty.return_value = {}
         beauty_agent._client.submit_workflow.return_value = ComfyJobResult(
-            success=False, error="GPU OOM",
+            success=False,
+            error="GPU OOM",
         )
 
         critique_agent = MagicMock()
         result_job, _, _ = run_refine_round(
-            job, config, round_num=1,
+            job,
+            config,
+            round_num=1,
             beauty_agent=beauty_agent,
             critique_agent=critique_agent,
             last_critique=critique,
@@ -5147,12 +5910,16 @@ class TestRunRefineRound:
         beauty_agent = MagicMock()
         beauty_agent._builder.build_beauty.return_value = {}
         beauty_agent._client.submit_workflow.return_value = ComfyJobResult(
-            success=True, images_b64=[], duration_ms=500.0,
+            success=True,
+            images_b64=[],
+            duration_ms=500.0,
         )
 
         critique_agent = MagicMock()
         result_job, _, _ = run_refine_round(
-            job, config, round_num=1,
+            job,
+            config,
+            round_num=1,
             beauty_agent=beauty_agent,
             critique_agent=critique_agent,
             last_critique=critique,
@@ -5174,7 +5941,9 @@ class TestRunRefineRound:
         critique_agent = MagicMock()
 
         result_job, _, _ = run_refine_round(
-            job, config, round_num=1,
+            job,
+            config,
+            round_num=1,
             beauty_agent=beauty_agent,
             critique_agent=critique_agent,
             last_critique=critique,
@@ -5188,6 +5957,7 @@ class TestRunRefineRound:
 # RefineLoopAgent tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestRefineLoopAgent:
     """Integration tests for RefineLoopAgent.execute()."""
 
@@ -5197,10 +5967,17 @@ class TestRefineLoopAgent:
         from image_pipeline.anime_pipeline.agents.refine_loop import RefineLoopAgent
 
         good_critique = _make_critique(
-            anatomy_score=8, face_score=8, eye_consistency_score=8,
-            hands_score=8, clothing_score=8, composition_score=8,
-            color_score=8, style_score=8, background_score=8,
-            accessories_score=8, pose_score=8,
+            anatomy_score=8,
+            face_score=8,
+            eye_consistency_score=8,
+            hands_score=8,
+            clothing_score=8,
+            composition_score=8,
+            color_score=8,
+            style_score=8,
+            background_score=8,
+            accessories_score=8,
+            pose_score=8,
         )  # all 8s → passes
 
         def mock_critique(job):
@@ -5246,10 +6023,17 @@ class TestRefineLoopAgent:
         critique_calls = [0]
         bad_critique = _make_critique(anatomy_score=3, face_score=3)
         good_critique = _make_critique(
-            anatomy_score=8, face_score=8, eye_consistency_score=8,
-            hands_score=8, clothing_score=8, composition_score=8,
-            color_score=8, style_score=8, background_score=8,
-            accessories_score=8, pose_score=8,
+            anatomy_score=8,
+            face_score=8,
+            eye_consistency_score=8,
+            hands_score=8,
+            clothing_score=8,
+            composition_score=8,
+            color_score=8,
+            style_score=8,
+            background_score=8,
+            accessories_score=8,
+            pose_score=8,
         )
 
         def mock_critique(job):
@@ -5264,7 +6048,9 @@ class TestRefineLoopAgent:
 
         # Beauty agent for refinement
         beauty_result = ComfyJobResult(
-            success=True, images_b64=[_FAKE_IMG_B64], duration_ms=1000.0,
+            success=True,
+            images_b64=[_FAKE_IMG_B64],
+            duration_ms=1000.0,
         )
         MockBeauty.return_value._builder.build_beauty.return_value = {"wf": True}
         MockBeauty.return_value._client.submit_workflow.return_value = beauty_result
@@ -5298,7 +6084,9 @@ class TestRefineLoopAgent:
         MockCritique.return_value.execute.side_effect = mock_critique
 
         beauty_result = ComfyJobResult(
-            success=True, images_b64=[_FAKE_IMG_B64], duration_ms=800.0,
+            success=True,
+            images_b64=[_FAKE_IMG_B64],
+            duration_ms=800.0,
         )
         MockBeauty.return_value._builder.build_beauty.return_value = {}
         MockBeauty.return_value._client.submit_workflow.return_value = beauty_result
@@ -5307,7 +6095,7 @@ class TestRefineLoopAgent:
         agent = RefineLoopAgent(config)
         job = _make_refine_job()
 
-        result = agent.execute(job)
+        agent.execute(job)
         # Should have attempted max_refine_rounds (2) then stopped at round 3 check
         # Initial critique + up to 2 refine round critiques
         assert MockCritique.return_value.execute.call_count >= 2
@@ -5318,10 +6106,17 @@ class TestRefineLoopAgent:
         from image_pipeline.anime_pipeline.agents.refine_loop import RefineLoopAgent
 
         good_critique = _make_critique(
-            anatomy_score=8, face_score=8, eye_consistency_score=8,
-            hands_score=8, clothing_score=8, composition_score=8,
-            color_score=8, style_score=8, background_score=8,
-            accessories_score=8, pose_score=8,
+            anatomy_score=8,
+            face_score=8,
+            eye_consistency_score=8,
+            hands_score=8,
+            clothing_score=8,
+            composition_score=8,
+            color_score=8,
+            style_score=8,
+            background_score=8,
+            accessories_score=8,
+            pose_score=8,
         )
 
         def mock_critique(job):
@@ -5343,34 +6138,43 @@ class TestRefineLoopAgent:
 # RefineLoopAgent export tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestRefineLoopExport:
     """Test that RefineLoopAgent and functions are properly exported."""
 
     def test_import_refine_loop_agent(self):
         from image_pipeline.anime_pipeline.agents import RefineLoopAgent
+
         assert RefineLoopAgent is not None
 
     def test_import_critique_image(self):
         from image_pipeline.anime_pipeline.agents import critique_image
+
         assert callable(critique_image)
 
     def test_import_decide_refine_action(self):
         from image_pipeline.anime_pipeline.agents import decide_refine_action
+
         assert callable(decide_refine_action)
 
     def test_import_patch_plan_from_critique(self):
         from image_pipeline.anime_pipeline.agents import patch_plan_from_critique
+
         assert callable(patch_plan_from_critique)
 
     def test_import_run_refine_round(self):
         from image_pipeline.anime_pipeline.agents import run_refine_round
+
         assert callable(run_refine_round)
 
     def test_all_in_agents_all(self):
         from image_pipeline.anime_pipeline import agents
+
         expected = [
-            "RefineLoopAgent", "critique_image",
-            "decide_refine_action", "patch_plan_from_critique",
+            "RefineLoopAgent",
+            "critique_image",
+            "decide_refine_action",
+            "patch_plan_from_critique",
             "run_refine_round",
         ]
         for name in expected:
@@ -5383,32 +6187,42 @@ class TestRefineLoopExport:
 
 # ── Helpers ───────────────────────────────────────────────────────────
 
+
 def _make_upscale_config(**overrides):
     """Config for upscale / ranker / manifest tests."""
     from image_pipeline.anime_pipeline.config import (
-        AnimePipelineConfig, ModelConfig, BeautyStrength,
+        AnimePipelineConfig,
+        BeautyStrength,
+        ModelConfig,
     )
-    defaults = dict(
-        comfyui_url="http://localhost:8188",
-        composition_model=ModelConfig(
-            checkpoint="animagine-xl-4.0-opt.safetensors", clip_skip=2,
+
+    defaults = {
+        "comfyui_url": "http://localhost:8188",
+        "composition_model": ModelConfig(
+            checkpoint="animagine-xl-4.0-opt.safetensors",
+            clip_skip=2,
         ),
-        beauty_model=ModelConfig(
-            checkpoint="flatpiececorexl_a1818.safetensors", denoise_strength=0.45,
+        "beauty_model": ModelConfig(
+            checkpoint="flatpiececorexl_a1818.safetensors",
+            denoise_strength=0.45,
         ),
-        final_model=ModelConfig(
+        "final_model": ModelConfig(
             checkpoint="noobaiXLNAIXL_vPred10Version.safetensors",
-            sampler="euler_a", scheduler="normal", steps=28, cfg=5.5,
-            clip_skip=2, denoise_strength=0.30,
+            sampler="euler_a",
+            scheduler="normal",
+            steps=28,
+            cfg=5.5,
+            clip_skip=2,
+            denoise_strength=0.30,
         ),
-        upscale_model="RealESRGAN_x4plus_anime_6B",
-        upscale_factor=2,
-        upscale_tile_size=512,
-        upscale_denoise=0.2,
-        beauty_strength=BeautyStrength.BALANCED,
-        quality_prefix="masterpiece, best quality",
-        negative_base="lowres, worst quality",
-    )
+        "upscale_model": "RealESRGAN_x4plus_anime_6B",
+        "upscale_factor": 2,
+        "upscale_tile_size": 512,
+        "upscale_denoise": 0.2,
+        "beauty_strength": BeautyStrength.BALANCED,
+        "quality_prefix": "masterpiece, best quality",
+        "negative_base": "lowres, worst quality",
+    }
     defaults.update(overrides)
     return AnimePipelineConfig(**defaults)
 
@@ -5416,13 +6230,20 @@ def _make_upscale_config(**overrides):
 def _make_upscale_job(with_beauty=True, with_upscale_pass=True):
     """Job with beauty_pass intermediate and optional upscale pass in plan."""
     from image_pipeline.anime_pipeline.schemas import (
-        AnimePipelineJob, LayerPlan, IntermediateImage, PassConfig,
+        AnimePipelineJob,
+        IntermediateImage,
+        LayerPlan,
+        PassConfig,
     )
+
     job = AnimePipelineJob(job_id="test-upscale-001")
     if with_beauty:
-        job.intermediates.append(IntermediateImage(
-            stage="beauty_pass", image_b64=_FAKE_IMG_B64,
-        ))
+        job.intermediates.append(
+            IntermediateImage(
+                stage="beauty_pass",
+                image_b64=_FAKE_IMG_B64,
+            )
+        )
     passes = [_make_beauty_pc()]
     if with_upscale_pass:
         passes.append(PassConfig(pass_name="upscale"))
@@ -5436,6 +6257,7 @@ def _make_upscale_job(with_beauty=True, with_upscale_pass=True):
 def _make_comfy_result(success=True, images=None):
     """Build a mock ComfyJobResult."""
     from image_pipeline.anime_pipeline.comfy_client import ComfyJobResult
+
     return ComfyJobResult(
         prompt_id="test-prompt-id",
         success=success,
@@ -5447,11 +6269,13 @@ def _make_comfy_result(success=True, images=None):
 # RankCandidate / RankResult schema tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestRankCandidate:
     """RankCandidate dataclass contract."""
 
     def test_defaults(self):
         from image_pipeline.anime_pipeline.schemas import RankCandidate
+
         c = RankCandidate()
         assert c.image_b64 == ""
         assert c.stage == ""
@@ -5464,10 +6288,15 @@ class TestRankCandidate:
 
     def test_to_dict_keys(self):
         from image_pipeline.anime_pipeline.schemas import RankCandidate
+
         c = RankCandidate(
-            image_b64="abc", stage="beauty_pass",
-            face_quality=8.0, clarity=7.5, style_consistency=9.0,
-            artifact_count=2, composite_score=7.8,
+            image_b64="abc",
+            stage="beauty_pass",
+            face_quality=8.0,
+            clarity=7.5,
+            style_consistency=9.0,
+            artifact_count=2,
+            composite_score=7.8,
         )
         d = c.to_dict()
         assert d["stage"] == "beauty_pass"
@@ -5480,11 +6309,13 @@ class TestRankCandidate:
 
     def test_to_dict_no_image(self):
         from image_pipeline.anime_pipeline.schemas import RankCandidate
+
         c = RankCandidate(image_b64="", stage="test")
         assert c.to_dict()["has_image"] is False
 
     def test_to_dict_rounds_floats(self):
         from image_pipeline.anime_pipeline.schemas import RankCandidate
+
         c = RankCandidate(face_quality=7.123456, clarity=8.999999)
         d = c.to_dict()
         assert d["face_quality"] == 7.12
@@ -5496,6 +6327,7 @@ class TestRankResult:
 
     def test_defaults(self):
         from image_pipeline.anime_pipeline.schemas import RankResult
+
         r = RankResult()
         assert r.winner is None
         assert r.runner_ups == []
@@ -5503,6 +6335,7 @@ class TestRankResult:
 
     def test_to_dict_with_winner(self):
         from image_pipeline.anime_pipeline.schemas import RankCandidate, RankResult
+
         winner = RankCandidate(stage="upscale", composite_score=9.0, image_b64="x")
         runner = RankCandidate(stage="beauty_pass", composite_score=7.0, image_b64="y")
         r = RankResult(winner=winner, runner_ups=[runner], total_candidates=2)
@@ -5513,6 +6346,7 @@ class TestRankResult:
 
     def test_to_dict_no_winner(self):
         from image_pipeline.anime_pipeline.schemas import RankResult
+
         r = RankResult(total_candidates=0)
         d = r.to_dict()
         assert d["winner"] is None
@@ -5523,17 +6357,20 @@ class TestRankResult:
 # WorkflowBuilder — new upscale methods
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestWorkflowBuilderSimpleUpscale:
     """Tests for build_simple_upscale — model upscale + rescale."""
 
     def test_node_count(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         w = wb.build_simple_upscale("IMG", "RealESRGAN_x4plus_anime_6B", 1248, 1824)
         assert len(w) == 5  # load, loader, upscale, rescale, save
 
     def test_has_image_scale_node(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         w = wb.build_simple_upscale("IMG", "model.pth", 1664, 2432)
         scale_nodes = [n for n in w.values() if n["class_type"] == "ImageScale"]
@@ -5541,6 +6378,7 @@ class TestWorkflowBuilderSimpleUpscale:
 
     def test_target_dimensions(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         w = wb.build_simple_upscale("IMG", "model.pth", 1664, 2432)
         scale_node = [n for n in w.values() if n["class_type"] == "ImageScale"][0]
@@ -5550,14 +6388,18 @@ class TestWorkflowBuilderSimpleUpscale:
 
     def test_has_upscale_model_loader(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         w = wb.build_simple_upscale("IMG", "MyModel.pth", 100, 100)
-        loader_nodes = [n for n in w.values() if n["class_type"] == "UpscaleModelLoader"]
+        loader_nodes = [
+            n for n in w.values() if n["class_type"] == "UpscaleModelLoader"
+        ]
         assert len(loader_nodes) == 1
         assert loader_nodes[0]["inputs"]["model_name"] == "MyModel.pth"
 
     def test_save_node_filename_prefix(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         w = wb.build_simple_upscale("IMG", "m.pth", 100, 100, pass_name="my_upscale")
         save_nodes = [n for n in w.values() if n["class_type"] == "SaveImage"]
@@ -5566,6 +6408,7 @@ class TestWorkflowBuilderSimpleUpscale:
 
     def test_node_ids_are_sequential_strings(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         w = wb.build_simple_upscale("IMG", "m.pth", 100, 100)
         ids = sorted(w.keys(), key=int)
@@ -5577,40 +6420,68 @@ class TestWorkflowBuilderUltimateSDUpscale:
 
     def test_node_count(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         w = wb.build_ultimate_sd_upscale(
-            "IMG", "model.pth", 2.0, "ckpt.safetensors",
-            "positive", "negative", 42,
+            "IMG",
+            "model.pth",
+            2.0,
+            "ckpt.safetensors",
+            "positive",
+            "negative",
+            42,
         )
         # load, ckpt, clip_pos, clip_neg, up_loader, ultimate, save = 7
         assert len(w) == 7
 
     def test_has_ultimate_node(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         w = wb.build_ultimate_sd_upscale(
-            "IMG", "model.pth", 1.5, "ckpt.safetensors",
-            "pos", "neg", 42,
+            "IMG",
+            "model.pth",
+            1.5,
+            "ckpt.safetensors",
+            "pos",
+            "neg",
+            42,
         )
-        ultimate_nodes = [n for n in w.values() if n["class_type"] == "UltimateSDUpscale"]
+        ultimate_nodes = [
+            n for n in w.values() if n["class_type"] == "UltimateSDUpscale"
+        ]
         assert len(ultimate_nodes) == 1
 
     def test_upscale_by_factor(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         w = wb.build_ultimate_sd_upscale(
-            "IMG", "model.pth", 1.5, "ckpt.safetensors",
-            "pos", "neg", 42,
+            "IMG",
+            "model.pth",
+            1.5,
+            "ckpt.safetensors",
+            "pos",
+            "neg",
+            42,
         )
         ultimate = [n for n in w.values() if n["class_type"] == "UltimateSDUpscale"][0]
         assert ultimate["inputs"]["upscale_by"] == 1.5
 
     def test_tile_dimensions(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         w = wb.build_ultimate_sd_upscale(
-            "IMG", "model.pth", 2.0, "ckpt.safetensors",
-            "pos", "neg", 42, tile_width=768, tile_height=768,
+            "IMG",
+            "model.pth",
+            2.0,
+            "ckpt.safetensors",
+            "pos",
+            "neg",
+            42,
+            tile_width=768,
+            tile_height=768,
         )
         ultimate = [n for n in w.values() if n["class_type"] == "UltimateSDUpscale"][0]
         assert ultimate["inputs"]["tile_width"] == 768
@@ -5618,10 +6489,18 @@ class TestWorkflowBuilderUltimateSDUpscale:
 
     def test_denoise_and_cfg(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         w = wb.build_ultimate_sd_upscale(
-            "IMG", "model.pth", 2.0, "ckpt.safetensors",
-            "pos", "neg", 42, denoise=0.15, cfg=6.0,
+            "IMG",
+            "model.pth",
+            2.0,
+            "ckpt.safetensors",
+            "pos",
+            "neg",
+            42,
+            denoise=0.15,
+            cfg=6.0,
         )
         ultimate = [n for n in w.values() if n["class_type"] == "UltimateSDUpscale"][0]
         assert ultimate["inputs"]["denoise"] == 0.15
@@ -5629,12 +6508,20 @@ class TestWorkflowBuilderUltimateSDUpscale:
 
     def test_checkpoint_and_prompts_wired(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         w = wb.build_ultimate_sd_upscale(
-            "IMG", "upmodel.pth", 2.0, "my_checkpoint.safetensors",
-            "masterpiece", "worst quality", 99,
+            "IMG",
+            "upmodel.pth",
+            2.0,
+            "my_checkpoint.safetensors",
+            "masterpiece",
+            "worst quality",
+            99,
         )
-        ckpt_nodes = [n for n in w.values() if n["class_type"] == "CheckpointLoaderSimple"]
+        ckpt_nodes = [
+            n for n in w.values() if n["class_type"] == "CheckpointLoaderSimple"
+        ]
         assert len(ckpt_nodes) == 1
         assert ckpt_nodes[0]["inputs"]["ckpt_name"] == "my_checkpoint.safetensors"
         clip_nodes = [n for n in w.values() if n["class_type"] == "CLIPTextEncode"]
@@ -5644,20 +6531,33 @@ class TestWorkflowBuilderUltimateSDUpscale:
 
     def test_seed_passed_through(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         w = wb.build_ultimate_sd_upscale(
-            "IMG", "model.pth", 2.0, "ckpt.safetensors",
-            "pos", "neg", 12345,
+            "IMG",
+            "model.pth",
+            2.0,
+            "ckpt.safetensors",
+            "pos",
+            "neg",
+            12345,
         )
         ultimate = [n for n in w.values() if n["class_type"] == "UltimateSDUpscale"][0]
         assert ultimate["inputs"]["seed"] == 12345
 
     def test_save_node_present(self):
         from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
         wb = WorkflowBuilder()
         w = wb.build_ultimate_sd_upscale(
-            "IMG", "model.pth", 2.0, "ckpt.safetensors",
-            "pos", "neg", 42, pass_name="upscale_final",
+            "IMG",
+            "model.pth",
+            2.0,
+            "ckpt.safetensors",
+            "pos",
+            "neg",
+            42,
+            pass_name="upscale_final",
         )
         save_nodes = [n for n in w.values() if n["class_type"] == "SaveImage"]
         assert len(save_nodes) == 1
@@ -5668,14 +6568,20 @@ class TestWorkflowBuilderUltimateSDUpscale:
 # score_candidate / rank_candidates function tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestScoreCandidate:
     """Tests for score_candidate() function."""
 
     def test_with_critique_all_8s(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import score_candidate
+
         crit = _make_critique(
-            anatomy_score=8, face_score=8, eye_consistency_score=8,
-            hands_score=8, composition_score=8, style_score=8,
+            anatomy_score=8,
+            face_score=8,
+            eye_consistency_score=8,
+            hands_score=8,
+            composition_score=8,
+            style_score=8,
         )
         c = score_candidate(_FAKE_IMG_B64, "beauty_pass", crit)
         assert c.face_quality == pytest.approx(8.0, abs=0.01)
@@ -5686,6 +6592,7 @@ class TestScoreCandidate:
 
     def test_with_critique_all_7s(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import score_candidate
+
         crit = _make_critique()  # all 7s
         c = score_candidate(_FAKE_IMG_B64, "beauty_pass", crit)
         assert c.face_quality == pytest.approx(7.0, abs=0.01)
@@ -5695,6 +6602,7 @@ class TestScoreCandidate:
 
     def test_with_artifacts_penalises_score(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import score_candidate
+
         crit = _make_critique(
             anatomy_issues=["bad arm", "bad leg", "extra finger"],
             face_issues=["asymmetric eyes", "blurry face"],
@@ -5707,6 +6615,7 @@ class TestScoreCandidate:
 
     def test_artifact_penalty_capped(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import score_candidate
+
         # 20 issues → penalty capped at 3.0
         crit = _make_critique(
             anatomy_issues=["issue"] * 10,
@@ -5719,6 +6628,7 @@ class TestScoreCandidate:
 
     def test_without_critique_uses_defaults(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import score_candidate
+
         c = score_candidate(_FAKE_IMG_B64, "beauty_pass", None)
         assert c.face_quality == 5.0
         assert c.clarity == 5.0
@@ -5728,25 +6638,32 @@ class TestScoreCandidate:
 
     def test_stage_stored(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import score_candidate
+
         c = score_candidate("img", "upscale", None)
         assert c.stage == "upscale"
 
     def test_image_stored(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import score_candidate
+
         c = score_candidate("myimg", "beauty_pass", None)
         assert c.image_b64 == "myimg"
 
     def test_critique_reference_stored(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import score_candidate
+
         crit = _make_critique()
         c = score_candidate("img", "beauty_pass", crit)
         assert c.critique is crit
 
     def test_mixed_scores(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import score_candidate
+
         crit = _make_critique(
-            face_score=10, eye_consistency_score=10,   # face_quality = (10*1.5+10*1.2)/2.7 = 10.0
-            anatomy_score=4, composition_score=6, hands_score=5,  # clarity = 5.0
+            face_score=10,
+            eye_consistency_score=10,  # face_quality = (10*1.5+10*1.2)/2.7 = 10.0
+            anatomy_score=4,
+            composition_score=6,
+            hands_score=5,  # clarity = 5.0
             style_score=3,  # style = 3.0
         )
         c = score_candidate("img", "beauty_pass", crit)
@@ -5758,11 +6675,19 @@ class TestScoreCandidate:
 
     def test_zero_scores_zero_composite(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import score_candidate
+
         crit = _make_critique(
-            anatomy_score=0, face_score=0, eye_consistency_score=0,
-            hands_score=0, composition_score=0, style_score=0,
-            color_score=0, background_score=0, accessories_score=0,
-            pose_score=0, clothing_score=0,
+            anatomy_score=0,
+            face_score=0,
+            eye_consistency_score=0,
+            hands_score=0,
+            composition_score=0,
+            style_score=0,
+            color_score=0,
+            background_score=0,
+            accessories_score=0,
+            pose_score=0,
+            clothing_score=0,
         )
         c = score_candidate("img", "beauty_pass", crit)
         assert c.composite_score == pytest.approx(0.0, abs=0.01)
@@ -5773,6 +6698,7 @@ class TestRankCandidatesFunction:
 
     def test_empty_list(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import rank_candidates
+
         r = rank_candidates([])
         assert r.winner is None
         assert r.runner_ups == []
@@ -5780,8 +6706,10 @@ class TestRankCandidatesFunction:
 
     def test_single_candidate(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import (
-            score_candidate, rank_candidates,
+            rank_candidates,
+            score_candidate,
         )
+
         c = score_candidate(_FAKE_IMG_B64, "beauty_pass", None)
         r = rank_candidates([c])
         assert r.winner is c
@@ -5790,9 +6718,10 @@ class TestRankCandidatesFunction:
 
     def test_two_candidates_winner_first(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import (
-            score_candidate, rank_candidates,
+            rank_candidates,
         )
         from image_pipeline.anime_pipeline.schemas import RankCandidate
+
         high = RankCandidate(image_b64="a", stage="upscale", composite_score=9.0)
         low = RankCandidate(image_b64="b", stage="beauty_pass", composite_score=6.0)
         r = rank_candidates([low, high])
@@ -5802,8 +6731,9 @@ class TestRankCandidatesFunction:
         assert r.runner_ups[0].composite_score == 6.0
 
     def test_three_candidates_sorted(self):
-        from image_pipeline.anime_pipeline.schemas import RankCandidate
         from image_pipeline.anime_pipeline.agents.final_ranker import rank_candidates
+        from image_pipeline.anime_pipeline.schemas import RankCandidate
+
         a = RankCandidate(stage="a", composite_score=5.0)
         b = RankCandidate(stage="b", composite_score=9.0)
         c = RankCandidate(stage="c", composite_score=7.0)
@@ -5813,8 +6743,9 @@ class TestRankCandidatesFunction:
         assert r.total_candidates == 3
 
     def test_result_to_dict(self):
-        from image_pipeline.anime_pipeline.schemas import RankCandidate, RankResult
         from image_pipeline.anime_pipeline.agents.final_ranker import rank_candidates
+        from image_pipeline.anime_pipeline.schemas import RankCandidate
+
         cands = [
             RankCandidate(stage="x", composite_score=8.0, image_b64="i"),
             RankCandidate(stage="y", composite_score=6.0, image_b64="j"),
@@ -5829,12 +6760,14 @@ class TestRankCandidatesFunction:
 # FinalRanker.execute() — integration with job
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestFinalRanker:
     """FinalRanker.execute() over AnimePipelineJob."""
 
     def test_no_intermediates_returns_empty(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import FinalRanker
         from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+
         ranker = FinalRanker()
         job = AnimePipelineJob(job_id="test")
         result = ranker.execute(job)
@@ -5843,6 +6776,7 @@ class TestFinalRanker:
 
     def test_single_beauty_pass(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import FinalRanker
+
         job = _make_upscale_job(with_beauty=True, with_upscale_pass=False)
         ranker = FinalRanker()
         result = ranker.execute(job)
@@ -5853,10 +6787,14 @@ class TestFinalRanker:
     def test_beauty_plus_upscale(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import FinalRanker
         from image_pipeline.anime_pipeline.schemas import IntermediateImage
+
         job = _make_upscale_job(with_beauty=True)
-        job.intermediates.append(IntermediateImage(
-            stage="upscale", image_b64=_FAKE_IMG_B64,
-        ))
+        job.intermediates.append(
+            IntermediateImage(
+                stage="upscale",
+                image_b64=_FAKE_IMG_B64,
+            )
+        )
         ranker = FinalRanker()
         result = ranker.execute(job)
         assert result.total_candidates == 2
@@ -5865,12 +6803,15 @@ class TestFinalRanker:
 
     def test_critique_boosts_beauty_score(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import FinalRanker
-        from image_pipeline.anime_pipeline.schemas import IntermediateImage
+
         job = _make_upscale_job(with_beauty=True)
         # Add good critique
         crit = _make_critique(
-            face_score=9, eye_consistency_score=9,
-            anatomy_score=9, composition_score=9, hands_score=9,
+            face_score=9,
+            eye_consistency_score=9,
+            anatomy_score=9,
+            composition_score=9,
+            hands_score=9,
             style_score=9,
         )
         job.critique_results.append(crit)
@@ -5881,16 +6822,24 @@ class TestFinalRanker:
     def test_non_rankable_stages_excluded(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import FinalRanker
         from image_pipeline.anime_pipeline.schemas import (
-            AnimePipelineJob, IntermediateImage,
+            AnimePipelineJob,
+            IntermediateImage,
         )
+
         job = AnimePipelineJob(job_id="test")
         # pre_upscale and structure_lock are not rankable
-        job.intermediates.append(IntermediateImage(
-            stage="pre_upscale", image_b64=_FAKE_IMG_B64,
-        ))
-        job.intermediates.append(IntermediateImage(
-            stage="structure_lock", image_b64=_FAKE_IMG_B64,
-        ))
+        job.intermediates.append(
+            IntermediateImage(
+                stage="pre_upscale",
+                image_b64=_FAKE_IMG_B64,
+            )
+        )
+        job.intermediates.append(
+            IntermediateImage(
+                stage="structure_lock",
+                image_b64=_FAKE_IMG_B64,
+            )
+        )
         ranker = FinalRanker()
         result = ranker.execute(job)
         assert result.total_candidates == 0
@@ -5898,12 +6847,17 @@ class TestFinalRanker:
     def test_empty_image_excluded(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import FinalRanker
         from image_pipeline.anime_pipeline.schemas import (
-            AnimePipelineJob, IntermediateImage,
+            AnimePipelineJob,
+            IntermediateImage,
         )
+
         job = AnimePipelineJob(job_id="test")
-        job.intermediates.append(IntermediateImage(
-            stage="beauty_pass", image_b64="",
-        ))
+        job.intermediates.append(
+            IntermediateImage(
+                stage="beauty_pass",
+                image_b64="",
+            )
+        )
         ranker = FinalRanker()
         result = ranker.execute(job)
         assert result.total_candidates == 0
@@ -5911,13 +6865,20 @@ class TestFinalRanker:
     def test_runner_ups_populated(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import FinalRanker
         from image_pipeline.anime_pipeline.schemas import IntermediateImage
+
         job = _make_upscale_job(with_beauty=True)
-        job.intermediates.append(IntermediateImage(
-            stage="upscale", image_b64=_FAKE_IMG_B64,
-        ))
-        job.intermediates.append(IntermediateImage(
-            stage="composition_pass", image_b64=_FAKE_IMG_B64,
-        ))
+        job.intermediates.append(
+            IntermediateImage(
+                stage="upscale",
+                image_b64=_FAKE_IMG_B64,
+            )
+        )
+        job.intermediates.append(
+            IntermediateImage(
+                stage="composition_pass",
+                image_b64=_FAKE_IMG_B64,
+            )
+        )
         ranker = FinalRanker()
         result = ranker.execute(job)
         assert result.total_candidates == 3
@@ -5928,11 +6889,13 @@ class TestFinalRanker:
 # UpscaleService tests (ComfyClient mocked)
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestUpscaleService:
     """UpscaleService.execute() with mocked ComfyClient."""
 
     def test_skip_when_no_upscale_in_plan(self):
         from image_pipeline.anime_pipeline.agents.upscale_service import UpscaleService
+
         cfg = _make_upscale_config()
         svc = UpscaleService(cfg)
         job = _make_upscale_job(with_beauty=True, with_upscale_pass=False)
@@ -5944,6 +6907,7 @@ class TestUpscaleService:
 
     def test_skip_when_no_source_image(self):
         from image_pipeline.anime_pipeline.agents.upscale_service import UpscaleService
+
         cfg = _make_upscale_config()
         svc = UpscaleService(cfg)
         job = _make_upscale_job(with_beauty=False, with_upscale_pass=True)
@@ -5953,9 +6917,11 @@ class TestUpscaleService:
     @patch("image_pipeline.anime_pipeline.agents.upscale_service.ComfyClient")
     def test_ultimate_sd_success(self, MockClient):
         from image_pipeline.anime_pipeline.agents.upscale_service import UpscaleService
+
         mock_instance = MockClient.return_value
         mock_instance.submit_workflow.return_value = _make_comfy_result(
-            success=True, images=[_FAKE_IMG_B64],
+            success=True,
+            images=[_FAKE_IMG_B64],
         )
         cfg = _make_upscale_config()
         svc = UpscaleService(cfg)
@@ -5971,6 +6937,7 @@ class TestUpscaleService:
     @patch("image_pipeline.anime_pipeline.agents.upscale_service.ComfyClient")
     def test_fallback_to_simple_on_ultimate_failure(self, MockClient):
         from image_pipeline.anime_pipeline.agents.upscale_service import UpscaleService
+
         mock_instance = MockClient.return_value
         # First call (ultimate) fails, second (simple) succeeds
         mock_instance.submit_workflow.side_effect = [
@@ -5988,6 +6955,7 @@ class TestUpscaleService:
     @patch("image_pipeline.anime_pipeline.agents.upscale_service.ComfyClient")
     def test_both_fail_uses_pre_upscale(self, MockClient):
         from image_pipeline.anime_pipeline.agents.upscale_service import UpscaleService
+
         mock_instance = MockClient.return_value
         mock_instance.submit_workflow.side_effect = [
             _make_comfy_result(success=False, images=[]),
@@ -6004,6 +6972,7 @@ class TestUpscaleService:
     @patch("image_pipeline.anime_pipeline.agents.upscale_service.ComfyClient")
     def test_ultimate_exception_triggers_fallback(self, MockClient):
         from image_pipeline.anime_pipeline.agents.upscale_service import UpscaleService
+
         mock_instance = MockClient.return_value
         mock_instance.submit_workflow.side_effect = [
             RuntimeError("UltimateSDUpscale not found"),
@@ -6018,6 +6987,7 @@ class TestUpscaleService:
 
     def test_factor_clamped_to_supported(self):
         from image_pipeline.anime_pipeline.agents.upscale_service import UpscaleService
+
         cfg = _make_upscale_config(upscale_factor=3)
         svc = UpscaleService(cfg)
         factor = svc._resolve_factor()
@@ -6025,6 +6995,7 @@ class TestUpscaleService:
 
     def test_factor_1_5_supported(self):
         from image_pipeline.anime_pipeline.agents.upscale_service import UpscaleService
+
         cfg = _make_upscale_config(upscale_factor=1.5)
         svc = UpscaleService(cfg)
         factor = svc._resolve_factor()
@@ -6032,6 +7003,7 @@ class TestUpscaleService:
 
     def test_factor_2_supported(self):
         from image_pipeline.anime_pipeline.agents.upscale_service import UpscaleService
+
         cfg = _make_upscale_config(upscale_factor=2)
         svc = UpscaleService(cfg)
         factor = svc._resolve_factor()
@@ -6039,6 +7011,7 @@ class TestUpscaleService:
 
     def test_pre_upscale_intermediate_saved(self):
         from image_pipeline.anime_pipeline.agents.upscale_service import UpscaleService
+
         cfg = _make_upscale_config()
         svc = UpscaleService(cfg)
         # Mock client to avoid real HTTP calls
@@ -6053,9 +7026,11 @@ class TestUpscaleService:
     @patch("image_pipeline.anime_pipeline.agents.upscale_service.ComfyClient")
     def test_upscale_intermediate_has_model_metadata(self, MockClient):
         from image_pipeline.anime_pipeline.agents.upscale_service import UpscaleService
+
         mock_instance = MockClient.return_value
         mock_instance.submit_workflow.return_value = _make_comfy_result(
-            success=True, images=[_FAKE_IMG_B64],
+            success=True,
+            images=[_FAKE_IMG_B64],
         )
         cfg = _make_upscale_config()
         svc = UpscaleService(cfg)
@@ -6068,20 +7043,20 @@ class TestUpscaleService:
 
     def test_status_set_to_upscaling(self):
         from image_pipeline.anime_pipeline.agents.upscale_service import UpscaleService
-        from image_pipeline.anime_pipeline.schemas import AnimePipelineStatus
+
         cfg = _make_upscale_config()
         svc = UpscaleService(cfg)
         svc._client = MagicMock()
         svc._client.submit_workflow.return_value = _make_comfy_result(success=False)
         job = _make_upscale_job()
         # Status should transition through UPSCALING
-        original_status = job.status
         svc.execute(job)
         # The stage was recorded
         assert "upscale" in job.stages_executed
 
     def test_get_source_dimensions_from_plan(self):
         from image_pipeline.anime_pipeline.agents.upscale_service import UpscaleService
+
         cfg = _make_upscale_config()
         svc = UpscaleService(cfg)
         job = _make_upscale_job()
@@ -6094,6 +7069,7 @@ class TestUpscaleService:
 # Output Manifest tests
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestBuildOutputManifest:
     """Tests for build_output_manifest() function."""
 
@@ -6102,6 +7078,7 @@ class TestBuildOutputManifest:
             build_output_manifest,
         )
         from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+
         job = AnimePipelineJob(job_id="mfst-001", preset="anime_quality")
         job.mark_stage("composition", 100.0)
         job.mark_stage("beauty_pass", 200.0)
@@ -6118,6 +7095,7 @@ class TestBuildOutputManifest:
             build_output_manifest,
         )
         from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+
         job = AnimePipelineJob(job_id="mfst-002")
         job.mark_stage("composition_pass", 150.5)
         m = build_output_manifest(job)
@@ -6129,6 +7107,7 @@ class TestBuildOutputManifest:
             build_output_manifest,
         )
         from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+
         job = AnimePipelineJob(job_id="mfst-003")
         job.mark_stage("upscale", 300.0)
         m = build_output_manifest(job)
@@ -6139,8 +7118,11 @@ class TestBuildOutputManifest:
             build_output_manifest,
         )
         from image_pipeline.anime_pipeline.schemas import (
-            AnimePipelineJob, RankCandidate, RankResult,
+            AnimePipelineJob,
+            RankCandidate,
+            RankResult,
         )
+
         job = AnimePipelineJob(job_id="mfst-004")
         rank = RankResult(
             winner=RankCandidate(stage="upscale", composite_score=8.5, image_b64="x"),
@@ -6159,8 +7141,11 @@ class TestBuildOutputManifest:
             build_output_manifest,
         )
         from image_pipeline.anime_pipeline.schemas import (
-            AnimePipelineJob, RankCandidate, RankResult,
+            AnimePipelineJob,
+            RankCandidate,
+            RankResult,
         )
+
         job = AnimePipelineJob(job_id="mfst-005")
         job.mark_stage("beauty_pass", 100.0)
         rank = RankResult(
@@ -6178,6 +7163,7 @@ class TestBuildOutputManifest:
             build_output_manifest,
         )
         from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+
         job = AnimePipelineJob(job_id="mfst-006", error="ComfyUI timeout")
         m = build_output_manifest(job)
         assert m["error"] == "ComfyUI timeout"
@@ -6187,6 +7173,7 @@ class TestBuildOutputManifest:
             build_output_manifest,
         )
         from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+
         job = AnimePipelineJob(job_id="mfst-007")
         m = build_output_manifest(job)
         assert "error" not in m
@@ -6196,6 +7183,7 @@ class TestBuildOutputManifest:
             build_output_manifest,
         )
         from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+
         job = AnimePipelineJob(job_id="mfst-008")
         job.models_used.append("animagine")
         job.models_used.append("noobai")
@@ -6207,6 +7195,7 @@ class TestBuildOutputManifest:
             build_output_manifest,
         )
         from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+
         job = AnimePipelineJob(job_id="mfst-009")
         job.critique_results.append(_make_critique())
         job.critique_results.append(_make_critique())
@@ -6218,6 +7207,7 @@ class TestBuildOutputManifest:
             build_output_manifest,
         )
         from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+
         job = AnimePipelineJob(job_id="mfst-010", refine_rounds=2)
         m = build_output_manifest(job)
         assert m["refine_rounds"] == 2
@@ -6227,6 +7217,7 @@ class TestBuildOutputManifest:
             build_output_manifest,
         )
         from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+
         job = AnimePipelineJob(job_id="mfst-011")
         job.add_intermediate("composition_pass", _FAKE_IMG_B64, model="animagine")
         job.mark_stage("composition_pass", 100.0)
@@ -6242,6 +7233,7 @@ class TestManifestToJson:
             manifest_to_json,
         )
         from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+
         job = AnimePipelineJob(job_id="json-001")
         s = manifest_to_json(job)
         parsed = json.loads(s)
@@ -6252,6 +7244,7 @@ class TestManifestToJson:
             manifest_to_json,
         )
         from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+
         job = AnimePipelineJob(job_id="json-002")
         s = manifest_to_json(job, indent=4)
         # 4-space indent means lines start with "    "
@@ -6264,8 +7257,11 @@ class TestManifestToJson:
             manifest_to_json,
         )
         from image_pipeline.anime_pipeline.schemas import (
-            AnimePipelineJob, RankCandidate, RankResult,
+            AnimePipelineJob,
+            RankCandidate,
+            RankResult,
         )
+
         job = AnimePipelineJob(job_id="json-003")
         rank = RankResult(
             winner=RankCandidate(stage="up", composite_score=8.0),
@@ -6281,26 +7277,31 @@ class TestManifestToJson:
 # Config — new upscale fields
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestUpscaleConfigFields:
     """Config dataclass has new upscale-related fields."""
 
     def test_upscale_tile_size_default(self):
         from image_pipeline.anime_pipeline.config import AnimePipelineConfig
+
         cfg = AnimePipelineConfig()
         assert cfg.upscale_tile_size == 512
 
     def test_upscale_denoise_default(self):
         from image_pipeline.anime_pipeline.config import AnimePipelineConfig
+
         cfg = AnimePipelineConfig()
         assert cfg.upscale_denoise == 0.2
 
     def test_upscale_tile_size_override(self):
         from image_pipeline.anime_pipeline.config import AnimePipelineConfig
+
         cfg = AnimePipelineConfig(upscale_tile_size=768)
         assert cfg.upscale_tile_size == 768
 
     def test_upscale_denoise_override(self):
         from image_pipeline.anime_pipeline.config import AnimePipelineConfig
+
         cfg = AnimePipelineConfig(upscale_denoise=0.35)
         assert cfg.upscale_denoise == 0.35
 
@@ -6309,60 +7310,80 @@ class TestUpscaleConfigFields:
 # Import / export tests for Phase 3B-7
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestPhase3B7Exports:
     """Verify all new symbols are importable and in __all__."""
 
     def test_import_upscale_service(self):
         from image_pipeline.anime_pipeline.agents import UpscaleService
+
         assert UpscaleService is not None
 
     def test_import_final_ranker(self):
         from image_pipeline.anime_pipeline.agents import FinalRanker
+
         assert FinalRanker is not None
 
     def test_import_score_candidate(self):
         from image_pipeline.anime_pipeline.agents import score_candidate
+
         assert callable(score_candidate)
 
     def test_import_rank_candidates(self):
         from image_pipeline.anime_pipeline.agents import rank_candidates
+
         assert callable(rank_candidates)
 
     def test_import_build_output_manifest(self):
         from image_pipeline.anime_pipeline.agents import build_output_manifest
+
         assert callable(build_output_manifest)
 
     def test_import_manifest_to_json(self):
         from image_pipeline.anime_pipeline.agents import manifest_to_json
+
         assert callable(manifest_to_json)
 
     def test_import_rank_candidate_schema(self):
         from image_pipeline.anime_pipeline.schemas import RankCandidate
+
         assert RankCandidate is not None
 
     def test_import_rank_result_schema(self):
         from image_pipeline.anime_pipeline.schemas import RankResult
+
         assert RankResult is not None
 
     def test_all_new_in_agents_all(self):
         from image_pipeline.anime_pipeline import agents
+
         expected = [
-            "UpscaleService", "FinalRanker",
-            "score_candidate", "rank_candidates",
-            "build_output_manifest", "manifest_to_json",
+            "UpscaleService",
+            "FinalRanker",
+            "score_candidate",
+            "rank_candidates",
+            "build_output_manifest",
+            "manifest_to_json",
         ]
         for name in expected:
             assert name in agents.__all__, f"{name} not in agents.__all__"
 
     def test_old_exports_still_present(self):
         from image_pipeline.anime_pipeline import agents
+
         old = [
-            "VisionAnalystAgent", "LayerPlannerAgent",
-            "CompositionPassAgent", "StructureLockAgent",
-            "CleanupPassAgent", "BeautyPassAgent",
-            "CritiqueAgent", "UpscaleAgent",
-            "RefineLoopAgent", "critique_image",
-            "decide_refine_action", "patch_plan_from_critique",
+            "VisionAnalystAgent",
+            "LayerPlannerAgent",
+            "CompositionPassAgent",
+            "StructureLockAgent",
+            "CleanupPassAgent",
+            "BeautyPassAgent",
+            "CritiqueAgent",
+            "UpscaleAgent",
+            "RefineLoopAgent",
+            "critique_image",
+            "decide_refine_action",
+            "patch_plan_from_critique",
             "run_refine_round",
         ]
         for name in old:
@@ -6373,27 +7394,33 @@ class TestPhase3B7Exports:
 # VRAM Profile — Config, Manager, Retry, OOM
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestVRAMProfileEnum:
     """VRAMProfile enum values and string coercion."""
 
     def test_auto_value(self):
         from image_pipeline.anime_pipeline.config import VRAMProfile
+
         assert VRAMProfile.AUTO.value == "auto"
 
     def test_normalvram_value(self):
         from image_pipeline.anime_pipeline.config import VRAMProfile
+
         assert VRAMProfile.NORMALVRAM.value == "normalvram"
 
     def test_lowvram_value(self):
         from image_pipeline.anime_pipeline.config import VRAMProfile
+
         assert VRAMProfile.LOWVRAM.value == "lowvram"
 
     def test_from_string(self):
         from image_pipeline.anime_pipeline.config import VRAMProfile
+
         assert VRAMProfile("normalvram") == VRAMProfile.NORMALVRAM
 
     def test_is_str_enum(self):
         from image_pipeline.anime_pipeline.config import VRAMProfile
+
         assert isinstance(VRAMProfile.AUTO, str)
 
 
@@ -6401,12 +7428,14 @@ class TestVRAMProfileConfig:
     """VRAMProfileConfig defaults and to_dict."""
 
     def test_default_is_normalvram(self):
-        from image_pipeline.anime_pipeline.config import VRAMProfileConfig, VRAMProfile
+        from image_pipeline.anime_pipeline.config import VRAMProfile, VRAMProfileConfig
+
         cfg = VRAMProfileConfig()
         assert cfg.profile == VRAMProfile.NORMALVRAM
 
     def test_normalvram_limits(self):
         from image_pipeline.anime_pipeline.config import VRAMProfileConfig
+
         cfg = VRAMProfileConfig()
         assert cfg.max_resolution == 1216
         assert cfg.step_cap == 35
@@ -6416,17 +7445,27 @@ class TestVRAMProfileConfig:
 
     def test_to_dict_keys(self):
         from image_pipeline.anime_pipeline.config import VRAMProfileConfig
+
         d = VRAMProfileConfig().to_dict()
         expected = {
-            "profile", "max_resolution", "step_cap", "max_controlnet_layers",
-            "cpu_vae_offload", "disable_previews", "unload_models_between_passes",
-            "upscale_tile_size", "max_upscale_factor",
-            "oom_retry_enabled", "oom_resolution_step_down", "oom_max_retries",
+            "profile",
+            "max_resolution",
+            "step_cap",
+            "max_controlnet_layers",
+            "cpu_vae_offload",
+            "disable_previews",
+            "unload_models_between_passes",
+            "upscale_tile_size",
+            "max_upscale_factor",
+            "oom_retry_enabled",
+            "oom_resolution_step_down",
+            "oom_max_retries",
         }
         assert set(d.keys()) == expected
 
     def test_to_dict_profile_is_string(self):
         from image_pipeline.anime_pipeline.config import VRAMProfileConfig
+
         d = VRAMProfileConfig().to_dict()
         assert d["profile"] == "normalvram"
 
@@ -6436,12 +7475,14 @@ class TestResolveVRAMProfile:
 
     def test_normalvram_string(self):
         from image_pipeline.anime_pipeline.config import resolve_vram_profile
+
         cfg = resolve_vram_profile("normalvram")
         assert cfg.max_resolution == 1216
         assert cfg.cpu_vae_offload is False
 
     def test_lowvram_string(self):
         from image_pipeline.anime_pipeline.config import resolve_vram_profile
+
         cfg = resolve_vram_profile("lowvram")
         assert cfg.max_resolution == 1024
         assert cfg.cpu_vae_offload is True
@@ -6450,14 +7491,17 @@ class TestResolveVRAMProfile:
 
     def test_lowvram_upscale_limits(self):
         from image_pipeline.anime_pipeline.config import resolve_vram_profile
+
         cfg = resolve_vram_profile("lowvram")
         assert cfg.max_upscale_factor == 1.5
         assert cfg.upscale_tile_size == 384
 
     def test_auto_defaults_to_normalvram(self):
         import os
+
         from image_pipeline.anime_pipeline import config as vram_config
         from image_pipeline.anime_pipeline.config import resolve_vram_profile
+
         # Clear env to avoid interference; mock GPU detection to return None so the
         # test exercises the nvidia-smi-unavailable fallback (normalvram) regardless
         # of the actual hardware present on the machine.
@@ -6472,7 +7516,9 @@ class TestResolveVRAMProfile:
 
     def test_auto_reads_env(self):
         import os
+
         from image_pipeline.anime_pipeline.config import resolve_vram_profile
+
         old = os.environ.get("ANIME_PIPELINE_VRAM_PROFILE")
         os.environ["ANIME_PIPELINE_VRAM_PROFILE"] = "lowvram"
         try:
@@ -6486,16 +7532,22 @@ class TestResolveVRAMProfile:
 
     def test_unknown_string_falls_back(self):
         from image_pipeline.anime_pipeline.config import resolve_vram_profile
+
         cfg = resolve_vram_profile("ultravram")
         assert cfg.max_resolution == 1216  # normalvram default
 
     def test_enum_input(self):
-        from image_pipeline.anime_pipeline.config import resolve_vram_profile, VRAMProfile
+        from image_pipeline.anime_pipeline.config import (
+            VRAMProfile,
+            resolve_vram_profile,
+        )
+
         cfg = resolve_vram_profile(VRAMProfile.LOWVRAM)
         assert cfg.max_resolution == 1024
 
     def test_normalvram_oom_settings(self):
         from image_pipeline.anime_pipeline.config import resolve_vram_profile
+
         cfg = resolve_vram_profile("normalvram")
         assert cfg.oom_retry_enabled is True
         assert cfg.oom_max_retries == 2
@@ -6503,6 +7555,7 @@ class TestResolveVRAMProfile:
 
     def test_lowvram_oom_more_retries(self):
         from image_pipeline.anime_pipeline.config import resolve_vram_profile
+
         cfg = resolve_vram_profile("lowvram")
         assert cfg.oom_max_retries == 3
 
@@ -6511,16 +7564,22 @@ class TestAnimePipelineConfigVRAM:
     """AnimePipelineConfig VRAM field integration."""
 
     def test_default_config_has_vram(self):
-        from image_pipeline.anime_pipeline.config import AnimePipelineConfig, VRAMProfile
+        from image_pipeline.anime_pipeline.config import (
+            AnimePipelineConfig,
+            VRAMProfile,
+        )
+
         cfg = AnimePipelineConfig()
         assert cfg.vram_profile == VRAMProfile.AUTO
         assert cfg.vram is not None
 
     def test_load_config_resolves_vram(self):
         from image_pipeline.anime_pipeline.config import load_config
+
         cfg = load_config()
         # Should be resolved (not AUTO)
         from image_pipeline.anime_pipeline.config import VRAMProfile
+
         assert cfg.vram.profile in (VRAMProfile.NORMALVRAM, VRAMProfile.LOWVRAM)
 
 
@@ -6529,30 +7588,37 @@ class TestIsOOMError:
 
     def test_cuda_oom(self):
         from image_pipeline.anime_pipeline.vram_manager import is_oom_error
+
         assert is_oom_error("CUDA out of memory") is True
 
     def test_torch_oom(self):
         from image_pipeline.anime_pipeline.vram_manager import is_oom_error
+
         assert is_oom_error("torch.cuda.OutOfMemoryError: allocator") is True
 
     def test_generic_oom(self):
         from image_pipeline.anime_pipeline.vram_manager import is_oom_error
+
         assert is_oom_error("RuntimeError: OOM during generation") is True
 
     def test_not_enough_memory(self):
         from image_pipeline.anime_pipeline.vram_manager import is_oom_error
+
         assert is_oom_error("Not enough memory on device") is True
 
     def test_not_oom(self):
         from image_pipeline.anime_pipeline.vram_manager import is_oom_error
+
         assert is_oom_error("Connection refused") is False
 
     def test_empty_string(self):
         from image_pipeline.anime_pipeline.vram_manager import is_oom_error
+
         assert is_oom_error("") is False
 
     def test_case_insensitive(self):
         from image_pipeline.anime_pipeline.vram_manager import is_oom_error
+
         assert is_oom_error("CUDA OUT OF MEMORY") is True
 
 
@@ -6561,9 +7627,12 @@ class TestRetryContext:
 
     def test_initial_state(self):
         from image_pipeline.anime_pipeline.vram_manager import RetryContext
+
         ctx = RetryContext(
-            original_width=832, original_height=1216,
-            current_width=832, current_height=1216,
+            original_width=832,
+            original_height=1216,
+            current_width=832,
+            current_height=1216,
         )
         assert ctx.attempts == 0
         assert ctx.exhausted is False
@@ -6571,20 +7640,26 @@ class TestRetryContext:
 
     def test_exhausted_after_max(self):
         from image_pipeline.anime_pipeline.vram_manager import RetryContext
+
         ctx = RetryContext(max_retries=2, attempts=2)
         assert ctx.exhausted is True
 
     def test_not_exhausted_below_max(self):
         from image_pipeline.anime_pipeline.vram_manager import RetryContext
+
         ctx = RetryContext(max_retries=2, attempts=1)
         assert ctx.exhausted is False
 
     def test_to_dict(self):
         from image_pipeline.anime_pipeline.vram_manager import RetryContext
+
         ctx = RetryContext(
-            original_width=832, original_height=1216,
-            current_width=704, current_height=1088,
-            attempts=1, profile_escalated=False,
+            original_width=832,
+            original_height=1216,
+            current_width=704,
+            current_height=1088,
+            attempts=1,
+            profile_escalated=False,
         )
         d = ctx.to_dict()
         assert d["original_resolution"] == "832x1216"
@@ -6596,8 +7671,9 @@ class TestBuildRetryContext:
     """build_retry_context() factory."""
 
     def test_copies_dimensions(self):
-        from image_pipeline.anime_pipeline.vram_manager import build_retry_context
         from image_pipeline.anime_pipeline.config import resolve_vram_profile
+        from image_pipeline.anime_pipeline.vram_manager import build_retry_context
+
         vram = resolve_vram_profile("normalvram")
         ctx = build_retry_context(832, 1216, vram)
         assert ctx.original_width == 832
@@ -6605,8 +7681,9 @@ class TestBuildRetryContext:
         assert ctx.max_retries == 2
 
     def test_lowvram_has_more_retries(self):
-        from image_pipeline.anime_pipeline.vram_manager import build_retry_context
         from image_pipeline.anime_pipeline.config import resolve_vram_profile
+        from image_pipeline.anime_pipeline.vram_manager import build_retry_context
+
         vram = resolve_vram_profile("lowvram")
         ctx = build_retry_context(832, 1024, vram)
         assert ctx.max_retries == 3
@@ -6617,11 +7694,15 @@ class TestStepDownResolution:
 
     def test_reduces_by_step(self):
         from image_pipeline.anime_pipeline.vram_manager import (
-            RetryContext, step_down_resolution,
+            RetryContext,
+            step_down_resolution,
         )
+
         ctx = RetryContext(
-            current_width=832, current_height=1216,
-            resolution_step_down=128, max_retries=3,
+            current_width=832,
+            current_height=1216,
+            resolution_step_down=128,
+            max_retries=3,
         )
         w, h = step_down_resolution(ctx)
         assert w == 704
@@ -6630,11 +7711,15 @@ class TestStepDownResolution:
 
     def test_rounds_to_8(self):
         from image_pipeline.anime_pipeline.vram_manager import (
-            RetryContext, step_down_resolution,
+            RetryContext,
+            step_down_resolution,
         )
+
         ctx = RetryContext(
-            current_width=830, current_height=1210,
-            resolution_step_down=128, max_retries=3,
+            current_width=830,
+            current_height=1210,
+            resolution_step_down=128,
+            max_retries=3,
         )
         w, h = step_down_resolution(ctx)
         assert w % 8 == 0
@@ -6642,11 +7727,15 @@ class TestStepDownResolution:
 
     def test_floor_at_512(self):
         from image_pipeline.anime_pipeline.vram_manager import (
-            RetryContext, step_down_resolution,
+            RetryContext,
+            step_down_resolution,
         )
+
         ctx = RetryContext(
-            current_width=520, current_height=520,
-            resolution_step_down=128, max_retries=3,
+            current_width=520,
+            current_height=520,
+            resolution_step_down=128,
+            max_retries=3,
         )
         w, h = step_down_resolution(ctx)
         assert w >= 512
@@ -6654,11 +7743,15 @@ class TestStepDownResolution:
 
     def test_logs_retry(self):
         from image_pipeline.anime_pipeline.vram_manager import (
-            RetryContext, step_down_resolution,
+            RetryContext,
+            step_down_resolution,
         )
+
         ctx = RetryContext(
-            current_width=832, current_height=1216,
-            resolution_step_down=128, max_retries=3,
+            current_width=832,
+            current_height=1216,
+            resolution_step_down=128,
+            max_retries=3,
         )
         step_down_resolution(ctx)
         assert len(ctx.retries_log) == 1
@@ -6666,11 +7759,15 @@ class TestStepDownResolution:
 
     def test_successive_step_downs(self):
         from image_pipeline.anime_pipeline.vram_manager import (
-            RetryContext, step_down_resolution,
+            RetryContext,
+            step_down_resolution,
         )
+
         ctx = RetryContext(
-            current_width=832, current_height=1216,
-            resolution_step_down=128, max_retries=5,
+            current_width=832,
+            current_height=1216,
+            resolution_step_down=128,
+            max_retries=5,
         )
         step_down_resolution(ctx)  # 704, 1088
         step_down_resolution(ctx)  # 576, 960
@@ -6684,8 +7781,10 @@ class TestEscalateToLowvram:
 
     def test_returns_lowvram_config(self):
         from image_pipeline.anime_pipeline.vram_manager import (
-            RetryContext, escalate_to_lowvram,
+            RetryContext,
+            escalate_to_lowvram,
         )
+
         ctx = RetryContext(attempts=2)
         cfg = escalate_to_lowvram(ctx)
         assert cfg.max_resolution == 1024
@@ -6694,8 +7793,10 @@ class TestEscalateToLowvram:
 
     def test_logs_escalation(self):
         from image_pipeline.anime_pipeline.vram_manager import (
-            RetryContext, escalate_to_lowvram,
+            RetryContext,
+            escalate_to_lowvram,
         )
+
         ctx = RetryContext(attempts=2)
         escalate_to_lowvram(ctx)
         assert any(r["action"] == "profile_escalation" for r in ctx.retries_log)
@@ -6706,6 +7807,7 @@ class TestStripPreviewNodes:
 
     def test_removes_preview_nodes(self):
         from image_pipeline.anime_pipeline.vram_manager import strip_preview_nodes
+
         wf = {
             "1": {"class_type": "KSampler", "inputs": {}},
             "2": {"class_type": "PreviewImage", "inputs": {"images": ["1", 0]}},
@@ -6718,6 +7820,7 @@ class TestStripPreviewNodes:
 
     def test_no_previews_returns_same(self):
         from image_pipeline.anime_pipeline.vram_manager import strip_preview_nodes
+
         wf = {
             "1": {"class_type": "KSampler", "inputs": {}},
             "2": {"class_type": "SaveImage", "inputs": {}},
@@ -6727,10 +7830,12 @@ class TestStripPreviewNodes:
 
     def test_empty_workflow(self):
         from image_pipeline.anime_pipeline.vram_manager import strip_preview_nodes
+
         assert strip_preview_nodes({}) == {}
 
     def test_multiple_previews(self):
         from image_pipeline.anime_pipeline.vram_manager import strip_preview_nodes
+
         wf = {
             "1": {"class_type": "PreviewImage", "inputs": {}},
             "2": {"class_type": "PreviewImage", "inputs": {}},
@@ -6745,12 +7850,20 @@ class TestFreeModelsBetweenPasses:
     """free_models_between_passes() with mocked httpx."""
 
     def test_unload_false_skips(self):
-        from image_pipeline.anime_pipeline.vram_manager import free_models_between_passes
-        assert free_models_between_passes("http://localhost:8188", unload=False) is False
+        from image_pipeline.anime_pipeline.vram_manager import (
+            free_models_between_passes,
+        )
+
+        assert (
+            free_models_between_passes("http://localhost:8188", unload=False) is False
+        )
 
     def test_success(self):
-        from unittest.mock import patch, MagicMock
-        from image_pipeline.anime_pipeline.vram_manager import free_models_between_passes
+        from unittest.mock import MagicMock, patch
+
+        from image_pipeline.anime_pipeline.vram_manager import (
+            free_models_between_passes,
+        )
 
         mock_client = MagicMock()
         mock_resp = MagicMock()
@@ -6759,15 +7872,24 @@ class TestFreeModelsBetweenPasses:
         mock_client.__exit__ = MagicMock(return_value=False)
         mock_client.post.return_value = mock_resp
 
-        with patch("image_pipeline.anime_pipeline.vram_manager.httpx.Client", return_value=mock_client):
+        with patch(
+            "image_pipeline.anime_pipeline.vram_manager.httpx.Client",
+            return_value=mock_client,
+        ):
             result = free_models_between_passes("http://localhost:8188", unload=True)
         assert result is True
 
     def test_failure_returns_false(self):
         from unittest.mock import patch
-        from image_pipeline.anime_pipeline.vram_manager import free_models_between_passes
 
-        with patch("image_pipeline.anime_pipeline.vram_manager.httpx.Client", side_effect=Exception("conn")):
+        from image_pipeline.anime_pipeline.vram_manager import (
+            free_models_between_passes,
+        )
+
+        with patch(
+            "image_pipeline.anime_pipeline.vram_manager.httpx.Client",
+            side_effect=Exception("conn"),
+        ):
             result = free_models_between_passes("http://localhost:8188", unload=True)
         assert result is False
 
@@ -6777,6 +7899,7 @@ class TestSubmitWithOOMRetry:
 
     def _make_result(self, success=True, error=""):
         from unittest.mock import MagicMock
+
         r = MagicMock()
         r.success = success
         r.error = error
@@ -6784,40 +7907,54 @@ class TestSubmitWithOOMRetry:
 
     def _make_client(self, results):
         from unittest.mock import MagicMock
+
         client = MagicMock()
         client.submit_workflow = MagicMock(side_effect=results)
         client.base_url = "http://localhost:8188"
         return client
 
     def test_success_on_first_try(self):
-        from image_pipeline.anime_pipeline.vram_manager import submit_with_oom_retry
         from image_pipeline.anime_pipeline.config import resolve_vram_profile
+        from image_pipeline.anime_pipeline.vram_manager import submit_with_oom_retry
 
         ok = self._make_result(success=True)
         client = self._make_client([ok])
         vram = resolve_vram_profile("normalvram")
 
         result, ctx = submit_with_oom_retry(
-            client, lambda w, h: {"test": True},
-            "beauty_pass", "job1", vram, 832, 1216,
+            client,
+            lambda w, h: {"test": True},
+            "beauty_pass",
+            "job1",
+            vram,
+            832,
+            1216,
         )
         assert result.success is True
         assert ctx.attempts == 0
 
     def test_oom_then_success(self):
         from unittest.mock import patch
-        from image_pipeline.anime_pipeline.vram_manager import submit_with_oom_retry
+
         from image_pipeline.anime_pipeline.config import resolve_vram_profile
+        from image_pipeline.anime_pipeline.vram_manager import submit_with_oom_retry
 
         oom = self._make_result(success=False, error="CUDA out of memory")
         ok = self._make_result(success=True)
         client = self._make_client([oom, ok])
         vram = resolve_vram_profile("normalvram")
 
-        with patch("image_pipeline.anime_pipeline.vram_manager.free_models_between_passes"):
+        with patch(
+            "image_pipeline.anime_pipeline.vram_manager.free_models_between_passes"
+        ):
             result, ctx = submit_with_oom_retry(
-                client, lambda w, h: {"test": True},
-                "beauty_pass", "job1", vram, 832, 1216,
+                client,
+                lambda w, h: {"test": True},
+                "beauty_pass",
+                "job1",
+                vram,
+                832,
+                1216,
             )
         assert result.success is True
         assert ctx.attempts == 1
@@ -6825,8 +7962,9 @@ class TestSubmitWithOOMRetry:
 
     def test_oom_exhausted_then_escalation(self):
         from unittest.mock import patch
-        from image_pipeline.anime_pipeline.vram_manager import submit_with_oom_retry
+
         from image_pipeline.anime_pipeline.config import resolve_vram_profile
+        from image_pipeline.anime_pipeline.vram_manager import submit_with_oom_retry
 
         oom = self._make_result(success=False, error="CUDA out of memory")
         ok = self._make_result(success=True)
@@ -6834,48 +7972,66 @@ class TestSubmitWithOOMRetry:
         client = self._make_client([oom, oom, oom, ok])
         vram = resolve_vram_profile("normalvram")
 
-        with patch("image_pipeline.anime_pipeline.vram_manager.free_models_between_passes"):
+        with patch(
+            "image_pipeline.anime_pipeline.vram_manager.free_models_between_passes"
+        ):
             result, ctx = submit_with_oom_retry(
-                client, lambda w, h: {"test": True},
-                "beauty_pass", "job1", vram, 832, 1216,
+                client,
+                lambda w, h: {"test": True},
+                "beauty_pass",
+                "job1",
+                vram,
+                832,
+                1216,
             )
         assert result.success is True
         assert ctx.profile_escalated is True
 
     def test_non_oom_error_no_retry(self):
-        from image_pipeline.anime_pipeline.vram_manager import submit_with_oom_retry
         from image_pipeline.anime_pipeline.config import resolve_vram_profile
+        from image_pipeline.anime_pipeline.vram_manager import submit_with_oom_retry
 
         err = self._make_result(success=False, error="Connection refused")
         client = self._make_client([err])
         vram = resolve_vram_profile("normalvram")
 
         result, ctx = submit_with_oom_retry(
-            client, lambda w, h: {"test": True},
-            "beauty_pass", "job1", vram, 832, 1216,
+            client,
+            lambda w, h: {"test": True},
+            "beauty_pass",
+            "job1",
+            vram,
+            832,
+            1216,
         )
         assert result.success is False
         assert ctx.attempts == 0
 
     def test_retry_disabled(self):
+        from image_pipeline.anime_pipeline.config import VRAMProfile, VRAMProfileConfig
         from image_pipeline.anime_pipeline.vram_manager import submit_with_oom_retry
-        from image_pipeline.anime_pipeline.config import VRAMProfileConfig, VRAMProfile
 
-        vram = VRAMProfileConfig(profile=VRAMProfile.NORMALVRAM, oom_retry_enabled=False)
+        vram = VRAMProfileConfig(
+            profile=VRAMProfile.NORMALVRAM, oom_retry_enabled=False
+        )
         oom = self._make_result(success=False, error="CUDA out of memory")
         client = self._make_client([oom])
 
         result, ctx = submit_with_oom_retry(
-            client, lambda w, h: {"test": True},
-            "beauty_pass", "job1", vram, 832, 1216,
+            client,
+            lambda w, h: {"test": True},
+            "beauty_pass",
+            "job1",
+            vram,
+            832,
+            1216,
         )
         assert result.success is False
         assert ctx.attempts == 0
 
     def test_preview_stripped_when_disabled(self):
-        from unittest.mock import patch, MagicMock
+        from image_pipeline.anime_pipeline.config import VRAMProfile, VRAMProfileConfig
         from image_pipeline.anime_pipeline.vram_manager import submit_with_oom_retry
-        from image_pipeline.anime_pipeline.config import VRAMProfileConfig, VRAMProfile
 
         vram = VRAMProfileConfig(
             profile=VRAMProfile.LOWVRAM,
@@ -6901,7 +8057,13 @@ class TestSubmitWithOOMRetry:
             }
 
         result, ctx = submit_with_oom_retry(
-            client, build, "beauty_pass", "job1", vram, 832, 1024,
+            client,
+            build,
+            "beauty_pass",
+            "job1",
+            vram,
+            832,
+            1024,
         )
         # PreviewImage should have been stripped
         assert "2" not in workflows_submitted[0]
@@ -6915,6 +8077,7 @@ class TestManifestVRAMProfile:
             build_output_manifest,
         )
         from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+
         job = AnimePipelineJob(job_id="vram-test-1")
         m = build_output_manifest(job)
         assert m["vram_profile"] == "normalvram"
@@ -6924,16 +8087,19 @@ class TestManifestVRAMProfile:
             build_output_manifest,
         )
         from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+
         job = AnimePipelineJob(job_id="vram-test-2")
         m = build_output_manifest(job, vram_profile="lowvram")
         assert m["vram_profile"] == "lowvram"
 
     def test_manifest_to_json_passes_profile(self):
+        import json
+
         from image_pipeline.anime_pipeline.agents.output_manifest import (
             manifest_to_json,
         )
         from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
-        import json
+
         job = AnimePipelineJob(job_id="vram-test-3")
         raw = manifest_to_json(job, vram_profile="lowvram")
         data = json.loads(raw)
@@ -6945,67 +8111,88 @@ class TestVRAMExports:
 
     def test_import_vram_profile_enum(self):
         from image_pipeline.anime_pipeline import VRAMProfile
+
         assert VRAMProfile.AUTO.value == "auto"
 
     def test_import_vram_profile_config(self):
         from image_pipeline.anime_pipeline import VRAMProfileConfig
+
         assert VRAMProfileConfig is not None
 
     def test_import_resolve_vram_profile(self):
         from image_pipeline.anime_pipeline import resolve_vram_profile
+
         assert callable(resolve_vram_profile)
 
     def test_import_is_oom_error(self):
         from image_pipeline.anime_pipeline import is_oom_error
+
         assert callable(is_oom_error)
 
     def test_import_retry_context(self):
         from image_pipeline.anime_pipeline import RetryContext
+
         assert RetryContext is not None
 
     def test_import_build_retry_context(self):
         from image_pipeline.anime_pipeline import build_retry_context
+
         assert callable(build_retry_context)
 
     def test_import_step_down_resolution(self):
         from image_pipeline.anime_pipeline import step_down_resolution
+
         assert callable(step_down_resolution)
 
     def test_import_escalate_to_lowvram(self):
         from image_pipeline.anime_pipeline import escalate_to_lowvram
+
         assert callable(escalate_to_lowvram)
 
     def test_import_strip_preview_nodes(self):
         from image_pipeline.anime_pipeline import strip_preview_nodes
+
         assert callable(strip_preview_nodes)
 
     def test_import_free_models(self):
         from image_pipeline.anime_pipeline import free_models_between_passes
+
         assert callable(free_models_between_passes)
 
     def test_import_submit_with_oom_retry(self):
         from image_pipeline.anime_pipeline import submit_with_oom_retry
+
         assert callable(submit_with_oom_retry)
 
     def test_import_log_helpers(self):
         from image_pipeline.anime_pipeline import (
+            log_final_fallback,
             log_pass_memory_mode,
             log_retry_cause,
-            log_final_fallback,
         )
+
         assert callable(log_pass_memory_mode)
         assert callable(log_retry_cause)
         assert callable(log_final_fallback)
 
     def test_all_vram_in_package_all(self):
         import image_pipeline.anime_pipeline as pkg
+
         expected = [
-            "VRAMProfile", "VRAMProfileConfig", "resolve_vram_profile",
-            "is_oom_error", "RetryContext", "build_retry_context",
-            "step_down_resolution", "escalate_to_lowvram",
-            "strip_preview_nodes", "free_models_between_passes",
+            "VRAMProfile",
+            "VRAMProfileConfig",
+            "resolve_vram_profile",
+            "is_oom_error",
+            "RetryContext",
+            "build_retry_context",
+            "step_down_resolution",
+            "escalate_to_lowvram",
+            "strip_preview_nodes",
+            "free_models_between_passes",
             "submit_with_oom_retry",
-            "log_pass_memory_mode", "log_retry_cause", "log_final_fallback",
+            "log_pass_memory_mode",
+            "log_retry_cause",
+            "log_final_fallback",
         ]
         for name in expected:
             assert name in pkg.__all__, f"{name} not in __all__"

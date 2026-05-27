@@ -10,6 +10,7 @@ Design rules:
   • Each agent appends to its own output list and the shared ``steps``.
   • Nothing in this module performs I/O.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -36,8 +37,13 @@ class PreContext(BaseModel):
     (MCP injection, RAG retrieval, web-search results) so the council
     agents can reference it without re-fetching.
     """
-    original_message: str = Field(..., description="Raw user message before augmentation")
-    augmented_message: str = Field("", description="Message after MCP/RAG/tool injection")
+
+    original_message: str = Field(
+        ..., description="Raw user message before augmentation"
+    )
+    augmented_message: str = Field(
+        "", description="Message after MCP/RAG/tool injection"
+    )
     rag_chunks: list[dict[str, Any]] = Field(default_factory=list)
     rag_citations: list[dict[str, Any]] = Field(default_factory=list)
     web_search_context: str = Field("", description="Pre-fetched web search results")
@@ -53,6 +59,7 @@ class AgentRunState(BaseModel):
     Created once by the orchestrator, then passed by reference through
     Planner → Researcher → Critic (→ loop) → Synthesizer.
     """
+
     run_id: str = Field(default_factory=lambda: uuid.uuid4().hex)
     status: RunStatus = RunStatus.pending
     current_round: int = 0

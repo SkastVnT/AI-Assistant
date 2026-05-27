@@ -25,13 +25,14 @@ Bridge behavior (opt-in, requires REASONING_PIPELINE=true):
   implement this bridge today. See docs/INTEGRATION_MAP.md §1 for the
   parity gap.
 """
+
 import logging
 import re
 import time
 
 from flask import Blueprint, jsonify, request
 
-hermes_bp = Blueprint('hermes', __name__)
+hermes_bp = Blueprint("hermes", __name__)
 logger = logging.getLogger(__name__)
 
 
@@ -47,7 +48,7 @@ _IMAGE_KEYWORD_RE = re.compile(
     r"|\bsinh\s+(?:ảnh|tranh|hình)\b"
     # vẽ + specific object (required, not optional — avoids \s+X?\b backtracking)
     r"|\bvẽ\s+(?:ảnh|tranh|hình|cho|một|cái|cảnh|nhân\s+vật|người|chân\s+dung)\b"
-    r"|\bvẽ\s+\w+"   # "vẽ Hoshino", "vẽ landscape"
+    r"|\bvẽ\s+\w+"  # "vẽ Hoshino", "vẽ landscape"
     r"|\b(?:làm|render|tạo)\s+(?:cho\s+\w+\s+)?(?:bức\s+)?(?:ảnh|tranh|hình|comic|truyện\s+tranh|webtoon)\b"
     r"|\b(?:bức\s+)?tranh\s+(?:vẽ|của|về)\b"
     r"|\btruyện\s+tranh\b"
@@ -63,7 +64,7 @@ _IMAGE_KEYWORD_RE = re.compile(
     r"(?:image|images|picture|pictures|pic|pics|illustration|illustrations|"
     r"comic|comics|manga|webtoon|storyboard|panel|panels|scene|scenes|"
     r"artwork|portrait|drawing|sketch|wallpaper)\b"
-    r"|\bdraw\s+\w+"   # "draw Hoshino", "draw a cat"
+    r"|\bdraw\s+\w+"  # "draw Hoshino", "draw a cat"
     r"|\bpaint\s+\w+"
     r"|\bsketch\s+\w+"
     r"|\b(?:image|comic|manga|webtoon|storyboard)\s+of\b"
@@ -89,7 +90,7 @@ def _has_image_keyword(message: str) -> bool:
     return _IMAGE_KEYWORD_RE.search(normalized) is not None
 
 
-@hermes_bp.route('/api/hermes/chat', methods=['POST'])
+@hermes_bp.route("/api/hermes/chat", methods=["POST"])
 def hermes_chat_route():
     """Forward a chat request to the Hermes Agent sidecar.
 
@@ -100,21 +101,30 @@ def hermes_chat_route():
     """
     data = request.get_json(silent=True) or {}
 
-    message = (data.get('message') or '').strip()
+    message = (data.get("message") or "").strip()
     if not message:
-        return jsonify({
-            'success': False, 'result': '', 'error': 'Missing required field: message',
-        }), 400
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "result": "",
+                    "error": "Missing required field: message",
+                }
+            ),
+            400,
+        )
 
-    conversation_history = data.get('conversation_history')
+    conversation_history = data.get("conversation_history")
     if conversation_history is not None and not isinstance(conversation_history, list):
         conversation_history = None
 
-    model = data.get('model') or None
+    model = data.get("model") or None
 
     logger.info(
         "[HERMES-ROUTE] Request: msg_len=%d model=%s history_len=%d",
-        len(message), model, len(conversation_history or []),
+        len(message),
+        model,
+        len(conversation_history or []),
     )
 
     # ── Reasoning-pipeline bridge (opt-in) ────────────────────────────────────
@@ -124,10 +134,11 @@ def hermes_chat_route():
     # path.
     try:
         from core.image_intent import (
-            detect_image_intent,
             IMAGE_KINDS_NAMES,
+            detect_image_intent,
             is_reasoning_pipeline_enabled,
         )
+
         if is_reasoning_pipeline_enabled() and _has_image_keyword(message):
             decision = detect_image_intent(message)
             if (
@@ -137,15 +148,20 @@ def hermes_chat_route():
             ):
                 logger.info(
                     "[HERMES-ROUTE] Redirecting to reasoning pipeline — kind=%s confidence=%.2f",
-                    decision.kind.value, decision.confidence,
+                    decision.kind.value,
+                    decision.confidence,
                 )
                 return _call_reasoning_pipeline(message, decision)
     except Exception as _bridge_err:
-        logger.warning("[HERMES-ROUTE] Bridge check failed (%s) — falling through to Hermes", _bridge_err)
+        logger.warning(
+            "[HERMES-ROUTE] Bridge check failed (%s) — falling through to Hermes",
+            _bridge_err,
+        )
     # ── End bridge ────────────────────────────────────────────────────────────
 
     try:
         from core.hermes_adapter import hermes_chat
+
         result = hermes_chat(
             message,
             conversation_history=conversation_history,
@@ -153,12 +169,18 @@ def hermes_chat_route():
         )
     except Exception as e:
         logger.error("[HERMES-ROUTE] Unhandled error: %s", e)
-        return jsonify({
-            'success': False, 'result': '',
-            'error': 'Internal server error',
-        }), 500
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "result": "",
+                    "error": "Internal server error",
+                }
+            ),
+            500,
+        )
 
-    status_code = 200 if result.get('success') else 422
+    status_code = 200 if result.get("success") else 422
     return jsonify(result), status_code
 
 
@@ -195,14 +217,22 @@ def _call_reasoning_pipeline(message: str, decision) -> tuple:
     # Pipeline returned a structured failure (e.g. parse failed, no panels).
     # Don't silently fall through — surface the error to the caller.
     if not pipeline_result.get("success"):
-        logger.warning("[HERMES-ROUTE] reasoning pipeline failure: %s", pipeline_result.get("error"))
-        return jsonify({
-            "success": False,
-            "result": "",
-            "error": "reasoning pipeline failed",
-            "source": "reasoning_pipeline",
-            "elapsed_s": elapsed_s,
-        }), 422
+        logger.warning(
+            "[HERMES-ROUTE] reasoning pipeline failure: %s",
+            pipeline_result.get("error"),
+        )
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "result": "",
+                    "error": "reasoning pipeline failed",
+                    "source": "reasoning_pipeline",
+                    "elapsed_s": elapsed_s,
+                }
+            ),
+            422,
+        )
 
     image_b64 = pipeline_result.get("image_b64") or ""
     if not image_b64:
@@ -212,19 +242,25 @@ def _call_reasoning_pipeline(message: str, decision) -> tuple:
     # special-case renderer. Matches the tool-response-contract used by other
     # image tools.
     markdown = f"![reasoning-pipeline-output](data:image/png;base64,{image_b64})"
-    return jsonify({
-        "success": True,
-        "result": markdown,
-        "image_b64": image_b64,
-        "source": "reasoning_pipeline",
-        "job_id": pipeline_result.get("job_id"),
-        "elapsed_s": elapsed_s,
-    }), 200
+    return (
+        jsonify(
+            {
+                "success": True,
+                "result": markdown,
+                "image_b64": image_b64,
+                "source": "reasoning_pipeline",
+                "job_id": pipeline_result.get("job_id"),
+                "elapsed_s": elapsed_s,
+            }
+        ),
+        200,
+    )
 
 
 def _fallback_to_hermes(message: str) -> tuple:
     """Run the standard Hermes adapter call and shape the response tuple."""
     from core.hermes_adapter import hermes_chat  # noqa: PLC0415
+
     result = hermes_chat(message)
     status_code = 200 if result.get("success") else 422
     return jsonify(result), status_code

@@ -173,8 +173,16 @@ class GeneralDIT(nn.Module):
         self.use_adaln_lora = use_adaln_lora
         self.adaln_lora_dim = adaln_lora_dim
         self.t_embedder = nn.ModuleList(
-            [Timesteps(model_channels),
-             TimestepEmbedding(model_channels, model_channels, use_adaln_lora=use_adaln_lora, weight_args=weight_args, operations=operations),]
+            [
+                Timesteps(model_channels),
+                TimestepEmbedding(
+                    model_channels,
+                    model_channels,
+                    use_adaln_lora=use_adaln_lora,
+                    weight_args=weight_args,
+                    operations=operations,
+                ),
+            ]
         )
 
         self.blocks = nn.ModuleDict()
@@ -195,7 +203,13 @@ class GeneralDIT(nn.Module):
 
         if self.affline_emb_norm:
             logging.debug("Building affine embedding normalization layer")
-            self.affline_norm = operations.RMSNorm(model_channels, elementwise_affine=True, eps=1e-6, device=device, dtype=dtype)
+            self.affline_norm = operations.RMSNorm(
+                model_channels,
+                elementwise_affine=True,
+                eps=1e-6,
+                device=device,
+                dtype=dtype,
+            )
         else:
             self.affline_norm = nn.Identity()
 
@@ -216,7 +230,9 @@ class GeneralDIT(nn.Module):
         else:
             raise ValueError(f"Unknown pos_emb_cls {self.pos_emb_cls}")
 
-        logging.debug(f"Building positional embedding with {self.pos_emb_cls} class, impl {cls_type}")
+        logging.debug(
+            f"Building positional embedding with {self.pos_emb_cls} class, impl {cls_type}"
+        )
         kwargs = dict(
             model_channels=self.model_channels,
             len_h=self.max_img_h // self.patch_spatial,
@@ -282,28 +298,53 @@ class GeneralDIT(nn.Module):
         if self.concat_padding_mask:
             if padding_mask is not None:
                 padding_mask = transforms.functional.resize(
-                    padding_mask, list(x_B_C_T_H_W.shape[-2:]), interpolation=transforms.InterpolationMode.NEAREST
+                    padding_mask,
+                    list(x_B_C_T_H_W.shape[-2:]),
+                    interpolation=transforms.InterpolationMode.NEAREST,
                 )
             else:
-                padding_mask = torch.zeros((x_B_C_T_H_W.shape[0], 1, x_B_C_T_H_W.shape[-2], x_B_C_T_H_W.shape[-1]), dtype=x_B_C_T_H_W.dtype, device=x_B_C_T_H_W.device)
+                padding_mask = torch.zeros(
+                    (
+                        x_B_C_T_H_W.shape[0],
+                        1,
+                        x_B_C_T_H_W.shape[-2],
+                        x_B_C_T_H_W.shape[-1],
+                    ),
+                    dtype=x_B_C_T_H_W.dtype,
+                    device=x_B_C_T_H_W.device,
+                )
 
             x_B_C_T_H_W = torch.cat(
-                [x_B_C_T_H_W, padding_mask.unsqueeze(1).repeat(1, 1, x_B_C_T_H_W.shape[2], 1, 1)], dim=1
+                [
+                    x_B_C_T_H_W,
+                    padding_mask.unsqueeze(1).repeat(1, 1, x_B_C_T_H_W.shape[2], 1, 1),
+                ],
+                dim=1,
             )
         x_B_T_H_W_D = self.x_embedder(x_B_C_T_H_W)
 
         if self.extra_per_block_abs_pos_emb:
-            extra_pos_emb = self.extra_pos_embedder(x_B_T_H_W_D, fps=fps, device=x_B_C_T_H_W.device, dtype=x_B_C_T_H_W.dtype)
+            extra_pos_emb = self.extra_pos_embedder(
+                x_B_T_H_W_D, fps=fps, device=x_B_C_T_H_W.device, dtype=x_B_C_T_H_W.dtype
+            )
         else:
             extra_pos_emb = None
 
         if "rope" in self.pos_emb_cls.lower():
-            return x_B_T_H_W_D, self.pos_embedder(x_B_T_H_W_D, fps=fps, device=x_B_C_T_H_W.device), extra_pos_emb
+            return (
+                x_B_T_H_W_D,
+                self.pos_embedder(x_B_T_H_W_D, fps=fps, device=x_B_C_T_H_W.device),
+                extra_pos_emb,
+            )
 
         if "fps_aware" in self.pos_emb_cls:
-            x_B_T_H_W_D = x_B_T_H_W_D + self.pos_embedder(x_B_T_H_W_D, fps=fps, device=x_B_C_T_H_W.device)  # [B, T, H, W, D]
+            x_B_T_H_W_D = x_B_T_H_W_D + self.pos_embedder(
+                x_B_T_H_W_D, fps=fps, device=x_B_C_T_H_W.device
+            )  # [B, T, H, W, D]
         else:
-            x_B_T_H_W_D = x_B_T_H_W_D + self.pos_embedder(x_B_T_H_W_D, device=x_B_C_T_H_W.device)  # [B, T, H, W, D]
+            x_B_T_H_W_D = x_B_T_H_W_D + self.pos_embedder(
+                x_B_T_H_W_D, device=x_B_C_T_H_W.device
+            )  # [B, T, H, W, D]
 
         return x_B_T_H_W_D, None, extra_pos_emb
 
@@ -319,12 +360,17 @@ class GeneralDIT(nn.Module):
         del crossattn_emb, crossattn_mask
         B, C, T_before_patchify, H_before_patchify, W_before_patchify = origin_shape
         x_BT_HW_D = rearrange(x_B_T_H_W_D, "B T H W D -> (B T) (H W) D")
-        x_BT_HW_D = self.final_layer(x_BT_HW_D, emb_B_D, adaln_lora_B_3D=adaln_lora_B_3D)
+        x_BT_HW_D = self.final_layer(
+            x_BT_HW_D, emb_B_D, adaln_lora_B_3D=adaln_lora_B_3D
+        )
         # This is to ensure x_BT_HW_D has the correct shape because
         # when we merge T, H, W into one dimension, x_BT_HW_D has shape (B * T * H * W, 1*1, D).
         x_BT_HW_D = x_BT_HW_D.view(
             B * T_before_patchify // self.patch_temporal,
-            H_before_patchify // self.patch_spatial * W_before_patchify // self.patch_spatial,
+            H_before_patchify
+            // self.patch_spatial
+            * W_before_patchify
+            // self.patch_spatial,
             -1,
         )
         x_B_D_T_H_W = rearrange(
@@ -366,17 +412,21 @@ class GeneralDIT(nn.Module):
             data_type, DataType
         ), f"Expected DataType, got {type(data_type)}. We need discuss this flag later."
         original_shape = x.shape
-        x_B_T_H_W_D, rope_emb_L_1_1_D, extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D = self.prepare_embedded_sequence(
-            x,
-            fps=fps,
-            padding_mask=padding_mask,
-            latent_condition=latent_condition,
-            latent_condition_sigma=latent_condition_sigma,
+        x_B_T_H_W_D, rope_emb_L_1_1_D, extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D = (
+            self.prepare_embedded_sequence(
+                x,
+                fps=fps,
+                padding_mask=padding_mask,
+                latent_condition=latent_condition,
+                latent_condition_sigma=latent_condition_sigma,
+            )
         )
         # logging affline scale information
         affline_scale_log_info = {}
 
-        timesteps_B_D, adaln_lora_B_3D = self.t_embedder[1](self.t_embedder[0](timesteps.flatten()).to(x.dtype))
+        timesteps_B_D, adaln_lora_B_3D = self.t_embedder[1](
+            self.t_embedder[0](timesteps.flatten()).to(x.dtype)
+        )
         affline_emb_B_D = timesteps_B_D
         affline_scale_log_info["timesteps_B_D"] = timesteps_B_D.detach()
 
@@ -387,9 +437,15 @@ class GeneralDIT(nn.Module):
         affline_emb_B_D = self.affline_norm(affline_emb_B_D)
 
         if self.use_cross_attn_mask:
-            if crossattn_mask is not None and not torch.is_floating_point(crossattn_mask):
-                crossattn_mask = (crossattn_mask - 1).to(x.dtype) * torch.finfo(x.dtype).max
-            crossattn_mask = crossattn_mask[:, None, None, :]  # .to(dtype=torch.bool)  # [B, 1, 1, length]
+            if crossattn_mask is not None and not torch.is_floating_point(
+                crossattn_mask
+            ):
+                crossattn_mask = (crossattn_mask - 1).to(x.dtype) * torch.finfo(
+                    x.dtype
+                ).max
+            crossattn_mask = crossattn_mask[
+                :, None, None, :
+            ]  # .to(dtype=torch.bool)  # [B, 1, 1, length]
         else:
             crossattn_mask = None
 
@@ -441,20 +497,25 @@ class GeneralDIT(nn.Module):
         return comfy.patcher_extension.WrapperExecutor.new_class_executor(
             self._forward,
             self,
-            comfy.patcher_extension.get_all_wrappers(comfy.patcher_extension.WrappersMP.DIFFUSION_MODEL, kwargs.get("transformer_options", {}))
-        ).execute(x,
-                timesteps,
-                context,
-                attention_mask,
-                fps,
-                image_size,
-                padding_mask,
-                scalar_feature,
-                data_type,
-                latent_condition,
-                latent_condition_sigma,
-                condition_video_augment_sigma,
-                **kwargs)
+            comfy.patcher_extension.get_all_wrappers(
+                comfy.patcher_extension.WrappersMP.DIFFUSION_MODEL,
+                kwargs.get("transformer_options", {}),
+            ),
+        ).execute(
+            x,
+            timesteps,
+            context,
+            attention_mask,
+            fps,
+            image_size,
+            padding_mask,
+            scalar_feature,
+            data_type,
+            latent_condition,
+            latent_condition_sigma,
+            condition_video_augment_sigma,
+            **kwargs,
+        )
 
     def _forward(
         self,
@@ -503,7 +564,15 @@ class GeneralDIT(nn.Module):
             condition_video_augment_sigma=condition_video_augment_sigma,
             **kwargs,
         )
-        x, affline_emb_B_D, crossattn_emb, crossattn_mask, rope_emb_L_1_1_D, adaln_lora_B_3D, original_shape = (
+        (
+            x,
+            affline_emb_B_D,
+            crossattn_emb,
+            crossattn_mask,
+            rope_emb_L_1_1_D,
+            adaln_lora_B_3D,
+            original_shape,
+        ) = (
             inputs["x"],
             inputs["affline_emb_B_D"],
             inputs["crossattn_emb"],
@@ -512,7 +581,9 @@ class GeneralDIT(nn.Module):
             inputs["adaln_lora_B_3D"],
             inputs["original_shape"],
         )
-        extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D = inputs["extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D"].to(x.dtype)
+        extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D = inputs[
+            "extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D"
+        ].to(x.dtype)
         del inputs
 
         if extra_pos_emb_B_T_H_W_D_or_T_H_W_B_D is not None:

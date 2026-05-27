@@ -20,120 +20,120 @@ from comfy_api_nodes.util import (
 )
 
 V1_V1_RES_MAP = {
-  "Auto":"AUTO",
-  "512 x 1536":"RESOLUTION_512_1536",
-  "576 x 1408":"RESOLUTION_576_1408",
-  "576 x 1472":"RESOLUTION_576_1472",
-  "576 x 1536":"RESOLUTION_576_1536",
-  "640 x 1024":"RESOLUTION_640_1024",
-  "640 x 1344":"RESOLUTION_640_1344",
-  "640 x 1408":"RESOLUTION_640_1408",
-  "640 x 1472":"RESOLUTION_640_1472",
-  "640 x 1536":"RESOLUTION_640_1536",
-  "704 x 1152":"RESOLUTION_704_1152",
-  "704 x 1216":"RESOLUTION_704_1216",
-  "704 x 1280":"RESOLUTION_704_1280",
-  "704 x 1344":"RESOLUTION_704_1344",
-  "704 x 1408":"RESOLUTION_704_1408",
-  "704 x 1472":"RESOLUTION_704_1472",
-  "720 x 1280":"RESOLUTION_720_1280",
-  "736 x 1312":"RESOLUTION_736_1312",
-  "768 x 1024":"RESOLUTION_768_1024",
-  "768 x 1088":"RESOLUTION_768_1088",
-  "768 x 1152":"RESOLUTION_768_1152",
-  "768 x 1216":"RESOLUTION_768_1216",
-  "768 x 1232":"RESOLUTION_768_1232",
-  "768 x 1280":"RESOLUTION_768_1280",
-  "768 x 1344":"RESOLUTION_768_1344",
-  "832 x 960":"RESOLUTION_832_960",
-  "832 x 1024":"RESOLUTION_832_1024",
-  "832 x 1088":"RESOLUTION_832_1088",
-  "832 x 1152":"RESOLUTION_832_1152",
-  "832 x 1216":"RESOLUTION_832_1216",
-  "832 x 1248":"RESOLUTION_832_1248",
-  "864 x 1152":"RESOLUTION_864_1152",
-  "896 x 960":"RESOLUTION_896_960",
-  "896 x 1024":"RESOLUTION_896_1024",
-  "896 x 1088":"RESOLUTION_896_1088",
-  "896 x 1120":"RESOLUTION_896_1120",
-  "896 x 1152":"RESOLUTION_896_1152",
-  "960 x 832":"RESOLUTION_960_832",
-  "960 x 896":"RESOLUTION_960_896",
-  "960 x 1024":"RESOLUTION_960_1024",
-  "960 x 1088":"RESOLUTION_960_1088",
-  "1024 x 640":"RESOLUTION_1024_640",
-  "1024 x 768":"RESOLUTION_1024_768",
-  "1024 x 832":"RESOLUTION_1024_832",
-  "1024 x 896":"RESOLUTION_1024_896",
-  "1024 x 960":"RESOLUTION_1024_960",
-  "1024 x 1024":"RESOLUTION_1024_1024",
-  "1088 x 768":"RESOLUTION_1088_768",
-  "1088 x 832":"RESOLUTION_1088_832",
-  "1088 x 896":"RESOLUTION_1088_896",
-  "1088 x 960":"RESOLUTION_1088_960",
-  "1120 x 896":"RESOLUTION_1120_896",
-  "1152 x 704":"RESOLUTION_1152_704",
-  "1152 x 768":"RESOLUTION_1152_768",
-  "1152 x 832":"RESOLUTION_1152_832",
-  "1152 x 864":"RESOLUTION_1152_864",
-  "1152 x 896":"RESOLUTION_1152_896",
-  "1216 x 704":"RESOLUTION_1216_704",
-  "1216 x 768":"RESOLUTION_1216_768",
-  "1216 x 832":"RESOLUTION_1216_832",
-  "1232 x 768":"RESOLUTION_1232_768",
-  "1248 x 832":"RESOLUTION_1248_832",
-  "1280 x 704":"RESOLUTION_1280_704",
-  "1280 x 720":"RESOLUTION_1280_720",
-  "1280 x 768":"RESOLUTION_1280_768",
-  "1280 x 800":"RESOLUTION_1280_800",
-  "1312 x 736":"RESOLUTION_1312_736",
-  "1344 x 640":"RESOLUTION_1344_640",
-  "1344 x 704":"RESOLUTION_1344_704",
-  "1344 x 768":"RESOLUTION_1344_768",
-  "1408 x 576":"RESOLUTION_1408_576",
-  "1408 x 640":"RESOLUTION_1408_640",
-  "1408 x 704":"RESOLUTION_1408_704",
-  "1472 x 576":"RESOLUTION_1472_576",
-  "1472 x 640":"RESOLUTION_1472_640",
-  "1472 x 704":"RESOLUTION_1472_704",
-  "1536 x 512":"RESOLUTION_1536_512",
-  "1536 x 576":"RESOLUTION_1536_576",
-  "1536 x 640":"RESOLUTION_1536_640",
+    "Auto": "AUTO",
+    "512 x 1536": "RESOLUTION_512_1536",
+    "576 x 1408": "RESOLUTION_576_1408",
+    "576 x 1472": "RESOLUTION_576_1472",
+    "576 x 1536": "RESOLUTION_576_1536",
+    "640 x 1024": "RESOLUTION_640_1024",
+    "640 x 1344": "RESOLUTION_640_1344",
+    "640 x 1408": "RESOLUTION_640_1408",
+    "640 x 1472": "RESOLUTION_640_1472",
+    "640 x 1536": "RESOLUTION_640_1536",
+    "704 x 1152": "RESOLUTION_704_1152",
+    "704 x 1216": "RESOLUTION_704_1216",
+    "704 x 1280": "RESOLUTION_704_1280",
+    "704 x 1344": "RESOLUTION_704_1344",
+    "704 x 1408": "RESOLUTION_704_1408",
+    "704 x 1472": "RESOLUTION_704_1472",
+    "720 x 1280": "RESOLUTION_720_1280",
+    "736 x 1312": "RESOLUTION_736_1312",
+    "768 x 1024": "RESOLUTION_768_1024",
+    "768 x 1088": "RESOLUTION_768_1088",
+    "768 x 1152": "RESOLUTION_768_1152",
+    "768 x 1216": "RESOLUTION_768_1216",
+    "768 x 1232": "RESOLUTION_768_1232",
+    "768 x 1280": "RESOLUTION_768_1280",
+    "768 x 1344": "RESOLUTION_768_1344",
+    "832 x 960": "RESOLUTION_832_960",
+    "832 x 1024": "RESOLUTION_832_1024",
+    "832 x 1088": "RESOLUTION_832_1088",
+    "832 x 1152": "RESOLUTION_832_1152",
+    "832 x 1216": "RESOLUTION_832_1216",
+    "832 x 1248": "RESOLUTION_832_1248",
+    "864 x 1152": "RESOLUTION_864_1152",
+    "896 x 960": "RESOLUTION_896_960",
+    "896 x 1024": "RESOLUTION_896_1024",
+    "896 x 1088": "RESOLUTION_896_1088",
+    "896 x 1120": "RESOLUTION_896_1120",
+    "896 x 1152": "RESOLUTION_896_1152",
+    "960 x 832": "RESOLUTION_960_832",
+    "960 x 896": "RESOLUTION_960_896",
+    "960 x 1024": "RESOLUTION_960_1024",
+    "960 x 1088": "RESOLUTION_960_1088",
+    "1024 x 640": "RESOLUTION_1024_640",
+    "1024 x 768": "RESOLUTION_1024_768",
+    "1024 x 832": "RESOLUTION_1024_832",
+    "1024 x 896": "RESOLUTION_1024_896",
+    "1024 x 960": "RESOLUTION_1024_960",
+    "1024 x 1024": "RESOLUTION_1024_1024",
+    "1088 x 768": "RESOLUTION_1088_768",
+    "1088 x 832": "RESOLUTION_1088_832",
+    "1088 x 896": "RESOLUTION_1088_896",
+    "1088 x 960": "RESOLUTION_1088_960",
+    "1120 x 896": "RESOLUTION_1120_896",
+    "1152 x 704": "RESOLUTION_1152_704",
+    "1152 x 768": "RESOLUTION_1152_768",
+    "1152 x 832": "RESOLUTION_1152_832",
+    "1152 x 864": "RESOLUTION_1152_864",
+    "1152 x 896": "RESOLUTION_1152_896",
+    "1216 x 704": "RESOLUTION_1216_704",
+    "1216 x 768": "RESOLUTION_1216_768",
+    "1216 x 832": "RESOLUTION_1216_832",
+    "1232 x 768": "RESOLUTION_1232_768",
+    "1248 x 832": "RESOLUTION_1248_832",
+    "1280 x 704": "RESOLUTION_1280_704",
+    "1280 x 720": "RESOLUTION_1280_720",
+    "1280 x 768": "RESOLUTION_1280_768",
+    "1280 x 800": "RESOLUTION_1280_800",
+    "1312 x 736": "RESOLUTION_1312_736",
+    "1344 x 640": "RESOLUTION_1344_640",
+    "1344 x 704": "RESOLUTION_1344_704",
+    "1344 x 768": "RESOLUTION_1344_768",
+    "1408 x 576": "RESOLUTION_1408_576",
+    "1408 x 640": "RESOLUTION_1408_640",
+    "1408 x 704": "RESOLUTION_1408_704",
+    "1472 x 576": "RESOLUTION_1472_576",
+    "1472 x 640": "RESOLUTION_1472_640",
+    "1472 x 704": "RESOLUTION_1472_704",
+    "1536 x 512": "RESOLUTION_1536_512",
+    "1536 x 576": "RESOLUTION_1536_576",
+    "1536 x 640": "RESOLUTION_1536_640",
 }
 
 V1_V2_RATIO_MAP = {
-  "1:1":"ASPECT_1_1",
-  "4:3":"ASPECT_4_3",
-  "3:4":"ASPECT_3_4",
-  "16:9":"ASPECT_16_9",
-  "9:16":"ASPECT_9_16",
-  "2:1":"ASPECT_2_1",
-  "1:2":"ASPECT_1_2",
-  "3:2":"ASPECT_3_2",
-  "2:3":"ASPECT_2_3",
-  "4:5":"ASPECT_4_5",
-  "5:4":"ASPECT_5_4",
+    "1:1": "ASPECT_1_1",
+    "4:3": "ASPECT_4_3",
+    "3:4": "ASPECT_3_4",
+    "16:9": "ASPECT_16_9",
+    "9:16": "ASPECT_9_16",
+    "2:1": "ASPECT_2_1",
+    "1:2": "ASPECT_1_2",
+    "3:2": "ASPECT_3_2",
+    "2:3": "ASPECT_2_3",
+    "4:5": "ASPECT_4_5",
+    "5:4": "ASPECT_5_4",
 }
 
 V3_RATIO_MAP = {
-    "1:3":"1x3",
-    "3:1":"3x1",
-    "1:2":"1x2",
-    "2:1":"2x1",
-    "9:16":"9x16",
-    "16:9":"16x9",
-    "10:16":"10x16",
-    "16:10":"16x10",
-    "2:3":"2x3",
-    "3:2":"3x2",
-    "3:4":"3x4",
-    "4:3":"4x3",
-    "4:5":"4x5",
-    "5:4":"5x4",
-    "1:1":"1x1",
+    "1:3": "1x3",
+    "3:1": "3x1",
+    "1:2": "1x2",
+    "2:1": "2x1",
+    "9:16": "9x16",
+    "16:9": "16x9",
+    "10:16": "10x16",
+    "16:10": "16x10",
+    "2:3": "2x3",
+    "3:2": "3x2",
+    "3:4": "3x4",
+    "4:3": "4x3",
+    "4:5": "4x5",
+    "5:4": "5x4",
+    "1:1": "1x1",
 }
 
-V3_RESOLUTIONS= [
+V3_RESOLUTIONS = [
     "Auto",
     "512x1536",
     "576x1408",
@@ -203,8 +203,9 @@ V3_RESOLUTIONS= [
     "1472x704",
     "1536x512",
     "1536x576",
-    "1536x640"
+    "1536x640",
 ]
+
 
 async def download_and_process_images(image_urls):
     """Helper function to download and process multiple images from URLs"""
@@ -214,8 +215,12 @@ async def download_and_process_images(image_urls):
 
     for image_url in image_urls:
         # Using functions from apinode_utils.py to handle downloading and processing
-        image_bytesio = await download_url_as_bytesio(image_url)  # Download image content to BytesIO
-        img_tensor = bytesio_to_image_tensor(image_bytesio, mode="RGB")  # Convert to torch.Tensor with RGB mode
+        image_bytesio = await download_url_as_bytesio(
+            image_url
+        )  # Download image content to BytesIO
+        img_tensor = bytesio_to_image_tensor(
+            image_bytesio, mode="RGB"
+        )  # Convert to torch.Tensor with RGB mode
         image_tensors.append(img_tensor)
 
     # Stack tensors to match (N, width, height, channels)
@@ -228,7 +233,6 @@ async def download_and_process_images(image_urls):
 
 
 class IdeogramV1(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -326,7 +330,9 @@ class IdeogramV1(IO.ComfyNode):
                     num_images=num_images,
                     seed=seed,
                     aspect_ratio=aspect_ratio if aspect_ratio != "ASPECT_1_1" else None,
-                    magic_prompt_option=(magic_prompt_option if magic_prompt_option != "AUTO" else None),
+                    magic_prompt_option=(
+                        magic_prompt_option if magic_prompt_option != "AUTO" else None
+                    ),
                     negative_prompt=negative_prompt if negative_prompt else None,
                 )
             ),
@@ -343,7 +349,6 @@ class IdeogramV1(IO.ComfyNode):
 
 
 class IdeogramV2(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -376,7 +381,7 @@ class IdeogramV2(IO.ComfyNode):
                     options=list(V1_V1_RES_MAP.keys()),
                     default="Auto",
                     tooltip="The resolution for image generation. "
-                            "If not set to AUTO, this overrides the aspect_ratio setting.",
+                    "If not set to AUTO, this overrides the aspect_ratio setting.",
                     optional=True,
                 ),
                 IO.Combo.Input(
@@ -398,7 +403,14 @@ class IdeogramV2(IO.ComfyNode):
                 ),
                 IO.Combo.Input(
                     "style_type",
-                    options=["AUTO", "GENERAL", "REALISTIC", "DESIGN", "RENDER_3D", "ANIME"],
+                    options=[
+                        "AUTO",
+                        "GENERAL",
+                        "REALISTIC",
+                        "DESIGN",
+                        "RENDER_3D",
+                        "ANIME",
+                    ],
                     default="NONE",
                     tooltip="Style type for generation (V2 only)",
                     optional=True,
@@ -419,14 +431,14 @@ class IdeogramV2(IO.ComfyNode):
                     display_mode=IO.NumberDisplay.number,
                     optional=True,
                 ),
-                #"color_palette": (
+                # "color_palette": (
                 #    IO.STRING,
                 #    {
                 #        "multiline": False,
                 #        "default": "",
                 #        "tooltip": "Color palette preset name or hex colors with weights",
                 #    },
-                #),
+                # ),
             ],
             outputs=[
                 IO.Image.Output(),
@@ -479,7 +491,9 @@ class IdeogramV2(IO.ComfyNode):
                     seed=seed,
                     aspect_ratio=final_aspect_ratio,
                     resolution=final_resolution,
-                    magic_prompt_option=(magic_prompt_option if magic_prompt_option != "AUTO" else None),
+                    magic_prompt_option=(
+                        magic_prompt_option if magic_prompt_option != "AUTO" else None
+                    ),
                     style_type=style_type if style_type != "NONE" else None,
                     negative_prompt=negative_prompt if negative_prompt else None,
                     color_palette=color_palette if color_palette else None,
@@ -497,7 +511,6 @@ class IdeogramV2(IO.ComfyNode):
 
 
 class IdeogramV3(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -505,7 +518,7 @@ class IdeogramV3(IO.ComfyNode):
             display_name="Ideogram V3",
             category="api node/image/Ideogram",
             description="Generates images using the Ideogram V3 model. "
-                        "Supports both regular image generation from text prompts and image editing with mask.",
+            "Supports both regular image generation from text prompts and image editing with mask.",
             is_api_node=True,
             inputs=[
                 IO.String.Input(
@@ -536,7 +549,7 @@ class IdeogramV3(IO.ComfyNode):
                     options=V3_RESOLUTIONS,
                     default="Auto",
                     tooltip="The resolution for image generation. "
-                            "If not set to Auto, this overrides the aspect_ratio setting.",
+                    "If not set to Auto, this overrides the aspect_ratio setting.",
                     optional=True,
                 ),
                 IO.Combo.Input(
@@ -617,12 +630,16 @@ class IdeogramV3(IO.ComfyNode):
         if character_image is not None:
             input_tensor = character_image.squeeze().cpu()
             if character_mask is not None:
-                character_mask = resize_mask_to_image(character_mask, character_image, allow_gradient=False)
+                character_mask = resize_mask_to_image(
+                    character_mask, character_image, allow_gradient=False
+                )
                 character_mask = 1.0 - character_mask
                 if character_mask.shape[1:] != character_image.shape[1:-1]:
                     raise Exception("Character mask and image must be the same size")
 
-                mask_np = (character_mask.squeeze().cpu().numpy() * 255).astype(np.uint8)
+                mask_np = (character_mask.squeeze().cpu().numpy() * 255).astype(
+                    np.uint8
+                )
                 mask_img = Image.fromarray(mask_np)
                 mask_byte_arr = BytesIO()
                 mask_img.save(mask_byte_arr, format="PNG")
@@ -706,7 +723,9 @@ class IdeogramV3(IO.ComfyNode):
 
         elif image is not None or mask is not None:
             # If only one of image or mask is provided, raise an error
-            raise Exception("Ideogram V3 image editing requires both an image AND a mask")
+            raise Exception(
+                "Ideogram V3 image editing requires both an image AND a mask"
+            )
         else:
             # Create generation request
             gen_request = IdeogramV3Request(
@@ -740,7 +759,9 @@ class IdeogramV3(IO.ComfyNode):
 
             response = await sync_op(
                 cls,
-                endpoint=ApiEndpoint(path="/proxy/ideogram/ideogram-v3/generate", method="POST"),
+                endpoint=ApiEndpoint(
+                    path="/proxy/ideogram/ideogram-v3/generate", method="POST"
+                ),
                 response_model=IdeogramGenerateResponse,
                 data=gen_request,
                 files=files if files else None,

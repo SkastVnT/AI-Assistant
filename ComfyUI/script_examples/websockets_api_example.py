@@ -1,7 +1,7 @@
-#This is an example that uses the websockets api to know when a prompt execution is done
-#Once the prompt execution is done it downloads the images using the /history endpoint
+# This is an example that uses the websockets api to know when a prompt execution is done
+# Once the prompt execution is done it downloads the images using the /history endpoint
 
-import websocket #NOTE: websocket-client (https://github.com/websocket-client/websocket-client)
+import websocket  # NOTE: websocket-client (https://github.com/websocket-client/websocket-client)
 import uuid
 import json
 import urllib.request
@@ -10,21 +10,29 @@ import urllib.parse
 server_address = "127.0.0.1:8188"
 client_id = str(uuid.uuid4())
 
+
 def queue_prompt(prompt, prompt_id):
     p = {"prompt": prompt, "client_id": client_id, "prompt_id": prompt_id}
-    data = json.dumps(p).encode('utf-8')
+    data = json.dumps(p).encode("utf-8")
     req = urllib.request.Request("http://{}/prompt".format(server_address), data=data)
     urllib.request.urlopen(req).read()
+
 
 def get_image(filename, subfolder, folder_type):
     data = {"filename": filename, "subfolder": subfolder, "type": folder_type}
     url_values = urllib.parse.urlencode(data)
-    with urllib.request.urlopen("http://{}/view?{}".format(server_address, url_values)) as response:
+    with urllib.request.urlopen(
+        "http://{}/view?{}".format(server_address, url_values)
+    ) as response:
         return response.read()
 
+
 def get_history(prompt_id):
-    with urllib.request.urlopen("http://{}/history/{}".format(server_address, prompt_id)) as response:
+    with urllib.request.urlopen(
+        "http://{}/history/{}".format(server_address, prompt_id)
+    ) as response:
         return json.loads(response.read())
+
 
 def get_images(ws, prompt):
     prompt_id = str(uuid.uuid4())
@@ -34,27 +42,30 @@ def get_images(ws, prompt):
         out = ws.recv()
         if isinstance(out, str):
             message = json.loads(out)
-            if message['type'] == 'executing':
-                data = message['data']
-                if data['node'] is None and data['prompt_id'] == prompt_id:
-                    break #Execution is done
+            if message["type"] == "executing":
+                data = message["data"]
+                if data["node"] is None and data["prompt_id"] == prompt_id:
+                    break  # Execution is done
         else:
             # If you want to be able to decode the binary stream for latent previews, here is how you can do it:
             # bytesIO = BytesIO(out[8:])
             # preview_image = Image.open(bytesIO) # This is your preview in PIL image format, store it in a global
-            continue #previews are binary data
+            continue  # previews are binary data
 
     history = get_history(prompt_id)[prompt_id]
-    for node_id in history['outputs']:
-        node_output = history['outputs'][node_id]
+    for node_id in history["outputs"]:
+        node_output = history["outputs"][node_id]
         images_output = []
-        if 'images' in node_output:
-            for image in node_output['images']:
-                image_data = get_image(image['filename'], image['subfolder'], image['type'])
+        if "images" in node_output:
+            for image in node_output["images"]:
+                image_data = get_image(
+                    image["filename"], image["subfolder"], image["type"]
+                )
                 images_output.append(image_data)
         output_images[node_id] = images_output
 
     return output_images
+
 
 prompt_text = """
 {
@@ -146,17 +157,17 @@ prompt_text = """
 """
 
 prompt = json.loads(prompt_text)
-#set the text prompt for our positive CLIPTextEncode
+# set the text prompt for our positive CLIPTextEncode
 prompt["6"]["inputs"]["text"] = "masterpiece best quality man"
 
-#set the seed for our KSampler node
+# set the seed for our KSampler node
 prompt["3"]["inputs"]["seed"] = 5
 
 ws = websocket.WebSocket()
 ws.connect("ws://{}/ws?clientId={}".format(server_address, client_id))
 images = get_images(ws, prompt)
-ws.close() # for in case this example is used in an environment where it will be repeatedly called, like in a Gradio app. otherwise, you'll randomly receive connection timeouts
-#Commented out code to display the output images:
+ws.close()  # for in case this example is used in an environment where it will be repeatedly called, like in a Gradio app. otherwise, you'll randomly receive connection timeouts
+# Commented out code to display the output images:
 
 # for node_id in images:
 #     for image_data in images[node_id]:
@@ -164,4 +175,3 @@ ws.close() # for in case this example is used in an environment where it will be
 #         import io
 #         image = Image.open(io.BytesIO(image_data))
 #         image.show()
-

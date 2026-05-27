@@ -17,13 +17,11 @@ Covers:
 Run from services/chatbot/:
     python -m pytest tests/test_xai_native.py -v
 """
+
 from __future__ import annotations
 
-import asyncio
-import json
 import sys
 from pathlib import Path
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -32,6 +30,7 @@ pytestmark = pytest.mark.agentic
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from core.agentic.xai_native.adapter import XaiResponsesAdapter
 from core.agentic.xai_native.contracts import (
     ReasoningEffort,
     XaiAnnotation,
@@ -40,22 +39,20 @@ from core.agentic.xai_native.contracts import (
     XaiNativeStatus,
     XaiUsage,
 )
-from core.agentic.xai_native.adapter import XaiResponsesAdapter
 from core.agentic.xai_native.entrypoint import (
     _build_config,
     _build_response_dict,
     _build_system_prompt,
     _disabled_response,
     _sse,
-    is_xai_native_enabled,
     run_xai_native,
     run_xai_native_stream,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════
 # Contracts
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestXaiNativeConfig:
     def test_defaults(self):
@@ -133,13 +130,16 @@ class TestXaiNativeResult:
         assert trace["elapsed_seconds"] == 12.35
 
     def test_annotations(self):
-        ann = XaiAnnotation(type="url_citation", url="https://example.com", title="Example")
+        ann = XaiAnnotation(
+            type="url_citation", url="https://example.com", title="Example"
+        )
         assert ann.url == "https://example.com"
 
 
 # ═══════════════════════════════════════════════════════════════════════
 # Adapter — Payload building
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestAdapterPayload:
     def setup_method(self):
@@ -148,7 +148,8 @@ class TestAdapterPayload:
     def test_basic_payload(self):
         cfg = XaiNativeConfig()
         payload = self.adapter._build_payload(
-            message="Hello", config=cfg,
+            message="Hello",
+            config=cfg,
         )
         assert payload["model"] == "grok-4.20-multi-agent"
         assert payload["input"] == "Hello"
@@ -160,28 +161,33 @@ class TestAdapterPayload:
     def test_payload_with_system_prompt(self):
         cfg = XaiNativeConfig()
         payload = self.adapter._build_payload(
-            message="Test", config=cfg, system_prompt="Be helpful",
+            message="Test",
+            config=cfg,
+            system_prompt="Be helpful",
         )
         assert payload["instructions"] == "Be helpful"
 
     def test_payload_without_system_prompt(self):
         cfg = XaiNativeConfig()
         payload = self.adapter._build_payload(
-            message="Test", config=cfg,
+            message="Test",
+            config=cfg,
         )
         assert "instructions" not in payload
 
     def test_payload_no_tools(self):
         cfg = XaiNativeConfig(enable_web_search=False, enable_x_search=False)
         payload = self.adapter._build_payload(
-            message="Test", config=cfg,
+            message="Test",
+            config=cfg,
         )
         assert payload.get("tools", []) == []
 
     def test_payload_both_tools(self):
         cfg = XaiNativeConfig(enable_web_search=True, enable_x_search=True)
         payload = self.adapter._build_payload(
-            message="Test", config=cfg,
+            message="Test",
+            config=cfg,
         )
         assert {"type": "web_search"} in payload["tools"]
         assert {"type": "x_search"} in payload["tools"]
@@ -189,14 +195,17 @@ class TestAdapterPayload:
     def test_payload_streaming(self):
         cfg = XaiNativeConfig()
         payload = self.adapter._build_payload(
-            message="Test", config=cfg, stream=True,
+            message="Test",
+            config=cfg,
+            stream=True,
         )
         assert payload["stream"] is True
 
     def test_reasoning_effort_propagated(self):
         cfg = XaiNativeConfig(reasoning_effort=ReasoningEffort.low)
         payload = self.adapter._build_payload(
-            message="Test", config=cfg,
+            message="Test",
+            config=cfg,
         )
         assert payload["reasoning"]["effort"] == "low"
 
@@ -210,6 +219,7 @@ class TestAdapterConstructor:
 # ═══════════════════════════════════════════════════════════════════════
 # Adapter — Response parsing
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestAdapterParsing:
     def setup_method(self):
@@ -330,7 +340,10 @@ class TestAdapterContentDelta:
     def test_responses_output_format(self):
         chunk = {
             "output": [
-                {"type": "message", "content": [{"type": "output_text", "text": "World"}]}
+                {
+                    "type": "message",
+                    "content": [{"type": "output_text", "text": "World"}],
+                }
             ]
         }
         assert self.adapter._extract_content_delta(chunk) == "World"
@@ -346,6 +359,7 @@ class TestAdapterContentDelta:
 # ═══════════════════════════════════════════════════════════════════════
 # Adapter — HTTP calls (mocked)
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class TestAdapterCall:
     @pytest.mark.asyncio
@@ -427,6 +441,7 @@ class TestAdapterCall:
 # Entrypoint — helpers
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestEntrypointHelpers:
     def test_build_config_defaults(self):
         cfg = _build_config()
@@ -490,7 +505,9 @@ class TestEntrypointHelpers:
             usage=XaiUsage(total_tokens=800, reasoning_tokens=400, num_sources_used=2),
             elapsed_seconds=10.5,
             annotations=[
-                XaiAnnotation(type="url_citation", url="https://src.com", title="Source"),
+                XaiAnnotation(
+                    type="url_citation", url="https://src.com", title="Source"
+                ),
             ],
         )
         config = XaiNativeConfig(reasoning_effort=ReasoningEffort.medium)
@@ -512,26 +529,33 @@ class TestEntrypointHelpers:
 # Entrypoint — Feature flag
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestFeatureFlag:
     def test_disabled_by_default(self):
         with patch.dict("os.environ", {}, clear=False):
             # Re-import to re-evaluate
             import importlib
+
             import core.agentic.xai_native.entrypoint as ep
+
             importlib.reload(ep)
             assert ep.is_xai_native_enabled() is False
 
     def test_enabled_true(self):
         with patch.dict("os.environ", {"XAI_NATIVE_MULTI_AGENT_ENABLED": "true"}):
             import importlib
+
             import core.agentic.xai_native.entrypoint as ep
+
             importlib.reload(ep)
             assert ep.is_xai_native_enabled() is True
 
     def test_enabled_1(self):
         with patch.dict("os.environ", {"XAI_NATIVE_MULTI_AGENT_ENABLED": "1"}):
             import importlib
+
             import core.agentic.xai_native.entrypoint as ep
+
             importlib.reload(ep)
             assert ep.is_xai_native_enabled() is True
 
@@ -540,10 +564,14 @@ class TestFeatureFlag:
 # Entrypoint — run_xai_native
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestRunXaiNative:
     @pytest.mark.asyncio
     async def test_disabled_returns_graceful_response(self):
-        with patch("core.agentic.xai_native.entrypoint.is_xai_native_enabled", return_value=False):
+        with patch(
+            "core.agentic.xai_native.entrypoint.is_xai_native_enabled",
+            return_value=False,
+        ):
             result = await run_xai_native(
                 original_message="test",
                 augmented_message="test",
@@ -564,8 +592,16 @@ class TestRunXaiNative:
         mock_adapter = MagicMock()
         mock_adapter.call = AsyncMock(return_value=mock_result)
 
-        with patch("core.agentic.xai_native.entrypoint.is_xai_native_enabled", return_value=True), \
-             patch("core.agentic.xai_native.entrypoint._get_adapter", return_value=mock_adapter):
+        with (
+            patch(
+                "core.agentic.xai_native.entrypoint.is_xai_native_enabled",
+                return_value=True,
+            ),
+            patch(
+                "core.agentic.xai_native.entrypoint._get_adapter",
+                return_value=mock_adapter,
+            ),
+        ):
             result = await run_xai_native(
                 original_message="Analyze quantum computing",
                 augmented_message="Analyze quantum computing",
@@ -582,10 +618,14 @@ class TestRunXaiNative:
 # Entrypoint — run_xai_native_stream
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestRunXaiNativeStream:
     @pytest.mark.asyncio
     async def test_disabled_yields_disabled_result(self):
-        with patch("core.agentic.xai_native.entrypoint.is_xai_native_enabled", return_value=False):
+        with patch(
+            "core.agentic.xai_native.entrypoint.is_xai_native_enabled",
+            return_value=False,
+        ):
             chunks = []
             async for chunk in run_xai_native_stream(
                 original_message="test",
@@ -616,8 +656,16 @@ class TestRunXaiNativeStream:
         mock_adapter = MagicMock()
         mock_adapter.stream = mock_stream
 
-        with patch("core.agentic.xai_native.entrypoint.is_xai_native_enabled", return_value=True), \
-             patch("core.agentic.xai_native.entrypoint._get_adapter", return_value=mock_adapter):
+        with (
+            patch(
+                "core.agentic.xai_native.entrypoint.is_xai_native_enabled",
+                return_value=True,
+            ),
+            patch(
+                "core.agentic.xai_native.entrypoint._get_adapter",
+                return_value=mock_adapter,
+            ),
+        ):
             chunks = []
             async for chunk in run_xai_native_stream(
                 original_message="test",
@@ -641,8 +689,16 @@ class TestRunXaiNativeStream:
         mock_adapter = MagicMock()
         mock_adapter.stream = mock_stream
 
-        with patch("core.agentic.xai_native.entrypoint.is_xai_native_enabled", return_value=True), \
-             patch("core.agentic.xai_native.entrypoint._get_adapter", return_value=mock_adapter):
+        with (
+            patch(
+                "core.agentic.xai_native.entrypoint.is_xai_native_enabled",
+                return_value=True,
+            ),
+            patch(
+                "core.agentic.xai_native.entrypoint._get_adapter",
+                return_value=mock_adapter,
+            ),
+        ):
             chunks = []
             async for chunk in run_xai_native_stream(
                 original_message="test",

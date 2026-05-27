@@ -8,6 +8,7 @@ The Critic's ``verdict`` drives the orchestrator's loop decision:
   • ``"pass"``       → proceed directly to Synthesis.
   • ``"needs_work"`` → run another Planner → Researcher → Critic round.
 """
+
 from __future__ import annotations
 
 import logging
@@ -160,12 +161,14 @@ class CriticAgent(BaseAgent):
                 severity = str(item.get("severity", "medium")).lower()
                 if severity not in _VALID_SEVERITIES:
                     severity = "medium"
-                issues.append(CritiqueIssue(
-                    severity=severity,
-                    description=str(item.get("description", "(no description)")),
-                    suggestion=str(item.get("suggestion", "")),
-                    task_id=item.get("task_id"),
-                ))
+                issues.append(
+                    CritiqueIssue(
+                        severity=severity,
+                        description=str(item.get("description", "(no description)")),
+                        suggestion=str(item.get("suggestion", "")),
+                        task_id=item.get("task_id"),
+                    )
+                )
 
         # Normalise retry_target
         retry_raw = str(data.get("retry_target", "")).lower().strip()
@@ -203,8 +206,24 @@ class CriticAgent(BaseAgent):
             → synthesizer
           - Mixed or unclear → both
         """
-        research_kw = {"evidence", "missing", "source", "grounding", "data", "search", "fact"}
-        synth_kw = {"answer", "format", "synthesis", "incomplete", "clarity", "coherent", "draft"}
+        research_kw = {
+            "evidence",
+            "missing",
+            "source",
+            "grounding",
+            "data",
+            "search",
+            "fact",
+        }
+        synth_kw = {
+            "answer",
+            "format",
+            "synthesis",
+            "incomplete",
+            "clarity",
+            "coherent",
+            "draft",
+        }
 
         r_hits = 0
         s_hits = 0

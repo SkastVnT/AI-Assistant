@@ -7,10 +7,13 @@ import json
 # Add comfy to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+
 def has_gpu():
     return torch.cuda.is_available()
 
+
 from comfy.cli_args import args
+
 if not has_gpu():
     args.cpu = True
 
@@ -36,18 +39,23 @@ class SimpleModel(torch.nn.Module):
 
 
 class TestMixedPrecisionOps(unittest.TestCase):
-
     def test_all_layers_standard(self):
         """Test that model with no quantization works normally"""
         # Create model
         model = SimpleModel(operations=ops.mixed_precision_ops({}))
 
         # Initialize weights manually
-        model.layer1.weight = torch.nn.Parameter(torch.randn(20, 10, dtype=torch.bfloat16))
+        model.layer1.weight = torch.nn.Parameter(
+            torch.randn(20, 10, dtype=torch.bfloat16)
+        )
         model.layer1.bias = torch.nn.Parameter(torch.randn(20, dtype=torch.bfloat16))
-        model.layer2.weight = torch.nn.Parameter(torch.randn(30, 20, dtype=torch.bfloat16))
+        model.layer2.weight = torch.nn.Parameter(
+            torch.randn(30, 20, dtype=torch.bfloat16)
+        )
         model.layer2.bias = torch.nn.Parameter(torch.randn(30, dtype=torch.bfloat16))
-        model.layer3.weight = torch.nn.Parameter(torch.randn(40, 30, dtype=torch.bfloat16))
+        model.layer3.weight = torch.nn.Parameter(
+            torch.randn(40, 30, dtype=torch.bfloat16)
+        )
         model.layer3.bias = torch.nn.Parameter(torch.randn(40, dtype=torch.bfloat16))
 
         # Initialize weight_function and bias_function
@@ -66,14 +74,8 @@ class TestMixedPrecisionOps(unittest.TestCase):
         """Test loading a mixed precision model from state dict"""
         # Configure mixed precision: layer1 is FP8, layer2 and layer3 are standard
         layer_quant_config = {
-            "layer1": {
-                "format": "float8_e4m3fn",
-                "params": {}
-            },
-            "layer3": {
-                "format": "float8_e4m3fn",
-                "params": {}
-            }
+            "layer1": {"format": "float8_e4m3fn", "params": {}},
+            "layer3": {"format": "float8_e4m3fn", "params": {}},
         }
 
         # Create state dict with mixed precision
@@ -85,18 +87,21 @@ class TestMixedPrecisionOps(unittest.TestCase):
             "layer1.weight": fp8_weight1,
             "layer1.bias": torch.randn(20, dtype=torch.bfloat16),
             "layer1.weight_scale": torch.tensor(2.0, dtype=torch.float32),
-
             # Layer 2: Standard BF16
             "layer2.weight": torch.randn(30, 20, dtype=torch.bfloat16),
             "layer2.bias": torch.randn(30, dtype=torch.bfloat16),
-
             # Layer 3: FP8 E4M3FN
             "layer3.weight": fp8_weight3,
             "layer3.bias": torch.randn(40, dtype=torch.bfloat16),
             "layer3.weight_scale": torch.tensor(1.5, dtype=torch.float32),
         }
 
-        state_dict, _ = comfy.utils.convert_old_quants(state_dict, metadata={"_quantization_metadata": json.dumps({"layers": layer_quant_config})})
+        state_dict, _ = comfy.utils.convert_old_quants(
+            state_dict,
+            metadata={
+                "_quantization_metadata": json.dumps({"layers": layer_quant_config})
+            },
+        )
         # Create model and load state dict (strict=False because custom loading pops keys)
         model = SimpleModel(operations=ops.mixed_precision_ops({}))
         model.load_state_dict(state_dict, strict=False)
@@ -113,8 +118,8 @@ class TestMixedPrecisionOps(unittest.TestCase):
         self.assertEqual(model.layer3.weight._layout_type, "TensorCoreFP8Layout")
 
         # Verify scales were loaded
-        self.assertEqual(model.layer1.weight._layout_params['scale'].item(), 2.0)
-        self.assertEqual(model.layer3.weight._layout_params['scale'].item(), 1.5)
+        self.assertEqual(model.layer1.weight._layout_params["scale"].item(), 2.0)
+        self.assertEqual(model.layer3.weight._layout_params["scale"].item(), 1.5)
 
         # Forward pass
         input_tensor = torch.randn(5, 10, dtype=torch.bfloat16)
@@ -126,12 +131,7 @@ class TestMixedPrecisionOps(unittest.TestCase):
     def test_state_dict_quantized_preserved(self):
         """Test that quantized weights are preserved in state_dict()"""
         # Configure mixed precision
-        layer_quant_config = {
-            "layer1": {
-                "format": "float8_e4m3fn",
-                "params": {}
-            }
-        }
+        layer_quant_config = {"layer1": {"format": "float8_e4m3fn", "params": {}}}
 
         # Create and load model
         fp8_weight = torch.randn(20, 10, dtype=torch.float32).to(torch.float8_e4m3fn)
@@ -145,7 +145,12 @@ class TestMixedPrecisionOps(unittest.TestCase):
             "layer3.bias": torch.randn(40, dtype=torch.bfloat16),
         }
 
-        state_dict1, _ = comfy.utils.convert_old_quants(state_dict1, metadata={"_quantization_metadata": json.dumps({"layers": layer_quant_config})})
+        state_dict1, _ = comfy.utils.convert_old_quants(
+            state_dict1,
+            metadata={
+                "_quantization_metadata": json.dumps({"layers": layer_quant_config})
+            },
+        )
         model = SimpleModel(operations=ops.mixed_precision_ops({}))
         model.load_state_dict(state_dict1, strict=False)
 
@@ -154,8 +159,12 @@ class TestMixedPrecisionOps(unittest.TestCase):
 
         # Verify layer1.weight is a QuantizedTensor with scale preserved
         self.assertIsInstance(state_dict2["layer1.weight"], QuantizedTensor)
-        self.assertEqual(state_dict2["layer1.weight"]._layout_params['scale'].item(), 3.0)
-        self.assertEqual(state_dict2["layer1.weight"]._layout_type, "TensorCoreFP8Layout")
+        self.assertEqual(
+            state_dict2["layer1.weight"]._layout_params["scale"].item(), 3.0
+        )
+        self.assertEqual(
+            state_dict2["layer1.weight"]._layout_type, "TensorCoreFP8Layout"
+        )
 
         # Verify non-quantized layers are standard tensors
         self.assertNotIsInstance(state_dict2["layer2.weight"], QuantizedTensor)
@@ -164,12 +173,7 @@ class TestMixedPrecisionOps(unittest.TestCase):
     def test_weight_function_compatibility(self):
         """Test that weight_function (LoRA) works with quantized layers"""
         # Configure FP8 quantization
-        layer_quant_config = {
-            "layer1": {
-                "format": "float8_e4m3fn",
-                "params": {}
-            }
-        }
+        layer_quant_config = {"layer1": {"format": "float8_e4m3fn", "params": {}}}
 
         # Create and load model
         fp8_weight = torch.randn(20, 10, dtype=torch.float32).to(torch.float8_e4m3fn)
@@ -183,7 +187,12 @@ class TestMixedPrecisionOps(unittest.TestCase):
             "layer3.bias": torch.randn(40, dtype=torch.bfloat16),
         }
 
-        state_dict, _ = comfy.utils.convert_old_quants(state_dict, metadata={"_quantization_metadata": json.dumps({"layers": layer_quant_config})})
+        state_dict, _ = comfy.utils.convert_old_quants(
+            state_dict,
+            metadata={
+                "_quantization_metadata": json.dumps({"layers": layer_quant_config})
+            },
+        )
         model = SimpleModel(operations=ops.mixed_precision_ops({}))
         model.load_state_dict(state_dict, strict=False)
 
@@ -204,12 +213,7 @@ class TestMixedPrecisionOps(unittest.TestCase):
     def test_error_handling_unknown_format(self):
         """Test that unknown formats raise error"""
         # Configure with unknown format
-        layer_quant_config = {
-            "layer1": {
-                "format": "unknown_format_xyz",
-                "params": {}
-            }
-        }
+        layer_quant_config = {"layer1": {"format": "unknown_format_xyz", "params": {}}}
 
         # Create state dict
         state_dict = {
@@ -221,13 +225,18 @@ class TestMixedPrecisionOps(unittest.TestCase):
             "layer3.bias": torch.randn(40, dtype=torch.bfloat16),
         }
 
-        state_dict, _ = comfy.utils.convert_old_quants(state_dict, metadata={"_quantization_metadata": json.dumps({"layers": layer_quant_config})})
+        state_dict, _ = comfy.utils.convert_old_quants(
+            state_dict,
+            metadata={
+                "_quantization_metadata": json.dumps({"layers": layer_quant_config})
+            },
+        )
 
         # Load should raise KeyError for unknown format in QUANT_FORMAT_MIXINS
         model = SimpleModel(operations=ops.mixed_precision_ops({}))
         with self.assertRaises(KeyError):
             model.load_state_dict(state_dict, strict=False)
 
+
 if __name__ == "__main__":
     unittest.main()
-

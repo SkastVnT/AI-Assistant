@@ -153,7 +153,9 @@ class TopazImageEnhance(IO.ComfyNode):
     ) -> IO.NodeOutput:
         if get_number_of_images(image) != 1:
             raise ValueError("Only one input image is supported.")
-        download_url = await upload_images_to_comfyapi(cls, image, max_images=1, mime_type="image/png")
+        download_url = await upload_images_to_comfyapi(
+            cls, image, max_images=1, mime_type="image/png"
+        )
         initial_response = await sync_op(
             cls,
             ApiEndpoint(path="/proxy/topaz/image/v1/enhance-gen/async", method="POST"),
@@ -179,7 +181,9 @@ class TopazImageEnhance(IO.ComfyNode):
 
         await poll_op(
             cls,
-            poll_endpoint=ApiEndpoint(path=f"/proxy/topaz/image/v1/status/{initial_response.process_id}"),
+            poll_endpoint=ApiEndpoint(
+                path=f"/proxy/topaz/image/v1/status/{initial_response.process_id}"
+            ),
             response_model=topaz_api.ImageStatusResponse,
             status_extractor=lambda x: x.status,
             progress_extractor=lambda x: getattr(x, "progress", 0),
@@ -191,7 +195,9 @@ class TopazImageEnhance(IO.ComfyNode):
 
         results = await sync_op(
             cls,
-            ApiEndpoint(path=f"/proxy/topaz/image/v1/download/{initial_response.process_id}"),
+            ApiEndpoint(
+                path=f"/proxy/topaz/image/v1/download/{initial_response.process_id}"
+            ),
             response_model=topaz_api.ImageDownloadResponse,
             monitor_progress=False,
         )
@@ -209,8 +215,12 @@ class TopazVideoEnhance(IO.ComfyNode):
             inputs=[
                 IO.Video.Input("video"),
                 IO.Boolean.Input("upscaler_enabled", default=True),
-                IO.Combo.Input("upscaler_model", options=list(UPSCALER_MODELS_MAP.keys())),
-                IO.Combo.Input("upscaler_resolution", options=["FullHD (1080p)", "4K (2160p)"]),
+                IO.Combo.Input(
+                    "upscaler_model", options=list(UPSCALER_MODELS_MAP.keys())
+                ),
+                IO.Combo.Input(
+                    "upscaler_resolution", options=["FullHD (1080p)", "4K (2160p)"]
+                ),
                 IO.Combo.Input(
                     "upscaler_creativity",
                     options=["low", "middle", "high"],
@@ -219,7 +229,12 @@ class TopazVideoEnhance(IO.ComfyNode):
                     optional=True,
                 ),
                 IO.Boolean.Input("interpolation_enabled", default=False, optional=True),
-                IO.Combo.Input("interpolation_model", options=["apo-8"], default="apo-8", optional=True),
+                IO.Combo.Input(
+                    "interpolation_model",
+                    options=["apo-8"],
+                    default="apo-8",
+                    optional=True,
+                ),
                 IO.Int.Input(
                     "interpolation_slowmo",
                     default=1,
@@ -291,7 +306,9 @@ class TopazVideoEnhance(IO.ComfyNode):
         dynamic_compression_level: str = "Low",
     ) -> IO.NodeOutput:
         if upscaler_enabled is False and interpolation_enabled is False:
-            raise ValueError("There is nothing to do: both upscaling and interpolation are disabled.")
+            raise ValueError(
+                "There is nothing to do: both upscaling and interpolation are disabled."
+            )
         validate_container_format_is_mp4(video)
         src_width, src_height = video.get_dimensions()
         src_frame_rate = int(video.get_frame_rate())
@@ -332,8 +349,14 @@ class TopazVideoEnhance(IO.ComfyNode):
             filters.append(
                 topaz_api.VideoEnhancementFilter(
                     model=UPSCALER_MODELS_MAP[upscaler_model],
-                    creativity=(upscaler_creativity if UPSCALER_MODELS_MAP[upscaler_model] == "slc-1" else None),
-                    isOptimizedMode=(True if UPSCALER_MODELS_MAP[upscaler_model] == "slc-1" else None),
+                    creativity=(
+                        upscaler_creativity
+                        if UPSCALER_MODELS_MAP[upscaler_model] == "slc-1"
+                        else None
+                    ),
+                    isOptimizedMode=(
+                        True if UPSCALER_MODELS_MAP[upscaler_model] == "slc-1" else None
+                    ),
                 ),
             )
         if interpolation_enabled:
@@ -362,7 +385,9 @@ class TopazVideoEnhance(IO.ComfyNode):
                 ),
                 filters=filters,
                 output=topaz_api.OutputInformationVideo(
-                    resolution=topaz_api.Resolution(width=target_width, height=target_height),
+                    resolution=topaz_api.Resolution(
+                        width=target_width, height=target_height
+                    ),
                     frameRate=target_frame_rate,
                     audioCodec="AAC",
                     audioTransfer="Copy",
@@ -386,14 +411,20 @@ class TopazVideoEnhance(IO.ComfyNode):
             raise NotImplementedError(
                 "Large files are not currently supported. Please open an issue in the ComfyUI repository."
             )
-        async with aiohttp.ClientSession(headers={"Content-Type": "video/mp4"}) as session:
+        async with aiohttp.ClientSession(
+            headers={"Content-Type": "video/mp4"}
+        ) as session:
             if isinstance(src_video_stream, BytesIO):
                 src_video_stream.seek(0)
-                async with session.put(upload_res.urls[0], data=src_video_stream, raise_for_status=True) as res:
+                async with session.put(
+                    upload_res.urls[0], data=src_video_stream, raise_for_status=True
+                ) as res:
                     upload_etag = res.headers["Etag"]
             else:
                 with builtins.open(src_video_stream, "rb") as video_file:
-                    async with session.put(upload_res.urls[0], data=video_file, raise_for_status=True) as res:
+                    async with session.put(
+                        upload_res.urls[0], data=video_file, raise_for_status=True
+                    ) as res:
                         upload_etag = res.headers["Etag"]
         await sync_op(
             cls,
@@ -419,11 +450,17 @@ class TopazVideoEnhance(IO.ComfyNode):
             response_model=topaz_api.VideoStatusResponse,
             status_extractor=lambda x: x.status,
             progress_extractor=lambda x: getattr(x, "progress", 0),
-            price_extractor=lambda x: (x.estimates.cost[0] * 0.08 if x.estimates and x.estimates.cost[0] else None),
+            price_extractor=lambda x: (
+                x.estimates.cost[0] * 0.08
+                if x.estimates and x.estimates.cost[0]
+                else None
+            ),
             poll_interval=10.0,
             max_poll_attempts=320,
         )
-        return IO.NodeOutput(await download_url_to_video_output(final_response.download.url))
+        return IO.NodeOutput(
+            await download_url_to_video_output(final_response.download.url)
+        )
 
 
 class TopazExtension(ComfyExtension):

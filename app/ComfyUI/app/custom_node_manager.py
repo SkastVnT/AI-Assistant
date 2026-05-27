@@ -10,7 +10,6 @@ from functools import lru_cache
 
 from utils.json_util import merge_json_recursive
 
-
 # Extra locale files to load into main.json
 EXTRA_LOCALE_FILES = [
     "nodeDefs.json",
@@ -93,7 +92,13 @@ class CustomNodeManager:
 
     def add_routes(self, routes, webapp, loadedModules):
 
-        example_workflow_folder_names = ["example_workflows", "example", "examples", "workflow", "workflows"]
+        example_workflow_folder_names = [
+            "example_workflows",
+            "example",
+            "examples",
+            "workflow",
+            "workflows",
+        ]
 
         @routes.get("/workflow_templates")
         async def get_workflow_templates(request):
@@ -129,7 +134,9 @@ class CustomNodeManager:
                     if folder_name != "example_workflows":
                         logging.debug(
                             "Found example workflow folder '%s' for custom node '%s', consider renaming it to 'example_workflows'",
-                            folder_name, module_name)
+                            folder_name,
+                            module_name,
+                        )
 
                     webapp.add_routes(
                         [

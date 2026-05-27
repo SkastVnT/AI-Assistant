@@ -9,10 +9,12 @@ Entry-points
 - ``build_citations()``         — structured citation list for API response
 
 """
+
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, replace as _dc_replace
+from dataclasses import dataclass
+from dataclasses import replace as _dc_replace
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -113,9 +115,7 @@ class RAGOrchestrator:
                 tenant_id=tenant_id,
                 query=safe_query,
                 top_k=safe_top_k,
-                doc_ids=(
-                    collection_ids if collection_ids != ["default"] else None
-                ),
+                doc_ids=(collection_ids if collection_ids != ["default"] else None),
             )
 
             # ── Post-retrieval pipeline ───────────────────────────────

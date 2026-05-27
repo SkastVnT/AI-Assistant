@@ -15,6 +15,7 @@ RedisCache
     for retrieval results.  Constructed with a Redis URL; the connection
     is attempted lazily and errors are swallowed.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -101,7 +102,9 @@ class RedisCache:
         except ImportError:
             logger.debug("RedisCache: redis package not installed — cache disabled")
         except Exception as exc:
-            logger.debug("RedisCache: could not create client (%s) — cache disabled", exc)
+            logger.debug(
+                "RedisCache: could not create client (%s) — cache disabled", exc
+            )
 
     # ------------------------------------------------------------------
     # Public async API

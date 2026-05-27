@@ -15,15 +15,17 @@ import json
 import sys
 from pathlib import Path
 
-# Ensure the workspace root is importable so `image_pipeline` resolves when
+# Ensure app/ is importable so `image_pipeline` resolves when
 # pytest is invoked from `services/chatbot/`. Mirrors the bootstrap used by
 # tests/test_anime_pipeline.py.
 _ROOT = Path(__file__).resolve().parents[4]
+_APP_ROOT = _ROOT / "app"
+if str(_APP_ROOT) not in sys.path:
+    sys.path.insert(0, str(_APP_ROOT))
 if str(_ROOT) not in sys.path:
-    sys.path.insert(0, str(_ROOT))
+    sys.path.insert(1, str(_ROOT))
 
 import pytest
-
 from image_pipeline.reasoning.schemas import (
     BoundingBox,
     CharacterAppearance,
@@ -43,7 +45,6 @@ from image_pipeline.reasoning.schemas import (
     SinglePanelSpec,
     ZoneRef,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -156,9 +157,7 @@ def panel_two() -> SinglePanelSpec:
         eye_state=EyeState.UNSPECIFIED,
         panel_role=PanelRole.INSERT,
         character_keys=(),
-        prop_requirements=(
-            PropRequirement(prop_key="red_phone", must_appear=True),
-        ),
+        prop_requirements=(PropRequirement(prop_key="red_phone", must_appear=True),),
     )
 
 
@@ -375,7 +374,9 @@ class TestSinglePanelSpec:
 
     def test_aspect_ratio_must_be_w_colon_h(self) -> None:
         with pytest.raises(SchemaValidationError):
-            SinglePanelSpec(panel_id="p1", shot_type=ShotType.MEDIUM, aspect_ratio="square")
+            SinglePanelSpec(
+                panel_id="p1", shot_type=ShotType.MEDIUM, aspect_ratio="square"
+            )
 
     def test_with_revision_increments(self, panel_one: SinglePanelSpec) -> None:
         v2 = panel_one.with_revision(action_description="updated")

@@ -1,17 +1,18 @@
-﻿"""
+"""
 AI-Assistant Chatbot Application Package
 
 This package contains legacy modular helpers. The active runtime is the
 Flask monolith in `chatbot_main.py`.
 """
 
-from flask import Flask
 import os
+
+from flask import Flask
 
 from core.config import SYSTEM_PROMPTS
 
 
-def create_app(config_name: str = 'default') -> Flask:
+def create_app(config_name: str = "default") -> Flask:
     """Return the canonical Flask monolith app.
 
     Delegates to ``app_factory.create_app`` which is the canonical entry point.
@@ -19,6 +20,7 @@ def create_app(config_name: str = 'default') -> Flask:
     longer uses config names.
     """
     from app_factory import create_app as _factory_create_app
+
     return _factory_create_app()
 
 
@@ -26,19 +28,27 @@ def create_app(config_name: str = 'default') -> Flask:
 # Use a lazy proxy so the monolith isn't created at package import time.
 _app = None
 
+
 def _get_app():
     global _app
     if _app is None:
-        _default_config = 'testing' if os.getenv('TESTING', '').lower() == 'true' else 'default'
+        _default_config = (
+            "testing" if os.getenv("TESTING", "").lower() == "true" else "default"
+        )
         _app = create_app(_default_config)
     return _app
 
 
+# Explicit export for __all__; initialize lazily so the monolith is created
+# after environment variables (e.g. TESTING) are set by callers.
+app = _get_app()
+
+
 def __getattr__(name):
-    if name == 'app':
+    if name == "app":
         return _get_app()
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-__all__ = ['create_app', 'app', 'SYSTEM_PROMPTS']
-__version__ = '3.0.0'
+__all__ = ["create_app", "app", "SYSTEM_PROMPTS"]
+__version__ = "3.0.0"

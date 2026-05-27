@@ -92,18 +92,18 @@ jobs:
       with:
         node-version: '20'
         cache: 'npm'
-        cache-dependency-path: desktop/electron/package.json
+        cache-dependency-path: app/electron/package.json
 
     - name: Install Electron dependencies
-      working-directory: ./desktop/electron
+      working-directory: ./app/electron
       run: npm ci --ignore-scripts
 
     - name: Run payload filter tests
-      working-directory: ./desktop/electron
+      working-directory: ./app/electron
       run: node tests/payload-filter.test.js
 
     - name: Run preload contract tests
-      working-directory: ./desktop/electron
+      working-directory: ./app/electron
       run: node tests/preload-contract.test.js
 
   security:

@@ -15,13 +15,15 @@ setup and teardown.  The router only needs::
     from core.agentic.entrypoint import run_council
     result = await run_council(...)
 """
+
 from __future__ import annotations
 
 import asyncio
 import json
 import logging
 import os
-from typing import Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 
 from core.agentic.config import CouncilConfig
 from core.agentic.events import CouncilEventEmitter
@@ -34,7 +36,9 @@ logger = logging.getLogger(__name__)
 # ── Feature flag ───────────────────────────────────────────────────────
 
 AGENTIC_V1_ENABLED: bool = os.environ.get("AGENTIC_V1_ENABLED", "false").lower() in (
-    "1", "true", "yes",
+    "1",
+    "true",
+    "yes",
 )
 """Kill-switch for the council mode.  Set ``AGENTIC_V1_ENABLED=true``
 in the environment to enable it.  When disabled, ``run_council()``
@@ -84,7 +88,9 @@ async def run_council(
       - ``deep_thinking``: True (council always does deep reasoning)
     """
     if not is_council_enabled():
-        logger.debug("[Council] Feature flag AGENTIC_V1_ENABLED is off — returning disabled response")
+        logger.debug(
+            "[Council] Feature flag AGENTIC_V1_ENABLED is off — returning disabled response"
+        )
         return _disabled_response(context_type, rag_citations)
 
     config = _build_config(
@@ -108,15 +114,19 @@ async def run_council(
     # Run the orchestrator (no emitter for non-streaming)
     logger.info(
         "[Council] run_council | max_rounds=%d models: planner=%s researcher=%s critic=%s synth=%s",
-        config.max_rounds, config.planner_model, config.researcher_model,
-        config.critic_model, config.synthesizer_model,
+        config.max_rounds,
+        config.planner_model,
+        config.researcher_model,
+        config.critic_model,
+        config.synthesizer_model,
     )
     orch = CouncilOrchestrator(config)
     result = await orch.run(pre)
 
     logger.info(
         "[Council] run_council | run_id=%s exit=%s quality=%d",
-        result.trace.run_id, result.decision.exit_reason,
+        result.trace.run_id,
+        result.decision.exit_reason,
         result.decision.final_quality_score,
     )
     return _build_response_dict(result, context_type, rag_citations)
@@ -144,6 +154,7 @@ def _disabled_response(
 
 # ── Shared builders ────────────────────────────────────────────────────
 
+
 def _build_config(
     *,
     max_agent_iterations: int,
@@ -158,7 +169,8 @@ def _build_config(
         planner_model=preferred_planner_model or default_config.planner_model,
         researcher_model=preferred_researcher_model or default_config.researcher_model,
         critic_model=preferred_critic_model or default_config.critic_model,
-        synthesizer_model=preferred_synthesizer_model or default_config.synthesizer_model,
+        synthesizer_model=preferred_synthesizer_model
+        or default_config.synthesizer_model,
     )
 
 
@@ -219,6 +231,7 @@ def _build_response_dict(result, context_type: str, rag_citations) -> dict[str, 
 
 
 # ── Streaming entry point ─────────────────────────────────────────────
+
 
 def _sse(event: str, data: dict | str) -> str:
     """Format a single Server-Sent Event line."""
@@ -306,5 +319,7 @@ async def run_council_stream(
         return
 
     if result_holder:
-        response_dict = _build_response_dict(result_holder[0], context_type, rag_citations)
+        response_dict = _build_response_dict(
+            result_holder[0], context_type, rag_citations
+        )
         yield _sse("council_result", response_dict)

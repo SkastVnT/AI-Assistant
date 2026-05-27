@@ -9,6 +9,7 @@ Usage:
         retriever = pipeline["retriever"]
         ingester  = pipeline["ingester"]
 """
+
 import logging
 
 from .config import RAG_ENABLED
@@ -51,8 +52,7 @@ def get_rag_pipeline() -> dict | None:
 
     except ImportError as exc:
         logger.error(
-            f"[RAG] Missing dependency: {exc}. "
-            "Install with: pip install chromadb"
+            f"[RAG] Missing dependency: {exc}. Install with: pip install chromadb"
         )
         return None
     except Exception as exc:

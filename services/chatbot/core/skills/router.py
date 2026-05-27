@@ -9,11 +9,11 @@ Conservative by design:
 - Short messages (≤3 words) are not auto-routed to avoid false positives.
 - Returns match metadata (score, matched keywords) for logging/UI.
 """
+
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import List, Optional
 
 from core.skills.registry import SkillDefinition, SkillRegistry, get_skill_registry
 
@@ -33,16 +33,16 @@ class RouteMatch:
 
     skill: SkillDefinition
     score: float
-    matched_keywords: List[str] = field(default_factory=list)
+    matched_keywords: list[str] = field(default_factory=list)
 
 
 class SkillRouter:
     """Scores skills against an incoming message and picks the best match."""
 
-    def __init__(self, registry: Optional[SkillRegistry] = None):
+    def __init__(self, registry: SkillRegistry | None = None):
         self.registry = registry or get_skill_registry()
 
-    def match(self, message: str) -> Optional[SkillDefinition]:
+    def match(self, message: str) -> SkillDefinition | None:
         """Return the best-matching skill, or None.
 
         Wrapper for ``match_detailed`` that returns only the skill.
@@ -50,7 +50,7 @@ class SkillRouter:
         result = self.match_detailed(message)
         return result.skill if result else None
 
-    def match_detailed(self, message: str) -> Optional[RouteMatch]:
+    def match_detailed(self, message: str) -> RouteMatch | None:
         """Return the best match with metadata, or None.
 
         Scoring:
@@ -69,7 +69,7 @@ class SkillRouter:
             return None
 
         msg_lower = message.lower()
-        best: Optional[RouteMatch] = None
+        best: RouteMatch | None = None
         best_score: float = 0.0
 
         for skill in self.registry.list_all():
@@ -109,7 +109,7 @@ class SkillRouter:
 
 # ── Singleton ────────────────────────────────────────────────────────────
 
-_router: Optional[SkillRouter] = None
+_router: SkillRouter | None = None
 
 
 def get_skill_router() -> SkillRouter:

@@ -4,23 +4,22 @@ Centralized configuration for all AI services
 """
 
 import os
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from dataclasses import dataclass
 
 try:
-    from services.shared_env import load_shared_env
     from services.chatbot.core.secret_key import resolve_flask_secret_key
+    from services.shared_env import load_shared_env
 except ModuleNotFoundError:
-    from pathlib import Path
     import sys
+    from pathlib import Path
 
     for _parent in Path(__file__).resolve().parents:
         if (_parent / "services" / "shared_env.py").exists():
             if str(_parent) not in sys.path:
                 sys.path.insert(0, str(_parent))
             break
-    from services.shared_env import load_shared_env
     from services.chatbot.core.secret_key import resolve_flask_secret_key
+    from services.shared_env import load_shared_env
 
 load_shared_env(__file__)
 
@@ -28,15 +27,16 @@ load_shared_env(__file__)
 @dataclass
 class ServiceConfig:
     """Configuration for a single service."""
+
     name: str
     description: str
     icon: str
     port: int
     url: str  # Local URL
     color: str
-    features: List[str]
-    public_url: Optional[str] = None  # Public URL if exposed
-    
+    features: list[str]
+    public_url: str | None = None  # Public URL if exposed
+
     def get_effective_url(self, prefer_public: bool = True) -> str:
         """Get the URL to use - public if available and preferred."""
         if prefer_public and self.public_url:
@@ -46,18 +46,18 @@ class ServiceConfig:
 
 class HubConfig:
     """Main configuration for Hub Gateway."""
-    
+
     # Flask Configuration
     DEBUG = os.getenv("DEBUG", "True") == "True"
     SECRET_KEY = resolve_flask_secret_key()
     HOST = os.getenv("HUB_HOST", "0.0.0.0")
     PORT = int(os.getenv("HUB_PORT", "3000"))
-    
+
     # CORS Configuration
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
-    
+
     # Services Configuration
-    SERVICES: Dict[str, ServiceConfig] = {
+    SERVICES: dict[str, ServiceConfig] = {
         "chatbot": ServiceConfig(
             name="AI ChatBot",
             description="Trợ lý AI đa năng - chat, voice, OCR, RAG",
@@ -69,8 +69,8 @@ class HubConfig:
                 "Multi-model AI (Gemini, GPT, DeepSeek, Grok)",
                 "Voice transcription (Whisper API)",
                 "OCR & document analysis",
-                "Tool calling & MCP integration"
-            ]
+                "Tool calling & MCP integration",
+            ],
         ),
         "stable_diffusion": ServiceConfig(
             name="Stable Diffusion",
@@ -79,12 +79,7 @@ class HubConfig:
             port=7861,
             url="http://localhost:7861",
             color="from-pink-500 to-rose-600",
-            features=[
-                "Text-to-Image",
-                "Image-to-Image",
-                "ControlNet",
-                "SDXL support"
-            ]
+            features=["Text-to-Image", "Image-to-Image", "ControlNet", "SDXL support"],
         ),
         "edit_image": ServiceConfig(
             name="Edit Image",
@@ -97,8 +92,8 @@ class HubConfig:
                 "AI image editing",
                 "ComfyUI backend",
                 "Inpainting & outpainting",
-                "Style transfer"
-            ]
+                "Style transfer",
+            ],
         ),
         "mcp_server": ServiceConfig(
             name="MCP Server",
@@ -111,46 +106,47 @@ class HubConfig:
                 "Filesystem tools",
                 "Database tools",
                 "Memory management",
-                "Code assistance"
-            ]
+                "Code assistance",
+            ],
         ),
     }
-    
+
     # Logging Configuration
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
     LOG_FILE = os.getenv("LOG_FILE", "logs/hub.log")
-    
+
     # Cache Configuration
     CACHE_DIR = "data/cache"
     ENABLE_CACHE = os.getenv("ENABLE_CACHE", "True") == "True"
-    
+
     @classmethod
     def get_service_config(cls, service_name: str) -> ServiceConfig:
         """Get configuration for a specific service."""
         return cls.SERVICES.get(service_name)
-    
+
     @classmethod
-    def get_all_services(cls, update_public_urls: bool = True) -> Dict[str, ServiceConfig]:
+    def get_all_services(
+        cls, update_public_urls: bool = True
+    ) -> dict[str, ServiceConfig]:
         """
         Get all service configurations.
-        
+
         Args:
             update_public_urls: If True, update services with public URLs from files
         """
         if update_public_urls:
             cls._update_public_urls()
         return cls.SERVICES
-    
+
     @classmethod
     def _update_public_urls(cls) -> None:
         """Update services with public URLs from URL manager."""
         try:
             from config.public_urls import url_manager
-            
+
             for service_name, service in cls.SERVICES.items():
                 public_url = url_manager.get_public_url(service_name)
                 if public_url:
                     service.public_url = public_url
         except ImportError:
             pass  # URL manager not available
-

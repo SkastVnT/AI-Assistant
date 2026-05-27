@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn as nn
 
@@ -11,7 +10,6 @@ from .poolers import AttentionPool
 
 import comfy.latent_formats
 from .models import HunYuanDiTBlock, calc_rope
-
 
 
 class HunYuanControlNet(nn.Module):
@@ -186,16 +184,16 @@ class HunYuanControlNet(nn.Module):
         )
 
         # Input zero linear for the first block
-        self.before_proj = operations.Linear(self.hidden_size, self.hidden_size, dtype=dtype, device=device)
-
+        self.before_proj = operations.Linear(
+            self.hidden_size, self.hidden_size, dtype=dtype, device=device
+        )
 
         # Output zero linear for the every block
         self.after_proj_list = nn.ModuleList(
             [
-
-                    operations.Linear(
-                        self.hidden_size, self.hidden_size, dtype=dtype, device=device
-                    )
+                operations.Linear(
+                    self.hidden_size, self.hidden_size, dtype=dtype, device=device
+                )
                 for _ in range(len(self.blocks))
             ]
         )
@@ -205,7 +203,7 @@ class HunYuanControlNet(nn.Module):
         x,
         hint,
         timesteps,
-        context,#encoder_hidden_states=None,
+        context,  # encoder_hidden_states=None,
         text_embedding_mask=None,
         encoder_hidden_states_t5=None,
         text_embedding_mask_t5=None,

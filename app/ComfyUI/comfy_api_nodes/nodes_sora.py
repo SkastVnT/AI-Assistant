@@ -102,12 +102,16 @@ class OpenAIVideoSora2(IO.ComfyNode):
         image: Optional[torch.Tensor] = None,
     ):
         if model == "sora-2" and size not in ("720x1280", "1280x720"):
-            raise ValueError("Invalid size for sora-2 model, only 720x1280 and 1280x720 are supported.")
+            raise ValueError(
+                "Invalid size for sora-2 model, only 720x1280 and 1280x720 are supported."
+            )
         files_input = None
         if image is not None:
             if get_number_of_images(image) != 1:
                 raise ValueError("Currently only one input image is supported.")
-            files_input = {"input_reference": ("image.png", tensor_to_bytesio(image), "image/png")}
+            files_input = {
+                "input_reference": ("image.png", tensor_to_bytesio(image), "image/png")
+            }
         initial_response = await sync_op(
             cls,
             endpoint=ApiEndpoint(path="/proxy/openai/v1/videos", method="POST"),
@@ -127,7 +131,9 @@ class OpenAIVideoSora2(IO.ComfyNode):
         model_time_multiplier = 1 if model == "sora-2" else 2
         await poll_op(
             cls,
-            poll_endpoint=ApiEndpoint(path=f"/proxy/openai/v1/videos/{initial_response.id}"),
+            poll_endpoint=ApiEndpoint(
+                path=f"/proxy/openai/v1/videos/{initial_response.id}"
+            ),
             response_model=Sora2GenerationResponse,
             status_extractor=lambda x: x.status,
             poll_interval=8.0,
@@ -135,7 +141,9 @@ class OpenAIVideoSora2(IO.ComfyNode):
             estimated_duration=int(45 * (duration / 4) * model_time_multiplier),
         )
         return IO.NodeOutput(
-            await download_url_to_video_output(f"/proxy/openai/v1/videos/{initial_response.id}/content", cls=cls),
+            await download_url_to_video_output(
+                f"/proxy/openai/v1/videos/{initial_response.id}/content", cls=cls
+            ),
         )
 
 

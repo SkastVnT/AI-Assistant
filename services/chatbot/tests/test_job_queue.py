@@ -1,4 +1,5 @@
 """Unit tests for ``services/chatbot/core/job_queue``."""
+
 from __future__ import annotations
 
 import sys
@@ -13,8 +14,13 @@ if str(_CHATBOT_DIR) not in sys.path:
 
 
 @pytest.fixture(autouse=True)
-def _fresh_queue():
+def _fresh_queue(monkeypatch):
     from core import job_queue as jq
+
+    # Disable MongoDB so _restore_from_db is a no-op; prevents historical
+    # jobs written by previous test runs from leaking into fresh instances.
+    monkeypatch.setattr(jq.JobQueue, "_try_init_mongo", lambda self: None)
+    monkeypatch.setattr(jq.JobQueue, "_restore_from_db", lambda self: None)
     jq.JobQueue._instance = None
     yield
     jq.JobQueue._instance = None
@@ -22,9 +28,14 @@ def _fresh_queue():
 
 def test_create_and_get():
     from core.job_queue import get_queue
+
     q = get_queue()
-    rec = q.create("j1", prompt="hello", preset="anime_quality",
-                   character_key="raiden_shogun_genshin_impact")
+    rec = q.create(
+        "j1",
+        prompt="hello",
+        preset="anime_quality",
+        character_key="raiden_shogun_genshin_impact",
+    )
     assert rec.state == "queued"
     assert rec.prompt == "hello"
     got = q.get("j1")
@@ -33,6 +44,7 @@ def test_create_and_get():
 
 def test_lifecycle_transitions():
     from core.job_queue import get_queue
+
     q = get_queue()
     q.create("j2", prompt="x")
     q.transition("j2", "running")
@@ -47,6 +59,7 @@ def test_lifecycle_transitions():
 
 def test_invalid_state_rejected():
     from core.job_queue import get_queue
+
     q = get_queue()
     q.create("j3", prompt="x")
     with pytest.raises(ValueError):
@@ -55,6 +68,7 @@ def test_invalid_state_rejected():
 
 def test_progress_clamped():
     from core.job_queue import get_queue
+
     q = get_queue()
     q.create("j4", prompt="x")
     q.update_progress("j4", stage="composition", pct=150.0)
@@ -65,6 +79,7 @@ def test_progress_clamped():
 
 def test_cancel_request():
     from core.job_queue import get_queue
+
     q = get_queue()
     q.create("j5", prompt="x")
     assert q.request_cancel("j5") is True
@@ -76,12 +91,14 @@ def test_cancel_request():
 
 def test_cancel_unknown_returns_false():
     from core.job_queue import get_queue
+
     q = get_queue()
     assert q.request_cancel("nope") is False
 
 
 def test_list_filter_and_order():
     from core.job_queue import get_queue
+
     q = get_queue()
     for i in range(3):
         q.create(f"k{i}", prompt=f"p{i}")
@@ -96,6 +113,7 @@ def test_list_filter_and_order():
 
 def test_history_eviction():
     from core.job_queue import JobQueue
+
     q = JobQueue(history_limit=3)
     for i in range(5):
         q.create(f"e{i}", prompt="p")
@@ -109,6 +127,7 @@ def test_history_eviction():
 
 def test_thread_safety_smoke():
     from core.job_queue import get_queue
+
     q = get_queue()
     errors = []
 
@@ -121,8 +140,10 @@ def test_thread_safety_smoke():
             errors.append(e)
 
     threads = [threading.Thread(target=worker, args=(i,)) for i in range(20)]
-    for t in threads: t.start()
-    for t in threads: t.join()
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
     assert errors == []
     completed = q.list(state="completed", limit=50)
     assert len(completed) == 20
@@ -130,10 +151,13 @@ def test_thread_safety_smoke():
 
 def test_stats_contract():
     from core.job_queue import get_queue
+
     q = get_queue()
     q.create("s1", prompt="x")
-    q.create("s2", prompt="x"); q.transition("s2", "running")
-    q.create("s3", prompt="x"); q.transition("s3", "failed", error="boom")
+    q.create("s2", prompt="x")
+    q.transition("s2", "running")
+    q.create("s3", prompt="x")
+    q.transition("s3", "failed", error="boom")
     s = q.stats()
     assert s["total"] == 3
     assert s["by_state"]["queued"] == 1

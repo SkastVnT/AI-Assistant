@@ -10,6 +10,7 @@ Covers:
 * Old payloads (no reference_images anywhere) keep working — the
   ``references`` key is OMITTED, not null.
 """
+
 from __future__ import annotations
 
 import sys
@@ -45,23 +46,27 @@ def _make_app():
 class TestNormalizeReferenceList:
     def test_string_becomes_single_item(self):
         from routes.reasoning_image_gen import _normalize_reference_list
+
         assert _normalize_reference_list("https://x/y.png") == ["https://x/y.png"]
 
     def test_list_trims_and_drops_empties(self):
         from routes.reasoning_image_gen import _normalize_reference_list
+
         out = _normalize_reference_list(["  a ", "", "b", None, 3])
         assert out == ["a", "b"]
 
     def test_caps_at_max(self):
         from routes.reasoning_image_gen import (
-            _normalize_reference_list,
             _MAX_REQUEST_REFERENCES,
+            _normalize_reference_list,
         )
+
         many = [f"u{i}" for i in range(_MAX_REQUEST_REFERENCES + 5)]
         assert len(_normalize_reference_list(many)) == _MAX_REQUEST_REFERENCES
 
     def test_garbage_returns_empty(self):
         from routes.reasoning_image_gen import _normalize_reference_list
+
         assert _normalize_reference_list(None) == []
         assert _normalize_reference_list(42) == []
         assert _normalize_reference_list({"k": "v"}) == []
@@ -70,6 +75,7 @@ class TestNormalizeReferenceList:
 class TestCollectRequestReferences:
     def test_manual_profile_takes_priority(self):
         from routes.reasoning_image_gen import _collect_request_references
+
         meta = _collect_request_references(
             {
                 "manual_profile": {"reference_images": ["a.png"]},
@@ -89,6 +95,7 @@ class TestCollectRequestReferences:
 
     def test_falls_back_to_selected_character(self):
         from routes.reasoning_image_gen import _collect_request_references
+
         meta = _collect_request_references(
             {"selected_character": {"reference_images": ["b.png"]}},
             preflight={"canonical_id": "hu_tao@genshin_impact"},
@@ -99,10 +106,14 @@ class TestCollectRequestReferences:
 
     def test_returns_none_when_empty(self):
         from routes.reasoning_image_gen import _collect_request_references
+
         assert _collect_request_references({}, preflight={}) is None
-        assert _collect_request_references(
-            {"manual_profile": {"reference_images": []}}, preflight={}
-        ) is None
+        assert (
+            _collect_request_references(
+                {"manual_profile": {"reference_images": []}}, preflight={}
+            )
+            is None
+        )
 
 
 # ── Route integration ──────────────────────────────────────────────────────
@@ -111,6 +122,7 @@ class TestCollectRequestReferences:
 class TestRoutePassthrough:
     def test_manual_profile_refs_serialize_into_preflight(self, monkeypatch):
         from routes import reasoning_image_gen as route_mod
+
         monkeypatch.setattr(
             route_mod, "_default_comfy_client", lambda: _ExplodingComfyClient()
         )
@@ -144,6 +156,7 @@ class TestRoutePassthrough:
 
     def test_old_payload_omits_references_key(self, monkeypatch):
         from routes import reasoning_image_gen as route_mod
+
         monkeypatch.setattr(
             route_mod, "_default_comfy_client", lambda: _ExplodingComfyClient()
         )
@@ -161,6 +174,7 @@ class TestRoutePassthrough:
 
     def test_selected_character_refs_when_manual_empty(self, monkeypatch):
         from routes import reasoning_image_gen as route_mod
+
         monkeypatch.setattr(
             route_mod, "_default_comfy_client", lambda: _ExplodingComfyClient()
         )

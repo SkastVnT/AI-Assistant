@@ -10,19 +10,19 @@ Architecture:
 
 Usage:
     from core.image_gen import ImageGenerationRouter, SessionManager, ImageStorage
-    
+
     router = ImageGenerationRouter()
     result = router.generate("a cat on a rooftop at sunset")
 """
 
+from .character_detector import CharacterDetector, CharacterMatch, DetectionResult
+from .enhancer import STYLE_PRESETS, PromptEnhancer, create_enhancer
+from .intent import ImageIntent, IntentResult, detect_intent
+from .orchestrator import ImageOrchestrator, OrchestratorResult
+from .providers.base import LoraSpec
 from .router import ImageGenerationRouter, QualityMode
 from .session import ImageSession, SessionManager
 from .storage import ImageStorage
-from .enhancer import PromptEnhancer, STYLE_PRESETS, create_enhancer
-from .providers.base import LoraSpec
-from .character_detector import CharacterDetector, CharacterMatch, DetectionResult
-from .intent import ImageIntent, IntentResult, detect_intent
-from .orchestrator import ImageOrchestrator, OrchestratorResult
 
 __all__ = [
     "ImageGenerationRouter",

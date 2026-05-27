@@ -9,6 +9,7 @@ Design goals:
   • Every field is typed and documented so downstream agents, the
     orchestrator, and the FastAPI layer can rely on them without guessing.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -18,8 +19,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-
 # ── Enums ──────────────────────────────────────────────────────────────
+
 
 class AgentMode(str, Enum):
     """Top-level orchestration mode sent by the client.
@@ -29,6 +30,7 @@ class AgentMode(str, Enum):
     * ``grok_native_research`` — xAI native multi-agent research via Responses API.
     * ``xai_native`` — (future) native xAI multi-agent; **not implemented**.
     """
+
     off = "off"
     council = "council"
     grok_native_research = "grok_native_research"
@@ -41,12 +43,14 @@ class AgentStrategy(str, Enum):
     * ``sequential``          — Planner → Researcher → Critic (serial).
     * ``parallel_research``   — Researcher tasks run concurrently.
     """
+
     sequential = "sequential"
     parallel_research = "parallel_research"
 
 
 class AgentRole(str, Enum):
     """Named role for each council participant."""
+
     planner = "planner"
     researcher = "researcher"
     critic = "critic"
@@ -56,6 +60,7 @@ class AgentRole(str, Enum):
 
 class RunStatus(str, Enum):
     """Lifecycle status of a council run."""
+
     pending = "pending"
     planning = "planning"
     researching = "researching"
@@ -67,12 +72,14 @@ class RunStatus(str, Enum):
 
 # ── Fine-grained data objects ──────────────────────────────────────────
 
+
 class TaskNode(BaseModel):
     """A single sub-task produced by the Planner.
 
     The Planner decomposes the user's question into an ordered list of
     ``TaskNode`` items.  Each node may suggest tools for the Researcher.
     """
+
     id: str = Field(default_factory=lambda: uuid.uuid4().hex[:8])
     question: str = Field(..., description="Sub-question or action to investigate")
     suggested_tools: list[str] = Field(
@@ -88,7 +95,10 @@ class TaskNode(BaseModel):
 
 class EvidenceItem(BaseModel):
     """A single piece of evidence gathered by the Researcher."""
-    source: str = Field(..., description="Where this came from: 'web', 'rag', 'mcp', 'llm'")
+
+    source: str = Field(
+        ..., description="Where this came from: 'web', 'rag', 'mcp', 'llm'"
+    )
     content: str = Field(..., description="The actual evidence text")
     url: str | None = Field(None, description="Source URL if applicable")
     relevance: float = Field(1.0, ge=0.0, le=1.0, description="Relevance score 0-1")
@@ -97,6 +107,7 @@ class EvidenceItem(BaseModel):
 
 class CritiqueIssue(BaseModel):
     """A single issue raised by the Critic."""
+
     severity: str = Field("medium", description="'low', 'medium', 'high'")
     description: str = Field(..., description="What is wrong or missing")
     suggestion: str = Field("", description="How to fix it")
@@ -105,16 +116,25 @@ class CritiqueIssue(BaseModel):
 
 class FinalAnswer(BaseModel):
     """The synthesized output produced by the Synthesizer."""
+
     content: str = Field(..., description="Markdown-formatted final answer")
-    confidence: float = Field(0.0, ge=0.0, le=1.0, description="Self-assessed confidence")
-    key_points: list[str] = Field(default_factory=list, description="Bullet-point key takeaways")
-    citations: list[dict[str, Any]] = Field(default_factory=list, description="Source citations")
+    confidence: float = Field(
+        0.0, ge=0.0, le=1.0, description="Self-assessed confidence"
+    )
+    key_points: list[str] = Field(
+        default_factory=list, description="Bullet-point key takeaways"
+    )
+    citations: list[dict[str, Any]] = Field(
+        default_factory=list, description="Source citations"
+    )
 
 
 # ── Per-agent output wrappers ──────────────────────────────────────────
 
+
 class PlannerOutput(BaseModel):
     """Structured output from the Planner agent."""
+
     approach: str = Field("", description="High-level approach description")
     tasks: list[TaskNode] = Field(default_factory=list)
     estimated_complexity: int = Field(1, ge=1, le=10)
@@ -122,6 +142,7 @@ class PlannerOutput(BaseModel):
 
 class ResearcherOutput(BaseModel):
     """Structured output from the Researcher agent."""
+
     evidence: list[EvidenceItem] = Field(default_factory=list)
     summary: str = Field("", description="Prose summary of all findings")
     tools_used: list[str] = Field(default_factory=list)
@@ -129,6 +150,7 @@ class ResearcherOutput(BaseModel):
 
 class RetryTarget(str, Enum):
     """Which stage(s) the Critic wants re-run on a ``needs_work`` verdict."""
+
     researcher = "researcher"
     synthesizer = "synthesizer"
     both = "both"
@@ -136,6 +158,7 @@ class RetryTarget(str, Enum):
 
 class CriticOutput(BaseModel):
     """Structured output from the Critic agent."""
+
     quality_score: int = Field(5, ge=1, le=10, description="Overall quality 1-10")
     issues: list[CritiqueIssue] = Field(default_factory=list)
     verdict: str = Field(
@@ -154,6 +177,7 @@ class CriticOutput(BaseModel):
 
 class SynthesizerOutput(BaseModel):
     """Structured output from the Synthesizer agent."""
+
     answer: FinalAnswer
 
 
@@ -162,6 +186,7 @@ class FinalDecision(BaseModel):
     what the critic loop concluded regardless of whether the answer
     was approved or the budget was exhausted.
     """
+
     approved: bool = Field(False, description="True if Critic gave 'pass' verdict")
     iterations_used: int = Field(1, ge=1)
     iterations_max: int = Field(2, ge=1)
@@ -184,8 +209,10 @@ class FinalDecision(BaseModel):
 
 # ── Trace / observability ──────────────────────────────────────────────
 
+
 class CouncilStep(BaseModel):
     """One step in the council execution trace (sent via SSE)."""
+
     agent: AgentRole
     round: int = 1
     input_summary: str = Field("", description="Truncated input for display")
@@ -197,6 +224,7 @@ class CouncilStep(BaseModel):
 
 class CouncilTrace(BaseModel):
     """Full trace of a council run (attached to ChatResponse)."""
+
     run_id: str = Field(default_factory=lambda: uuid.uuid4().hex)
     rounds: int = 0
     agents_used: list[str] = Field(default_factory=list)
@@ -208,6 +236,7 @@ class CouncilTrace(BaseModel):
 
 class CouncilResult(BaseModel):
     """Final return value from the orchestrator."""
+
     answer: FinalAnswer
     trace: CouncilTrace
     decision: FinalDecision = Field(default_factory=FinalDecision)

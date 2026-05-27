@@ -12,6 +12,7 @@ These tests pin that behaviour without touching the heavy imports the
 real orchestrator needs (ComfyUI / vision agents). We patch
 `_is_cancel_requested` and stub a fake agent.
 """
+
 from __future__ import annotations
 
 import sys
@@ -33,6 +34,7 @@ def orch():
     """Build a minimally-initialised orchestrator. We bypass __init__
     because it constructs heavy agent instances that pull in torch."""
     from image_pipeline.anime_pipeline.orchestrator import AnimePipelineOrchestrator
+
     o = AnimePipelineOrchestrator.__new__(AnimePipelineOrchestrator)
 
     # Bare-minimum config: vram profile + portrait_res + comfyui_url.
@@ -81,9 +83,11 @@ def test_run_stage_skips_agent_when_cancel_requested(orch):
     job = _fake_job()
     agent = SimpleNamespace(execute=lambda j: pytest.fail("agent ran despite cancel"))
 
-    with patch.object(orch_mod, "_is_cancel_requested", return_value=True), \
-         patch.object(orch_mod, "log_pass_memory_mode", lambda *a, **kw: None), \
-         patch.object(orch_mod, "free_models_between_passes", lambda *a, **kw: None):
+    with (
+        patch.object(orch_mod, "_is_cancel_requested", return_value=True),
+        patch.object(orch_mod, "log_pass_memory_mode", lambda *a, **kw: None),
+        patch.object(orch_mod, "free_models_between_passes", lambda *a, **kw: None),
+    ):
         events = list(orch._run_stage("critique", agent, job, stage_num=6, total=9))
 
     assert orch._cancelled is True
@@ -104,9 +108,11 @@ def test_run_stage_runs_agent_when_no_cancel(orch):
     job = _fake_job()
     agent = SimpleNamespace(execute=lambda j: ran.append(j))
 
-    with patch.object(orch_mod, "_is_cancel_requested", return_value=False), \
-         patch.object(orch_mod, "log_pass_memory_mode", lambda *a, **kw: None), \
-         patch.object(orch_mod, "free_models_between_passes", lambda *a, **kw: None):
+    with (
+        patch.object(orch_mod, "_is_cancel_requested", return_value=False),
+        patch.object(orch_mod, "log_pass_memory_mode", lambda *a, **kw: None),
+        patch.object(orch_mod, "free_models_between_passes", lambda *a, **kw: None),
+    ):
         events = list(orch._run_stage("critique", agent, job, stage_num=6, total=9))
 
     assert orch._cancelled is False

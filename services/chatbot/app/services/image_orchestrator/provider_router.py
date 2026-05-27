@@ -17,7 +17,7 @@ The only responsibility here is:
 from __future__ import annotations
 
 import logging
-from typing import Optional, Union
+from typing import Union
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────────────────
 # Lazy singleton wrapper around the existing router
 # ─────────────────────────────────────────────────────────────────────
+
 
 class ProviderRouter:
     """
@@ -52,6 +53,7 @@ class ProviderRouter:
             try:
                 # Log runtime profile so we know which mode we're in
                 from .runtime_profile import get_runtime_profile
+
                 profile = get_runtime_profile()
                 logger.info(f"[ProviderRouter] {profile.describe()}")
             except Exception:
@@ -59,17 +61,20 @@ class ProviderRouter:
 
             try:
                 from core.image_gen.router import ImageGenerationRouter
+
                 cls._shared_router = ImageGenerationRouter()
                 logger.info("[ProviderRouter] ImageGenerationRouter initialised")
             except Exception as exc:
-                logger.error(f"[ProviderRouter] Failed to init ImageGenerationRouter: {exc}")
+                logger.error(
+                    f"[ProviderRouter] Failed to init ImageGenerationRouter: {exc}"
+                )
                 raise
         return cls._shared_router
 
     def route(
         self,
-        request:         "Union[ImageGenerationRequest, ImageFollowupRequest]",  # type: ignore
-        built_prompt:    str,
+        request: Union[ImageGenerationRequest, ImageFollowupRequest],  # type: ignore
+        built_prompt: str,
         negative_prompt: str = "",
     ):
         """
@@ -79,32 +84,32 @@ class ProviderRouter:
             core.image_gen.providers.base.ImageResult
         """
         # resolve fields that differ between request types
-        scene           = getattr(request, "scene", None)
-        source_b64      = getattr(request, "source_image_b64", None)
-        source_url      = getattr(request, "source_image_url", None)
-        strength        = float(getattr(request, "strength", 0.75))
-        seed            = getattr(request, "seed", None)
-        provider_hint   = getattr(request, "provider", None)
-        model_hint      = getattr(request, "model", None)
+        scene = getattr(request, "scene", None)
+        source_b64 = getattr(request, "source_image_b64", None)
+        source_url = getattr(request, "source_image_url", None)
+        strength = float(getattr(request, "strength", 0.75))
+        seed = getattr(request, "seed", None)
+        provider_hint = getattr(request, "provider", None)
+        model_hint = getattr(request, "model", None)
 
         # SceneSpec overrides request-level fields when present
         if scene:
-            seed          = scene.seed if scene.seed is not None else seed
+            seed = scene.seed if scene.seed is not None else seed
             provider_hint = scene.provider_hint or provider_hint
-            width         = scene.width
-            height        = scene.height
-            quality       = scene.quality_preset
-            style         = scene.style
+            width = scene.width
+            height = scene.height
+            quality = scene.quality_preset
+            style = scene.style
         else:
-            width   = getattr(request, "width",  1024)
-            height  = getattr(request, "height", 1024)
+            width = getattr(request, "width", 1024)
+            height = getattr(request, "height", 1024)
             quality = getattr(request, "quality", "auto")
-            style   = getattr(request, "style",  None)
+            style = getattr(request, "style", None)
 
         # Determine image-to-image mode
-        has_source  = bool(source_b64 or source_url)
+        has_source = bool(source_b64 or source_url)
         is_followup = type(request).__name__ == "ImageFollowupRequest"
-        mode        = "i2i" if (is_followup and has_source) else "t2i"
+        mode = "i2i" if (is_followup and has_source) else "t2i"
 
         # Build negative prompt extra dict (passed via `extra` or ignored by
         # providers that don't support it; never breaks anything)
@@ -115,19 +120,19 @@ class ProviderRouter:
         try:
             router = self._get_router()
             result = router.generate(
-                prompt           = built_prompt,
-                mode             = mode,
-                quality          = quality or "auto",
-                style            = style,
-                width            = int(width),
-                height           = int(height),
-                source_image_b64 = source_b64,
-                strength         = strength,
-                seed             = seed,
-                provider_name    = provider_hint,
-                model_name       = model_hint,
-                enhance_prompt   = False,       # PromptBuilder already handled this
-                context          = None,
+                prompt=built_prompt,
+                mode=mode,
+                quality=quality or "auto",
+                style=style,
+                width=int(width),
+                height=int(height),
+                source_image_b64=source_b64,
+                strength=strength,
+                seed=seed,
+                provider_name=provider_hint,
+                model_name=model_hint,
+                enhance_prompt=False,  # PromptBuilder already handled this
+                context=None,
                 **extra_kwargs,
             )
             return result
@@ -138,10 +143,11 @@ class ProviderRouter:
             # so the caller can decide to fall back to the legacy flow.
             try:
                 from core.image_gen.providers.base import ImageResult
+
                 return ImageResult(
-                    success    = False,
-                    error      = str(exc),
-                    prompt_used= built_prompt,
+                    success=False,
+                    error=str(exc),
+                    prompt_used=built_prompt,
                 )
             except ImportError:
                 raise

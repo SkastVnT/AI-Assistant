@@ -1,0 +1,26 @@
+{
+  "job_id": "27d9817969bb41a3",
+  "status": "completed",
+  "preset": "anime_quality",
+  "vram_profile": "lowvram",
+  "passes": [
+    {
+      "name": "character_research",
+      "duration_ms": 18.2,
+      "output": "character_research.png"
+    },
+    {
+      "name": "lora_search",
+      "duration_ms": 0.0,
+      "output": "lora_search.png"
+    }
+  ],
+  "critique_rounds": 0,
+  "refine_rounds": 0,
+  "models_used": [],
+  "total_latency_ms": 14329.4,
+  "selected_final": "unknown",
+  "created_at": "2026-05-27T11:06:51.880776+00:00",
+  "completed_at": "2026-05-27T11:07:06.211398+00:00",
+  "user_prompt": "test prompt"
+}

@@ -1,4 +1,4 @@
-#Taken from: https://github.com/dbolya/tomesd
+# Taken from: https://github.com/dbolya/tomesd
 
 import torch
 from typing import Tuple, Callable, Optional
@@ -6,24 +6,29 @@ from typing_extensions import override
 from comfy_api.latest import ComfyExtension, io
 import math
 
-def do_nothing(x: torch.Tensor, mode:str=None):
+
+def do_nothing(x: torch.Tensor, mode: str = None):
     return x
 
 
 def mps_gather_workaround(input, dim, index):
     if input.shape[-1] == 1:
         return torch.gather(
-            input.unsqueeze(-1),
-            dim - 1 if dim < 0 else dim,
-            index.unsqueeze(-1)
+            input.unsqueeze(-1), dim - 1 if dim < 0 else dim, index.unsqueeze(-1)
         ).squeeze(-1)
     else:
         return torch.gather(input, dim, index)
 
 
-def bipartite_soft_matching_random2d(metric: torch.Tensor,
-                                     w: int, h: int, sx: int, sy: int, r: int,
-                                     no_rand: bool = False) -> Tuple[Callable, Callable]:
+def bipartite_soft_matching_random2d(
+    metric: torch.Tensor,
+    w: int,
+    h: int,
+    sx: int,
+    sy: int,
+    r: int,
+    no_rand: bool = False,
+) -> Tuple[Callable, Callable]:
     """
     Partitions the tokens into src and dst and merges r tokens from src to dst.
     Dst tokens are partitioned by choosing one randomy in each (sx, sy) region.
@@ -50,17 +55,25 @@ def bipartite_soft_matching_random2d(metric: torch.Tensor,
         if no_rand:
             rand_idx = torch.zeros(hsy, wsx, 1, device=metric.device, dtype=torch.int64)
         else:
-            rand_idx = torch.randint(sy*sx, size=(hsy, wsx, 1), device=metric.device)
+            rand_idx = torch.randint(sy * sx, size=(hsy, wsx, 1), device=metric.device)
 
         # The image might not divide sx and sy, so we need to work on a view of the top left if the idx buffer instead
-        idx_buffer_view = torch.zeros(hsy, wsx, sy*sx, device=metric.device, dtype=torch.int64)
-        idx_buffer_view.scatter_(dim=2, index=rand_idx, src=-torch.ones_like(rand_idx, dtype=rand_idx.dtype))
-        idx_buffer_view = idx_buffer_view.view(hsy, wsx, sy, sx).transpose(1, 2).reshape(hsy * sy, wsx * sx)
+        idx_buffer_view = torch.zeros(
+            hsy, wsx, sy * sx, device=metric.device, dtype=torch.int64
+        )
+        idx_buffer_view.scatter_(
+            dim=2, index=rand_idx, src=-torch.ones_like(rand_idx, dtype=rand_idx.dtype)
+        )
+        idx_buffer_view = (
+            idx_buffer_view.view(hsy, wsx, sy, sx)
+            .transpose(1, 2)
+            .reshape(hsy * sy, wsx * sx)
+        )
 
         # Image is not divisible by sx or sy so we need to move it into a new buffer
         if (hsy * sy) < h or (wsx * sx) < w:
             idx_buffer = torch.zeros(h, w, device=metric.device, dtype=torch.int64)
-            idx_buffer[:(hsy * sy), :(wsx * sx)] = idx_buffer_view
+            idx_buffer[: (hsy * sy), : (wsx * sx)] = idx_buffer_view
         else:
             idx_buffer = idx_buffer_view
 
@@ -72,8 +85,8 @@ def bipartite_soft_matching_random2d(metric: torch.Tensor,
 
         # rand_idx is currently dst|src, so split them
         num_dst = hsy * wsx
-        a_idx = rand_idx[:, num_dst:, :] # src
-        b_idx = rand_idx[:, :num_dst, :] # dst
+        a_idx = rand_idx[:, num_dst:, :]  # src
+        b_idx = rand_idx[:, :num_dst, :]  # dst
 
         def split(x):
             C = x.shape[-1]
@@ -117,8 +130,20 @@ def bipartite_soft_matching_random2d(metric: torch.Tensor,
         # Combine back to the original shape
         out = torch.zeros(B, N, c, device=x.device, dtype=x.dtype)
         out.scatter_(dim=-2, index=b_idx.expand(B, num_dst, c), src=dst)
-        out.scatter_(dim=-2, index=gather(a_idx.expand(B, a_idx.shape[1], 1), dim=1, index=unm_idx).expand(B, unm_len, c), src=unm)
-        out.scatter_(dim=-2, index=gather(a_idx.expand(B, a_idx.shape[1], 1), dim=1, index=src_idx).expand(B, r, c), src=src)
+        out.scatter_(
+            dim=-2,
+            index=gather(
+                a_idx.expand(B, a_idx.shape[1], 1), dim=1, index=unm_idx
+            ).expand(B, unm_len, c),
+            src=unm,
+        )
+        out.scatter_(
+            dim=-2,
+            index=gather(
+                a_idx.expand(B, a_idx.shape[1], 1), dim=1, index=src_idx
+            ).expand(B, r, c),
+            src=src,
+        )
 
         return out
 
@@ -145,7 +170,6 @@ def get_functions(x, ratio, original_shape):
     return nothing, nothing
 
 
-
 class TomePatchModel(io.ComfyNode):
     @classmethod
     def define_schema(cls):
@@ -162,12 +186,14 @@ class TomePatchModel(io.ComfyNode):
     @classmethod
     def execute(cls, model, ratio) -> io.NodeOutput:
         u: Optional[Callable] = None
+
         def tomesd_m(q, k, v, extra_options):
             nonlocal u
-            #NOTE: In the reference code get_functions takes x (input of the transformer block) as the argument instead of q
-            #however from my basic testing it seems that using q instead gives better results
+            # NOTE: In the reference code get_functions takes x (input of the transformer block) as the argument instead of q
+            # however from my basic testing it seems that using q instead gives better results
             m, u = get_functions(q, ratio, extra_options["original_shape"])
             return m(q), k, v
+
         def tomesd_u(n, extra_options):
             nonlocal u
             return u(n)

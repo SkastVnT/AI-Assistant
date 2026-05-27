@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # =============================================================================
 # expose_services.sh - Expose AI-Assistant services publicly via Cloudflared
 # Usage: ./scripts/expose_services.sh [service_name] or ./scripts/expose_services.sh all
@@ -15,7 +15,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Project directories
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 LOGS_DIR="${PROJECT_ROOT}/logs"
 
 # Service configurations
@@ -48,7 +48,7 @@ log_error() {
 }
 
 log_success() {
-    echo -e "${GREEN}[✓]${NC} $1"
+    echo -e "${GREEN}[âœ“]${NC} $1"
 }
 
 find_cloudflared() {
@@ -86,7 +86,7 @@ expose_service() {
     local pid_file="${LOGS_DIR}/cloudflared_${service}.pid"
     local url_file="${LOGS_DIR}/${service}_public_url.txt"
     
-    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
     echo -e "${CYAN}Exposing ${service} (port ${port})...${NC}"
     
     # Check if service is running
@@ -133,11 +133,11 @@ expose_service() {
         # Update JSON file
         update_urls_json "${service}" "${public_url}"
         
-        echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+        echo -e "${CYAN}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
         return 0
     else
         log_error "Failed to get tunnel URL. Check log: ${log_file}"
-        echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+        echo -e "${CYAN}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
         return 1
     fi
 }
@@ -176,22 +176,22 @@ stop_all_tunnels() {
 
 print_summary() {
     echo ""
-    echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${GREEN}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
     echo -e "${GREEN}                    PUBLIC URLS SUMMARY${NC}"
-    echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${GREEN}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
     echo ""
     
     for service in "${!SERVICES[@]}"; do
         local url_file="${LOGS_DIR}/${service}_public_url.txt"
         if [[ -f "${url_file}" ]]; then
             local url=$(cat "${url_file}")
-            printf "  ${GREEN}●${NC} %-25s → %s\n" "${service}" "${url}"
+            printf "  ${GREEN}â—${NC} %-25s â†’ %s\n" "${service}" "${url}"
         fi
     done
     
     echo ""
     echo -e "${YELLOW}  Note: URLs are temporary. For permanent URLs, use named tunnels.${NC}"
-    echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${GREEN}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
 }
 
 print_usage() {

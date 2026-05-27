@@ -23,6 +23,7 @@ without requiring the custom node).
 
 Health-checks ComfyUI via `/system_stats` before submitting (audit R-1).
 """
+
 from __future__ import annotations
 
 import logging
@@ -30,7 +31,7 @@ import os
 import re
 import time
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -96,6 +97,7 @@ def parse_lora_tokens(prompt: str) -> tuple[str, list[LoraSpec]]:
 
 # ── Workflow builder ──────────────────────────────────────────────────
 
+
 def build_fast_workflow(
     *,
     checkpoint: str,
@@ -141,25 +143,29 @@ def build_fast_workflow(
         clip_src = [nid, 1]
         next_id += 1
 
-    pos_id = str(next_id); next_id += 1
+    pos_id = str(next_id)
+    next_id += 1
     nodes[pos_id] = {
         "class_type": "CLIPTextEncode",
         "inputs": {"text": positive, "clip": clip_src},
     }
 
-    neg_id = str(next_id); next_id += 1
+    neg_id = str(next_id)
+    next_id += 1
     nodes[neg_id] = {
         "class_type": "CLIPTextEncode",
         "inputs": {"text": negative, "clip": clip_src},
     }
 
-    latent_id = str(next_id); next_id += 1
+    latent_id = str(next_id)
+    next_id += 1
     nodes[latent_id] = {
         "class_type": "EmptyLatentImage",
         "inputs": {"width": width, "height": height, "batch_size": batch_size},
     }
 
-    sampler_id = str(next_id); next_id += 1
+    sampler_id = str(next_id)
+    next_id += 1
     nodes[sampler_id] = {
         "class_type": "KSampler",
         "inputs": {
@@ -176,7 +182,8 @@ def build_fast_workflow(
         },
     }
 
-    decode_id = str(next_id); next_id += 1
+    decode_id = str(next_id)
+    next_id += 1
     nodes[decode_id] = {
         "class_type": "VAEDecode",
         "inputs": {"samples": [sampler_id, 0], "vae": ["1", 2]},
@@ -194,6 +201,7 @@ def build_fast_workflow(
 
 
 # ── Provider class ────────────────────────────────────────────────────
+
 
 class ComfyUIFastProvider(BaseImageProvider):
     """Single-pass SAA-style ComfyUI provider. ~10s per 1024x1360 image."""
@@ -243,13 +251,17 @@ class ComfyUIFastProvider(BaseImageProvider):
         all_loras = list(req.lora_models or []) + parsed_loras
 
         ckpt = req.checkpoint or DEFAULT_CKPT
-        seed = req.seed if req.seed is not None else int(time.time() * 1000) & 0xFFFFFFFF
+        seed = (
+            req.seed if req.seed is not None else int(time.time() * 1000) & 0xFFFFFFFF
+        )
 
         # Inject any LoRA trigger words into prompt tail.
         trigger_tail = " ".join(
             w for spec in all_loras for w in (spec.trigger_words or [])
         ).strip()
-        positive = (cleaned_prompt + (", " + trigger_tail if trigger_tail else "")).strip(", ")
+        positive = (
+            cleaned_prompt + (", " + trigger_tail if trigger_tail else "")
+        ).strip(", ")
 
         workflow = build_fast_workflow(
             checkpoint=ckpt,
@@ -326,6 +338,7 @@ class ComfyUIFastProvider(BaseImageProvider):
                     )
                     if rv.status_code == 200:
                         import base64
+
                         images_b64.append(base64.b64encode(rv.content).decode("ascii"))
                 except Exception as e:
                     logger.warning("[ComfyUIFast] fetch image failed: %s", e)

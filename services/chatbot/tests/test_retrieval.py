@@ -4,18 +4,19 @@ Tests for the retrieval layer: RedisCache + RetrievalService.
 Run from services/chatbot/:
     python -m pytest tests/test_retrieval.py -v
 """
+
 from __future__ import annotations
 
-import asyncio
 import json
 import uuid
-from dataclasses import dataclass
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 # RAG retrieval tests require pgvector; skip the whole file if not installed
-pytest.importorskip("pgvector", reason="pgvector not installed — skip RAG retrieval tests")
+pytest.importorskip(
+    "pgvector", reason="pgvector not installed — skip RAG retrieval tests"
+)
 pytestmark = pytest.mark.rag
 
 # ---------------------------------------------------------------------------
@@ -161,8 +162,11 @@ class TestRetrievalHit:
         from src.rag.service.retrieval_service import RetrievalHit
 
         hit = RetrievalHit(
-            chunk_id="c1", document_id="d1", title="T",
-            content="x", score=0.5,
+            chunk_id="c1",
+            document_id="d1",
+            title="T",
+            content="x",
+            score=0.5,
         )
         with pytest.raises(AttributeError):
             hit.score = 1.0  # type: ignore[misc]
@@ -224,7 +228,10 @@ class TestRetrievalServiceUnit:
         mock_ctx.__aexit__ = AsyncMock(return_value=False)
         mock_factory.return_value = mock_ctx
 
-        with patch("src.rag.service.retrieval_service.get_session_factory", return_value=mock_factory):
+        with patch(
+            "src.rag.service.retrieval_service.get_session_factory",
+            return_value=mock_factory,
+        ):
             hits = await service.retrieve(tenant_id=TENANT, query="test")
 
         assert hits == []
@@ -254,7 +261,10 @@ class TestRetrievalServiceUnit:
         mock_ctx.__aexit__ = AsyncMock(return_value=False)
         mock_factory.return_value = mock_ctx
 
-        with patch("src.rag.service.retrieval_service.get_session_factory", return_value=mock_factory):
+        with patch(
+            "src.rag.service.retrieval_service.get_session_factory",
+            return_value=mock_factory,
+        ):
             hits = await service.retrieve(tenant_id=TENANT, query="tell me about X")
 
         assert len(hits) == 1
@@ -282,9 +292,14 @@ class TestRetrievalServiceUnit:
         mock_ctx.__aexit__ = AsyncMock(return_value=False)
         mock_factory.return_value = mock_ctx
 
-        with patch("src.rag.service.retrieval_service.get_session_factory", return_value=mock_factory):
+        with patch(
+            "src.rag.service.retrieval_service.get_session_factory",
+            return_value=mock_factory,
+        ):
             await service.retrieve(
-                tenant_id=TENANT, query="q", doc_ids=[doc_id],
+                tenant_id=TENANT,
+                query="q",
+                doc_ids=[doc_id],
             )
 
         # Verify execute was called with params including doc_ids
@@ -381,7 +396,10 @@ class TestRetrievalServiceCacheIntegration:
                 cache=mock_cache,
             )
 
-        with patch("src.rag.service.retrieval_service.get_session_factory", return_value=mock_factory):
+        with patch(
+            "src.rag.service.retrieval_service.get_session_factory",
+            return_value=mock_factory,
+        ):
             hits = await svc.retrieve(tenant_id=TENANT, query="new query")
 
         assert len(hits) == 1

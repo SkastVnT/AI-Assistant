@@ -127,14 +127,15 @@ async def generate_video(
 
     final_response = await get_response(cls, initial_response.id, estimated_duration)
     if not final_response.output:
-        raise RunwayApiError("Runway task succeeded but no video data found in response.")
+        raise RunwayApiError(
+            "Runway task succeeded but no video data found in response."
+        )
 
     video_url = get_video_url_from_task_status(final_response)
     return await download_url_to_video_output(video_url)
 
 
 class RunwayImageToVideoNodeGen3a(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -216,7 +217,11 @@ class RunwayImageToVideoNodeGen3a(IO.ComfyNode):
                     duration=Duration(duration),
                     ratio=AspectRatio(ratio),
                     promptImage=RunwayPromptImageObject(
-                        root=[RunwayPromptImageDetailedObject(uri=str(download_urls[0]), position="first")]
+                        root=[
+                            RunwayPromptImageDetailedObject(
+                                uri=str(download_urls[0]), position="first"
+                            )
+                        ]
                     ),
                 ),
             )
@@ -224,7 +229,6 @@ class RunwayImageToVideoNodeGen3a(IO.ComfyNode):
 
 
 class RunwayImageToVideoNodeGen4(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -306,7 +310,11 @@ class RunwayImageToVideoNodeGen4(IO.ComfyNode):
                     duration=Duration(duration),
                     ratio=AspectRatio(ratio),
                     promptImage=RunwayPromptImageObject(
-                        root=[RunwayPromptImageDetailedObject(uri=str(download_urls[0]), position="first")]
+                        root=[
+                            RunwayPromptImageDetailedObject(
+                                uri=str(download_urls[0]), position="first"
+                            )
+                        ]
                     ),
                 ),
                 estimated_duration=AVERAGE_DURATION_FLF_SECONDS,
@@ -315,7 +323,6 @@ class RunwayImageToVideoNodeGen4(IO.ComfyNode):
 
 
 class RunwayFirstLastFrameNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -411,8 +418,12 @@ class RunwayFirstLastFrameNode(IO.ComfyNode):
                     ratio=AspectRatio(ratio),
                     promptImage=RunwayPromptImageObject(
                         root=[
-                            RunwayPromptImageDetailedObject(uri=str(download_urls[0]), position="first"),
-                            RunwayPromptImageDetailedObject(uri=str(download_urls[1]), position="last"),
+                            RunwayPromptImageDetailedObject(
+                                uri=str(download_urls[0]), position="first"
+                            ),
+                            RunwayPromptImageDetailedObject(
+                                uri=str(download_urls[1]), position="last"
+                            ),
                         ]
                     ),
                 ),
@@ -422,7 +433,6 @@ class RunwayFirstLastFrameNode(IO.ComfyNode):
 
 
 class RunwayTextToImageNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -499,9 +509,15 @@ class RunwayTextToImageNode(IO.ComfyNode):
             estimated_duration=AVERAGE_DURATION_T2I_SECONDS,
         )
         if not final_response.output:
-            raise RunwayApiError("Runway task succeeded but no image data found in response.")
+            raise RunwayApiError(
+                "Runway task succeeded but no image data found in response."
+            )
 
-        return IO.NodeOutput(await download_url_to_image_tensor(get_image_url_from_task_status(final_response)))
+        return IO.NodeOutput(
+            await download_url_to_image_tensor(
+                get_image_url_from_task_status(final_response)
+            )
+        )
 
 
 class RunwayExtension(ComfyExtension):

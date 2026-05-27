@@ -12,9 +12,9 @@ echo ========================================
 echo.
 
 REM Configuration
-set SERVICE_DIR=%~dp0..\services\chatbot
-set BACKUP_DIR=%~dp0..\backups
-set LOG_DIR=%~dp0..\logs
+set SERVICE_DIR=%~dp0..\..\services\chatbot
+set BACKUP_DIR=%~dp0..\..\backups
+set LOG_DIR=%~dp0..\..\logs
 set TIMESTAMP=%DATE:~10,4%%DATE:~4,2%%DATE:~7,2%_%TIME:~0,2%%TIME:~3,2%%TIME:~6,2%
 set TIMESTAMP=%TIMESTAMP: =0%
 

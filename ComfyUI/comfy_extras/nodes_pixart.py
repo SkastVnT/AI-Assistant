@@ -2,6 +2,7 @@ from typing_extensions import override
 import nodes
 from comfy_api.latest import ComfyExtension, io
 
+
 class CLIPTextEncodePixArtAlpha(io.ComfyNode):
     @classmethod
     def define_schema(cls):
@@ -24,7 +25,11 @@ class CLIPTextEncodePixArtAlpha(io.ComfyNode):
     @classmethod
     def execute(cls, clip, width, height, text):
         tokens = clip.tokenize(text)
-        return io.NodeOutput(clip.encode_from_tokens_scheduled(tokens, add_dict={"width": width, "height": height}))
+        return io.NodeOutput(
+            clip.encode_from_tokens_scheduled(
+                tokens, add_dict={"width": width, "height": height}
+            )
+        )
 
 
 class PixArtExtension(ComfyExtension):
@@ -33,6 +38,7 @@ class PixArtExtension(ComfyExtension):
         return [
             CLIPTextEncodePixArtAlpha,
         ]
+
 
 async def comfy_entrypoint() -> PixArtExtension:
     return PixArtExtension()

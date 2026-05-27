@@ -12,11 +12,10 @@ Covers:
   • FinalDecision schema validation
   • Streaming entry point
 """
-import asyncio
-import json
+
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -43,8 +42,8 @@ from core.agentic.contracts import (
 from core.agentic.orchestrator import CouncilOrchestrator
 from core.agentic.state import AgentRunState, PreContext
 
-
 # ── Helpers ────────────────────────────────────────────────────────────
+
 
 def _pre_ctx(msg: str = "What is Python?") -> PreContext:
     return PreContext(original_message=msg, language="en")
@@ -60,7 +59,11 @@ def _plan_output() -> PlannerOutput:
 
 def _research_output() -> ResearcherOutput:
     return ResearcherOutput(
-        evidence=[EvidenceItem(source="llm", content="Python is a programming language.", relevance=0.9)],
+        evidence=[
+            EvidenceItem(
+                source="llm", content="Python is a programming language.", relevance=0.9
+            )
+        ],
         summary="Python is a high-level programming language.",
         tools_used=[],
     )
@@ -471,13 +474,17 @@ class TestCriticRetryTarget:
     def test_research_keywords(self):
         from core.agentic.agents.critic import CriticAgent
 
-        issues = [CritiqueIssue(severity="high", description="Missing evidence about sources")]
+        issues = [
+            CritiqueIssue(severity="high", description="Missing evidence about sources")
+        ]
         assert CriticAgent._infer_retry_target(issues) == RetryTarget.researcher
 
     def test_synth_keywords(self):
         from core.agentic.agents.critic import CriticAgent
 
-        issues = [CritiqueIssue(severity="medium", description="Answer format is incomplete")]
+        issues = [
+            CritiqueIssue(severity="medium", description="Answer format is incomplete")
+        ]
         assert CriticAgent._infer_retry_target(issues) == RetryTarget.synthesizer
 
     def test_mixed_keywords(self):

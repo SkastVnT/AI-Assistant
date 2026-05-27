@@ -36,15 +36,24 @@ class Seedream4TaskCreationRequest(BaseModel):
     size: str = Field(...)
     seed: int = Field(..., ge=0, le=2147483647)
     sequential_image_generation: str = Field("disabled")
-    sequential_image_generation_options: Seedream4Options = Field(Seedream4Options(max_images=15))
+    sequential_image_generation_options: Seedream4Options = Field(
+        Seedream4Options(max_images=15)
+    )
     watermark: bool = Field(False)
 
 
 class ImageTaskCreationResponse(BaseModel):
     model: str = Field(...)
-    created: int = Field(..., description="Unix timestamp (in seconds) indicating time when the request was created.")
-    data: list = Field([], description="Contains information about the generated image(s).")
-    error: dict = Field({}, description="Contains `code` and `message` fields in case of error.")
+    created: int = Field(
+        ...,
+        description="Unix timestamp (in seconds) indicating time when the request was created.",
+    )
+    data: list = Field(
+        [], description="Contains information about the generated image(s)."
+    )
+    error: dict = Field(
+        {}, description="Contains `code` and `message` fields in case of error."
+    )
 
 
 class TaskTextContent(BaseModel):
@@ -88,7 +97,9 @@ class TaskStatusResult(BaseModel):
 class TaskStatusResponse(BaseModel):
     id: str = Field(...)
     model: str = Field(...)
-    status: Literal["queued", "running", "cancelled", "succeeded", "failed"] = Field(...)
+    status: Literal["queued", "running", "cancelled", "succeeded", "failed"] = Field(
+        ...
+    )
     error: TaskStatusError | None = Field(None)
     content: TaskStatusResult | None = Field(None)
 

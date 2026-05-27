@@ -39,14 +39,25 @@ class ChromaRadianceParams(ChromaParams):
     nerf_embedder_dtype: Optional[torch.dtype]
     use_x0: bool
 
+
 class ChromaRadiance(Chroma):
     """
     Transformer model for flow matching on sequences.
     """
 
-    def __init__(self, image_model=None, final_layer=True, dtype=None, device=None, operations=None, **kwargs):
+    def __init__(
+        self,
+        image_model=None,
+        final_layer=True,
+        dtype=None,
+        device=None,
+        operations=None,
+        **kwargs,
+    ):
         if operations is None:
-            raise RuntimeError("Attempt to create ChromaRadiance object without setting operations")
+            raise RuntimeError(
+                "Attempt to create ChromaRadiance object without setting operations"
+            )
         nn.Module.__init__(self)
         self.dtype = dtype
         params = ChromaRadianceParams(**kwargs)
@@ -60,14 +71,18 @@ class ChromaRadiance(Chroma):
             )
         pe_dim = params.hidden_size // params.num_heads
         if sum(params.axes_dim) != pe_dim:
-            raise ValueError(f"Got {params.axes_dim} but expected positional dim {pe_dim}")
+            raise ValueError(
+                f"Got {params.axes_dim} but expected positional dim {pe_dim}"
+            )
         self.hidden_size = params.hidden_size
         self.num_heads = params.num_heads
         self.in_dim = params.in_dim
         self.out_dim = params.out_dim
         self.hidden_dim = params.hidden_dim
         self.n_layers = params.n_layers
-        self.pe_embedder = EmbedND(dim=pe_dim, theta=params.theta, axes_dim=params.axes_dim)
+        self.pe_embedder = EmbedND(
+            dim=pe_dim, theta=params.theta, axes_dim=params.axes_dim
+        )
         self.img_in_patch = operations.Conv2d(
             params.in_channels,
             params.hidden_size,
@@ -77,15 +92,19 @@ class ChromaRadiance(Chroma):
             dtype=dtype,
             device=device,
         )
-        self.txt_in = operations.Linear(params.context_in_dim, self.hidden_size, dtype=dtype, device=device)
+        self.txt_in = operations.Linear(
+            params.context_in_dim, self.hidden_size, dtype=dtype, device=device
+        )
         # set as nn identity for now, will overwrite it later.
         self.distilled_guidance_layer = Approximator(
-                    in_dim=self.in_dim,
-                    hidden_dim=self.hidden_dim,
-                    out_dim=self.out_dim,
-                    n_layers=self.n_layers,
-                    dtype=dtype, device=device, operations=operations
-                )
+            in_dim=self.in_dim,
+            hidden_dim=self.hidden_dim,
+            out_dim=self.out_dim,
+            n_layers=self.n_layers,
+            dtype=dtype,
+            device=device,
+            operations=operations,
+        )
 
         self.double_blocks = nn.ModuleList(
             [
@@ -95,7 +114,9 @@ class ChromaRadiance(Chroma):
                     mlp_ratio=params.mlp_ratio,
                     qkv_bias=params.qkv_bias,
                     modulation=False,
-                    dtype=dtype, device=device, operations=operations
+                    dtype=dtype,
+                    device=device,
+                    operations=operations,
                 )
                 for _ in range(params.depth)
             ]
@@ -108,7 +129,9 @@ class ChromaRadiance(Chroma):
                     self.num_heads,
                     mlp_ratio=params.mlp_ratio,
                     modulation=False,
-                    dtype=dtype, device=device, operations=operations,
+                    dtype=dtype,
+                    device=device,
+                    operations=operations,
                 )
                 for _ in range(params.depth_single_blocks)
             ]
@@ -124,16 +147,19 @@ class ChromaRadiance(Chroma):
             operations=operations,
         )
 
-        self.nerf_blocks = nn.ModuleList([
-            NerfGLUBlock(
-                hidden_size_s=params.hidden_size,
-                hidden_size_x=params.nerf_hidden_size,
-                mlp_ratio=params.nerf_mlp_ratio,
-                dtype=dtype,
-                device=device,
-                operations=operations,
-            ) for _ in range(params.nerf_depth)
-        ])
+        self.nerf_blocks = nn.ModuleList(
+            [
+                NerfGLUBlock(
+                    hidden_size_s=params.hidden_size,
+                    hidden_size_x=params.nerf_hidden_size,
+                    mlp_ratio=params.nerf_mlp_ratio,
+                    dtype=dtype,
+                    device=device,
+                    operations=operations,
+                )
+                for _ in range(params.nerf_depth)
+            ]
+        )
 
         if params.nerf_final_head_type == "linear":
             self.nerf_final_layer = NerfFinalLayer(
@@ -172,9 +198,9 @@ class ChromaRadiance(Chroma):
         raise NotImplementedError
 
     def img_in(self, img: Tensor) -> Tensor:
-        img = self.img_in_patch(img) # -> [B, Hidden, H/P, W/P]
+        img = self.img_in_patch(img)  # -> [B, Hidden, H/P, W/P]
         # flatten into a sequence for the transformer.
-        return img.flatten(2).transpose(1, 2) # -> [B, NumPatches, Hidden]
+        return img.flatten(2).transpose(1, 2)  # -> [B, NumPatches, Hidden]
 
     def forward_nerf(
         self,
@@ -188,17 +214,23 @@ class ChromaRadiance(Chroma):
 
         # Store the raw pixel values of each patch for the NeRF head later.
         # unfold creates patches: [B, C * P * P, NumPatches]
-        nerf_pixels = nn.functional.unfold(img_orig, kernel_size=patch_size, stride=patch_size)
-        nerf_pixels = nerf_pixels.transpose(1, 2) # -> [B, NumPatches, C * P * P]
+        nerf_pixels = nn.functional.unfold(
+            img_orig, kernel_size=patch_size, stride=patch_size
+        )
+        nerf_pixels = nerf_pixels.transpose(1, 2)  # -> [B, NumPatches, C * P * P]
 
         # Reshape for per-patch processing
         nerf_hidden = img_out.reshape(B * num_patches, params.hidden_size)
-        nerf_pixels = nerf_pixels.reshape(B * num_patches, C, patch_size**2).transpose(1, 2)
+        nerf_pixels = nerf_pixels.reshape(
+            B * num_patches, C, patch_size**2
+        ).transpose(1, 2)
 
         if params.nerf_tile_size > 0 and num_patches > params.nerf_tile_size:
             # Enable tiling if nerf_tile_size isn't 0 and we actually have more patches than
             # the tile size.
-            img_dct = self.forward_tiled_nerf(nerf_hidden, nerf_pixels, B, C, num_patches, patch_size, params)
+            img_dct = self.forward_tiled_nerf(
+                nerf_hidden, nerf_pixels, B, C, num_patches, patch_size, params
+            )
         else:
             # Get DCT-encoded pixel embeddings [pixel-dct]
             img_dct = self.nerf_image_embedder(nerf_pixels)
@@ -208,10 +240,10 @@ class ChromaRadiance(Chroma):
                 img_dct = block(img_dct, nerf_hidden)
 
         # Reassemble the patches into the final image.
-        img_dct = img_dct.transpose(1, 2) # -> [B*NumPatches, C, P*P]
+        img_dct = img_dct.transpose(1, 2)  # -> [B*NumPatches, C, P*P]
         # Reshape to combine with batch dimension for fold
-        img_dct = img_dct.reshape(B, num_patches, -1) # -> [B, NumPatches, C*P*P]
-        img_dct = img_dct.transpose(1, 2) # -> [B, C*P*P, NumPatches]
+        img_dct = img_dct.reshape(B, num_patches, -1)  # -> [B, NumPatches, C*P*P]
+        img_dct = img_dct.transpose(1, 2)  # -> [B, C*P*P, NumPatches]
         img_dct = nn.functional.fold(
             img_dct,
             output_size=(H, W),
@@ -242,8 +274,8 @@ class ChromaRadiance(Chroma):
             end = min(i + tile_size, num_patches)
 
             # Slice the current tile from the input tensors
-            nerf_hidden_tile = nerf_hidden[i * batch:end * batch]
-            nerf_pixels_tile = nerf_pixels[i * batch:end * batch]
+            nerf_hidden_tile = nerf_hidden[i * batch : end * batch]
+            nerf_pixels_tile = nerf_pixels[i * batch : end * batch]
 
             # get DCT-encoded pixel embeddings [pixel-dct]
             img_dct_tile = self.nerf_image_embedder(nerf_pixels_tile)
@@ -270,7 +302,8 @@ class ChromaRadiance(Chroma):
         bad_keys = tuple(
             k
             for k, v in overrides.items()
-            if type(v) != type(getattr(params, k)) and (v is not None or k not in nullable_keys)
+            if type(v) != type(getattr(params, k))
+            and (v is not None or k not in nullable_keys)
         )
         if bad_keys:
             e = f"Invalid value(s) in transformer_options chroma_radiance_options: {', '.join(bad_keys)}"
@@ -283,7 +316,7 @@ class ChromaRadiance(Chroma):
 
         # non zero during training to prevent 0 div
         eps = 0.0
-        return (noisy - predicted) / (timesteps.view(-1,1,1,1) + eps)
+        return (noisy - predicted) / (timesteps.view(-1, 1, 1, 1) + eps)
 
     def _forward(
         self,
@@ -291,26 +324,34 @@ class ChromaRadiance(Chroma):
         timestep: Tensor,
         context: Tensor,
         guidance: Optional[Tensor],
-        control: Optional[dict]=None,
-        transformer_options: dict={},
+        control: Optional[dict] = None,
+        transformer_options: dict = {},
         **kwargs: dict,
     ) -> Tensor:
         bs, c, h, w = x.shape
-        img = comfy.ldm.common_dit.pad_to_patch_size(x, (self.patch_size, self.patch_size))
+        img = comfy.ldm.common_dit.pad_to_patch_size(
+            x, (self.patch_size, self.patch_size)
+        )
 
         if img.ndim != 4:
             raise ValueError("Input img tensor must be in [B, C, H, W] format.")
         if context.ndim != 3:
             raise ValueError("Input txt tensors must have 3 dimensions.")
 
-        params = self.radiance_get_override_params(transformer_options.get("chroma_radiance_options", {}))
+        params = self.radiance_get_override_params(
+            transformer_options.get("chroma_radiance_options", {})
+        )
 
-        h_len = (img.shape[-2] // self.patch_size)
-        w_len = (img.shape[-1] // self.patch_size)
+        h_len = img.shape[-2] // self.patch_size
+        w_len = img.shape[-1] // self.patch_size
 
         img_ids = torch.zeros((h_len, w_len, 3), device=x.device, dtype=x.dtype)
-        img_ids[:, :, 1] = img_ids[:, :, 1] + torch.linspace(0, h_len - 1, steps=h_len, device=x.device, dtype=x.dtype).unsqueeze(1)
-        img_ids[:, :, 2] = img_ids[:, :, 2] + torch.linspace(0, w_len - 1, steps=w_len, device=x.device, dtype=x.dtype).unsqueeze(0)
+        img_ids[:, :, 1] = img_ids[:, :, 1] + torch.linspace(
+            0, h_len - 1, steps=h_len, device=x.device, dtype=x.dtype
+        ).unsqueeze(1)
+        img_ids[:, :, 2] = img_ids[:, :, 2] + torch.linspace(
+            0, w_len - 1, steps=w_len, device=x.device, dtype=x.dtype
+        ).unsqueeze(0)
         img_ids = repeat(img_ids, "h w c -> b (h w) c", b=bs)
         txt_ids = torch.zeros((bs, context.shape[1], 3), device=x.device, dtype=x.dtype)
 
@@ -332,4 +373,3 @@ class ChromaRadiance(Chroma):
         if hasattr(self, "__x0__"):
             out = self._apply_x0_residual(out, img, timestep)
         return out
-

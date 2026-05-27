@@ -22,12 +22,10 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import pytest
-
+from image_pipeline.reasoning.panel_spec_validator import validate_sequence
 from image_pipeline.reasoning.prompt_parser import parse
 from image_pipeline.reasoning.schemas import (
-    CharacterAppearance,
     CharacterState,
-    PropState,
     SceneState,
 )
 from image_pipeline.reasoning.state import (
@@ -37,15 +35,12 @@ from image_pipeline.reasoning.state import (
     default_resolver,
     extract_scene,
 )
-from image_pipeline.reasoning.panel_spec_validator import validate_sequence
 
 # Imported via the chatbot conftest's sys.path injection.
 from core.character_registry import (  # type: ignore[import-not-found]
     CharacterRecord,
-    CharacterRegistry,
     get_registry,
 )
-
 
 # ---------------------------------------------------------------------------
 # CharacterStateManager
@@ -174,9 +169,7 @@ class TestPropStateManager:
 
     def test_extract_bare_noun_skipped_when_colored_present(self):
         mgr = PropStateManager()
-        result = mgr.extract_props_from_text(
-            "She holds a red phone. The phone rings."
-        )
+        result = mgr.extract_props_from_text("She holds a red phone. The phone rings.")
         keys = [k for k, _ in result]
         # Bare "the phone" should not produce a separate entry.
         assert "phone" not in keys
@@ -306,7 +299,7 @@ class TestSharedEnvHygiene:
 
         The shared-env contract (services/shared_env.py) is the only loader.
         """
-        state_dir = _ROOT / "image_pipeline" / "reasoning" / "state"
+        state_dir = _ROOT / "app" / "image_pipeline" / "reasoning" / "state"
         offenders = []
         for path in state_dir.glob("*.py"):
             content = path.read_text(encoding="utf-8")
@@ -315,7 +308,7 @@ class TestSharedEnvHygiene:
         assert offenders == [], f"load_dotenv leaked into: {offenders}"
 
     def test_state_modules_do_not_import_dotenv(self):
-        state_dir = _ROOT / "image_pipeline" / "reasoning" / "state"
+        state_dir = _ROOT / "app" / "image_pipeline" / "reasoning" / "state"
         offenders = []
         for path in state_dir.glob("*.py"):
             content = path.read_text(encoding="utf-8")

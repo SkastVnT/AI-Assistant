@@ -3,9 +3,9 @@ Tests for the anime pipeline service layer and Flask routes.
 """
 
 import json
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from dataclasses import dataclass, field
 
 pytestmark = pytest.mark.image
 
@@ -19,16 +19,19 @@ class TestPipelineEnabled:
     def test_enabled_true(self):
         with patch.dict("os.environ", {"IMAGE_PIPELINE_V2": "true"}):
             from core.anime_pipeline_service import pipeline_enabled
+
             assert pipeline_enabled() is True
 
     def test_enabled_false(self):
         with patch.dict("os.environ", {"IMAGE_PIPELINE_V2": ""}, clear=False):
             from core.anime_pipeline_service import pipeline_enabled
+
             assert pipeline_enabled() is False
 
     def test_enabled_1(self):
         with patch.dict("os.environ", {"IMAGE_PIPELINE_V2": "1"}):
             from core.anime_pipeline_service import pipeline_enabled
+
             assert pipeline_enabled() is True
 
 
@@ -36,52 +39,70 @@ class TestComfyuiUrl:
     def test_default(self):
         with patch.dict("os.environ", {}, clear=False):
             import os
+
             os.environ.pop("COMFYUI_URL", None)
             from core.anime_pipeline_service import comfyui_url
+
             assert comfyui_url() == "http://127.0.0.1:8188"
 
     def test_custom(self):
         with patch.dict("os.environ", {"COMFYUI_URL": "http://gpu:8188"}):
             from core.anime_pipeline_service import comfyui_url
+
             assert comfyui_url() == "http://gpu:8188"
 
 
 class TestCheckAvailability:
     def test_all_ok(self):
         from core.anime_pipeline_service import check_availability
-        with patch("core.anime_pipeline_service.pipeline_enabled", return_value=True), \
-             patch("core.anime_pipeline_service.comfyui_reachable", return_value=True):
+
+        with (
+            patch("core.anime_pipeline_service.pipeline_enabled", return_value=True),
+            patch("core.anime_pipeline_service.comfyui_reachable", return_value=True),
+        ):
             result = check_availability()
             assert result.available is True
             assert result.errors == []
 
     def test_flag_off(self):
         from core.anime_pipeline_service import check_availability
-        with patch("core.anime_pipeline_service.pipeline_enabled", return_value=False), \
-             patch("core.anime_pipeline_service.comfyui_reachable", return_value=True):
+
+        with (
+            patch("core.anime_pipeline_service.pipeline_enabled", return_value=False),
+            patch("core.anime_pipeline_service.comfyui_reachable", return_value=True),
+        ):
             result = check_availability()
             assert result.available is False
             assert any("disabled" in e.lower() for e in result.errors)
 
     def test_comfyui_down(self):
         from core.anime_pipeline_service import check_availability
-        with patch("core.anime_pipeline_service.pipeline_enabled", return_value=True), \
-             patch("core.anime_pipeline_service.comfyui_reachable", return_value=False):
+
+        with (
+            patch("core.anime_pipeline_service.pipeline_enabled", return_value=True),
+            patch("core.anime_pipeline_service.comfyui_reachable", return_value=False),
+        ):
             result = check_availability()
             assert result.available is False
             assert any("comfyui" in e.lower() for e in result.errors)
 
     def test_both_bad(self):
         from core.anime_pipeline_service import check_availability
-        with patch("core.anime_pipeline_service.pipeline_enabled", return_value=False), \
-             patch("core.anime_pipeline_service.comfyui_reachable", return_value=False):
+
+        with (
+            patch("core.anime_pipeline_service.pipeline_enabled", return_value=False),
+            patch("core.anime_pipeline_service.comfyui_reachable", return_value=False),
+        ):
             result = check_availability()
             assert result.available is False
             assert len(result.errors) == 2
 
     def test_to_dict(self):
         from core.anime_pipeline_service import AvailabilityResult
-        r = AvailabilityResult(available=True, feature_flag=True, comfyui_reachable=True)
+
+        r = AvailabilityResult(
+            available=True, feature_flag=True, comfyui_reachable=True
+        )
         d = r.to_dict()
         assert d["available"] is True
         assert d["errors"] == []
@@ -90,6 +111,7 @@ class TestCheckAvailability:
 class TestValidateRequest:
     def test_missing_prompt(self):
         from core.anime_pipeline_service import validate_request
+
         req, err = validate_request({})
         assert req is None
         assert "required" in err.lower()
@@ -98,19 +120,22 @@ class TestValidateRequest:
         # 2026-04-29: prompt cap raised in prod from 2000 → 20000 chars
         # (long character profiles + scene descriptions). Test mirrors the
         # constant in core/anime_pipeline_service.py: _MAX_PROMPT.
-        from core.anime_pipeline_service import validate_request, _MAX_PROMPT
+        from core.anime_pipeline_service import _MAX_PROMPT, validate_request
+
         req, err = validate_request({"prompt": "x" * (_MAX_PROMPT + 1)})
         assert req is None
         assert "too long" in err.lower()
 
     def test_too_many_refs(self):
         from core.anime_pipeline_service import validate_request
+
         req, err = validate_request({"prompt": "test", "reference_images": ["a"] * 5})
         assert req is None
         assert "too many" in err.lower()
 
     def test_valid_minimal(self):
         from core.anime_pipeline_service import validate_request
+
         req, err = validate_request({"prompt": "a cute cat"})
         assert err is None
         assert req.prompt == "a cute cat"
@@ -119,16 +144,19 @@ class TestValidateRequest:
 
     def test_valid_full(self):
         from core.anime_pipeline_service import validate_request
-        req, err = validate_request({
-            "prompt": "test",
-            "reference_images": ["img1", "img2"],
-            "preset": "anime_speed",
-            "quality_mode": "fast",
-            "model_base": "base.safetensors",
-            "debug": True,
-            "width": 1024,
-            "height": 1024,
-        })
+
+        req, err = validate_request(
+            {
+                "prompt": "test",
+                "reference_images": ["img1", "img2"],
+                "preset": "anime_speed",
+                "quality_mode": "fast",
+                "model_base": "base.safetensors",
+                "debug": True,
+                "width": 1024,
+                "height": 1024,
+            }
+        )
         assert err is None
         assert req.preset == "anime_speed"
         assert req.quality_mode == "fast"
@@ -137,12 +165,14 @@ class TestValidateRequest:
 
     def test_invalid_preset_falls_back(self):
         from core.anime_pipeline_service import validate_request
+
         req, err = validate_request({"prompt": "test", "preset": "invalid"})
         assert err is None
         assert req.preset == "anime_quality"
 
     def test_invalid_quality_falls_back(self):
         from core.anime_pipeline_service import validate_request
+
         req, err = validate_request({"prompt": "test", "quality_mode": "ultra"})
         assert err is None
         assert req.quality_mode == "quality"
@@ -151,6 +181,7 @@ class TestValidateRequest:
 class TestSSELine:
     def test_format(self):
         from core.anime_pipeline_service import _sse_line
+
         line = _sse_line("ap_status", {"msg": "ok"})
         assert line.startswith("event: ap_status\n")
         assert '"msg": "ok"' in line
@@ -166,11 +197,16 @@ class TestBuildJob:
         mock_job.job_id = "test-123"
         mock_cls = MagicMock(return_value=mock_job)
 
-        with patch.dict("sys.modules", {
-            "image_pipeline": MagicMock(),
-            "image_pipeline.anime_pipeline": MagicMock(AnimePipelineJob=mock_cls),
-        }):
-            req = PipelineRequest(prompt="test", preset="anime_speed", quality_mode="fast")
+        with patch.dict(
+            "sys.modules",
+            {
+                "image_pipeline": MagicMock(),
+                "image_pipeline.anime_pipeline": MagicMock(AnimePipelineJob=mock_cls),
+            },
+        ):
+            req = PipelineRequest(
+                prompt="test", preset="anime_speed", quality_mode="fast"
+            )
             job = build_job(req)
             assert job == mock_job
             mock_cls.assert_called_once()
@@ -192,21 +228,43 @@ class TestStreamPipeline:
         mock_job.intermediates = []
 
         mock_orch = MagicMock()
-        mock_orch.run_stream.return_value = iter([
-            {"event": "anime_pipeline_pipeline_start", "data": {"stages": ["vision_analysis"]}},
-            {"event": "anime_pipeline_stage_start", "data": {"stage": "vision_analysis", "stage_num": 1, "total_stages": 7}},
-            {"event": "anime_pipeline_stage_complete", "data": {"stage": "vision_analysis", "stage_num": 1, "latency_ms": 500}},
-            {"event": "anime_pipeline_pipeline_complete", "data": {}},
-        ])
+        mock_orch.run_stream.return_value = iter(
+            [
+                {
+                    "event": "anime_pipeline_pipeline_start",
+                    "data": {"stages": ["vision_analysis"]},
+                },
+                {
+                    "event": "anime_pipeline_stage_start",
+                    "data": {
+                        "stage": "vision_analysis",
+                        "stage_num": 1,
+                        "total_stages": 7,
+                    },
+                },
+                {
+                    "event": "anime_pipeline_stage_complete",
+                    "data": {
+                        "stage": "vision_analysis",
+                        "stage_num": 1,
+                        "latency_ms": 500,
+                    },
+                },
+                {"event": "anime_pipeline_pipeline_complete", "data": {}},
+            ]
+        )
         mock_orch_cls = MagicMock(return_value=mock_orch)
 
-        with patch.dict("sys.modules", {
-            "image_pipeline": MagicMock(),
-            "image_pipeline.anime_pipeline": MagicMock(
-                AnimePipelineOrchestrator=mock_orch_cls,
-                AnimePipelineJob=MagicMock(return_value=mock_job),
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "image_pipeline": MagicMock(),
+                "image_pipeline.anime_pipeline": MagicMock(
+                    AnimePipelineOrchestrator=mock_orch_cls,
+                    AnimePipelineJob=MagicMock(return_value=mock_job),
+                ),
+            },
+        ):
             req = PipelineRequest(prompt="test")
             frames = list(stream_pipeline(req))
             events = [f.split("\n")[0] for f in frames if f.startswith("event:")]
@@ -234,13 +292,16 @@ class TestStreamPipeline:
         mock_orch.run_stream.side_effect = RuntimeError("GPU OOM")
         mock_orch_cls = MagicMock(return_value=mock_orch)
 
-        with patch.dict("sys.modules", {
-            "image_pipeline": MagicMock(),
-            "image_pipeline.anime_pipeline": MagicMock(
-                AnimePipelineOrchestrator=mock_orch_cls,
-                AnimePipelineJob=MagicMock(return_value=mock_job),
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "image_pipeline": MagicMock(),
+                "image_pipeline.anime_pipeline": MagicMock(
+                    AnimePipelineOrchestrator=mock_orch_cls,
+                    AnimePipelineJob=MagicMock(return_value=mock_job),
+                ),
+            },
+        ):
             req = PipelineRequest(prompt="test")
             frames = list(stream_pipeline(req))
             error_frames = [f for f in frames if "ap_error" in f]
@@ -252,15 +313,18 @@ class TestStreamPipeline:
 # Flask route tests
 # ════════════════════════════════════════════════════════════════════════
 
+
 @pytest.fixture
 def flask_app():
     """Minimal Flask app with the anime_pipeline blueprint."""
     from flask import Flask
+
     app = Flask(__name__)
     app.config["TESTING"] = True
     app.secret_key = "test-secret"
 
     from routes.anime_pipeline import anime_pipeline_bp
+
     app.register_blueprint(anime_pipeline_bp)
     return app
 
@@ -272,16 +336,20 @@ def client(flask_app):
 
 class TestHealthEndpoint:
     def test_available(self, client):
-        with patch("core.anime_pipeline_service.pipeline_enabled", return_value=True), \
-             patch("core.anime_pipeline_service.comfyui_reachable", return_value=True):
+        with (
+            patch("core.anime_pipeline_service.pipeline_enabled", return_value=True),
+            patch("core.anime_pipeline_service.comfyui_reachable", return_value=True),
+        ):
             resp = client.get("/api/anime-pipeline/health")
             assert resp.status_code == 200
             data = resp.get_json()
             assert data["available"] is True
 
     def test_unavailable(self, client):
-        with patch("core.anime_pipeline_service.pipeline_enabled", return_value=False), \
-             patch("core.anime_pipeline_service.comfyui_reachable", return_value=False):
+        with (
+            patch("core.anime_pipeline_service.pipeline_enabled", return_value=False),
+            patch("core.anime_pipeline_service.comfyui_reachable", return_value=False),
+        ):
             resp = client.get("/api/anime-pipeline/health")
             assert resp.status_code == 503
             data = resp.get_json()
@@ -292,6 +360,7 @@ class TestStreamEndpoint:
     def test_unavailable_returns_sse_error(self, client):
         with patch("core.anime_pipeline_service.check_availability") as mock_avail:
             from core.anime_pipeline_service import AvailabilityResult
+
             mock_avail.return_value = AvailabilityResult(
                 available=False, errors=["ComfyUI is not reachable"]
             )
@@ -307,6 +376,7 @@ class TestStreamEndpoint:
     def test_validation_error_returns_sse(self, client):
         with patch("core.anime_pipeline_service.check_availability") as mock_avail:
             from core.anime_pipeline_service import AvailabilityResult
+
             mock_avail.return_value = AvailabilityResult(
                 available=True, feature_flag=True, comfyui_reachable=True
             )
@@ -320,16 +390,21 @@ class TestStreamEndpoint:
             assert "ap_error" in body
 
     def test_successful_stream(self, client):
-        with patch("core.anime_pipeline_service.check_availability") as mock_avail, \
-             patch("core.anime_pipeline_service.stream_pipeline") as mock_stream:
+        with (
+            patch("core.anime_pipeline_service.check_availability") as mock_avail,
+            patch("core.anime_pipeline_service.stream_pipeline") as mock_stream,
+        ):
             from core.anime_pipeline_service import AvailabilityResult
+
             mock_avail.return_value = AvailabilityResult(
                 available=True, feature_flag=True, comfyui_reachable=True
             )
-            mock_stream.return_value = iter([
-                'event: ap_status\ndata: {"job_id": "j1"}\n\n',
-                'event: ap_done\ndata: {"job_id": "j1"}\n\n',
-            ])
+            mock_stream.return_value = iter(
+                [
+                    'event: ap_status\ndata: {"job_id": "j1"}\n\n',
+                    'event: ap_done\ndata: {"job_id": "j1"}\n\n',
+                ]
+            )
             resp = client.post(
                 "/api/anime-pipeline/stream",
                 data=json.dumps({"prompt": "cute anime cat"}),
@@ -346,6 +421,7 @@ class TestGenerateEndpoint:
     def test_unavailable(self, client):
         with patch("core.anime_pipeline_service.check_availability") as mock_avail:
             from core.anime_pipeline_service import AvailabilityResult
+
             mock_avail.return_value = AvailabilityResult(
                 available=False, errors=["disabled"]
             )
@@ -359,6 +435,7 @@ class TestGenerateEndpoint:
     def test_validation_error(self, client):
         with patch("core.anime_pipeline_service.check_availability") as mock_avail:
             from core.anime_pipeline_service import AvailabilityResult
+
             mock_avail.return_value = AvailabilityResult(
                 available=True, feature_flag=True, comfyui_reachable=True
             )

@@ -7,7 +7,9 @@ from typing import Union, Callable
 import torch
 
 
-def compute_exponential_coeffs(s: torch.Tensor, t: torch.Tensor, solver_order: int, tau_t: float) -> torch.Tensor:
+def compute_exponential_coeffs(
+    s: torch.Tensor, t: torch.Tensor, solver_order: int, tau_t: float
+) -> torch.Tensor:
     """Compute (1 + tau^2) * integral of exp((1 + tau^2) * x) * x^p dx from s to t with exp((1 + tau^2) * t) factored out, using integration by parts.
 
     Integral of exp((1 + tau^2) * x) * x^p dx
@@ -29,13 +31,13 @@ def compute_exponential_coeffs(s: torch.Tensor, t: torch.Tensor, solver_order: i
     Returns:
         Exponential coefficients used in data prediction, with exp((1 + tau^2) * t) factored out, ordered from p=0 to p=solver_order−1, shape (solver_order,).
     """
-    tau_mul = 1 + tau_t ** 2
+    tau_mul = 1 + tau_t**2
     h = t - s
     p = torch.arange(solver_order, dtype=s.dtype, device=s.device)
 
     # product_terms after factoring out exp((1 + tau^2) * t)
     # Includes (1 + tau^2) factor from outside the integral
-    product_terms_factored = (t ** p - s ** p * (-tau_mul * h).exp())
+    product_terms_factored = t**p - s**p * (-tau_mul * h).exp()
 
     # Lower triangular recursive coefficient matrix
     # Accumulates recursive coefficients based on p / (1 + tau^2)
@@ -43,16 +45,25 @@ def compute_exponential_coeffs(s: torch.Tensor, t: torch.Tensor, solver_order: i
     log_factorial = (p + 1).lgamma()
     recursive_coeff_mat = log_factorial.unsqueeze(1) - log_factorial.unsqueeze(0)
     if tau_t > 0:
-        recursive_coeff_mat = recursive_coeff_mat - (recursive_depth_mat * math.log(tau_mul))
+        recursive_coeff_mat = recursive_coeff_mat - (
+            recursive_depth_mat * math.log(tau_mul)
+        )
     signs = torch.where(recursive_depth_mat % 2 == 0, 1.0, -1.0)
     recursive_coeff_mat = (recursive_coeff_mat.exp() * signs).tril()
 
     return recursive_coeff_mat @ product_terms_factored
 
 
-def compute_simple_stochastic_adams_b_coeffs(sigma_next: torch.Tensor, curr_lambdas: torch.Tensor, lambda_s: torch.Tensor, lambda_t: torch.Tensor, tau_t: float, is_corrector_step: bool = False) -> torch.Tensor:
+def compute_simple_stochastic_adams_b_coeffs(
+    sigma_next: torch.Tensor,
+    curr_lambdas: torch.Tensor,
+    lambda_s: torch.Tensor,
+    lambda_t: torch.Tensor,
+    tau_t: float,
+    is_corrector_step: bool = False,
+) -> torch.Tensor:
     """Compute simple order-2 b coefficients from SA-Solver paper (Appendix D. Implementation Details)."""
-    tau_mul = 1 + tau_t ** 2
+    tau_mul = 1 + tau_t**2
     h = lambda_t - lambda_s
     alpha_t = sigma_next * lambda_t.exp()
     if is_corrector_step:
@@ -61,12 +72,20 @@ def compute_simple_stochastic_adams_b_coeffs(sigma_next: torch.Tensor, curr_lamb
         b_2 = alpha_t * (-h * tau_mul).expm1().neg() - b_1
     else:
         # Simplified 2-step predictor
-        b_2 = alpha_t * (0.5 * tau_mul * h ** 2) / (curr_lambdas[-2] - lambda_s)
+        b_2 = alpha_t * (0.5 * tau_mul * h**2) / (curr_lambdas[-2] - lambda_s)
         b_1 = alpha_t * (-h * tau_mul).expm1().neg() - b_2
     return torch.stack([b_2, b_1])
 
 
-def compute_stochastic_adams_b_coeffs(sigma_next: torch.Tensor, curr_lambdas: torch.Tensor, lambda_s: torch.Tensor, lambda_t: torch.Tensor, tau_t: float, simple_order_2: bool = False, is_corrector_step: bool = False) -> torch.Tensor:
+def compute_stochastic_adams_b_coeffs(
+    sigma_next: torch.Tensor,
+    curr_lambdas: torch.Tensor,
+    lambda_s: torch.Tensor,
+    lambda_t: torch.Tensor,
+    tau_t: float,
+    simple_order_2: bool = False,
+    is_corrector_step: bool = False,
+) -> torch.Tensor:
     """Compute b_i coefficients for the SA-Solver (see eqs. 15 and 18).
 
     The solver order corresponds to the number of input lambdas (half-logSNR points).
@@ -86,10 +105,14 @@ def compute_stochastic_adams_b_coeffs(sigma_next: torch.Tensor, curr_lambdas: to
     num_timesteps = curr_lambdas.shape[0]
 
     if simple_order_2 and num_timesteps == 2:
-        return compute_simple_stochastic_adams_b_coeffs(sigma_next, curr_lambdas, lambda_s, lambda_t, tau_t, is_corrector_step)
+        return compute_simple_stochastic_adams_b_coeffs(
+            sigma_next, curr_lambdas, lambda_s, lambda_t, tau_t, is_corrector_step
+        )
 
     # Compute coefficients by solving a linear system from Lagrange basis interpolation
-    exp_integral_coeffs = compute_exponential_coeffs(lambda_s, lambda_t, num_timesteps, tau_t)
+    exp_integral_coeffs = compute_exponential_coeffs(
+        lambda_s, lambda_t, num_timesteps, tau_t
+    )
     vandermonde_matrix_T = torch.vander(curr_lambdas, num_timesteps, increasing=True).T
     lagrange_integrals = torch.linalg.solve(vandermonde_matrix_T, exp_integral_coeffs)
 
@@ -100,7 +123,9 @@ def compute_stochastic_adams_b_coeffs(sigma_next: torch.Tensor, curr_lambdas: to
     return alpha_t * lagrange_integrals
 
 
-def get_tau_interval_func(start_sigma: float, end_sigma: float, eta: float = 1.0) -> Callable[[Union[torch.Tensor, float]], float]:
+def get_tau_interval_func(
+    start_sigma: float, end_sigma: float, eta: float = 1.0
+) -> Callable[[Union[torch.Tensor, float]], float]:
     """Return a function that controls the stochasticity of SA-Solver.
 
     When eta = 0, SA-Solver runs as ODE. The official approach uses

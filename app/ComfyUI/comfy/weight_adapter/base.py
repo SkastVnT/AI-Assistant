@@ -12,7 +12,13 @@ class WeightAdapterBase:
     weights: list[torch.Tensor]
 
     @classmethod
-    def load(cls, x: str, lora: dict[str, torch.Tensor], alpha: float, dora_scale: torch.Tensor) -> Optional["WeightAdapterBase"]:
+    def load(
+        cls,
+        x: str,
+        lora: dict[str, torch.Tensor],
+        alpha: float,
+        dora_scale: torch.Tensor,
+    ) -> Optional["WeightAdapterBase"]:
         raise NotImplementedError
 
     def to_train(self) -> "WeightAdapterTrainBase":
@@ -59,8 +65,12 @@ class WeightAdapterTrainBase(nn.Module):
         return self.passive_memory_usage()
 
 
-def weight_decompose(dora_scale, weight, lora_diff, alpha, strength, intermediate_dtype, function):
-    dora_scale = comfy.model_management.cast_to_device(dora_scale, weight.device, intermediate_dtype)
+def weight_decompose(
+    dora_scale, weight, lora_diff, alpha, strength, intermediate_dtype, function
+):
+    dora_scale = comfy.model_management.cast_to_device(
+        dora_scale, weight.device, intermediate_dtype
+    )
     lora_diff *= alpha
     weight_calc = weight + function(lora_diff).type(weight.dtype)
 
@@ -106,10 +116,14 @@ def pad_tensor_to_shape(tensor: torch.Tensor, new_shape: list[int]) -> torch.Ten
         the original tensor will be truncated in that dimension.
     """
     if any([new_shape[i] < tensor.shape[i] for i in range(len(new_shape))]):
-        raise ValueError("The new shape must be larger than the original tensor in all dimensions")
+        raise ValueError(
+            "The new shape must be larger than the original tensor in all dimensions"
+        )
 
     if len(new_shape) != len(tensor.shape):
-        raise ValueError("The new shape must have the same number of dimensions as the original tensor")
+        raise ValueError(
+            "The new shape must have the same number of dimensions as the original tensor"
+        )
 
     # Create a new tensor filled with zeros
     padded_tensor = torch.zeros(new_shape, dtype=tensor.dtype, device=tensor.device)

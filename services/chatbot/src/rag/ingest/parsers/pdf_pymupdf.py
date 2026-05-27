@@ -3,6 +3,7 @@ PDF parser using PyMuPDF (``fitz``).
 
 Extracts text page-by-page, preserving page numbers in metadata.
 """
+
 from __future__ import annotations
 
 from .base import DocumentParser, PageContent, ParsedDocument

@@ -23,9 +23,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from config.mongodb_config import DATABASE_NAME, get_db, test_connection
 from pymongo import ASCENDING, DESCENDING, IndexModel
-from config.mongodb_config import get_db, test_connection, DATABASE_NAME
-
 
 # ============================================================================
 # Schemas (JSON Schema validators)
@@ -37,17 +36,17 @@ SCHEMAS = {
             "bsonType": "object",
             "required": ["user_id", "title", "model", "created_at"],
             "properties": {
-                "_id":           {"bsonType": "string", "description": "UUID v4"},
-                "user_id":       {"bsonType": "string"},
-                "title":         {"bsonType": "string"},
-                "model":         {"bsonType": "string"},
-                "session_id":    {"bsonType": "string"},
-                "is_archived":   {"bsonType": "bool"},
-                "is_deleted":    {"bsonType": "bool"},
+                "_id": {"bsonType": "string", "description": "UUID v4"},
+                "user_id": {"bsonType": "string"},
+                "title": {"bsonType": "string"},
+                "model": {"bsonType": "string"},
+                "session_id": {"bsonType": "string"},
+                "is_archived": {"bsonType": "bool"},
+                "is_deleted": {"bsonType": "bool"},
                 "message_count": {"bsonType": "int", "minimum": 0},
-                "metadata":      {"bsonType": "object"},
-                "created_at":    {"bsonType": "date"},
-                "updated_at":    {"bsonType": "date"},
+                "metadata": {"bsonType": "object"},
+                "created_at": {"bsonType": "date"},
+                "updated_at": {"bsonType": "date"},
             },
         }
     },
@@ -56,17 +55,17 @@ SCHEMAS = {
             "bsonType": "object",
             "required": ["conversation_id", "role", "content", "created_at"],
             "properties": {
-                "_id":             {"bsonType": "string", "description": "UUID v4"},
+                "_id": {"bsonType": "string", "description": "UUID v4"},
                 "conversation_id": {"bsonType": "string", "description": "UUID v4"},
-                "role":            {"enum": ["user", "assistant", "system"]},
-                "content":         {"bsonType": "string"},
-                "metadata":        {"bsonType": "object"},
-                "images":          {"bsonType": "array"},
-                "tokens":          {"bsonType": ["int", "null"]},
-                "is_edited":       {"bsonType": "bool"},
-                "edit_history":    {"bsonType": "array"},
-                "created_at":      {"bsonType": "date"},
-                "updated_at":      {"bsonType": "date"},
+                "role": {"enum": ["user", "assistant", "system"]},
+                "content": {"bsonType": "string"},
+                "metadata": {"bsonType": "object"},
+                "images": {"bsonType": "array"},
+                "tokens": {"bsonType": ["int", "null"]},
+                "is_edited": {"bsonType": "bool"},
+                "edit_history": {"bsonType": "array"},
+                "created_at": {"bsonType": "date"},
+                "updated_at": {"bsonType": "date"},
             },
         }
     },
@@ -75,14 +74,14 @@ SCHEMAS = {
             "bsonType": "object",
             "required": ["source", "category", "data", "created_at"],
             "properties": {
-                "_id":              {"bsonType": "string", "description": "UUID v4"},
-                "source":           {"bsonType": "string"},
-                "category":         {"bsonType": "string"},
-                "data":             {"bsonType": "object"},
-                "quality_score":    {"bsonType": "double"},
-                "is_approved":      {"bsonType": "bool"},
-                "created_at":       {"bsonType": "date"},
-                "reviewed_at":      {"bsonType": ["date", "null"]},
+                "_id": {"bsonType": "string", "description": "UUID v4"},
+                "source": {"bsonType": "string"},
+                "category": {"bsonType": "string"},
+                "data": {"bsonType": "object"},
+                "quality_score": {"bsonType": "double"},
+                "is_approved": {"bsonType": "bool"},
+                "created_at": {"bsonType": "date"},
+                "reviewed_at": {"bsonType": ["date", "null"]},
                 "rejection_reason": {"bsonType": ["string", "null"]},
             },
         }
@@ -90,56 +89,77 @@ SCHEMAS = {
     "rag_documents": {
         "$jsonSchema": {
             "bsonType": "object",
-            "required": ["tenant_id", "document_id", "title", "source_type", "status", "created_at"],
+            "required": [
+                "tenant_id",
+                "document_id",
+                "title",
+                "source_type",
+                "status",
+                "created_at",
+            ],
             "properties": {
-                "_id":         {"bsonType": "string", "description": "UUID v4"},
-                "tenant_id":   {"bsonType": "string"},
+                "_id": {"bsonType": "string", "description": "UUID v4"},
+                "tenant_id": {"bsonType": "string"},
                 "document_id": {"bsonType": "string"},
-                "title":       {"bsonType": "string"},
+                "title": {"bsonType": "string"},
                 "source_type": {"bsonType": "string"},
-                "source_uri":  {"bsonType": ["string", "null"]},
-                "mime_type":   {"bsonType": ["string", "null"]},
+                "source_uri": {"bsonType": ["string", "null"]},
+                "mime_type": {"bsonType": ["string", "null"]},
                 "object_path": {"bsonType": ["string", "null"]},
-                "status":      {"bsonType": "string"},
-                "metadata":    {"bsonType": "object"},
-                "created_at":  {"bsonType": "date"},
-                "updated_at":  {"bsonType": "date"},
+                "status": {"bsonType": "string"},
+                "metadata": {"bsonType": "object"},
+                "created_at": {"bsonType": "date"},
+                "updated_at": {"bsonType": "date"},
             },
         }
     },
     "rag_chunks": {
         "$jsonSchema": {
             "bsonType": "object",
-            "required": ["tenant_id", "document_id", "chunk_id", "chunk_index", "content", "created_at"],
+            "required": [
+                "tenant_id",
+                "document_id",
+                "chunk_id",
+                "chunk_index",
+                "content",
+                "created_at",
+            ],
             "properties": {
-                "_id":         {"bsonType": "string", "description": "UUID v4"},
-                "tenant_id":   {"bsonType": "string"},
+                "_id": {"bsonType": "string", "description": "UUID v4"},
+                "tenant_id": {"bsonType": "string"},
                 "document_id": {"bsonType": "string"},
-                "chunk_id":    {"bsonType": "string"},
+                "chunk_id": {"bsonType": "string"},
                 "chunk_index": {"bsonType": "int", "minimum": 0},
-                "content":     {"bsonType": "string"},
-                "embedding":   {"bsonType": "array"},
-                "metadata":    {"bsonType": "object"},
-                "created_at":  {"bsonType": "date"},
+                "content": {"bsonType": "string"},
+                "embedding": {"bsonType": "array"},
+                "metadata": {"bsonType": "object"},
+                "created_at": {"bsonType": "date"},
             },
         }
     },
     "rag_ingestion_jobs": {
         "$jsonSchema": {
             "bsonType": "object",
-            "required": ["job_id", "tenant_id", "document_id", "filename", "status", "started_at"],
+            "required": [
+                "job_id",
+                "tenant_id",
+                "document_id",
+                "filename",
+                "status",
+                "started_at",
+            ],
             "properties": {
-                "_id":           {"bsonType": "string", "description": "UUID v4"},
-                "job_id":        {"bsonType": "string"},
-                "tenant_id":     {"bsonType": "string"},
-                "document_id":   {"bsonType": "string"},
-                "filename":      {"bsonType": "string"},
-                "status":        {"bsonType": "string"},
-                "steps":         {"bsonType": "object"},
-                "num_chunks":    {"bsonType": "int", "minimum": 0},
+                "_id": {"bsonType": "string", "description": "UUID v4"},
+                "job_id": {"bsonType": "string"},
+                "tenant_id": {"bsonType": "string"},
+                "document_id": {"bsonType": "string"},
+                "filename": {"bsonType": "string"},
+                "status": {"bsonType": "string"},
+                "steps": {"bsonType": "object"},
+                "num_chunks": {"bsonType": "int", "minimum": 0},
                 "error_message": {"bsonType": ["string", "null"]},
-                "started_at":    {"bsonType": "date"},
-                "finished_at":   {"bsonType": ["date", "null"]},
+                "started_at": {"bsonType": "date"},
+                "finished_at": {"bsonType": ["date", "null"]},
             },
         }
     },
@@ -191,6 +211,7 @@ INDEXES = {
 # Helpers
 # ============================================================================
 
+
 def _ensure_collection(db, name, validator):
     """Create a collection if it doesn't exist, or update its validator."""
     existing = db.list_collection_names()
@@ -232,12 +253,15 @@ def _ensure_indexes(db, name, index_models):
     if new:
         print(f"  [created] {name}: {', '.join(new)}")
     if skipped:
-        print(f"  [skipped] {name}: {len(skipped)} indexes already exist with different names")
+        print(
+            f"  [skipped] {name}: {len(skipped)} indexes already exist with different names"
+        )
 
 
 # ============================================================================
 # Main
 # ============================================================================
+
 
 def main():
     print(f"=== MongoDB Init | database: {DATABASE_NAME} ===\n")

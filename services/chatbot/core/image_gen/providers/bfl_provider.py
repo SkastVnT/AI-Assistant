@@ -1,35 +1,38 @@
-﻿"""
+"""
 Black Forest Labs (BFL) direct API provider.
 Access FLUX.2 models directly from https://api.bfl.ai
 """
 
 from __future__ import annotations
 
-import time
 import logging
+import time
+
 import httpx
 
 from .base import (
-    BaseImageProvider, ImageRequest, ImageResult,
-    ImageMode, ProviderTier,
+    BaseImageProvider,
+    ImageRequest,
+    ImageResult,
+    ProviderTier,
 )
 
 logger = logging.getLogger(__name__)
 
 BFL_MODELS = {
-    "flux2-pro":   "flux-2-pro",
-    "flux2-dev":   "flux-2-dev",
-    "flux2-max":   "flux-2-max",
-    "flux1-pro":   "flux-pro-1.1",
-    "flux1-dev":   "flux-dev",
+    "flux2-pro": "flux-2-pro",
+    "flux2-dev": "flux-2-dev",
+    "flux2-max": "flux-2-max",
+    "flux1-pro": "flux-pro-1.1",
+    "flux1-dev": "flux-dev",
 }
 
 BFL_COST = {
-    "flux2-pro":   0.040,
-    "flux2-dev":   0.025,
-    "flux2-max":   0.080,
-    "flux1-pro":   0.040,
-    "flux1-dev":   0.025,
+    "flux2-pro": 0.040,
+    "flux2-dev": 0.025,
+    "flux2-max": 0.080,
+    "flux1-pro": 0.040,
+    "flux1-dev": 0.025,
 }
 
 
@@ -83,7 +86,11 @@ class BFLProvider(BaseImageProvider):
             task_id = task.get("id")
 
             if not task_id:
-                return ImageResult(success=False, error="BFL did not return task ID", provider=self.name)
+                return ImageResult(
+                    success=False,
+                    error="BFL did not return task ID",
+                    provider=self.name,
+                )
 
             # Poll for result
             result = self._poll(task_id)
@@ -105,8 +112,14 @@ class BFLProvider(BaseImageProvider):
             )
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"[BFL] HTTP {e.response.status_code}: {e.response.text[:500]}")
-            return ImageResult(success=False, error=f"BFL error: {e.response.status_code}", provider=self.name)
+            logger.error(
+                f"[BFL] HTTP {e.response.status_code}: {e.response.text[:500]}"
+            )
+            return ImageResult(
+                success=False,
+                error=f"BFL error: {e.response.status_code}",
+                provider=self.name,
+            )
         except Exception as e:
             logger.error(f"[BFL] Error: {e}", exc_info=True)
             return ImageResult(success=False, error=str(e), provider=self.name)

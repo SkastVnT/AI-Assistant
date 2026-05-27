@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # =============================================================================
 # Stop All Services
 # =============================================================================
@@ -6,7 +6,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
+PROJECT_ROOT="$(dirname "$(dirname "${SCRIPT_DIR}")")"
 LOGS_DIR="${PROJECT_ROOT}/logs"
 
 # Colors
@@ -42,7 +42,7 @@ for service in "${!SERVICES[@]}"; do
         if [[ -n "${pid}" ]] && kill -0 "${pid}" 2>/dev/null; then
             kill "${pid}" 2>/dev/null || true
             rm -f "${pid_file}"
-            echo -e "${GREEN}✓${NC} Stopped ${service} (PID: ${pid})"
+            echo -e "${GREEN}âœ“${NC} Stopped ${service} (PID: ${pid})"
             continue
         fi
         rm -f "${pid_file}"
@@ -52,16 +52,16 @@ for service in "${!SERVICES[@]}"; do
     pid=$(lsof -t -i:${port} 2>/dev/null | head -1)
     if [[ -n "${pid}" ]]; then
         kill "${pid}" 2>/dev/null || true
-        echo -e "${GREEN}✓${NC} Stopped process on port ${port} (PID: ${pid})"
+        echo -e "${GREEN}âœ“${NC} Stopped process on port ${port} (PID: ${pid})"
     else
-        echo -e "${YELLOW}○${NC} ${service} was not running"
+        echo -e "${YELLOW}â—‹${NC} ${service} was not running"
     fi
 done
 
 # Stop cloudflared tunnels
 echo ""
 echo -e "${YELLOW}Stopping cloudflared tunnels...${NC}"
-pkill -f cloudflared 2>/dev/null && echo -e "${GREEN}✓${NC} Cloudflared tunnels stopped" || echo -e "${YELLOW}○${NC} No tunnels running"
+pkill -f cloudflared 2>/dev/null && echo -e "${GREEN}âœ“${NC} Cloudflared tunnels stopped" || echo -e "${YELLOW}â—‹${NC} No tunnels running"
 
 # Clean up PID files
 rm -f "${LOGS_DIR}"/*.pid 2>/dev/null

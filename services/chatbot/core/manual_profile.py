@@ -11,6 +11,7 @@ Public API:
     save_manual_profile(payload, force=False) -> dict
     OVERRIDES_PATH                          -> Path
 """
+
 from __future__ import annotations
 
 import json
@@ -18,13 +19,13 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from core.character_registry import get_registry
 from core.character_understanding import (
     _build_identity_block,
     _load_manual_overrides,
     _slugify,
     make_canonical_id,
 )
-from core.character_registry import get_registry
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,7 @@ _ALLOWED_FIELDS = {
 
 
 # ── Validation ─────────────────────────────────────────────────────────────
+
 
 def _norm_list(val: Any) -> list[str]:
     if not val:
@@ -111,8 +113,11 @@ def _validate(profile: dict) -> list[str]:
         )
     refs = profile.get("reference_images") or []
     bad_refs = [
-        r for r in refs
-        if not (r.startswith("http://") or r.startswith("https://") or r.startswith("/"))
+        r
+        for r in refs
+        if not (
+            r.startswith("http://") or r.startswith("https://") or r.startswith("/")
+        )
     ]
     if bad_refs:
         warnings.append(
@@ -123,6 +128,7 @@ def _validate(profile: dict) -> list[str]:
 
 
 # ── Preview ────────────────────────────────────────────────────────────────
+
 
 def preview_manual_profile(payload: dict) -> dict:
     """Build a preview of how the runtime would treat this manual profile.
@@ -179,7 +185,9 @@ def preview_manual_profile(payload: dict) -> dict:
     }
 
 
-def _find_duplicates(canonical_id: str, char_slug: str, aliases: list[str]) -> list[dict]:
+def _find_duplicates(
+    canonical_id: str, char_slug: str, aliases: list[str]
+) -> list[dict]:
     """Look for collisions in the existing override file and registry.
 
     Returns a list of ``{"source", "where"}`` dicts. ``source`` is one of
@@ -201,10 +209,12 @@ def _find_duplicates(canonical_id: str, char_slug: str, aliases: list[str]) -> l
             out.append({"source": "override", "where": f"alias={char_slug}"})
             continue
         if alias_set & entry_aliases:
-            out.append({
-                "source": "override",
-                "where": "alias=" + next(iter(alias_set & entry_aliases)),
-            })
+            out.append(
+                {
+                    "source": "override",
+                    "where": "alias=" + next(iter(alias_set & entry_aliases)),
+                }
+            )
 
     # Local registry
     try:
@@ -219,6 +229,7 @@ def _find_duplicates(canonical_id: str, char_slug: str, aliases: list[str]) -> l
 
 
 # ── Save ───────────────────────────────────────────────────────────────────
+
 
 def save_manual_profile(payload: dict, *, force: bool = False) -> dict:
     """Append a manual profile to ``character_overrides.json`` if safe.
@@ -241,7 +252,8 @@ def save_manual_profile(payload: dict, *, force: bool = False) -> dict:
 
     # Hard validation errors (everything except the duplicate warning).
     hard_errors = [
-        w for w in warnings
+        w
+        for w in warnings
         if w.startswith("display_name is required")
         or w.startswith("series_name or series_slug")
         or w.startswith("visual_traits is empty")
@@ -257,9 +269,17 @@ def save_manual_profile(payload: dict, *, force: bool = False) -> dict:
         "series_slug": preview["series_slug"],
         "data_status": "manual_override",
         "needs_review": True,
-        **{k: v for k, v in profile.items() if k not in {
-            "display_name", "series_name", "series_slug", "character_slug",
-        }},
+        **{
+            k: v
+            for k, v in profile.items()
+            if k
+            not in {
+                "display_name",
+                "series_name",
+                "series_slug",
+                "character_slug",
+            }
+        },
     }
 
     if hard_errors or (has_dupes and not force):
@@ -267,8 +287,8 @@ def save_manual_profile(payload: dict, *, force: bool = False) -> dict:
             "saved": False,
             "reason": (
                 "validation failed: " + "; ".join(hard_errors)
-                if hard_errors else
-                "duplicate canonical_id or alias — pass force=true to override "
+                if hard_errors
+                else "duplicate canonical_id or alias — pass force=true to override "
                 "after manually editing the existing entry"
             ),
             "preview": preview,

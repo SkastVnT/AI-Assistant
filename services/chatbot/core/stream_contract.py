@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-
 STREAM_CONTRACT_VERSION = "v2"
 
 

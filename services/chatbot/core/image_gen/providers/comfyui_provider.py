@@ -8,24 +8,29 @@ Best for: free local generation when GPU is available.
 
 from __future__ import annotations
 
+import base64
+import json
+import logging
 import os
+import random
 import re
 import time
-import json
-import base64
 import uuid
-import random
-import logging
+
 import httpx
 
-from .base import (
-    BaseImageProvider, ImageRequest, ImageResult,
-    ImageMode, ProviderTier, LoraSpec,
-)
-from ..workflow_builder import (
-    build_txt2img_workflow,
-    build_img2img_workflow,
+from core.image_gen.workflow_builder import (
     build_hires_fix_workflow,
+    build_img2img_workflow,
+    build_txt2img_workflow,
+)
+
+from .base import (
+    BaseImageProvider,
+    ImageMode,
+    ImageRequest,
+    ImageResult,
+    ProviderTier,
 )
 
 logger = logging.getLogger(__name__)
@@ -37,102 +42,174 @@ logger = logging.getLogger(__name__)
 MODEL_PROFILES: dict[str, dict] = {
     # -- SD 1.5 anime ------------------------------------------------------
     "AnythingV5Ink_ink.safetensors": {
-        "type": "sd15", "style": "anime", "priority": 90,
-        "res_portrait": (512, 768), "res_landscape": (768, 512), "res_square": (512, 512),
-        "steps": 28, "cfg": 7.5,
-        "sampler": "dpmpp_2m", "scheduler": "karras",
+        "type": "sd15",
+        "style": "anime",
+        "priority": 90,
+        "res_portrait": (512, 768),
+        "res_landscape": (768, 512),
+        "res_square": (512, 512),
+        "steps": 28,
+        "cfg": 7.5,
+        "sampler": "dpmpp_2m",
+        "scheduler": "karras",
         "vae": "kl-f8-anime2.vae.safetensors",
         "clip_skip": 2,
     },
     "illustrij_v3.safetensors": {
-        "type": "sd15", "style": "anime", "priority": 85,
-        "res_portrait": (512, 768), "res_landscape": (768, 512), "res_square": (512, 512),
-        "steps": 28, "cfg": 7.0,
-        "sampler": "dpmpp_2m", "scheduler": "karras",
+        "type": "sd15",
+        "style": "anime",
+        "priority": 85,
+        "res_portrait": (512, 768),
+        "res_landscape": (768, 512),
+        "res_square": (512, 512),
+        "steps": 28,
+        "cfg": 7.0,
+        "sampler": "dpmpp_2m",
+        "scheduler": "karras",
         "vae": "kl-f8-anime2.vae.safetensors",
         "clip_skip": 2,
     },
     "abyssorangemix3AOM3_aom3a1b.safetensors": {
-        "type": "sd15", "style": "anime", "priority": 80,
-        "res_portrait": (512, 768), "res_landscape": (768, 512), "res_square": (512, 512),
-        "steps": 28, "cfg": 6.5,
-        "sampler": "dpmpp_2m_sde", "scheduler": "karras",
+        "type": "sd15",
+        "style": "anime",
+        "priority": 80,
+        "res_portrait": (512, 768),
+        "res_landscape": (768, 512),
+        "res_square": (512, 512),
+        "steps": 28,
+        "cfg": 6.5,
+        "sampler": "dpmpp_2m_sde",
+        "scheduler": "karras",
         "vae": "orangemix.vae.pt",
         "clip_skip": 2,
     },
     "soushiki_v10.safetensors": {
-        "type": "sd15", "style": "anime", "priority": 75,
-        "res_portrait": (512, 768), "res_landscape": (768, 512), "res_square": (512, 512),
-        "steps": 28, "cfg": 7.0,
-        "sampler": "dpmpp_2m", "scheduler": "karras",
+        "type": "sd15",
+        "style": "anime",
+        "priority": 75,
+        "res_portrait": (512, 768),
+        "res_landscape": (768, 512),
+        "res_square": (512, 512),
+        "steps": 28,
+        "cfg": 7.0,
+        "sampler": "dpmpp_2m",
+        "scheduler": "karras",
         "vae": "kl-f8-anime2.vae.safetensors",
         "clip_skip": 2,
     },
     "anythingelseV4_v45.safetensors": {
-        "type": "sd15", "style": "anime", "priority": 70,
-        "res_portrait": (512, 768), "res_landscape": (768, 512), "res_square": (512, 512),
-        "steps": 28, "cfg": 7.0,
-        "sampler": "dpmpp_2m", "scheduler": "karras",
+        "type": "sd15",
+        "style": "anime",
+        "priority": 70,
+        "res_portrait": (512, 768),
+        "res_landscape": (768, 512),
+        "res_square": (512, 512),
+        "steps": 28,
+        "cfg": 7.0,
+        "sampler": "dpmpp_2m",
+        "scheduler": "karras",
         "vae": "kl-f8-anime2.vae.safetensors",
         "clip_skip": 2,
     },
     "abyssorangemix2SFW_abyssorangemix2Sfw.safetensors": {
-        "type": "sd15", "style": "anime", "priority": 65,
-        "res_portrait": (512, 768), "res_landscape": (768, 512), "res_square": (512, 512),
-        "steps": 28, "cfg": 6.5,
-        "sampler": "dpmpp_2m_sde", "scheduler": "karras",
+        "type": "sd15",
+        "style": "anime",
+        "priority": 65,
+        "res_portrait": (512, 768),
+        "res_landscape": (768, 512),
+        "res_square": (512, 512),
+        "steps": 28,
+        "cfg": 6.5,
+        "sampler": "dpmpp_2m_sde",
+        "scheduler": "karras",
         "vae": "orangemix.vae.pt",
         "clip_skip": 2,
     },
     # -- SDXL ---------------------------------------------------------------
     "flatpiececorexl_a1818.safetensors": {
-        "type": "sdxl", "style": "anime", "priority": 88,
-        "res_portrait": (1536, 2048), "res_landscape": (2048, 1536), "res_square": (1800, 1800),
-        "steps": 30, "cfg": 5.0,
-        "sampler": "dpmpp_2m_sde", "scheduler": "karras",
+        "type": "sdxl",
+        "style": "anime",
+        "priority": 88,
+        "res_portrait": (1536, 2048),
+        "res_landscape": (2048, 1536),
+        "res_square": (1800, 1800),
+        "steps": 30,
+        "cfg": 5.0,
+        "sampler": "dpmpp_2m_sde",
+        "scheduler": "karras",
         "vae": None,
         "clip_skip": 1,
     },
     "realvisxlV50_v50LightningBakedvae.safetensors": {
-        "type": "sdxl_lightning", "style": "realistic", "priority": 92,
-        "res_portrait": (1536, 2048), "res_landscape": (2048, 1536), "res_square": (1800, 1800),
-        "steps": 6, "cfg": 1.8,
-        "sampler": "euler", "scheduler": "sgm_uniform",
+        "type": "sdxl_lightning",
+        "style": "realistic",
+        "priority": 92,
+        "res_portrait": (1536, 2048),
+        "res_landscape": (2048, 1536),
+        "res_square": (1800, 1800),
+        "steps": 6,
+        "cfg": 1.8,
+        "sampler": "euler",
+        "scheduler": "sgm_uniform",
         "vae": None,
         "clip_skip": 1,
     },
     # -- SDXL anime (downloaded via download_anime_models.ps1) -------------
     "animagine-xl-4.0-opt.safetensors": {
-        "type": "sdxl", "style": "anime", "priority": 90,
-        "res_portrait": (1536, 2048), "res_landscape": (2048, 1536), "res_square": (1800, 1800),
-        "steps": 28, "cfg": 6.0,
-        "sampler": "euler_ancestral", "scheduler": "karras",
+        "type": "sdxl",
+        "style": "anime",
+        "priority": 90,
+        "res_portrait": (1536, 2048),
+        "res_landscape": (2048, 1536),
+        "res_square": (1800, 1800),
+        "steps": 28,
+        "cfg": 6.0,
+        "sampler": "euler_ancestral",
+        "scheduler": "karras",
         "vae": "sdxl_vae.safetensors",
         "clip_skip": 2,
     },
     "noobaiXLVpred_v11.safetensors": {
-        "type": "sdxl", "style": "anime", "priority": 98,
-        "res_portrait": (1536, 2048), "res_landscape": (2048, 1536), "res_square": (1800, 1800),
-        "steps": 28, "cfg": 5.0,
-        "sampler": "euler_ancestral", "scheduler": "karras",
+        "type": "sdxl",
+        "style": "anime",
+        "priority": 98,
+        "res_portrait": (1536, 2048),
+        "res_landscape": (2048, 1536),
+        "res_square": (1800, 1800),
+        "steps": 28,
+        "cfg": 5.0,
+        "sampler": "euler_ancestral",
+        "scheduler": "karras",
         "vae": "sdxl_vae.safetensors",
         "clip_skip": 2,
     },
     "ChenkinNoob-XL-V0.2.safetensors": {
-        "type": "sdxl", "style": "anime", "priority": 85,
-        "res_portrait": (1536, 2048), "res_landscape": (2048, 1536), "res_square": (1800, 1800),
-        "steps": 28, "cfg": 5.0,
-        "sampler": "euler_ancestral", "scheduler": "karras",
+        "type": "sdxl",
+        "style": "anime",
+        "priority": 85,
+        "res_portrait": (1536, 2048),
+        "res_landscape": (2048, 1536),
+        "res_square": (1800, 1800),
+        "steps": 28,
+        "cfg": 5.0,
+        "sampler": "euler_ancestral",
+        "scheduler": "karras",
         "vae": "sdxl_vae.safetensors",
         "clip_skip": 2,
     },
     # Kohaku XL Delta rev1 — Illustrious-based, ultra-clean anime, vivid colors
     # Best for portrait/character art; soft shading, high detail iris
     "kohakuXLDelta_rev1.safetensors": {
-        "type": "sdxl", "style": "anime", "priority": 97,
-        "res_portrait": (1536, 2048), "res_landscape": (2048, 1536), "res_square": (1800, 1800),
-        "steps": 28, "cfg": 5.5,
-        "sampler": "euler_ancestral", "scheduler": "karras",
+        "type": "sdxl",
+        "style": "anime",
+        "priority": 97,
+        "res_portrait": (1536, 2048),
+        "res_landscape": (2048, 1536),
+        "res_square": (1800, 1800),
+        "steps": 28,
+        "cfg": 5.5,
+        "sampler": "euler_ancestral",
+        "scheduler": "karras",
         "vae": "sdxl_vae.safetensors",
         "clip_skip": 2,
     },
@@ -336,7 +413,7 @@ def _pick_resolution(profile: dict, req_w: int, req_h: int) -> tuple[int, int]:
     # Guard: SD1.5 is trained at 512px native — anything above ~1024 produces
     # duplications / OOM. For SD1.5 we always fall back to profile presets and
     # rely on the hires-fix path to upscale if the user wants larger output.
-    is_sd15 = (profile.get("type") == "sd15")
+    is_sd15 = profile.get("type") == "sd15"
     if (req_w != 1024 or req_h != 1024) and not is_sd15:
         return (req_w // 8 * 8, req_h // 8 * 8)
     # Fall back to profile presets based on aspect ratio.
@@ -351,11 +428,17 @@ def _pick_resolution(profile: dict, req_w: int, req_h: int) -> tuple[int, int]:
 
 # -- Workflow builders -----------------------------------------------------
 
+
 def _build_txt2img_workflow(
-    prompt: str, negative: str,
-    width: int, height: int,
-    steps: int, cfg: float, seed: int,
-    sampler: str, scheduler: str,
+    prompt: str,
+    negative: str,
+    width: int,
+    height: int,
+    steps: int,
+    cfg: float,
+    seed: int,
+    sampler: str,
+    scheduler: str,
     checkpoint: str,
     vae: str | None = None,
     loras: list[tuple[str, float]] | None = None,
@@ -526,9 +609,13 @@ def _build_txt2img_workflow(
 
 
 def _build_img2img_workflow(
-    prompt: str, negative: str,
-    steps: int, cfg: float, seed: int,
-    sampler: str, scheduler: str,
+    prompt: str,
+    negative: str,
+    steps: int,
+    cfg: float,
+    seed: int,
+    sampler: str,
+    scheduler: str,
     strength: float,
     image_b64: str,
     checkpoint: str,
@@ -624,6 +711,7 @@ def _build_img2img_workflow(
 
 # -- Provider class --------------------------------------------------------
 
+
 class ComfyUIProvider(BaseImageProvider):
     name = "comfyui"
     tier = ProviderTier.LOCAL
@@ -642,10 +730,18 @@ class ComfyUIProvider(BaseImageProvider):
         self._available_loras: list[str] | None = None
         self._available_controlnets: list[str] | None = None
 
-        self._force_checkpoint: str = kwargs.get("checkpoint", os.getenv("COMFYUI_CHECKPOINT", ""))
-        self._upscale_factor: float = float(kwargs.get("upscale_factor", os.getenv("COMFYUI_UPSCALE_FACTOR", "3")))
-        self._enable_loras: bool = str(kwargs.get("enable_loras", os.getenv("COMFYUI_ENABLE_LORAS", "true"))).lower() in ("true", "1", "yes")
-        self._enable_hires: bool = str(kwargs.get("enable_hires", os.getenv("COMFYUI_ENABLE_HIRES", "true"))).lower() in ("true", "1", "yes")
+        self._force_checkpoint: str = kwargs.get(
+            "checkpoint", os.getenv("COMFYUI_CHECKPOINT", "")
+        )
+        self._upscale_factor: float = float(
+            kwargs.get("upscale_factor", os.getenv("COMFYUI_UPSCALE_FACTOR", "3"))
+        )
+        self._enable_loras: bool = str(
+            kwargs.get("enable_loras", os.getenv("COMFYUI_ENABLE_LORAS", "true"))
+        ).lower() in ("true", "1", "yes")
+        self._enable_hires: bool = str(
+            kwargs.get("enable_hires", os.getenv("COMFYUI_ENABLE_HIRES", "true"))
+        ).lower() in ("true", "1", "yes")
 
     # -- Discovery ---------------------------------------------------------
 
@@ -724,10 +820,16 @@ class ComfyUIProvider(BaseImageProvider):
             if profile:
                 return self._force_checkpoint, profile
             return self._force_checkpoint, {
-                "type": "sd15", "style": "anime", "priority": 50,
-                "res_portrait": (512, 768), "res_landscape": (768, 512), "res_square": (512, 512),
-                "steps": 25, "cfg": 7.0,
-                "sampler": "dpmpp_2m", "scheduler": "karras",
+                "type": "sd15",
+                "style": "anime",
+                "priority": 50,
+                "res_portrait": (512, 768),
+                "res_landscape": (768, 512),
+                "res_square": (512, 512),
+                "steps": 25,
+                "cfg": 7.0,
+                "sampler": "dpmpp_2m",
+                "scheduler": "karras",
                 "vae": None,
             }
 
@@ -744,10 +846,16 @@ class ComfyUIProvider(BaseImageProvider):
                 ckpt = self._available_ckpts[0]
                 logger.warning(f"[ComfyUI] No profiled model, using {ckpt}")
                 return ckpt, {
-                    "type": "sd15", "style": "anime", "priority": 50,
-                    "res_portrait": (512, 768), "res_landscape": (768, 512), "res_square": (512, 512),
-                    "steps": 25, "cfg": 7.0,
-                    "sampler": "dpmpp_2m", "scheduler": "karras",
+                    "type": "sd15",
+                    "style": "anime",
+                    "priority": 50,
+                    "res_portrait": (512, 768),
+                    "res_landscape": (768, 512),
+                    "res_square": (512, 512),
+                    "steps": 25,
+                    "cfg": 7.0,
+                    "sampler": "dpmpp_2m",
+                    "scheduler": "karras",
                     "vae": None,
                 }
             raise RuntimeError(
@@ -762,16 +870,20 @@ class ComfyUIProvider(BaseImageProvider):
         # every generation while still preferring quality models.
         weights = [p["priority"] for _, p in pool]
         chosen = random.choices(pool, weights=weights, k=1)[0]
-        logger.debug(f"[ComfyUI] Model pool size={len(pool)}, selected={chosen[0]} (priority={chosen[1]['priority']})")
+        logger.debug(
+            f"[ComfyUI] Model pool size={len(pool)}, selected={chosen[0]} (priority={chosen[1]['priority']})"
+        )
         return chosen
 
-    def _resolve_loras(self, model_type: str, style: str = "anime") -> list[tuple[str, float]]:
+    def _resolve_loras(
+        self, model_type: str, style: str = "anime"
+    ) -> list[tuple[str, float]]:
         """Select LoRAs for generation.
-        
+
         SDXL anime checkpoints (Animagine XL 4.0, NoobAI XL, etc.) are already
         trained for high-quality anime output. We stack quality LoRAs
         (eye detail + anatomy/pose + hair) to fill gaps the checkpoint misses.
-        
+
         Only SD1.5 models benefit from a single detail LoRA.
         """
         if not self._enable_loras or not self._available_loras:
@@ -796,7 +908,9 @@ class ComfyUIProvider(BaseImageProvider):
                         matched = lora_name
                     else:
                         for l in self._available_loras:
-                            if l.endswith("/" + lora_name) or l.endswith("\\" + lora_name):
+                            if l.endswith("/" + lora_name) or l.endswith(
+                                "\\" + lora_name
+                            ):
                                 matched = l
                                 break
                     if matched:
@@ -812,13 +926,19 @@ class ComfyUIProvider(BaseImageProvider):
             for lora_name, strength in cat:
                 # Check both plain name and subfolder paths
                 if lora_name in self._available_loras or any(
-                    l.endswith(lora_name) or l.endswith("/" + lora_name) or l.endswith("\\" + lora_name)
+                    l.endswith(lora_name)
+                    or l.endswith("/" + lora_name)
+                    or l.endswith("\\" + lora_name)
                     for l in self._available_loras
                 ):
                     # Use the matched name as ComfyUI sees it
                     matched = lora_name
                     for l in self._available_loras:
-                        if l == lora_name or l.endswith("/" + lora_name) or l.endswith("\\" + lora_name):
+                        if (
+                            l == lora_name
+                            or l.endswith("/" + lora_name)
+                            or l.endswith("\\" + lora_name)
+                        ):
                             matched = l
                             break
                     found.append((matched, strength))
@@ -868,7 +988,11 @@ class ComfyUIProvider(BaseImageProvider):
         try:
             checkpoint, profile = self._select_model(req)
             vae_name = profile.get("vae")
-            if vae_name and self._available_vaes and vae_name not in self._available_vaes:
+            if (
+                vae_name
+                and self._available_vaes
+                and vae_name not in self._available_vaes
+            ):
                 vae_name = None
 
             # ── Route to appropriate workflow ────────────────────────────
@@ -883,8 +1007,12 @@ class ComfyUIProvider(BaseImageProvider):
                 if vae and self._available_vaes and vae not in self._available_vaes:
                     vae = None
 
-                loras = self._resolve_loras(model_type, _classify_style(req.prompt, req.style_preset))
-                negative = NEGATIVE_SDXL if model_type.startswith("sdxl") else NEGATIVE_SD15
+                loras = self._resolve_loras(
+                    model_type, _classify_style(req.prompt, req.style_preset)
+                )
+                negative = (
+                    NEGATIVE_SDXL if model_type.startswith("sdxl") else NEGATIVE_SD15
+                )
 
                 if self._enable_hires and model_type == "sd15":
                     target_w, target_h = req.width, req.height
@@ -910,33 +1038,48 @@ class ComfyUIProvider(BaseImageProvider):
 
                 if req.mode == ImageMode.IMAGE_TO_IMAGE and req.source_image_b64:
                     workflow = _build_img2img_workflow(
-                        prompt=req.prompt, negative=negative,
-                        steps=eff_steps, cfg=eff_cfg,
+                        prompt=req.prompt,
+                        negative=negative,
+                        steps=eff_steps,
+                        cfg=eff_cfg,
                         seed=seed,
-                        sampler=profile["sampler"], scheduler=profile["scheduler"],
+                        sampler=profile["sampler"],
+                        scheduler=profile["scheduler"],
                         strength=req.strength,
                         image_b64=req.source_image_b64,
-                        checkpoint=checkpoint, vae=vae,
+                        checkpoint=checkpoint,
+                        vae=vae,
                     )
                 else:
                     workflow = _build_txt2img_workflow(
-                        prompt=req.prompt, negative=negative,
-                        width=native_w, height=native_h,
-                        steps=eff_steps, cfg=eff_cfg,
+                        prompt=req.prompt,
+                        negative=negative,
+                        width=native_w,
+                        height=native_h,
+                        steps=eff_steps,
+                        cfg=eff_cfg,
                         seed=seed,
-                        sampler=profile["sampler"], scheduler=profile["scheduler"],
-                        checkpoint=checkpoint, vae=vae,
-                        loras=loras, upscale_to=upscale_to,
+                        sampler=profile["sampler"],
+                        scheduler=profile["scheduler"],
+                        checkpoint=checkpoint,
+                        vae=vae,
+                        loras=loras,
+                        upscale_to=upscale_to,
                         clip_skip=profile.get("clip_skip", 1),
                         model_type=model_type,
                     )
 
-            resp = self._http.post("/prompt", json={
-                "prompt": workflow,
-                "client_id": client_id,
-            })
+            resp = self._http.post(
+                "/prompt",
+                json={
+                    "prompt": workflow,
+                    "client_id": client_id,
+                },
+            )
             if resp.status_code != 200:
-                logger.error("[ComfyUI] Queue failed (%d): %s", resp.status_code, resp.text[:500])
+                logger.error(
+                    "[ComfyUI] Queue failed (%d): %s", resp.status_code, resp.text[:500]
+                )
                 return ImageResult(
                     success=False,
                     error=f"ComfyUI rejected workflow (status {resp.status_code})",
@@ -967,21 +1110,34 @@ class ComfyUIProvider(BaseImageProvider):
                     "preset_id": req.preset_id,
                     "model_type": model_type,
                     "resolution": f"{native_w}x{native_h}",
-                    "upscaled_to": f"{upscale_to[0]}x{upscale_to[1]}" if upscale_to else None,
+                    "upscaled_to": (
+                        f"{upscale_to[0]}x{upscale_to[1]}" if upscale_to else None
+                    ),
                     "loras": (
                         [{"name": l.name, "weight": l.weight} for l in req.lora_models]
-                        if req.lora_models else [l[0] for l in loras]
+                        if req.lora_models
+                        else [l[0] for l in loras]
                     ),
-                    **({"saa_character": saa_meta["saa_character"]} if saa_meta.get("saa_character") else {}),
+                    **(
+                        {"saa_character": saa_meta["saa_character"]}
+                        if saa_meta.get("saa_character")
+                        else {}
+                    ),
                 },
             )
 
         except Exception as e:
             logger.error("[ComfyUI] Error during generation", exc_info=True)
-            return ImageResult(success=False, error=f"Image generation failed: {e}", provider=self.name)
+            return ImageResult(
+                success=False, error=f"Image generation failed: {e}", provider=self.name
+            )
 
     def _build_lora_workflow(
-        self, req: ImageRequest, seed: int, checkpoint: str, vae_name: str | None,
+        self,
+        req: ImageRequest,
+        seed: int,
+        checkpoint: str,
+        vae_name: str | None,
     ) -> dict:
         """Select and build the right workflow template via workflow_builder.
 
@@ -1000,8 +1156,16 @@ class ComfyUIProvider(BaseImageProvider):
         # Use profile steps/cfg only when request still has defaults
         _DEFAULT_STEPS = 28
         _DEFAULT_CFG = 3.5
-        wb_steps = req.steps if req.steps != _DEFAULT_STEPS else profile.get("steps", req.steps)
-        wb_cfg = req.guidance if req.guidance != _DEFAULT_CFG else profile.get("cfg", 7.0 if mtype == "sd15" else 5.0)
+        wb_steps = (
+            req.steps
+            if req.steps != _DEFAULT_STEPS
+            else profile.get("steps", req.steps)
+        )
+        wb_cfg = (
+            req.guidance
+            if req.guidance != _DEFAULT_CFG
+            else profile.get("cfg", 7.0 if mtype == "sd15" else 5.0)
+        )
 
         # Quality prefix and negative prompt per model family
         if mtype == "sd15":
@@ -1023,15 +1187,15 @@ class ComfyUIProvider(BaseImageProvider):
             neg = req.negative_prompt if req.negative_prompt else NEGATIVE_SD15
 
         # Shared kwargs for all builders
-        builder_kwargs = dict(
-            sampler=wb_sampler,
-            scheduler=wb_scheduler,
-            steps=wb_steps,
-            cfg=wb_cfg,
-            clip_skip=wb_clip_skip,
-            quality_prefix=quality_prefix,
-            negative_prompt=neg,
-        )
+        builder_kwargs = {
+            "sampler": wb_sampler,
+            "scheduler": wb_scheduler,
+            "steps": wb_steps,
+            "cfg": wb_cfg,
+            "clip_skip": wb_clip_skip,
+            "quality_prefix": quality_prefix,
+            "negative_prompt": neg,
+        }
 
         logger.info(
             f"[ComfyUI/LoRA] ckpt={checkpoint} type={mtype} "
@@ -1043,34 +1207,53 @@ class ComfyUIProvider(BaseImageProvider):
 
         if req.mode == ImageMode.IMAGE_TO_IMAGE and req.source_image_b64:
             import base64 as _b64
+
             img_data = req.source_image_b64
             if "," in img_data:
                 img_data = img_data.split(",", 1)[1]
             img_bytes = _b64.b64decode(img_data)
             upload_resp = self._http.post(
                 "/upload/image",
-                files={"image": (f"input_{int(time.time()*1000)}.png", img_bytes, "image/png")},
+                files={
+                    "image": (
+                        f"input_{int(time.time() * 1000)}.png",
+                        img_bytes,
+                        "image/png",
+                    )
+                },
             )
             upload_resp.raise_for_status()
             image_name = upload_resp.json().get("name", "input.png")
-            return build_img2img_workflow(req, seed, checkpoint, image_name, vae_name, **builder_kwargs)
+            return build_img2img_workflow(
+                req, seed, checkpoint, image_name, vae_name, **builder_kwargs
+            )
         elif use_hires:
             return build_hires_fix_workflow(
-                req, seed, checkpoint, vae_name,
+                req,
+                seed,
+                checkpoint,
+                vae_name,
                 hires_scale=float(req.extra.get("hires_scale", 1.5)),
                 hires_denoise=float(req.extra.get("hires_denoise", 0.45)),
                 hires_steps=int(req.extra.get("hires_steps", 15)),
                 **builder_kwargs,
             )
         else:
-            return build_txt2img_workflow(req, seed, checkpoint, vae_name, **builder_kwargs)
+            return build_txt2img_workflow(
+                req, seed, checkpoint, vae_name, **builder_kwargs
+            )
 
     def get_loras(self) -> list[str]:
         """List available LoRA models from ComfyUI."""
         try:
             resp = self._http.get("/object_info/LoraLoader")
             data = resp.json()
-            return data.get("LoraLoader", {}).get("input", {}).get("required", {}).get("lora_name", [[]])[0]
+            return (
+                data.get("LoraLoader", {})
+                .get("input", {})
+                .get("required", {})
+                .get("lora_name", [[]])[0]
+            )
         except Exception:
             return []
 
@@ -1093,13 +1276,18 @@ class ComfyUIProvider(BaseImageProvider):
                         for img_info in node_out.get("images", []):
                             fname = img_info.get("filename")
                             subfolder = img_info.get("subfolder", "")
-                            img_resp = self._http.get("/view", params={
-                                "filename": fname,
-                                "subfolder": subfolder,
-                                "type": img_info.get("type", "output"),
-                            })
+                            img_resp = self._http.get(
+                                "/view",
+                                params={
+                                    "filename": fname,
+                                    "subfolder": subfolder,
+                                    "type": img_info.get("type", "output"),
+                                },
+                            )
                             if img_resp.status_code == 200:
-                                images.append(base64.b64encode(img_resp.content).decode())
+                                images.append(
+                                    base64.b64encode(img_resp.content).decode()
+                                )
                     if images:
                         return images
             time.sleep(1.0)

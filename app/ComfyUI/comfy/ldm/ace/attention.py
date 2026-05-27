@@ -21,6 +21,7 @@ from torch import nn
 import comfy.model_management
 from comfy.ldm.modules.attention import optimized_attention
 
+
 class Attention(nn.Module):
     def __init__(
         self,
@@ -47,7 +48,9 @@ class Attention(nn.Module):
         pre_only=False,
         elementwise_affine: bool = True,
         is_causal: bool = False,
-        dtype=None, device=None, operations=None
+        dtype=None,
+        device=None,
+        operations=None,
     ):
         super().__init__()
 
@@ -56,13 +59,17 @@ class Attention(nn.Module):
         self.query_dim = query_dim
         self.use_bias = bias
         self.is_cross_attention = cross_attention_dim is not None
-        self.cross_attention_dim = cross_attention_dim if cross_attention_dim is not None else query_dim
+        self.cross_attention_dim = (
+            cross_attention_dim if cross_attention_dim is not None else query_dim
+        )
         self.rescale_output_factor = rescale_output_factor
         self.residual_connection = residual_connection
         self.dropout = dropout
         self.fused_projections = False
         self.out_dim = out_dim if out_dim is not None else query_dim
-        self.out_context_dim = out_context_dim if out_context_dim is not None else query_dim
+        self.out_context_dim = (
+            out_context_dim if out_context_dim is not None else query_dim
+        )
         self.context_pre_only = context_pre_only
         self.pre_only = pre_only
         self.is_causal = is_causal
@@ -91,22 +98,54 @@ class Attention(nn.Module):
         self.norm_k = None
 
         self.norm_cross = None
-        self.to_q = operations.Linear(query_dim, self.inner_dim, bias=bias, dtype=dtype, device=device)
+        self.to_q = operations.Linear(
+            query_dim, self.inner_dim, bias=bias, dtype=dtype, device=device
+        )
 
         if not self.only_cross_attention:
             # only relevant for the `AddedKVProcessor` classes
-            self.to_k = operations.Linear(self.cross_attention_dim, self.inner_kv_dim, bias=bias, dtype=dtype, device=device)
-            self.to_v = operations.Linear(self.cross_attention_dim, self.inner_kv_dim, bias=bias, dtype=dtype, device=device)
+            self.to_k = operations.Linear(
+                self.cross_attention_dim,
+                self.inner_kv_dim,
+                bias=bias,
+                dtype=dtype,
+                device=device,
+            )
+            self.to_v = operations.Linear(
+                self.cross_attention_dim,
+                self.inner_kv_dim,
+                bias=bias,
+                dtype=dtype,
+                device=device,
+            )
         else:
             self.to_k = None
             self.to_v = None
 
         self.added_proj_bias = added_proj_bias
         if self.added_kv_proj_dim is not None:
-            self.add_k_proj = operations.Linear(added_kv_proj_dim, self.inner_kv_dim, bias=added_proj_bias, dtype=dtype, device=device)
-            self.add_v_proj = operations.Linear(added_kv_proj_dim, self.inner_kv_dim, bias=added_proj_bias, dtype=dtype, device=device)
+            self.add_k_proj = operations.Linear(
+                added_kv_proj_dim,
+                self.inner_kv_dim,
+                bias=added_proj_bias,
+                dtype=dtype,
+                device=device,
+            )
+            self.add_v_proj = operations.Linear(
+                added_kv_proj_dim,
+                self.inner_kv_dim,
+                bias=added_proj_bias,
+                dtype=dtype,
+                device=device,
+            )
             if self.context_pre_only is not None:
-                self.add_q_proj = operations.Linear(added_kv_proj_dim, self.inner_dim, bias=added_proj_bias, dtype=dtype, device=device)
+                self.add_q_proj = operations.Linear(
+                    added_kv_proj_dim,
+                    self.inner_dim,
+                    bias=added_proj_bias,
+                    dtype=dtype,
+                    device=device,
+                )
         else:
             self.add_q_proj = None
             self.add_k_proj = None
@@ -114,13 +153,27 @@ class Attention(nn.Module):
 
         if not self.pre_only:
             self.to_out = nn.ModuleList([])
-            self.to_out.append(operations.Linear(self.inner_dim, self.out_dim, bias=out_bias, dtype=dtype, device=device))
+            self.to_out.append(
+                operations.Linear(
+                    self.inner_dim,
+                    self.out_dim,
+                    bias=out_bias,
+                    dtype=dtype,
+                    device=device,
+                )
+            )
             self.to_out.append(nn.Dropout(dropout))
         else:
             self.to_out = None
 
         if self.context_pre_only is not None and not self.context_pre_only:
-            self.to_add_out = operations.Linear(self.inner_dim, self.out_context_dim, bias=out_bias, dtype=dtype, device=device)
+            self.to_add_out = operations.Linear(
+                self.inner_dim,
+                self.out_context_dim,
+                bias=out_bias,
+                dtype=dtype,
+                device=device,
+            )
         else:
             self.to_add_out = None
 
@@ -201,12 +254,16 @@ class CustomLiteLAProcessor2_0:
         input_ndim = hidden_states.ndim
         if input_ndim == 4:
             batch_size, channel, height, width = hidden_states.shape
-            hidden_states = hidden_states.view(batch_size, channel, height * width).transpose(1, 2)
+            hidden_states = hidden_states.view(
+                batch_size, channel, height * width
+            ).transpose(1, 2)
         if encoder_hidden_states is not None:
             context_input_ndim = encoder_hidden_states.ndim
             if context_input_ndim == 4:
                 batch_size, channel, height, width = encoder_hidden_states.shape
-                encoder_hidden_states = encoder_hidden_states.view(batch_size, channel, height * width).transpose(1, 2)
+                encoder_hidden_states = encoder_hidden_states.view(
+                    batch_size, channel, height * width
+                ).transpose(1, 2)
 
         batch_size = hidden_states.shape[0]
 
@@ -217,7 +274,11 @@ class CustomLiteLAProcessor2_0:
         value = attn.to_v(hidden_states)
 
         # `context` projections.
-        has_encoder_hidden_state_proj = hasattr(attn, "add_q_proj") and hasattr(attn, "add_k_proj") and hasattr(attn, "add_v_proj")
+        has_encoder_hidden_state_proj = (
+            hasattr(attn, "add_q_proj")
+            and hasattr(attn, "add_k_proj")
+            and hasattr(attn, "add_v_proj")
+        )
         if encoder_hidden_states is not None and has_encoder_hidden_state_proj:
             encoder_hidden_states_query_proj = attn.add_q_proj(encoder_hidden_states)
             encoder_hidden_states_key_proj = attn.add_k_proj(encoder_hidden_states)
@@ -237,7 +298,11 @@ class CustomLiteLAProcessor2_0:
         head_dim = inner_dim // attn.heads
 
         query = query.transpose(-1, -2).reshape(batch_size, attn.heads, head_dim, -1)
-        key = key.transpose(-1, -2).reshape(batch_size, attn.heads, head_dim, -1).transpose(-1, -2)
+        key = (
+            key.transpose(-1, -2)
+            .reshape(batch_size, attn.heads, head_dim, -1)
+            .transpose(-1, -2)
+        )
         value = value.transpose(-1, -2).reshape(batch_size, attn.heads, head_dim, -1)
 
         # RoPE需要 [B, H, S, D] 输入
@@ -263,17 +328,33 @@ class CustomLiteLAProcessor2_0:
 
         if attention_mask is not None:
             # attention_mask: [B, S] -> [B, 1, S, 1]
-            attention_mask = attention_mask[:, None, :, None].to(key.dtype)  # [B, 1, S, 1]
-            query = query * attention_mask.permute(0, 1, 3, 2)  # [B, H, S, D] * [B, 1, S, 1]
+            attention_mask = attention_mask[:, None, :, None].to(
+                key.dtype
+            )  # [B, 1, S, 1]
+            query = query * attention_mask.permute(
+                0, 1, 3, 2
+            )  # [B, H, S, D] * [B, 1, S, 1]
             if not attn.is_cross_attention:
-                key = key * attention_mask  # key: [B, h, S, D] 与 mask [B, 1, S, 1] 相乘
-                value = value * attention_mask.permute(0, 1, 3, 2)  # 如果 value 是 [B, h, D, S]，那么需调整mask以匹配S维度
+                key = (
+                    key * attention_mask
+                )  # key: [B, h, S, D] 与 mask [B, 1, S, 1] 相乘
+                value = value * attention_mask.permute(
+                    0, 1, 3, 2
+                )  # 如果 value 是 [B, h, D, S]，那么需调整mask以匹配S维度
 
-        if attn.is_cross_attention and encoder_attention_mask is not None and has_encoder_hidden_state_proj:
-            encoder_attention_mask = encoder_attention_mask[:, None, :, None].to(key.dtype)  # [B, 1, S_enc, 1]
+        if (
+            attn.is_cross_attention
+            and encoder_attention_mask is not None
+            and has_encoder_hidden_state_proj
+        ):
+            encoder_attention_mask = encoder_attention_mask[:, None, :, None].to(
+                key.dtype
+            )  # [B, 1, S_enc, 1]
             # 此时 key: [B, h, S_enc, D], value: [B, h, D, S_enc]
             key = key * encoder_attention_mask  # [B, h, S_enc, D] * [B, 1, S_enc, 1]
-            value = value * encoder_attention_mask.permute(0, 1, 3, 2)  # [B, h, D, S_enc] * [B, 1, 1, S_enc]
+            value = value * encoder_attention_mask.permute(
+                0, 1, 3, 2
+            )  # [B, h, D, S_enc] * [B, 1, 1, S_enc]
 
         query = self.kernel_func(query)
         key = self.kernel_func(key)
@@ -291,16 +372,22 @@ class CustomLiteLAProcessor2_0:
 
         hidden_states = hidden_states[:, :, :-1] / (hidden_states[:, :, -1:] + self.eps)
 
-        hidden_states = hidden_states.view(batch_size, attn.heads * head_dim, -1).permute(0, 2, 1)
+        hidden_states = hidden_states.view(
+            batch_size, attn.heads * head_dim, -1
+        ).permute(0, 2, 1)
 
         hidden_states = hidden_states.to(dtype)
         if encoder_hidden_states is not None:
             encoder_hidden_states = encoder_hidden_states.to(dtype)
 
         # Split the attention outputs.
-        if encoder_hidden_states is not None and not attn.is_cross_attention and has_encoder_hidden_state_proj:
+        if (
+            encoder_hidden_states is not None
+            and not attn.is_cross_attention
+            and has_encoder_hidden_state_proj
+        ):
             hidden_states, encoder_hidden_states = (
-                hidden_states[:, : hidden_states_len],
+                hidden_states[:, :hidden_states_len],
                 hidden_states[:, hidden_states_len:],
             )
 
@@ -308,13 +395,22 @@ class CustomLiteLAProcessor2_0:
         hidden_states = attn.to_out[0](hidden_states)
         # dropout
         hidden_states = attn.to_out[1](hidden_states)
-        if encoder_hidden_states is not None and not attn.context_pre_only and not attn.is_cross_attention and hasattr(attn, "to_add_out"):
+        if (
+            encoder_hidden_states is not None
+            and not attn.context_pre_only
+            and not attn.is_cross_attention
+            and hasattr(attn, "to_add_out")
+        ):
             encoder_hidden_states = attn.to_add_out(encoder_hidden_states)
 
         if input_ndim == 4:
-            hidden_states = hidden_states.transpose(-1, -2).reshape(batch_size, channel, height, width)
+            hidden_states = hidden_states.transpose(-1, -2).reshape(
+                batch_size, channel, height, width
+            )
         if encoder_hidden_states is not None and context_input_ndim == 4:
-            encoder_hidden_states = encoder_hidden_states.transpose(-1, -2).reshape(batch_size, channel, height, width)
+            encoder_hidden_states = encoder_hidden_states.transpose(-1, -2).reshape(
+                batch_size, channel, height, width
+            )
 
         if torch.get_autocast_gpu_dtype() == torch.float16:
             hidden_states = hidden_states.clip(-65504, 65504)
@@ -378,23 +474,35 @@ class CustomerAttnProcessor2_0:
 
         if input_ndim == 4:
             batch_size, channel, height, width = hidden_states.shape
-            hidden_states = hidden_states.view(batch_size, channel, height * width).transpose(1, 2)
+            hidden_states = hidden_states.view(
+                batch_size, channel, height * width
+            ).transpose(1, 2)
 
         batch_size, sequence_length, _ = (
-            hidden_states.shape if encoder_hidden_states is None else encoder_hidden_states.shape
+            hidden_states.shape
+            if encoder_hidden_states is None
+            else encoder_hidden_states.shape
         )
 
-        has_encoder_hidden_state_proj = hasattr(attn, "add_q_proj") and hasattr(attn, "add_k_proj") and hasattr(attn, "add_v_proj")
+        has_encoder_hidden_state_proj = (
+            hasattr(attn, "add_q_proj")
+            and hasattr(attn, "add_k_proj")
+            and hasattr(attn, "add_v_proj")
+        )
 
         if attn.group_norm is not None:
-            hidden_states = attn.group_norm(hidden_states.transpose(1, 2)).transpose(1, 2)
+            hidden_states = attn.group_norm(hidden_states.transpose(1, 2)).transpose(
+                1, 2
+            )
 
         query = attn.to_q(hidden_states)
 
         if encoder_hidden_states is None:
             encoder_hidden_states = hidden_states
         elif attn.norm_cross:
-            encoder_hidden_states = attn.norm_encoder_hidden_states(encoder_hidden_states)
+            encoder_hidden_states = attn.norm_encoder_hidden_states(
+                encoder_hidden_states
+            )
 
         key = attn.to_k(encoder_hidden_states)
         value = attn.to_v(encoder_hidden_states)
@@ -420,23 +528,43 @@ class CustomerAttnProcessor2_0:
             elif rotary_freqs_cis_cross is not None and has_encoder_hidden_state_proj:
                 key = self.apply_rotary_emb(key, rotary_freqs_cis_cross)
 
-        if attn.is_cross_attention and encoder_attention_mask is not None and has_encoder_hidden_state_proj:
+        if (
+            attn.is_cross_attention
+            and encoder_attention_mask is not None
+            and has_encoder_hidden_state_proj
+        ):
             # attention_mask: N x S1
             # encoder_attention_mask: N x S2
             # cross attention 整合attention_mask和encoder_attention_mask
-            combined_mask = attention_mask[:, :, None] * encoder_attention_mask[:, None, :]
+            combined_mask = (
+                attention_mask[:, :, None] * encoder_attention_mask[:, None, :]
+            )
             attention_mask = torch.where(combined_mask == 1, 0.0, -torch.inf)
-            attention_mask = attention_mask[:, None, :, :].expand(-1, attn.heads, -1, -1).to(query.dtype)
+            attention_mask = (
+                attention_mask[:, None, :, :]
+                .expand(-1, attn.heads, -1, -1)
+                .to(query.dtype)
+            )
 
         elif not attn.is_cross_attention and attention_mask is not None:
-            attention_mask = attn.prepare_attention_mask(attention_mask, sequence_length, batch_size)
+            attention_mask = attn.prepare_attention_mask(
+                attention_mask, sequence_length, batch_size
+            )
             # scaled_dot_product_attention expects attention_mask shape to be
             # (batch, heads, source_length, target_length)
-            attention_mask = attention_mask.view(batch_size, attn.heads, -1, attention_mask.shape[-1])
+            attention_mask = attention_mask.view(
+                batch_size, attn.heads, -1, attention_mask.shape[-1]
+            )
 
         # the output of sdp = (batch, num_heads, seq_len, head_dim)
         hidden_states = optimized_attention(
-            query, key, value, heads=query.shape[1], mask=attention_mask, skip_reshape=True, transformer_options=transformer_options,
+            query,
+            key,
+            value,
+            heads=query.shape[1],
+            mask=attention_mask,
+            skip_reshape=True,
+            transformer_options=transformer_options,
         ).to(query.dtype)
 
         # linear proj
@@ -445,7 +573,9 @@ class CustomerAttnProcessor2_0:
         hidden_states = attn.to_out[1](hidden_states)
 
         if input_ndim == 4:
-            hidden_states = hidden_states.transpose(-1, -2).reshape(batch_size, channel, height, width)
+            hidden_states = hidden_states.transpose(-1, -2).reshape(
+                batch_size, channel, height, width
+            )
 
         if attn.residual_connection:
             hidden_states = hidden_states + residual
@@ -453,6 +583,7 @@ class CustomerAttnProcessor2_0:
         hidden_states = hidden_states / attn.rescale_output_factor
 
         return hidden_states
+
 
 def val2list(x: list or tuple or any, repeat_time=1) -> list:  # type: ignore
     """Repeat `val` for `repeat_time` times and return the list or val if list/tuple."""
@@ -477,12 +608,15 @@ def t2i_modulate(x, shift, scale):
     return x * (1 + scale) + shift
 
 
-def get_same_padding(kernel_size: Union[int, Tuple[int, ...]]) -> Union[int, Tuple[int, ...]]:
+def get_same_padding(
+    kernel_size: Union[int, Tuple[int, ...]],
+) -> Union[int, Tuple[int, ...]]:
     if isinstance(kernel_size, tuple):
         return tuple([get_same_padding(ks) for ks in kernel_size])
     else:
         assert kernel_size % 2 > 0, f"kernel size {kernel_size} should be odd number"
         return kernel_size // 2
+
 
 class ConvLayer(nn.Module):
     def __init__(
@@ -497,7 +631,9 @@ class ConvLayer(nn.Module):
         use_bias=False,
         norm=None,
         act=None,
-        dtype=None, device=None, operations=None
+        dtype=None,
+        device=None,
+        operations=None,
     ):
         super().__init__()
         if padding is None:
@@ -523,10 +659,12 @@ class ConvLayer(nn.Module):
             groups=groups,
             bias=use_bias,
             device=device,
-            dtype=dtype
+            dtype=dtype,
         )
         if norm is not None:
-            self.norm = operations.RMSNorm(out_dim, elementwise_affine=False, dtype=dtype, device=device)
+            self.norm = operations.RMSNorm(
+                out_dim, elementwise_affine=False, dtype=dtype, device=device
+            )
         else:
             self.norm = None
         if act is not None:
@@ -556,7 +694,9 @@ class GLUMBConv(nn.Module):
         norm=(None, None, None),
         act=("silu", "silu", None),
         dilation=1,
-        dtype=None, device=None, operations=None
+        dtype=None,
+        device=None,
+        operations=None,
     ):
         out_feature = out_feature or in_features
         super().__init__()
@@ -622,6 +762,7 @@ class LinearTransformerBlock(nn.Module):
     """
     A Sana block with global shared adaptive layer norm (adaLN-single) conditioning.
     """
+
     def __init__(
         self,
         dim,
@@ -635,7 +776,9 @@ class LinearTransformerBlock(nn.Module):
         add_cross_attention=False,
         add_cross_attention_dim=None,
         qk_norm=None,
-        dtype=None, device=None, operations=None
+        dtype=None,
+        device=None,
+        operations=None,
     ):
         super().__init__()
 
@@ -689,7 +832,9 @@ class LinearTransformerBlock(nn.Module):
         )
         self.use_adaln_single = use_adaln_single
         if use_adaln_single:
-            self.scale_shift_table = nn.Parameter(torch.empty(6, dim, dtype=dtype, device=device))
+            self.scale_shift_table = nn.Parameter(
+                torch.empty(6, dim, dtype=dtype, device=device)
+            )
 
     def forward(
         self,
@@ -708,7 +853,10 @@ class LinearTransformerBlock(nn.Module):
         # step 1: AdaLN single
         if self.use_adaln_single:
             shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = (
-                comfy.model_management.cast_to(self.scale_shift_table[None], dtype=temb.dtype, device=temb.device) + temb.reshape(N, 6, -1)
+                comfy.model_management.cast_to(
+                    self.scale_shift_table[None], dtype=temb.dtype, device=temb.device
+                )
+                + temb.reshape(N, 6, -1)
             ).chunk(6, dim=1)
 
         norm_hidden_states = self.norm1(hidden_states)

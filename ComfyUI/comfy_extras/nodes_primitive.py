@@ -48,7 +48,12 @@ class Int(io.ComfyNode):
             display_name="Int",
             category="utils/primitive",
             inputs=[
-                io.Int.Input("value", min=-sys.maxsize, max=sys.maxsize, control_after_generate=True),
+                io.Int.Input(
+                    "value",
+                    min=-sys.maxsize,
+                    max=sys.maxsize,
+                    control_after_generate=True,
+                ),
             ],
             outputs=[io.Int.Output()],
         )
@@ -104,6 +109,7 @@ class PrimitivesExtension(ComfyExtension):
             Float,
             Boolean,
         ]
+
 
 async def comfy_entrypoint() -> PrimitivesExtension:
     return PrimitivesExtension()

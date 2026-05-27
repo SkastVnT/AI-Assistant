@@ -3,7 +3,7 @@ REM Force UTF-8 encoding to prevent Unicode errors
 chcp 65001 >nul 2>&1
 
 REM Navigate to project root (parent of scripts folder)
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 echo ========================================
 echo   Starting Stable Diffusion WebUI

@@ -40,7 +40,9 @@ BYTEPLUS_IMAGE_ENDPOINT = "/proxy/byteplus/api/v3/images/generations"
 
 # Long-running tasks endpoints(e.g., video)
 BYTEPLUS_TASK_ENDPOINT = "/proxy/byteplus/api/v3/contents/generations/tasks"
-BYTEPLUS_TASK_STATUS_ENDPOINT = "/proxy/byteplus/api/v3/contents/generations/tasks"  # + /{task_id}
+BYTEPLUS_TASK_STATUS_ENDPOINT = (
+    "/proxy/byteplus/api/v3/contents/generations/tasks"  # + /{task_id}
+)
 
 
 def get_image_url_from_response(response: ImageTaskCreationResponse) -> str:
@@ -53,7 +55,6 @@ def get_image_url_from_response(response: ImageTaskCreationResponse) -> str:
 
 
 class ByteDanceImageNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -151,7 +152,8 @@ class ByteDanceImageNode(IO.ComfyNode):
             w, h = width, height
             if not (512 <= w <= 2048) or not (512 <= h <= 2048):
                 raise ValueError(
-                    f"Custom size out of range: {w}x{h}. " "Both width and height must be between 512 and 2048 pixels."
+                    f"Custom size out of range: {w}x{h}. "
+                    "Both width and height must be between 512 and 2048 pixels."
                 )
 
         payload = Text2ImageTaskCreationRequest(
@@ -168,11 +170,12 @@ class ByteDanceImageNode(IO.ComfyNode):
             data=payload,
             response_model=ImageTaskCreationResponse,
         )
-        return IO.NodeOutput(await download_url_to_image_tensor(get_image_url_from_response(response)))
+        return IO.NodeOutput(
+            await download_url_to_image_tensor(get_image_url_from_response(response))
+        )
 
 
 class ByteDanceImageEditNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -246,7 +249,11 @@ class ByteDanceImageEditNode(IO.ComfyNode):
         if get_number_of_images(image) != 1:
             raise ValueError("Exactly one input image is required.")
         validate_image_aspect_ratio(image, (1, 3), (3, 1))
-        source_url = (await upload_images_to_comfyapi(cls, image, max_images=1, mime_type="image/png"))[0]
+        source_url = (
+            await upload_images_to_comfyapi(
+                cls, image, max_images=1, mime_type="image/png"
+            )
+        )[0]
         payload = Image2ImageTaskCreationRequest(
             model=model,
             prompt=prompt,
@@ -261,11 +268,12 @@ class ByteDanceImageEditNode(IO.ComfyNode):
             data=payload,
             response_model=ImageTaskCreationResponse,
         )
-        return IO.NodeOutput(await download_url_to_image_tensor(get_image_url_from_response(response)))
+        return IO.NodeOutput(
+            await download_url_to_image_tensor(get_image_url_from_response(response))
+        )
 
 
 class ByteDanceSeedreamNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -395,7 +403,8 @@ class ByteDanceSeedreamNode(IO.ComfyNode):
             w, h = width, height
             if not (1024 <= w <= 4096) or not (1024 <= h <= 4096):
                 raise ValueError(
-                    f"Custom size out of range: {w}x{h}. " "Both width and height must be between 1024 and 4096 pixels."
+                    f"Custom size out of range: {w}x{h}. "
+                    "Both width and height must be between 1024 and 4096 pixels."
                 )
         out_num_pixels = w * h
         mp_provided = out_num_pixels / 1_000_000.0
@@ -411,7 +420,9 @@ class ByteDanceSeedreamNode(IO.ComfyNode):
             )
         n_input_images = get_number_of_images(image) if image is not None else 0
         if n_input_images > 10:
-            raise ValueError(f"Maximum of 10 reference images are supported, but {n_input_images} received.")
+            raise ValueError(
+                f"Maximum of 10 reference images are supported, but {n_input_images} received."
+            )
         if sequential_image_generation == "auto" and n_input_images + max_images > 15:
             raise ValueError(
                 "The maximum number of generated images plus the number of reference images cannot exceed 15."
@@ -437,20 +448,31 @@ class ByteDanceSeedreamNode(IO.ComfyNode):
                 size=f"{w}x{h}",
                 seed=seed,
                 sequential_image_generation=sequential_image_generation,
-                sequential_image_generation_options=Seedream4Options(max_images=max_images),
+                sequential_image_generation_options=Seedream4Options(
+                    max_images=max_images
+                ),
                 watermark=watermark,
             ),
         )
         if len(response.data) == 1:
-            return IO.NodeOutput(await download_url_to_image_tensor(get_image_url_from_response(response)))
-        urls = [str(d["url"]) for d in response.data if isinstance(d, dict) and "url" in d]
+            return IO.NodeOutput(
+                await download_url_to_image_tensor(
+                    get_image_url_from_response(response)
+                )
+            )
+        urls = [
+            str(d["url"]) for d in response.data if isinstance(d, dict) and "url" in d
+        ]
         if fail_on_partial and len(urls) < len(response.data):
-            raise RuntimeError(f"Only {len(urls)} of {len(response.data)} images were generated before error.")
-        return IO.NodeOutput(torch.cat([await download_url_to_image_tensor(i) for i in urls]))
+            raise RuntimeError(
+                f"Only {len(urls)} of {len(response.data)} images were generated before error."
+            )
+        return IO.NodeOutput(
+            torch.cat([await download_url_to_image_tensor(i) for i in urls])
+        )
 
 
 class ByteDanceTextToVideoNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -461,7 +483,11 @@ class ByteDanceTextToVideoNode(IO.ComfyNode):
             inputs=[
                 IO.Combo.Input(
                     "model",
-                    options=["seedance-1-0-pro-250528", "seedance-1-0-lite-t2v-250428", "seedance-1-0-pro-fast-251015"],
+                    options=[
+                        "seedance-1-0-pro-250528",
+                        "seedance-1-0-lite-t2v-250428",
+                        "seedance-1-0-pro-fast-251015",
+                    ],
                     default="seedance-1-0-pro-fast-251015",
                 ),
                 IO.String.Input(
@@ -537,7 +563,10 @@ class ByteDanceTextToVideoNode(IO.ComfyNode):
         watermark: bool,
     ) -> IO.NodeOutput:
         validate_string(prompt, strip_whitespace=True, min_length=1)
-        raise_if_text_params(prompt, ["resolution", "ratio", "duration", "seed", "camerafixed", "watermark"])
+        raise_if_text_params(
+            prompt,
+            ["resolution", "ratio", "duration", "seed", "camerafixed", "watermark"],
+        )
 
         prompt = (
             f"{prompt} "
@@ -550,13 +579,19 @@ class ByteDanceTextToVideoNode(IO.ComfyNode):
         )
         return await process_video_task(
             cls,
-            payload=Text2VideoTaskCreationRequest(model=model, content=[TaskTextContent(text=prompt)]),
-            estimated_duration=max(1, math.ceil(VIDEO_TASKS_EXECUTION_TIME[model][resolution] * (duration / 10.0))),
+            payload=Text2VideoTaskCreationRequest(
+                model=model, content=[TaskTextContent(text=prompt)]
+            ),
+            estimated_duration=max(
+                1,
+                math.ceil(
+                    VIDEO_TASKS_EXECUTION_TIME[model][resolution] * (duration / 10.0)
+                ),
+            ),
         )
 
 
 class ByteDanceImageToVideoNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -567,7 +602,11 @@ class ByteDanceImageToVideoNode(IO.ComfyNode):
             inputs=[
                 IO.Combo.Input(
                     "model",
-                    options=["seedance-1-0-pro-250528", "seedance-1-0-lite-t2v-250428", "seedance-1-0-pro-fast-251015"],
+                    options=[
+                        "seedance-1-0-pro-250528",
+                        "seedance-1-0-lite-t2v-250428",
+                        "seedance-1-0-pro-fast-251015",
+                    ],
                     default="seedance-1-0-pro-fast-251015",
                 ),
                 IO.String.Input(
@@ -648,8 +687,13 @@ class ByteDanceImageToVideoNode(IO.ComfyNode):
         watermark: bool,
     ) -> IO.NodeOutput:
         validate_string(prompt, strip_whitespace=True, min_length=1)
-        raise_if_text_params(prompt, ["resolution", "ratio", "duration", "seed", "camerafixed", "watermark"])
-        validate_image_dimensions(image, min_width=300, min_height=300, max_width=6000, max_height=6000)
+        raise_if_text_params(
+            prompt,
+            ["resolution", "ratio", "duration", "seed", "camerafixed", "watermark"],
+        )
+        validate_image_dimensions(
+            image, min_width=300, min_height=300, max_width=6000, max_height=6000
+        )
         validate_image_aspect_ratio(image, (2, 5), (5, 2), strict=False)  # 0.4 to 2.5
 
         image_url = (await upload_images_to_comfyapi(cls, image, max_images=1))[0]
@@ -667,14 +711,21 @@ class ByteDanceImageToVideoNode(IO.ComfyNode):
             cls,
             payload=Image2VideoTaskCreationRequest(
                 model=model,
-                content=[TaskTextContent(text=prompt), TaskImageContent(image_url=TaskImageContentUrl(url=image_url))],
+                content=[
+                    TaskTextContent(text=prompt),
+                    TaskImageContent(image_url=TaskImageContentUrl(url=image_url)),
+                ],
             ),
-            estimated_duration=max(1, math.ceil(VIDEO_TASKS_EXECUTION_TIME[model][resolution] * (duration / 10.0))),
+            estimated_duration=max(
+                1,
+                math.ceil(
+                    VIDEO_TASKS_EXECUTION_TIME[model][resolution] * (duration / 10.0)
+                ),
+            ),
         )
 
 
 class ByteDanceFirstLastFrameNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -771,9 +822,14 @@ class ByteDanceFirstLastFrameNode(IO.ComfyNode):
         watermark: bool,
     ) -> IO.NodeOutput:
         validate_string(prompt, strip_whitespace=True, min_length=1)
-        raise_if_text_params(prompt, ["resolution", "ratio", "duration", "seed", "camerafixed", "watermark"])
+        raise_if_text_params(
+            prompt,
+            ["resolution", "ratio", "duration", "seed", "camerafixed", "watermark"],
+        )
         for i in (first_frame, last_frame):
-            validate_image_dimensions(i, min_width=300, min_height=300, max_width=6000, max_height=6000)
+            validate_image_dimensions(
+                i, min_width=300, min_height=300, max_width=6000, max_height=6000
+            )
             validate_image_aspect_ratio(i, (2, 5), (5, 2), strict=False)  # 0.4 to 2.5
 
         download_urls = await upload_images_to_comfyapi(
@@ -799,16 +855,26 @@ class ByteDanceFirstLastFrameNode(IO.ComfyNode):
                 model=model,
                 content=[
                     TaskTextContent(text=prompt),
-                    TaskImageContent(image_url=TaskImageContentUrl(url=str(download_urls[0])), role="first_frame"),
-                    TaskImageContent(image_url=TaskImageContentUrl(url=str(download_urls[1])), role="last_frame"),
+                    TaskImageContent(
+                        image_url=TaskImageContentUrl(url=str(download_urls[0])),
+                        role="first_frame",
+                    ),
+                    TaskImageContent(
+                        image_url=TaskImageContentUrl(url=str(download_urls[1])),
+                        role="last_frame",
+                    ),
                 ],
             ),
-            estimated_duration=max(1, math.ceil(VIDEO_TASKS_EXECUTION_TIME[model][resolution] * (duration / 10.0))),
+            estimated_duration=max(
+                1,
+                math.ceil(
+                    VIDEO_TASKS_EXECUTION_TIME[model][resolution] * (duration / 10.0)
+                ),
+            ),
         )
 
 
 class ByteDanceImageReferenceNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -892,12 +958,20 @@ class ByteDanceImageReferenceNode(IO.ComfyNode):
         watermark: bool,
     ) -> IO.NodeOutput:
         validate_string(prompt, strip_whitespace=True, min_length=1)
-        raise_if_text_params(prompt, ["resolution", "ratio", "duration", "seed", "watermark"])
+        raise_if_text_params(
+            prompt, ["resolution", "ratio", "duration", "seed", "watermark"]
+        )
         for image in images:
-            validate_image_dimensions(image, min_width=300, min_height=300, max_width=6000, max_height=6000)
-            validate_image_aspect_ratio(image, (2, 5), (5, 2), strict=False)  # 0.4 to 2.5
+            validate_image_dimensions(
+                image, min_width=300, min_height=300, max_width=6000, max_height=6000
+            )
+            validate_image_aspect_ratio(
+                image, (2, 5), (5, 2), strict=False
+            )  # 0.4 to 2.5
 
-        image_urls = await upload_images_to_comfyapi(cls, images, max_images=4, mime_type="image/png")
+        image_urls = await upload_images_to_comfyapi(
+            cls, images, max_images=4, mime_type="image/png"
+        )
         prompt = (
             f"{prompt} "
             f"--resolution {resolution} "
@@ -908,12 +982,22 @@ class ByteDanceImageReferenceNode(IO.ComfyNode):
         )
         x = [
             TaskTextContent(text=prompt),
-            *[TaskImageContent(image_url=TaskImageContentUrl(url=str(i)), role="reference_image") for i in image_urls],
+            *[
+                TaskImageContent(
+                    image_url=TaskImageContentUrl(url=str(i)), role="reference_image"
+                )
+                for i in image_urls
+            ],
         ]
         return await process_video_task(
             cls,
             payload=Image2VideoTaskCreationRequest(model=model, content=x),
-            estimated_duration=max(1, math.ceil(VIDEO_TASKS_EXECUTION_TIME[model][resolution] * (duration / 10.0))),
+            estimated_duration=max(
+                1,
+                math.ceil(
+                    VIDEO_TASKS_EXECUTION_TIME[model][resolution] * (duration / 10.0)
+                ),
+            ),
         )
 
 

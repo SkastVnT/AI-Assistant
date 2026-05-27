@@ -33,10 +33,13 @@ from pathlib import Path
 
 import pytest
 
-# Repo root for image_pipeline.* imports (matches sibling test files).
+# app/ for image_pipeline.* imports (matches sibling test files).
 _ROOT = Path(__file__).resolve().parents[4]
+_APP_ROOT = _ROOT / "app"
+if str(_APP_ROOT) not in sys.path:
+    sys.path.insert(0, str(_APP_ROOT))
 if str(_ROOT) not in sys.path:
-    sys.path.insert(0, str(_ROOT))
+    sys.path.insert(1, str(_ROOT))
 
 # services/chatbot must be on sys.path so ``core.*`` and ``routes.*``
 # resolve the same way the live Flask app sees them. When pytest is run
@@ -94,6 +97,7 @@ def _make_flask_app(register: bool):
     app = Flask(__name__)
     if register:
         from routes.reasoning_image_gen import reasoning_image_gen_bp
+
         app.register_blueprint(reasoning_image_gen_bp)
     return app
 
@@ -247,7 +251,9 @@ class TestRouteHygiene:
         main_text = (_CHATBOT_DIR / "chatbot_main.py").read_text(encoding="utf-8")
         # The conditional registration block must exist and key off the flag.
         assert "REASONING_PIPELINE_ENABLED" in main_text
-        assert "from routes.reasoning_image_gen import reasoning_image_gen_bp" in main_text
+        assert (
+            "from routes.reasoning_image_gen import reasoning_image_gen_bp" in main_text
+        )
         # And the import must sit INSIDE an `if REASONING_PIPELINE_ENABLED:` block.
         idx_flag = main_text.find("if REASONING_PIPELINE_ENABLED:")
         idx_import = main_text.find(
@@ -279,7 +285,14 @@ class TestCharacterUnderstandingWiring:
         """Replace the pipeline function with a capture stub."""
         captured: dict = {}
 
-        def fake_run(prompt_text, *, layout=None, attached_images=0, character_hint=None, **_kwargs):
+        def fake_run(
+            prompt_text,
+            *,
+            layout=None,
+            attached_images=0,
+            character_hint=None,
+            **_kwargs,
+        ):
             captured["prompt"] = prompt_text
             captured["character_hint"] = character_hint
             return {
@@ -293,6 +306,7 @@ class TestCharacterUnderstandingWiring:
             }
 
         from routes import reasoning_image_gen as route_mod
+
         monkeypatch.setattr(route_mod, "run_pipeline_for_prompt", fake_run)
         return captured
 
@@ -337,6 +351,7 @@ class TestCharacterUnderstandingWiring:
         captured = self._patch_pipeline(monkeypatch)
         # Force the registry to find the picker key.
         from unittest.mock import MagicMock
+
         rec = MagicMock()
         rec.key = "raiden_shogun_genshin_impact"
         rec.display_name = "Raiden Shogun"

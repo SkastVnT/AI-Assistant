@@ -4,6 +4,7 @@ Hermes Agent adapter — HTTP proxy to the Hermes sidecar.
 Proxies requests to the Hermes Gateway API (sidecar service).
 Returns markdown string matching the tool-response-contract.
 """
+
 import json
 import logging
 import sys
@@ -12,16 +13,17 @@ from pathlib import Path
 
 import requests
 
-CHATBOT_DIR = Path(__file__).parent.parent.resolve()
-if str(CHATBOT_DIR) not in sys.path:
-    sys.path.insert(0, str(CHATBOT_DIR))
-
 from core.config import (
     HERMES_API_KEY,
     HERMES_API_URL,
     HERMES_ENABLED,
     HERMES_TIMEOUT,
 )
+
+CHATBOT_DIR = Path(__file__).parent.parent.resolve()
+if str(CHATBOT_DIR) not in sys.path:
+    sys.path.insert(0, str(CHATBOT_DIR))
+
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +95,8 @@ def hermes_chat(
 
     logger.info(
         "[HERMES] Request started: url=%s msg_len=%d",
-        url, len(message),
+        url,
+        len(message),
     )
 
     # ── Send request ──────────────────────────────────────────────────
@@ -115,7 +118,11 @@ def hermes_chat(
         }
     except requests.Timeout:
         elapsed = round(time.monotonic() - _start, 2)
-        logger.warning("[HERMES] Request timed out after %.1fs (limit=%ds)", elapsed, HERMES_TIMEOUT)
+        logger.warning(
+            "[HERMES] Request timed out after %.1fs (limit=%ds)",
+            elapsed,
+            HERMES_TIMEOUT,
+        )
         return {
             "success": False,
             "result": "",
@@ -139,7 +146,9 @@ def hermes_chat(
         body_snippet = (resp.text or "")[:500]
         logger.warning(
             "[HERMES] Non-200 response (%d) after %.1fs: %s",
-            resp.status_code, elapsed, body_snippet,
+            resp.status_code,
+            elapsed,
+            body_snippet,
         )
         return {
             "success": False,
@@ -152,7 +161,11 @@ def hermes_chat(
         data = resp.json()
     except (json.JSONDecodeError, ValueError):
         result_text = resp.text[:4000] if resp.text else ""
-        logger.info("[HERMES] Completed (raw text): elapsed=%.1fs len=%d", elapsed, len(result_text))
+        logger.info(
+            "[HERMES] Completed (raw text): elapsed=%.1fs len=%d",
+            elapsed,
+            len(result_text),
+        )
         return {
             "success": True,
             "result": result_text,
@@ -160,8 +173,12 @@ def hermes_chat(
             "elapsed_s": elapsed,
         }
 
-    result_text = data.get("response") or data.get("result") or data.get("message") or ""
-    logger.info("[HERMES] Completed: elapsed=%.1fs result_len=%d", elapsed, len(result_text))
+    result_text = (
+        data.get("response") or data.get("result") or data.get("message") or ""
+    )
+    logger.info(
+        "[HERMES] Completed: elapsed=%.1fs result_len=%d", elapsed, len(result_text)
+    )
 
     return {
         "success": True,

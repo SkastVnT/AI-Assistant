@@ -13,16 +13,16 @@ from ``BaseAgent`` and implements :meth:`execute`.  The base class owns:
 Integration point with existing code:
   • Will use ``core.chatbot_v2.ModelRegistry`` for LLM calls (Phase 2).
 """
+
 from __future__ import annotations
 
 import json
 import logging
 import re
-import time
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from core.agentic.config import CouncilConfig
 from core.agentic.contracts import AgentRole
@@ -106,6 +106,7 @@ class BaseAgent(ABC):
         if self._llm_adapter is None:
             try:
                 from core.agentic.llm_adapter import LLMAdapter as _Adapter
+
                 self._llm_adapter = _Adapter.from_registry()
             except Exception as exc:
                 logger.error("[%s] Cannot create LLMAdapter: %s", self.role.value, exc)
@@ -138,9 +139,7 @@ class BaseAgent(ABC):
     # ── JSON extraction ───────────────────────────────────────────
 
     # Matches ```json ... ``` or ``` ... ``` fenced blocks
-    _JSON_FENCE_RE = re.compile(
-        r"```(?:json)?\s*\n?(.*?)\n?\s*```", re.DOTALL
-    )
+    _JSON_FENCE_RE = re.compile(r"```(?:json)?\s*\n?(.*?)\n?\s*```", re.DOTALL)
 
     @staticmethod
     def _parse_json(raw: str) -> dict[str, Any]:
@@ -180,7 +179,9 @@ class BaseAgent(ABC):
             except json.JSONDecodeError:
                 pass
 
-        raise ValueError(f"Could not extract JSON from LLM response ({len(text)} chars)")
+        raise ValueError(
+            f"Could not extract JSON from LLM response ({len(text)} chars)"
+        )
 
     @staticmethod
     def _validate(data: dict[str, Any], model_cls: type[T]) -> T:

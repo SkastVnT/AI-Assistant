@@ -16,11 +16,10 @@ Environment variables
 ``AGENT_BLACKBOARD_TTL``
     Key TTL in seconds.  Default: ``3600`` (1 hour).
 """
+
 from __future__ import annotations
 
-import json
 import logging
-from typing import Any
 
 from core.agentic.config import CouncilConfig
 from core.agentic.contracts import (
@@ -48,7 +47,9 @@ class RedisBlackboard:
         Key TTL in seconds.  Set to ``0`` to disable expiry.
     """
 
-    def __init__(self, redis_url: str = "redis://localhost:6379/1", ttl: int = 3600) -> None:
+    def __init__(
+        self, redis_url: str = "redis://localhost:6379/1", ttl: int = 3600
+    ) -> None:
         try:
             import redis as _redis_lib  # noqa: F811
         except ImportError as exc:
@@ -139,15 +140,9 @@ class RedisBlackboard:
             "rounds": state.current_round,
             "total_llm_calls": state.total_llm_calls,
             "total_tokens": state.total_tokens,
-            "planner_tasks": sum(
-                len(p.tasks) for p in state.planner_outputs
-            ),
-            "evidence_items": sum(
-                len(r.evidence) for r in state.researcher_outputs
-            ),
-            "critic_issues": sum(
-                len(c.issues) for c in state.critic_outputs
-            ),
+            "planner_tasks": sum(len(p.tasks) for p in state.planner_outputs),
+            "evidence_items": sum(len(r.evidence) for r in state.researcher_outputs),
+            "critic_issues": sum(len(c.issues) for c in state.critic_outputs),
             "has_final_answer": state.synthesizer_output is not None,
             "steps": [
                 {

@@ -5,7 +5,6 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-
 pixverse_templates = {
     "Microwave": 324641385496960,
     "Suit Swagger": 328545151283968,
@@ -107,7 +106,7 @@ class PixverseTransitionVideoRequest(BaseModel):
 class PixverseImageUploadResponse(BaseModel):
     ErrCode: Optional[int] = None
     ErrMsg: Optional[str] = None
-    Resp: Optional[PixverseImgIdResponseObject] = Field(None, alias='Resp')
+    Resp: Optional[PixverseImgIdResponseObject] = Field(None, alias="Resp")
 
 
 class PixverseImgIdResponseObject(BaseModel):
@@ -121,7 +120,7 @@ class PixverseVideoResponse(BaseModel):
 
 
 class PixverseVideoIdResponseObject(BaseModel):
-    video_id: int = Field(..., description='Video_id')
+    video_id: int = Field(..., description="Video_id")
 
 
 class PixverseGenerationStatusResponse(BaseModel):

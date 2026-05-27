@@ -11,6 +11,7 @@ import hashlib
 class Source:
     custom_node = "custom_node"
 
+
 class SubgraphEntry(TypedDict):
     source: str
     """
@@ -31,29 +32,35 @@ class SubgraphEntry(TypedDict):
     """
     data: str
 
+
 class CustomNodeSubgraphEntryInfo(TypedDict):
     node_pack: str
     """Node pack name."""
+
 
 class SubgraphManager:
     def __init__(self):
         self.cached_custom_node_subgraphs: dict[SubgraphEntry] | None = None
 
     async def load_entry_data(self, entry: SubgraphEntry):
-        with open(entry['path'], 'r') as f:
-            entry['data'] = f.read()
+        with open(entry["path"], "r") as f:
+            entry["data"] = f.read()
         return entry
 
-    async def sanitize_entry(self, entry: SubgraphEntry | None, remove_data=False) -> SubgraphEntry | None:
+    async def sanitize_entry(
+        self, entry: SubgraphEntry | None, remove_data=False
+    ) -> SubgraphEntry | None:
         if entry is None:
             return None
         entry = entry.copy()
-        entry.pop('path', None)
+        entry.pop("path", None)
         if remove_data:
-            entry.pop('data', None)
+            entry.pop("data", None)
         return entry
 
-    async def sanitize_entries(self, entries: dict[str, SubgraphEntry], remove_data=False) -> dict[str, SubgraphEntry]:
+    async def sanitize_entries(
+        self, entries: dict[str, SubgraphEntry], remove_data=False
+    ) -> dict[str, SubgraphEntry]:
         entries = entries.copy()
         for key in list(entries.keys()):
             entries[key] = await self.sanitize_entry(entries[key], remove_data)
@@ -72,9 +79,9 @@ class SubgraphManager:
             matched_files = glob.glob(pattern)
             for file in matched_files:
                 # replace backslashes with forward slashes
-                file = file.replace('\\', '/')
+                file = file.replace("\\", "/")
                 info: CustomNodeSubgraphEntryInfo = {
-                    "node_pack": "custom_nodes." + file.split('/')[-3]
+                    "node_pack": "custom_nodes." + file.split("/")[-3]
                 }
                 source = Source.custom_node
                 # hash source + path to make sure id will be as unique as possible, but
@@ -93,7 +100,7 @@ class SubgraphManager:
     async def get_custom_node_subgraph(self, id: str, loadedModules):
         subgraphs = await self.get_custom_node_subgraphs(loadedModules)
         entry: SubgraphEntry = subgraphs.get(id, None)
-        if entry is not None and entry.get('data', None) is None:
+        if entry is not None and entry.get("data", None) is None:
             await self.load_entry_data(entry)
         return entry
 
@@ -103,7 +110,9 @@ class SubgraphManager:
             subgraphs_dict = await self.get_custom_node_subgraphs(loadedModules)
             # NOTE: we may want to include other sources of global subgraphs such as templates in the future;
             # that's the reasoning for the current implementation
-            return web.json_response(await self.sanitize_entries(subgraphs_dict, remove_data=True))
+            return web.json_response(
+                await self.sanitize_entries(subgraphs_dict, remove_data=True)
+            )
 
         @routes.get("/global_subgraphs/{id}")
         async def get_global_subgraph(request):

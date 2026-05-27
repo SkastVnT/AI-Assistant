@@ -60,7 +60,9 @@ class TaskStatusResponseData(BaseModel):
     created_at: int | None = Field(None, description="Task creation time")
     updated_at: int | None = Field(None, description="Task update time")
     task_status: str | None = None
-    task_status_msg: str | None = Field(None, description="Additional failure reason. Only for polling endpoint.")
+    task_status_msg: str | None = Field(
+        None, description="Additional failure reason. Only for polling endpoint."
+    )
     task_id: str | None = Field(None, description="Task ID")
     task_result: TaskStatusResults | None = Field(None)
 

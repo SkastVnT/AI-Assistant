@@ -29,10 +29,14 @@ class OpenAIImageEditRequest(BaseModel):
     model: str = Field(...)
     moderation: str | None = Field(None)
     n: int | None = Field(None, description="The number of images to generate")
-    output_compression: int | None = Field(None, description="Compression level for JPEG or WebP (0-100)")
+    output_compression: int | None = Field(
+        None, description="Compression level for JPEG or WebP (0-100)"
+    )
     output_format: str | None = Field(None)
     prompt: str = Field(...)
-    quality: str | None = Field(None, description="Size of the image (e.g., 1024x1024, 1536x1024, auto)")
+    quality: str | None = Field(
+        None, description="Size of the image (e.g., 1024x1024, 1536x1024, auto)"
+    )
     size: str | None = Field(None, description="Size of the output image")
 
 
@@ -44,9 +48,15 @@ class OpenAIImageGenerationRequest(BaseModel):
         None,
         description="The number of images to generate.",
     )
-    output_compression: int | None = Field(None, description="Compression level for JPEG or WebP (0-100)")
+    output_compression: int | None = Field(
+        None, description="Compression level for JPEG or WebP (0-100)"
+    )
     output_format: str | None = Field(None)
     prompt: str = Field(...)
     quality: str | None = Field(None, description="The quality of the generated image")
-    size: str | None = Field(None, description="Size of the image (e.g., 1024x1024, 1536x1024, auto)")
-    style: str | None = Field(None, description="Style of the image (only for dall-e-3)")
+    size: str | None = Field(
+        None, description="Size of the image (e.g., 1024x1024, 1536x1024, auto)"
+    )
+    style: str | None = Field(
+        None, description="Style of the image (only for dall-e-3)"
+    )

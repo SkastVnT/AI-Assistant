@@ -5,6 +5,7 @@ from fractions import Fraction
 from typing import Optional
 from .._input import ImageInput, AudioInput
 
+
 class VideoCodec(str, Enum):
     AUTO = "auto"
     H264 = "h264"
@@ -15,6 +16,7 @@ class VideoCodec(str, Enum):
         Returns a list of codec names that can be used as node input.
         """
         return [member.value for member in cls]
+
 
 class VideoContainer(str, Enum):
     AUTO = "auto"
@@ -38,6 +40,7 @@ class VideoContainer(str, Enum):
             return "mp4"
         return ""
 
+
 @dataclass
 class VideoComponents:
     """
@@ -48,5 +51,3 @@ class VideoComponents:
     frame_rate: Fraction
     audio: Optional[AudioInput] = None
     metadata: Optional[dict] = None
-
-

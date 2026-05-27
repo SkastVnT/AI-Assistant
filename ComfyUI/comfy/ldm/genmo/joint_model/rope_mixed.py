@@ -1,4 +1,4 @@
-#original code from https://github.com/genmoai/models under apache 2.0 license
+# original code from https://github.com/genmoai/models under apache 2.0 license
 
 # import functools
 import math

@@ -12,7 +12,6 @@ Usage:
 """
 
 import argparse
-import random
 import sys
 import uuid
 from datetime import datetime, timedelta
@@ -20,7 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from config.mongodb_config import get_db, test_connection, DATABASE_NAME
+from config.mongodb_config import DATABASE_NAME, get_db, test_connection
 
 # All seeded docs carry this tag so they can be identified and cleaned up.
 SEED_MARKER = "seed_demo"
@@ -34,77 +33,101 @@ MODELS = ["grok-3", "gpt-4o", "gemini-2.0-flash", "claude-sonnet-4"]
 EXCHANGE_TEMPLATES = [
     [
         ("user", "What is machine learning?"),
-        ("assistant", (
-            "Machine learning is a subset of artificial intelligence that enables "
-            "systems to learn patterns from data and make predictions without being "
-            "explicitly programmed. Common approaches include supervised learning, "
-            "unsupervised learning, and reinforcement learning."
-        )),
+        (
+            "assistant",
+            (
+                "Machine learning is a subset of artificial intelligence that enables "
+                "systems to learn patterns from data and make predictions without being "
+                "explicitly programmed. Common approaches include supervised learning, "
+                "unsupervised learning, and reinforcement learning."
+            ),
+        ),
         ("user", "Can you give me a simple example?"),
-        ("assistant", (
-            "Sure! A spam filter is a classic example. You feed it thousands of "
-            "emails labeled 'spam' or 'not spam'. The model learns patterns — like "
-            "certain keywords or sender addresses — and can then classify new emails "
-            "automatically."
-        )),
+        (
+            "assistant",
+            (
+                "Sure! A spam filter is a classic example. You feed it thousands of "
+                "emails labeled 'spam' or 'not spam'. The model learns patterns — like "
+                "certain keywords or sender addresses — and can then classify new emails "
+                "automatically."
+            ),
+        ),
     ],
     [
         ("user", "How do I create a Python virtual environment?"),
-        ("assistant", (
-            "Run:\n```bash\npython -m venv myenv\n```\n"
-            "Then activate it:\n"
-            "- Windows: `myenv\\Scripts\\activate`\n"
-            "- Linux/Mac: `source myenv/bin/activate`\n\n"
-            "Install packages inside the venv and they stay isolated from your "
-            "system Python."
-        )),
+        (
+            "assistant",
+            (
+                "Run:\n```bash\npython -m venv myenv\n```\n"
+                "Then activate it:\n"
+                "- Windows: `myenv\\Scripts\\activate`\n"
+                "- Linux/Mac: `source myenv/bin/activate`\n\n"
+                "Install packages inside the venv and they stay isolated from your "
+                "system Python."
+            ),
+        ),
     ],
     [
         ("user", "Explain the difference between SQL and NoSQL databases."),
-        ("assistant", (
-            "SQL databases (PostgreSQL, MySQL) store data in structured tables with "
-            "fixed schemas and use SQL for queries. They excel at complex joins and "
-            "transactions.\n\n"
-            "NoSQL databases (MongoDB, Redis, Cassandra) use flexible schemas — "
-            "documents, key-value pairs, or graphs. They scale horizontally and are "
-            "great for unstructured or rapidly evolving data."
-        )),
+        (
+            "assistant",
+            (
+                "SQL databases (PostgreSQL, MySQL) store data in structured tables with "
+                "fixed schemas and use SQL for queries. They excel at complex joins and "
+                "transactions.\n\n"
+                "NoSQL databases (MongoDB, Redis, Cassandra) use flexible schemas — "
+                "documents, key-value pairs, or graphs. They scale horizontally and are "
+                "great for unstructured or rapidly evolving data."
+            ),
+        ),
         ("user", "When should I pick NoSQL over SQL?"),
-        ("assistant", (
-            "Consider NoSQL when you need:\n"
-            "- Flexible or evolving schemas\n"
-            "- Horizontal scaling across many servers\n"
-            "- High write throughput\n"
-            "- Document-oriented data (e.g. JSON)\n\n"
-            "Stick with SQL when you need strong consistency, complex joins, or "
-            "ACID transactions across multiple tables."
-        )),
+        (
+            "assistant",
+            (
+                "Consider NoSQL when you need:\n"
+                "- Flexible or evolving schemas\n"
+                "- Horizontal scaling across many servers\n"
+                "- High write throughput\n"
+                "- Document-oriented data (e.g. JSON)\n\n"
+                "Stick with SQL when you need strong consistency, complex joins, or "
+                "ACID transactions across multiple tables."
+            ),
+        ),
     ],
     [
         ("user", "What are the SOLID principles?"),
-        ("assistant", (
-            "SOLID is five object-oriented design principles:\n\n"
-            "1. **Single Responsibility** — a class should have one reason to change\n"
-            "2. **Open/Closed** — open for extension, closed for modification\n"
-            "3. **Liskov Substitution** — subtypes must be substitutable for base types\n"
-            "4. **Interface Segregation** — prefer small, specific interfaces\n"
-            "5. **Dependency Inversion** — depend on abstractions, not concretions"
-        )),
+        (
+            "assistant",
+            (
+                "SOLID is five object-oriented design principles:\n\n"
+                "1. **Single Responsibility** — a class should have one reason to change\n"
+                "2. **Open/Closed** — open for extension, closed for modification\n"
+                "3. **Liskov Substitution** — subtypes must be substitutable for base types\n"
+                "4. **Interface Segregation** — prefer small, specific interfaces\n"
+                "5. **Dependency Inversion** — depend on abstractions, not concretions"
+            ),
+        ),
     ],
     [
-        ("user", "Help me write a MongoDB aggregation pipeline to count messages per conversation."),
-        ("assistant", (
-            "```python\npipeline = [\n"
-            "    {\"$group\": {\n"
-            "        \"_id\": \"$conversation_id\",\n"
-            "        \"count\": {\"$sum\": 1}\n"
-            "    }},\n"
-            "    {\"$sort\": {\"count\": -1}},\n"
-            "    {\"$limit\": 10}\n"
-            "]\nresults = db.messages.aggregate(pipeline)\n```\n\n"
-            "This groups messages by `conversation_id`, counts them, sorts "
-            "descending, and returns the top 10."
-        )),
+        (
+            "user",
+            "Help me write a MongoDB aggregation pipeline to count messages per conversation.",
+        ),
+        (
+            "assistant",
+            (
+                "```python\npipeline = [\n"
+                '    {"$group": {\n'
+                '        "_id": "$conversation_id",\n'
+                '        "count": {"$sum": 1}\n'
+                "    }},\n"
+                '    {"$sort": {"count": -1}},\n'
+                '    {"$limit": 10}\n'
+                "]\nresults = db.messages.aggregate(pipeline)\n```\n\n"
+                "This groups messages by `conversation_id`, counts them, sorts "
+                "descending, and returns the top 10."
+            ),
+        ),
     ],
 ]
 
@@ -150,6 +173,7 @@ LEARNING_DATA_TEMPLATES = [
 # Helpers
 # ============================================================================
 
+
 def _uid():
     return str(uuid.uuid4())
 
@@ -162,6 +186,7 @@ def _realistic_time(base, offset_minutes):
 # ============================================================================
 # Seed functions
 # ============================================================================
+
 
 def seed_conversation(db, index, base_time):
     """Create one conversation with messages. Returns summary dict."""
@@ -176,19 +201,25 @@ def seed_conversation(db, index, base_time):
     for i, (role, content) in enumerate(template):
         msg_time = _realistic_time(conv_start, i * 2 + 1)
         tokens = len(content.split()) * 2 if role == "assistant" else None
-        messages.append({
-            "_id": _uid(),
-            "conversation_id": conv_id,
-            "role": role,
-            "content": content,
-            "metadata": {"model": model, "seed": SEED_MARKER} if role == "assistant" else {"seed": SEED_MARKER},
-            "images": [],
-            "tokens": tokens,
-            "is_edited": False,
-            "edit_history": [],
-            "created_at": msg_time,
-            "updated_at": msg_time,
-        })
+        messages.append(
+            {
+                "_id": _uid(),
+                "conversation_id": conv_id,
+                "role": role,
+                "content": content,
+                "metadata": (
+                    {"model": model, "seed": SEED_MARKER}
+                    if role == "assistant"
+                    else {"seed": SEED_MARKER}
+                ),
+                "images": [],
+                "tokens": tokens,
+                "is_edited": False,
+                "edit_history": [],
+                "created_at": msg_time,
+                "updated_at": msg_time,
+            }
+        )
 
     # Conversation document
     titles = [
@@ -229,7 +260,9 @@ def seed_learning_data(db, base_time):
             "quality_score": tmpl["quality_score"],
             "is_approved": tmpl["is_approved"],
             "created_at": _realistic_time(base_time, i * 60),
-            "reviewed_at": _realistic_time(base_time, i * 60 + 30) if tmpl["is_approved"] else None,
+            "reviewed_at": (
+                _realistic_time(base_time, i * 60 + 30) if tmpl["is_approved"] else None
+            ),
             "rejection_reason": tmpl.get("rejection_reason"),
         }
         docs.append(doc)
@@ -241,7 +274,9 @@ def remove_seed_data(db):
     """Delete all documents tagged with the seed marker."""
     conv_r = db.conversations.delete_many({"metadata.seed": SEED_MARKER})
     msg_r = db.messages.delete_many({"metadata.seed": SEED_MARKER})
-    ld_r = db.learning_data.delete_many({"data.finding": {"$exists": True}, "_id": {"$type": "string"}})
+    ld_r = db.learning_data.delete_many(
+        {"data.finding": {"$exists": True}, "_id": {"$type": "string"}}
+    )
     # Learning data doesn't have metadata.seed, use a targeted delete
     # Re-delete learning data seeded by this script (they have our specific sources)
     ld_sources = [t["source"] for t in LEARNING_DATA_TEMPLATES]
@@ -260,10 +295,18 @@ def already_seeded(db):
 # Main
 # ============================================================================
 
+
 def main():
     parser = argparse.ArgumentParser(description="Seed demo data into MongoDB")
-    parser.add_argument("--reset", action="store_true", help="Remove existing demo data before seeding")
-    parser.add_argument("--count", type=int, default=1, help="Number of demo conversations to create (default: 1)")
+    parser.add_argument(
+        "--reset", action="store_true", help="Remove existing demo data before seeding"
+    )
+    parser.add_argument(
+        "--count",
+        type=int,
+        default=1,
+        help="Number of demo conversations to create (default: 1)",
+    )
     args = parser.parse_args()
 
     if args.count < 1:
@@ -298,9 +341,11 @@ def main():
     for i in range(args.count):
         result = seed_conversation(db, i, base_time)
         total_msgs += result["messages"]
-        print(f"  + conversation {i + 1}: {result['conv_id'][:8]}... ({result['messages']} messages)")
+        print(
+            f"  + conversation {i + 1}: {result['conv_id'][:8]}... ({result['messages']} messages)"
+        )
 
-    print(f"\n[seed] Creating learning_data...")
+    print("\n[seed] Creating learning_data...")
     ld_count = seed_learning_data(db, base_time)
     print(f"  + {ld_count} records\n")
 

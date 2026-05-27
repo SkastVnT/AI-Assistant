@@ -1,82 +1,148 @@
-﻿"""
+"""
 Streaming routes: /chat/stream - SSE endpoint for real-time chat responses
 
 Supports live thinking display (like ChatGPT) with real-time reasoning steps
 streamed before the actual response.
 """
+
 import json
 import os
-import uuid
+import sys
 import time
+import uuid
 from datetime import datetime
 from pathlib import Path
-import sys
-from flask import Blueprint, request, session, Response
-import logging
+
+from flask import Blueprint, Response, request, session
 
 # Setup path
 CHATBOT_DIR = Path(__file__).parent.parent.resolve()
 if str(CHATBOT_DIR) not in sys.path:
     sys.path.insert(0, str(CHATBOT_DIR))
 
-from core.config import MEMORY_DIR, get_system_prompts as _get_system_prompts
-from core.extensions import MONGODB_ENABLED, logger
-from core.asset_memory import build_asset_context_block
-from core.request_normalizer import normalize_chat_request
+from core import mongo_store
+from core.central_router import route_request
+from core.central_trace import InMemoryTraceStore, RequestTrace
 from core.chatbot_v2 import get_chatbot
+from core.config import MEMORY_DIR
+from core.config import get_system_prompts as _get_system_prompts
+from core.extensions import logger
+from core.request_normalizer import normalize_chat_request
+from core.skills.applicator import apply_skill_overrides
+from core.skills.resolver import resolve_skill
+from core.stream_contract import (
+    STREAM_CONTRACT_VERSION,
+    build_complete_event_payload,
+    with_request_id,
+)
 from core.stream_metrics import (
     get_stream_metrics_snapshot,
     record_stream_complete,
     record_stream_error,
     record_stream_start,
 )
-from core.streaming import StreamingChatHandler, StreamEvent
-from core.stream_contract import STREAM_CONTRACT_VERSION, build_complete_event_payload, with_request_id
+from core.streaming import StreamEvent
 from core.thinking_generator import (
-    ThinkTagParser, detect_category,
-    generate_thinking_summary, REASONING_PREFIX
+    REASONING_PREFIX,
+    ThinkTagParser,
+    detect_category,
+    generate_thinking_summary,
 )
-from core.skills.resolver import resolve_skill
-from core.skills.applicator import apply_skill_overrides
-from core import mongo_store
-from core.central_router import route_request
-from core.central_trace import RequestTrace, InMemoryTraceStore
 
 # Check MCP availability
 MCP_AVAILABLE = False
 try:
-    from src.handlers.mcp_handler import inject_code_context, get_mcp_client
+    from src.handlers.mcp_handler import get_mcp_client, inject_code_context
+
     MCP_AVAILABLE = True
 except ImportError:
     pass
 
-stream_bp = Blueprint('stream', __name__)
+stream_bp = Blueprint("stream", __name__)
 TRACE_STORE = InMemoryTraceStore(max_items=2000)
 
 
 # ── Auto web-search detection ────────────────────────────────────────
 
 _REALTIME_PATTERNS_VI = [
-    "giá", "tỷ giá", "thời tiết", "tin tức", "mới nhất", "hiện tại",
-    "hôm nay", "bây giờ", "mấy giờ", "ngày bao nhiêu",
-    "lịch", "kết quả", "tỉ số", "xổ số", "chứng khoán",
-    "cổ phiếu", "bitcoin", "crypto", "coin", "vàng", "USD",
-    "bao nhiêu tiền", "review", "đánh giá", "so sánh",
-    "nên mua", "mua ở đâu", "ở đâu", "địa chỉ", "số điện thoại",
-    "sự kiện", "lịch trình", "cập nhật", "phiên bản mới",
-    "ra mắt", "release", "công bố", "thông báo",
+    "giá",
+    "tỷ giá",
+    "thời tiết",
+    "tin tức",
+    "mới nhất",
+    "hiện tại",
+    "hôm nay",
+    "bây giờ",
+    "mấy giờ",
+    "ngày bao nhiêu",
+    "lịch",
+    "kết quả",
+    "tỉ số",
+    "xổ số",
+    "chứng khoán",
+    "cổ phiếu",
+    "bitcoin",
+    "crypto",
+    "coin",
+    "vàng",
+    "USD",
+    "bao nhiêu tiền",
+    "review",
+    "đánh giá",
+    "so sánh",
+    "nên mua",
+    "mua ở đâu",
+    "ở đâu",
+    "địa chỉ",
+    "số điện thoại",
+    "sự kiện",
+    "lịch trình",
+    "cập nhật",
+    "phiên bản mới",
+    "ra mắt",
+    "release",
+    "công bố",
+    "thông báo",
 ]
 _REALTIME_PATTERNS_EN = [
-    "price", "weather", "news", "latest", "current", "today",
-    "right now", "stock", "bitcoin", "crypto", "gold price",
-    "exchange rate", "how much", "review", "compare",
-    "where to buy", "address", "phone number", "schedule",
-    "update", "new version", "release", "announcement",
-    "score", "result", "ranking", "trending",
+    "price",
+    "weather",
+    "news",
+    "latest",
+    "current",
+    "today",
+    "right now",
+    "stock",
+    "bitcoin",
+    "crypto",
+    "gold price",
+    "exchange rate",
+    "how much",
+    "review",
+    "compare",
+    "where to buy",
+    "address",
+    "phone number",
+    "schedule",
+    "update",
+    "new version",
+    "release",
+    "announcement",
+    "score",
+    "result",
+    "ranking",
+    "trending",
 ]
 _SEARCH_KEYWORDS = [
-    "tìm", "search", "tra cứu", "look up", "google",
-    "tìm kiếm", "find", "tìm giúp", "check",
+    "tìm",
+    "search",
+    "tra cứu",
+    "look up",
+    "google",
+    "tìm kiếm",
+    "find",
+    "tìm giúp",
+    "check",
 ]
 
 
@@ -121,9 +187,9 @@ def _needs_web_search(message: str, tools: list) -> bool:
     msg_lower = message.lower()
     if any(kw in msg_lower for kw in _SEARCH_KEYWORDS):
         return True
-    if any(p in msg_lower for p in _REALTIME_PATTERNS_VI + _REALTIME_PATTERNS_EN):
-        return True
-    return False
+    return bool(
+        any(p in msg_lower for p in _REALTIME_PATTERNS_VI + _REALTIME_PATTERNS_EN)
+    )
 
 
 def _run_web_search(query: str, engine: str = "google") -> str:
@@ -145,24 +211,33 @@ def _run_web_search(query: str, engine: str = "google") -> str:
     if serpapi_key:
         _attempted.append(f"SerpAPI:{engine}")
         try:
-            resp = _req.get("https://serpapi.com/search.json", params={
-                "engine": engine,
-                "q": query,
-                "api_key": serpapi_key,
-                "num": 5,
-            }, timeout=20)
+            resp = _req.get(
+                "https://serpapi.com/search.json",
+                params={
+                    "engine": engine,
+                    "q": query,
+                    "api_key": serpapi_key,
+                    "num": 5,
+                },
+                timeout=20,
+            )
             if resp.status_code == 200:
                 data = resp.json()
                 items = data.get("organic_results", [])
                 if items:
-                    label = {"google": "Google", "bing": "Bing", "baidu": "Baidu"}.get(engine, engine.title())
+                    label = {"google": "Google", "bing": "Bing", "baidu": "Baidu"}.get(
+                        engine, engine.title()
+                    )
                     parts = []
                     for item in items[:5]:
                         title = item.get("title", "")
                         snippet = item.get("snippet", item.get("description", ""))
                         link = item.get("link", "")
                         parts.append(f"**{title}**\n{snippet}\n🔗 {link}")
-                    return f"🪜 _Cascade: SerpAPI:{engine} ✅_\n\n🔍 **{label} Search — Kết quả thực tế:**\n\n" + "\n\n---\n\n".join(parts)
+                    return (
+                        f"🪜 _Cascade: SerpAPI:{engine} ✅_\n\n🔍 **{label} Search — Kết quả thực tế:**\n\n"
+                        + "\n\n---\n\n".join(parts)
+                    )
         except Exception as e:
             logger.warning(f"[WebSearch:SerpAPI] Error: {e}")
 
@@ -185,9 +260,16 @@ def _run_web_search(query: str, engine: str = "google") -> str:
             continue
         _attempted.append("GoogleCSE")
         try:
-            resp = s.get(url, params={
-                "key": api_key, "cx": cse_id, "q": query, "num": 5,
-            }, timeout=15)
+            resp = s.get(
+                url,
+                params={
+                    "key": api_key,
+                    "cx": cse_id,
+                    "q": query,
+                    "num": 5,
+                },
+                timeout=15,
+            )
             if resp.status_code == 200:
                 data = resp.json()
                 items = data.get("items", [])
@@ -199,7 +281,10 @@ def _run_web_search(query: str, engine: str = "google") -> str:
                         link = item.get("link", "")
                         parts.append(f"**{title}**\n{snippet}\n🔗 {link}")
                     _trail = " → ".join(_attempted)
-                    return f"🪜 _Cascade: {_trail}_\n\n🔍 **Kết quả tìm kiếm web (real-time):**\n\n" + "\n\n---\n\n".join(parts)
+                    return (
+                        f"🪜 _Cascade: {_trail}_\n\n🔍 **Kết quả tìm kiếm web (real-time):**\n\n"
+                        + "\n\n---\n\n".join(parts)
+                    )
             elif resp.status_code in (429, 403):
                 continue
             else:
@@ -212,13 +297,13 @@ def _run_web_search(query: str, engine: str = "google") -> str:
     return ""
 
 
-@stream_bp.route('/chat/stream', methods=['POST', 'GET'])
+@stream_bp.route("/chat/stream", methods=["POST", "GET"])
 def chat_stream():
     """
     Streaming chat endpoint using Server-Sent Events (SSE)
-    
+
     Supports both POST (preferred) and GET (for simple testing)
-    
+
     Request Body (POST) or Query Params (GET):
         - message: User message (required)
         - model: AI model to use (default: 'grok')
@@ -227,7 +312,7 @@ def chat_stream():
         - language: Response language (default: 'vi')
         - custom_prompt: Custom system prompt (optional)
         - memory_ids: List of memory IDs to include (optional)
-    
+
     Returns:
         SSE stream with events:
         - metadata: Initial metadata about the request
@@ -243,13 +328,13 @@ def chat_stream():
         logger.info(f"[SSE:{request_id}] Incoming stream request")
 
         # Parse request
-        if request.method == 'POST':
-            if request.content_type and 'application/json' in request.content_type:
+        if request.method == "POST":
+            if request.content_type and "application/json" in request.content_type:
                 data = request.json or {}
             else:
                 data = request.form.to_dict()
                 # Parse JSON fields
-                for key in ['memory_ids', 'history', 'mcp_selected_files']:
+                for key in ["memory_ids", "history", "mcp_selected_files"]:
                     if key in data:
                         try:
                             data[key] = json.loads(data[key])
@@ -258,38 +343,38 @@ def chat_stream():
         else:
             # GET request
             data = request.args.to_dict()
-        
-        message = data.get('message', '')
-        language = data.get('language', 'vi')
-        memory_ids = data.get('memory_ids', [])
-        mcp_selected_files = data.get('mcp_selected_files', [])
-        history = data.get('history')
+
+        message = data.get("message", "")
+        language = data.get("language", "vi")
+        memory_ids = data.get("memory_ids", [])
+        mcp_selected_files = data.get("mcp_selected_files", [])
+        history = data.get("history")
 
         # ── Shared request normalization ──────────────────────────────
         # Conversation id extract+validate+bind, image context injection,
         # and history bounding live in core/request_normalizer.py so that
         # /chat (routes/main.py) applies the exact same contract.
         _normalized = normalize_chat_request(data, session, message=message)
-        conversation_id = _normalized['conversation_id']
-        if _normalized['conversation_id_bound']:
+        conversation_id = _normalized["conversation_id"]
+        if _normalized["conversation_id_bound"]:
             logger.info(f"[SSE:{request_id}] conversation_id={conversation_id}")
         # generated_images / image-context were applied to message in-place.
-        message = _normalized['message']
-        if _normalized['image_context_count']:
+        message = _normalized["message"]
+        if _normalized["image_context_count"]:
             logger.info(
                 f"[SSE:{request_id}] Injected {_normalized['image_context_count']} image asset(s) into context"
             )
         # Defensive history cap (frontend already caps; this is depth-in-defense).
-        if _normalized['history'] is not None:
-            history = _normalized['history']
-        generated_images = _normalized['generated_images']
+        if _normalized["history"] is not None:
+            history = _normalized["history"]
+        _normalized["generated_images"]
 
         # ── Runtime Skill Resolution + Application ────────────────────
         skill_overrides = resolve_skill(
             message=message,
-            explicit_skill_id=data.get('skill'),
-            session_id=session.get('session_id'),
-            auto_route=str(data.get('skill_auto_route', 'true')).lower() != 'false',
+            explicit_skill_id=data.get("skill"),
+            session_id=session.get("session_id"),
+            auto_route=str(data.get("skill_auto_route", "true")).lower() != "false",
         )
         applied = apply_skill_overrides(
             data=data,
@@ -309,7 +394,8 @@ def chat_stream():
         route_decision = route_request(message)
         trace = RequestTrace(
             conversation_id=conversation_id or "",
-            message_id=(data.get('message_id') or '').strip() or f"msg-{uuid.uuid4().hex[:12]}",
+            message_id=(data.get("message_id") or "").strip()
+            or f"msg-{uuid.uuid4().hex[:12]}",
             user_input=message,
             selected_pipeline=route_decision.pipeline,
             selected_model=model,
@@ -327,34 +413,42 @@ def chat_stream():
         # Log the inbound user message + ensure parent conversation exists.
         # Fail-safe: every call returns disabled when Mongo is unavailable
         # and never raises. We do not block streaming on this.
-        user_message_id = (data.get('message_id') or '').strip() or f"msg-{uuid.uuid4().hex[:12]}"
+        user_message_id = (
+            data.get("message_id") or ""
+        ).strip() or f"msg-{uuid.uuid4().hex[:12]}"
         try:
             if conversation_id:
-                mongo_store.save_conversation({
-                    "conversation_id": conversation_id,
-                    "user_id": session.get('user_id') or session.get('username') or "",
-                    "session_id": session.get('session_id') or "",
-                })
-            mongo_store.save_message({
-                "message_id": user_message_id,
-                "conversation_id": conversation_id or "",
-                "role": "user",
-                "message_type": "chat",
-                "content": message,
-                "metadata": {
-                    "model": model,
-                    "context": context,
-                    "thinking_mode": thinking_mode,
-                    "skill_id": applied.skill_id,
-                    "request_id": request_id,
-                    "language": language,
-                },
-            })
+                mongo_store.save_conversation(
+                    {
+                        "conversation_id": conversation_id,
+                        "user_id": session.get("user_id")
+                        or session.get("username")
+                        or "",
+                        "session_id": session.get("session_id") or "",
+                    }
+                )
+            mongo_store.save_message(
+                {
+                    "message_id": user_message_id,
+                    "conversation_id": conversation_id or "",
+                    "role": "user",
+                    "message_type": "chat",
+                    "content": message,
+                    "metadata": {
+                        "model": model,
+                        "context": context,
+                        "thinking_mode": thinking_mode,
+                        "skill_id": applied.skill_id,
+                        "request_id": request_id,
+                        "language": language,
+                    },
+                }
+            )
         except Exception as _me:  # noqa: BLE001 — never block streaming
             logger.warning(f"[SSE:{request_id}] mongo log (user message) failed: {_me}")
 
         # Extract images for vision models (base64 data URLs from frontend)
-        images = data.get('images', [])
+        images = data.get("images", [])
         if images and not isinstance(images, list):
             images = []
         # Validate and cap images (max 5 images, each max ~10MB base64)
@@ -362,95 +456,121 @@ def chat_stream():
         MAX_IMAGE_LEN = 15 * 1024 * 1024  # ~10MB raw ≈ 14MB base64
         validated_images = []
         for img in (images or [])[:MAX_IMAGES]:
-            if isinstance(img, str) and img.startswith('data:image/') and len(img) <= MAX_IMAGE_LEN:
+            if (
+                isinstance(img, str)
+                and img.startswith("data:image/")
+                and len(img) <= MAX_IMAGE_LEN
+            ):
                 validated_images.append(img)
         images = validated_images if validated_images else None
-        
+
         if images:
             logger.info(f"[STREAM] {len(images)} image(s) attached for vision")
 
         # Extract per-request model parameter overrides
         try:
-            _t = data.get('temperature')
-            temperature = float(_t) if _t is not None and 0.0 <= float(_t) <= 2.0 else None
+            _t = data.get("temperature")
+            temperature = (
+                float(_t) if _t is not None and 0.0 <= float(_t) <= 2.0 else None
+            )
         except (TypeError, ValueError):
             temperature = None
         try:
-            _td = data.get('temperature_deep')
-            temperature_deep = float(_td) if _td is not None and 0.0 <= float(_td) <= 2.0 else None
+            _td = data.get("temperature_deep")
+            temperature_deep = (
+                float(_td) if _td is not None and 0.0 <= float(_td) <= 2.0 else None
+            )
         except (TypeError, ValueError):
             temperature_deep = None
         try:
-            _mt = data.get('max_tokens_deep')
-            max_tokens_deep = int(_mt) if _mt is not None and 1 <= int(_mt) <= 131072 else None
+            _mt = data.get("max_tokens_deep")
+            max_tokens_deep = (
+                int(_mt) if _mt is not None and 1 <= int(_mt) <= 131072 else None
+            )
         except (TypeError, ValueError):
             max_tokens_deep = None
         try:
-            _tp = data.get('top_p')
+            _tp = data.get("top_p")
             top_p = float(_tp) if _tp is not None and 0.0 <= float(_tp) <= 1.0 else None
         except (TypeError, ValueError):
             top_p = None
-        
+
         if not message:
             return Response(
                 StreamEvent(
                     event="error",
-                    data=json.dumps(with_request_id({"error": "Empty message"}, request_id), ensure_ascii=False)
+                    data=json.dumps(
+                        with_request_id({"error": "Empty message"}, request_id),
+                        ensure_ascii=False,
+                    ),
                 ).format(),
-                mimetype='text/event-stream',
-                status=400
+                mimetype="text/event-stream",
+                status=400,
             )
-        
+
         # Ensure session
-        if 'session_id' not in session:
-            session['session_id'] = str(uuid.uuid4())
-        
+        if "session_id" not in session:
+            session["session_id"] = str(uuid.uuid4())
+
         # MCP Integration
         if MCP_AVAILABLE:
             try:
                 mcp_client = get_mcp_client()
                 if mcp_client and mcp_client.enabled:
-                    message = inject_code_context(message, mcp_client, mcp_selected_files)
+                    message = inject_code_context(
+                        message, mcp_client, mcp_selected_files
+                    )
                 elif applied.prefer_mcp and mcp_client:
                     # Skill prefers MCP context — inject even without user toggle
-                    message = inject_code_context(message, mcp_client, mcp_selected_files)
-                    logger.info(f"[MCP] Skill '{applied.skill_id}' triggered MCP context injection")
+                    message = inject_code_context(
+                        message, mcp_client, mcp_selected_files
+                    )
+                    logger.info(
+                        f"[MCP] Skill '{applied.skill_id}' triggered MCP context injection"
+                    )
             except Exception as e:
                 logger.warning(f"[MCP] Error injecting context: {e}")
-        
-        session_id = session.get('session_id')
+
+        session_id = session.get("session_id")
         chatbot = get_chatbot(session_id)
-        
+
         # Load memories
         memories = []
         if memory_ids:
+            import re as _re
+            _uuid_re = _re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
             for mem_id in memory_ids:
-                memory_file = MEMORY_DIR / f"{mem_id}.json"
-                if memory_file.exists():
-                    try:
-                        with open(memory_file, 'r', encoding='utf-8') as f:
-                            memories.append(json.load(f))
-                    except Exception as e:
-                        logger.error(f"Error loading memory {mem_id}: {e}")
-        
+                if not _uuid_re.match(str(mem_id)):
+                    continue
+                for _f in MEMORY_DIR.iterdir():
+                    if _f.is_file() and _f.suffix == ".json" and _f.stem == mem_id:
+                        try:
+                            with open(_f, encoding="utf-8") as f:
+                                memories.append(json.load(f))
+                        except Exception as e:
+                            logger.error(f"Error loading memory {mem_id}: {e}")
+                        break
+
         # ── Command detection: /last30days <topic> ──────────────────────
-        _raw_text = data.get('message', '').strip()
-        if _raw_text.lower().startswith('/last30days'):
-            _cmd_topic = _raw_text[len('/last30days'):].strip()
+        _raw_text = data.get("message", "").strip()
+        if _raw_text.lower().startswith("/last30days"):
+            _cmd_topic = _raw_text[len("/last30days") :].strip()
             if _cmd_topic:
-                tools = list(set(tools) | {'last30days-research'})
+                tools = list(set(tools) | {"last30days-research"})
                 # Use extracted topic as the message for the tool
-                data['message'] = _cmd_topic
+                data["message"] = _cmd_topic
                 message = _cmd_topic
-                logger.info("[Stream] /last30days command detected, topic=%r", _cmd_topic)
+                logger.info(
+                    "[Stream] /last30days command detected, topic=%r", _cmd_topic
+                )
 
         # ── Tool execution (auto web search) ──────────────────────────
 
         _search_performed = False
 
-        if _needs_web_search(data.get('message', message), tools):
+        if _needs_web_search(data.get("message", message), tools):
             try:
-                search_results = _run_web_search(data.get('message', message))
+                search_results = _run_web_search(data.get("message", message))
                 if search_results:
                     _search_performed = True
                     message = (
@@ -464,23 +584,32 @@ def chat_stream():
                         f"2. Ghi rõ link nguồn (🔗 URL) ngay sau thông tin liên quan HOẶC gom lại trong mục **Nguồn:** ở cuối — KHÔNG chỉ nhắc tên site.\n"
                         f"3. Nếu dữ liệu có ngày/giờ cụ thể, hãy trích dẫn chính xác."
                     )
-                    logger.info(f"[Stream] Auto web search triggered for: {data.get('message', '')[:60]}")
+                    logger.info(
+                        f"[Stream] Auto web search triggered for: {data.get('message', '')[:60]}"
+                    )
             except Exception as e:
                 logger.warning(f"[Stream] Web search failed: {e}")
 
         # ── SauceNAO reverse image search ──
-        if 'saucenao' in tools:
+        if "saucenao" in tools:
             import re as _re
-            _img_urls = _re.findall(r'https?://\S+\.(?:jpg|jpeg|png|gif|webp)\S*', data.get('message', ''), _re.IGNORECASE)
+
+            _img_urls = _re.findall(
+                r"https?://\S+\.(?:jpg|jpeg|png|gif|webp)\S*",
+                data.get("message", ""),
+                _re.IGNORECASE,
+            )
             try:
                 from core.tools import saucenao_search_tool
+
                 if _img_urls:
                     _sauce = saucenao_search_tool(image_url=_img_urls[0])
                 elif images:
                     import base64 as _b64
+
                     _first = images[0]
-                    if ',' in _first:
-                        _first = _first.split(',', 1)[1]
+                    if "," in _first:
+                        _first = _first.split(",", 1)[1]
                     _sauce = saucenao_search_tool(image_data=_b64.b64decode(_first))
                 else:
                     _sauce = ""
@@ -491,11 +620,17 @@ def chat_stream():
                 logger.warning(f"[Stream] SauceNAO failed: {e}")
 
         # ── SerpAPI — Google Lens / Reverse Image ──
-        if 'serpapi-reverse-image' in tools:
+        if "serpapi-reverse-image" in tools:
             import re as _re
-            _img_urls = _re.findall(r'https?://\S+\.(?:jpg|jpeg|png|gif|webp)\S*', data.get('message', ''), _re.IGNORECASE)
+
+            _img_urls = _re.findall(
+                r"https?://\S+\.(?:jpg|jpeg|png|gif|webp)\S*",
+                data.get("message", ""),
+                _re.IGNORECASE,
+            )
             try:
                 from core.tools import serpapi_reverse_image
+
                 if _img_urls:
                     _lens_result = serpapi_reverse_image(_img_urls[0])
                 elif images:
@@ -509,9 +644,11 @@ def chat_stream():
                 logger.warning(f"[Stream] SerpAPI reverse image failed: {e}")
 
         # ── SerpAPI — Bing Search ──
-        if 'serpapi-bing' in tools:
+        if "serpapi-bing" in tools:
             try:
-                _bing_results = _run_web_search(data.get('message', message), engine='bing')
+                _bing_results = _run_web_search(
+                    data.get("message", message), engine="bing"
+                )
                 if _bing_results:
                     _search_performed = True
                     message = (
@@ -524,9 +661,11 @@ def chat_stream():
                 logger.warning(f"[Stream] Bing search failed: {e}")
 
         # ── SerpAPI — Baidu Search ──
-        if 'serpapi-baidu' in tools:
+        if "serpapi-baidu" in tools:
             try:
-                _baidu_results = _run_web_search(data.get('message', message), engine='baidu')
+                _baidu_results = _run_web_search(
+                    data.get("message", message), engine="baidu"
+                )
                 if _baidu_results:
                     _search_performed = True
                     message = (
@@ -539,10 +678,11 @@ def chat_stream():
                 logger.warning(f"[Stream] Baidu search failed: {e}")
 
         # ── SerpAPI — Image Search ──
-        if 'serpapi-images' in tools:
+        if "serpapi-images" in tools:
             try:
                 from core.tools import serpapi_image_search
-                _img_search_result = serpapi_image_search(data.get('message', message))
+
+                _img_search_result = serpapi_image_search(data.get("message", message))
                 if _img_search_result:
                     message = (
                         f"{message}\n\n---\n"
@@ -554,10 +694,14 @@ def chat_stream():
                 logger.warning(f"[Stream] SerpAPI image search failed: {e}")
 
         # ── last30days — Social Media Research ──
-        if 'last30days-research' in tools:
+        if "last30days-research" in tools:
             try:
-                from core.last30days_tool import run_last30days_research, parse_research_params
-                _l30d_raw = data.get('message', message)
+                from core.last30days_tool import (
+                    parse_research_params,
+                    run_last30days_research,
+                )
+
+                _l30d_raw = data.get("message", message)
                 _l30d_params = parse_research_params(_l30d_raw)
                 _l30d_topic = _l30d_params["topic"]
                 _l30d_depth = _l30d_params["depth"]
@@ -566,7 +710,9 @@ def chat_stream():
 
                 logger.info(
                     "[Stream] last30days starting: topic=%r depth=%s days=%d",
-                    _l30d_topic[:60], _l30d_depth, _l30d_days,
+                    _l30d_topic[:60],
+                    _l30d_depth,
+                    _l30d_days,
                 )
                 _l30d_result = run_last30days_research(
                     _l30d_topic,
@@ -584,23 +730,41 @@ def chat_stream():
                     _search_performed = True
                     logger.info("[Stream] last30days research completed")
                 elif _l30d_result:
-                    logger.warning(f"[Stream] last30days research returned error: {_l30d_result[:200]}")
+                    logger.warning(
+                        f"[Stream] last30days research returned error: {_l30d_result[:200]}"
+                    )
             except Exception as e:
                 logger.warning(f"[Stream] last30days research failed: {e}")
 
         # ── Auto reverse-image search when images attached + search intent ──
         _IMAGE_SEARCH_PATTERNS = [
-            'tìm nguồn', 'tìm ảnh', 'nguồn ảnh', 'tìm gốc', 'reverse image',
-            'find source', 'image source', 'where is this', 'tìm tác giả',
-            'ai vẽ', 'tác giả', 'author', 'original', 'find this image',
-            'ảnh này từ đâu', 'ảnh gốc', 'tìm kiếm ảnh',
+            "tìm nguồn",
+            "tìm ảnh",
+            "nguồn ảnh",
+            "tìm gốc",
+            "reverse image",
+            "find source",
+            "image source",
+            "where is this",
+            "tìm tác giả",
+            "ai vẽ",
+            "tác giả",
+            "author",
+            "original",
+            "find this image",
+            "ảnh này từ đâu",
+            "ảnh gốc",
+            "tìm kiếm ảnh",
         ]
-        _raw_msg = data.get('message', '').lower()
-        _wants_image_search = images and any(p in _raw_msg for p in _IMAGE_SEARCH_PATTERNS)
+        _raw_msg = data.get("message", "").lower()
+        _wants_image_search = images and any(
+            p in _raw_msg for p in _IMAGE_SEARCH_PATTERNS
+        )
 
         if _wants_image_search:
             try:
                 from core.tools import reverse_image_search
+
                 _ris = reverse_image_search(image_data_url=images[0])
                 if _ris.get("summary"):
                     message = (
@@ -622,9 +786,11 @@ def chat_stream():
                 def _emit(event: str, payload: dict) -> str:
                     return StreamEvent(
                         event=event,
-                        data=json.dumps(with_request_id(payload, request_id), ensure_ascii=False)
+                        data=json.dumps(
+                            with_request_id(payload, request_id), ensure_ascii=False
+                        ),
                     ).format()
-                
+
                 # Send metadata
                 metadata_payload = {
                     "model": model,
@@ -638,14 +804,18 @@ def chat_stream():
                     "stream_contract_version": stream_contract_version,
                     "web_search": _search_performed,
                     "streaming": True,
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": datetime.now().isoformat(),
                 }
                 if skill_overrides.source == "auto":
-                    metadata_payload["skill_auto_score"] = skill_overrides.auto_route_score
-                    metadata_payload["skill_auto_keywords"] = skill_overrides.auto_route_keywords
+                    metadata_payload["skill_auto_score"] = (
+                        skill_overrides.auto_route_score
+                    )
+                    metadata_payload["skill_auto_keywords"] = (
+                        skill_overrides.auto_route_keywords
+                    )
                 yield _emit("metadata", metadata_payload)
                 yield _emit("router.selected", route_decision.to_dict())
-                
+
                 # ── Thinking Phase ──
                 # Real AI reasoning via <think> tags or native reasoning_content
                 category = detect_category(message)
@@ -656,47 +826,52 @@ def chat_stream():
                 thinking_ended = False
 
                 # For instant mode, skip thinking entirely
-                use_thinking = thinking_mode != 'instant'
-                is_multi_thinking = thinking_mode == 'multi-thinking'
+                use_thinking = thinking_mode != "instant"
+                is_multi_thinking = thinking_mode == "multi-thinking"
 
                 # ── Instant mode: force concise + direct answers ──
                 _eff_prompt = custom_prompt
-                if thinking_mode == 'instant' and not _eff_prompt:
-                    _base = _get_system_prompts(language).get(context, _get_system_prompts(language).get('casual', ''))
+                if thinking_mode == "instant" and not _eff_prompt:
+                    _base = _get_system_prompts(language).get(
+                        context, _get_system_prompts(language).get("casual", "")
+                    )
                     _eff_prompt = (
                         _base
                         + "\n\n⚡ INSTANT MODE: Trả lời ngắn gọn, trực tiếp, cụ thể. "
                         "Tối đa 3-4 đoạn văn. Không dẫn nhập lan man. Không cần liệt kê hết mọi thứ. "
                         "Đi thẳng vào câu trả lời quan trọng nhất."
                     )
-                
+
                 # ── Response Phase (with integrated thinking) ──
                 full_response = ""
                 chunk_count = 0
-                has_model_reasoning = False
                 fallback_used = False
 
                 # ── 4-Agents Coordinated Reasoning ──
                 if is_multi_thinking:
-                    yield _emit("thinking_start", {
-                        "mode": "multi-thinking",
-                        "label": "4-Agents Reasoning",
-                        "category": category,
-                        "timestamp": datetime.now().isoformat()
-                    })
+                    yield _emit(
+                        "thinking_start",
+                        {
+                            "mode": "multi-thinking",
+                            "label": "4-Agents Reasoning",
+                            "category": category,
+                            "timestamp": datetime.now().isoformat(),
+                        },
+                    )
 
                     try:
                         import queue as _queue
                         import threading as _threading
 
-                        from app.services.reasoning_service import get_reasoning_service
                         from app.services.ai_service import AIService
+                        from app.services.reasoning_service import get_reasoning_service
+
                         reasoning_svc = get_reasoning_service(ai_service=AIService())
 
                         # Use thread + queue so progress events stream in real-time
                         _progress_q = _queue.Queue()
-                        _DONE = '__DONE__'
-                        _ERROR = '__ERROR__'
+                        _DONE = "__DONE__"
+                        _ERROR = "__ERROR__"
 
                         def _run_reasoning():
                             try:
@@ -734,23 +909,29 @@ def chat_stream():
                             # Real progress event from reasoning service
                             # Dict items = streamed tokens (with trajectory ID)
                             if isinstance(item, dict) and item.get("type") == "token":
-                                yield _emit("thinking", {
-                                    "step": item.get("text", ""),
-                                    "step_index": step_idx,
-                                    "is_reasoning_chunk": True,
-                                    "trajectory_id": item.get("tid", ""),
-                                })
+                                yield _emit(
+                                    "thinking",
+                                    {
+                                        "step": item.get("text", ""),
+                                        "step_index": step_idx,
+                                        "is_reasoning_chunk": True,
+                                        "trajectory_id": item.get("tid", ""),
+                                    },
+                                )
                             else:
                                 # String items = status headers / markers
                                 step_text = str(item).strip()
                                 if step_text:
                                     step_idx += 1
                                     thinking_steps_text.append(step_text)
-                                    yield _emit("thinking", {
-                                        "step": step_text,
-                                        "step_index": step_idx,
-                                        "is_reasoning_chunk": False,
-                                    })
+                                    yield _emit(
+                                        "thinking",
+                                        {
+                                            "step": step_text,
+                                            "step_index": step_idx,
+                                            "is_reasoning_chunk": False,
+                                        },
+                                    )
 
                         # Ensure thread is joined
                         _t.join(timeout=5)
@@ -759,34 +940,46 @@ def chat_stream():
                             raise RuntimeError("Reasoning returned no result")
 
                         thinking_duration = round(result.reasoning_time * 1000)
-                        yield _emit("thinking_end", {
-                            "summary": f"{result.total_rounds} rounds · {result.total_trajectories} trajectories · {result.reasoning_time:.1f}s",
-                            "duration_ms": thinking_duration,
-                            "rounds": result.total_rounds,
-                            "trajectories": result.total_trajectories,
-                            "steps": thinking_steps_text,
-                            "category": category,
-                        })
+                        yield _emit(
+                            "thinking_end",
+                            {
+                                "summary": f"{result.total_rounds} rounds · {result.total_trajectories} trajectories · {result.reasoning_time:.1f}s",
+                                "duration_ms": thinking_duration,
+                                "rounds": result.total_rounds,
+                                "trajectories": result.total_trajectories,
+                                "steps": thinking_steps_text,
+                                "category": category,
+                            },
+                        )
 
                         full_response = result.final_answer
-                        _est_tokens = result.total_tokens or max(1, int(len(full_response) * 0.75))
+                        _est_tokens = result.total_tokens or max(
+                            1, int(len(full_response) * 0.75)
+                        )
 
                         # Stream the final answer in chunks for progressive rendering
                         chunk_size = 80
                         for i in range(0, len(full_response), chunk_size):
-                            text = full_response[i:i + chunk_size]
+                            text = full_response[i : i + chunk_size]
                             chunk_count += 1
-                            yield _emit("chunk", {"content": text, "chunk_index": chunk_count})
+                            yield _emit(
+                                "chunk", {"content": text, "chunk_index": chunk_count}
+                            )
 
                     except Exception as e:
-                        logger.error(f"[SSE:{request_id}] 4-Agents reasoning failed, fallback: {e}")
+                        logger.error(
+                            f"[SSE:{request_id}] 4-Agents reasoning failed, fallback: {e}"
+                        )
                         fallback_used = True
-                        yield _emit("thinking_end", {
-                            "summary": "Fallback to standard",
-                            "duration_ms": 0,
-                            "steps": [],
-                            "category": category,
-                        })
+                        yield _emit(
+                            "thinking_end",
+                            {
+                                "summary": "Fallback to standard",
+                                "duration_ms": 0,
+                                "steps": [],
+                                "category": category,
+                            },
+                        )
                         # Fallback to standard deep-thinking stream below
                         is_multi_thinking = False
 
@@ -812,26 +1005,31 @@ def chat_stream():
                     ):
                         if not chunk:
                             continue
-                        
+
                         # Handle native reasoning_content (DeepSeek R1, etc.)
                         if chunk.startswith(REASONING_PREFIX):
-                            reasoning_text = chunk[len(REASONING_PREFIX):]
+                            reasoning_text = chunk[len(REASONING_PREFIX) :]
                             if reasoning_text and use_thinking:
                                 if not thinking_started:
                                     thinking_started = True
-                                    has_model_reasoning = True
-                                    yield _emit("thinking_start", {
-                                        "category": category,
-                                        "timestamp": datetime.now().isoformat()
-                                    })
+                                    yield _emit(
+                                        "thinking_start",
+                                        {
+                                            "category": category,
+                                            "timestamp": datetime.now().isoformat(),
+                                        },
+                                    )
                                 thinking_steps_text.append(reasoning_text)
-                                yield _emit("thinking", {
-                                    "step": reasoning_text,
-                                    "category": "model_reasoning",
-                                    "is_reasoning_chunk": True,
-                                })
+                                yield _emit(
+                                    "thinking",
+                                    {
+                                        "step": reasoning_text,
+                                        "category": "model_reasoning",
+                                        "is_reasoning_chunk": True,
+                                    },
+                                )
                             continue
-                        
+
                         # Parse <think> tags from model output
                         if think_parser:
                             segments = think_parser.feed(chunk)
@@ -840,98 +1038,126 @@ def chat_stream():
                                     # This is reasoning content inside <think>
                                     if not thinking_started:
                                         thinking_started = True
-                                        yield _emit("thinking_start", {
-                                            "category": category,
-                                            "timestamp": datetime.now().isoformat()
-                                        })
+                                        yield _emit(
+                                            "thinking_start",
+                                            {
+                                                "category": category,
+                                                "timestamp": datetime.now().isoformat(),
+                                            },
+                                        )
                                     thinking_steps_text.append(text)
-                                    yield _emit("thinking", {
-                                        "step": text,
-                                        "category": category,
-                                        "is_reasoning_chunk": True,
-                                    })
+                                    yield _emit(
+                                        "thinking",
+                                        {
+                                            "step": text,
+                                            "category": category,
+                                            "is_reasoning_chunk": True,
+                                        },
+                                    )
                                 else:
                                     # Regular response content — end thinking if active
                                     if thinking_started and not thinking_ended:
                                         thinking_ended = True
-                                        thinking_duration = round((time.time() - thinking_start) * 1000)
-                                        thinking_summary = generate_thinking_summary(message, category, language)
-                                        yield _emit("thinking_end", {
-                                            "summary": thinking_summary,
-                                            "steps": thinking_steps_text,
-                                            "category": category,
-                                            "duration_ms": thinking_duration,
-                                        })
-                                    
+                                        thinking_duration = round(
+                                            (time.time() - thinking_start) * 1000
+                                        )
+                                        thinking_summary = generate_thinking_summary(
+                                            message, category, language
+                                        )
+                                        yield _emit(
+                                            "thinking_end",
+                                            {
+                                                "summary": thinking_summary,
+                                                "steps": thinking_steps_text,
+                                                "category": category,
+                                                "duration_ms": thinking_duration,
+                                            },
+                                        )
+
                                     full_response += text
                                     chunk_count += 1
-                                    yield _emit("chunk", {
-                                        "content": text,
-                                        "chunk_index": chunk_count
-                                    })
+                                    yield _emit(
+                                        "chunk",
+                                        {"content": text, "chunk_index": chunk_count},
+                                    )
                         else:
                             # No thinking parser (instant mode) — pass through
                             full_response += chunk
                             chunk_count += 1
-                            yield _emit("chunk", {
-                                "content": chunk,
-                                "chunk_index": chunk_count
-                            })
-                    
+                            yield _emit(
+                                "chunk", {"content": chunk, "chunk_index": chunk_count}
+                            )
+
                     # Flush remaining buffer from think parser
                     if think_parser:
                         for is_thinking, text in think_parser.flush():
                             if is_thinking:
                                 thinking_steps_text.append(text)
-                                yield _emit("thinking", {
-                                    "step": text,
-                                    "category": category,
-                                    "is_reasoning_chunk": True,
-                                })
+                                yield _emit(
+                                    "thinking",
+                                    {
+                                        "step": text,
+                                        "category": category,
+                                        "is_reasoning_chunk": True,
+                                    },
+                                )
                             else:
                                 full_response += text
                                 chunk_count += 1
-                                yield _emit("chunk", {
-                                    "content": text,
-                                    "chunk_index": chunk_count
-                                })
-                    
+                                yield _emit(
+                                    "chunk",
+                                    {"content": text, "chunk_index": chunk_count},
+                                )
+
                     # Close thinking if still open (model didn't close </think>)
                     if thinking_started and not thinking_ended:
                         thinking_duration = round((time.time() - thinking_start) * 1000)
-                        thinking_summary = generate_thinking_summary(message, category, language)
-                        yield _emit("thinking_end", {
-                            "summary": thinking_summary,
-                            "steps": thinking_steps_text,
-                            "category": category,
-                            "duration_ms": thinking_duration,
-                        })
-                
+                        thinking_summary = generate_thinking_summary(
+                            message, category, language
+                        )
+                        yield _emit(
+                            "thinking_end",
+                            {
+                                "summary": thinking_summary,
+                                "steps": thinking_steps_text,
+                                "category": category,
+                                "duration_ms": thinking_duration,
+                            },
+                        )
+
                 # Send complete event
                 _elapsed = time.time() - thinking_start
                 _est_tokens = max(1, int(len(full_response) * 0.75))
                 if is_multi_thinking:
                     _max_tokens = 4096
                 else:
-                    _mc = chatbot.registry.get_config(model) if chatbot.registry else None
-                    _max_tokens = (_mc.max_tokens_deep if deep_thinking else _mc.max_tokens) if _mc else 2000
+                    _mc = (
+                        chatbot.registry.get_config(model) if chatbot.registry else None
+                    )
+                    _max_tokens = (
+                        (_mc.max_tokens_deep if deep_thinking else _mc.max_tokens)
+                        if _mc
+                        else 2000
+                    )
                 yield StreamEvent(
                     event="complete",
-                    data=json.dumps(_build_complete_event_payload(
-                        full_response=full_response,
-                        model=model,
-                        context=context,
-                        deep_thinking=deep_thinking,
-                        thinking_mode=thinking_mode,
-                        chunk_count=chunk_count,
-                        thinking_summary=thinking_summary,
-                        thinking_steps_text=thinking_steps_text,
-                        thinking_duration=thinking_duration,
-                        elapsed_time=_elapsed,
-                        tokens=_est_tokens,
-                        max_tokens=_max_tokens,
-                        request_id=request_id,
-                    ))
+                    data=json.dumps(
+                        _build_complete_event_payload(
+                            full_response=full_response,
+                            model=model,
+                            context=context,
+                            deep_thinking=deep_thinking,
+                            thinking_mode=thinking_mode,
+                            chunk_count=chunk_count,
+                            thinking_summary=thinking_summary,
+                            thinking_steps_text=thinking_steps_text,
+                            thinking_duration=thinking_duration,
+                            elapsed_time=_elapsed,
+                            tokens=_est_tokens,
+                            max_tokens=_max_tokens,
+                            request_id=request_id,
+                        )
+                    ),
                 ).format()
                 record_stream_complete(
                     backend=stream_backend,
@@ -952,91 +1178,102 @@ def chat_stream():
 
                 # Mongo activity log: assistant message summary (fail-safe).
                 try:
-                    mongo_store.save_message({
-                        "message_id": f"msg-{uuid.uuid4().hex[:12]}",
-                        "conversation_id": conversation_id or "",
-                        "role": "assistant",
-                        "message_type": "chat",
-                        "content": full_response,
-                        "metadata": {
-                            "model": model,
-                            "context": context,
-                            "thinking_mode": thinking_mode,
-                            "deep_thinking": deep_thinking,
-                            "chunk_count": chunk_count,
-                            "tokens": _est_tokens,
-                            "elapsed_ms": int(_elapsed * 1000),
-                            "in_reply_to_message_id": user_message_id,
-                            "request_id": request_id,
-                        },
-                    })
+                    mongo_store.save_message(
+                        {
+                            "message_id": f"msg-{uuid.uuid4().hex[:12]}",
+                            "conversation_id": conversation_id or "",
+                            "role": "assistant",
+                            "message_type": "chat",
+                            "content": full_response,
+                            "metadata": {
+                                "model": model,
+                                "context": context,
+                                "thinking_mode": thinking_mode,
+                                "deep_thinking": deep_thinking,
+                                "chunk_count": chunk_count,
+                                "tokens": _est_tokens,
+                                "elapsed_ms": int(_elapsed * 1000),
+                                "in_reply_to_message_id": user_message_id,
+                                "request_id": request_id,
+                            },
+                        }
+                    )
                 except Exception as _me:  # noqa: BLE001
                     logger.warning(
                         f"[SSE:{request_id}] mongo log (assistant message) failed: {_me}"
                     )
-                
+
             except GeneratorExit:
                 logger.info(f"[SSE:{request_id}] Client disconnected")
             except Exception as e:
                 trace.finish(error=str(e))
                 TRACE_STORE.save(trace)
                 logger.error(f"[SSE:{request_id}] Streaming error: {e}")
-                record_stream_error(backend=stream_backend, request_id=request_id, error=str(e))
+                record_stream_error(
+                    backend=stream_backend, request_id=request_id, error=str(e)
+                )
                 yield StreamEvent(
                     event="error",
-                    data=json.dumps(with_request_id({"error": str(e)}, request_id), ensure_ascii=False)
+                    data=json.dumps(
+                        with_request_id({"error": str(e)}, request_id),
+                        ensure_ascii=False,
+                    ),
                 ).format()
-        
+
         return Response(
             generate_stream(),
-            mimetype='text/event-stream',
+            mimetype="text/event-stream",
             headers={
-                'Cache-Control': 'no-cache',
-                'Connection': 'keep-alive',
-                'X-Accel-Buffering': 'no',
-                'Access-Control-Allow-Origin': '*',
-            }
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+                "Access-Control-Allow-Origin": "*",
+            },
         )
-        
+
     except Exception as e:
         logger.error(f"[SSE] Error before stream init: {e}")
         return Response(
-            StreamEvent(event="error", data=json.dumps({"error": str(e)}, ensure_ascii=False)).format(),
-            mimetype='text/event-stream',
-            status=500
+            StreamEvent(
+                event="error", data=json.dumps({"error": str(e)}, ensure_ascii=False)
+            ).format(),
+            mimetype="text/event-stream",
+            status=500,
         )
 
 
-@stream_bp.route('/chat/stream/models', methods=['GET'])
+@stream_bp.route("/chat/stream/models", methods=["GET"])
 def list_streaming_models():
     """List models that support streaming"""
     from core.chatbot_v2 import get_model_registry
-    
+
     registry = get_model_registry()
     models = []
-    
+
     for name in registry.list_available():
         config = registry.get_config(name)
         if config:
-            models.append({
-                'name': name,
-                'supports_streaming': config.supports_streaming,
-                'provider': config.provider.value
-            })
-    
+            models.append(
+                {
+                    "name": name,
+                    "supports_streaming": config.supports_streaming,
+                    "provider": config.provider.value,
+                }
+            )
+
     return {
-        'models': models,
-        'streaming_supported': [m['name'] for m in models if m['supports_streaming']]
+        "models": models,
+        "streaming_supported": [m["name"] for m in models if m["supports_streaming"]],
     }
 
 
-@stream_bp.route('/chat/stream/metrics', methods=['GET'])
+@stream_bp.route("/chat/stream/metrics", methods=["GET"])
 def stream_metrics():
     """Return in-memory stream telemetry snapshot."""
     return get_stream_metrics_snapshot()
 
 
-@stream_bp.route('/chat/stream/skills', methods=['GET'])
+@stream_bp.route("/chat/stream/skills", methods=["GET"])
 def list_skills():
     """Legacy alias — redirects to /api/skills. Kept for backward compat."""
     from core.skills.registry import get_skill_registry
@@ -1044,16 +1281,18 @@ def list_skills():
     registry = get_skill_registry()
     skills = []
     for s in registry.list_ui_visible():
-        skills.append({
-            'id': s.id,
-            'name': s.name,
-            'description': s.description,
-            'default_model': s.default_model,
-            'default_thinking_mode': s.default_thinking_mode,
-            'default_context': s.default_context,
-            'preferred_tools': s.preferred_tools,
-            'blocked_tools': s.blocked_tools,
-            'tags': s.tags,
-            'enabled': s.enabled,
-        })
-    return {'skills': skills}
+        skills.append(
+            {
+                "id": s.id,
+                "name": s.name,
+                "description": s.description,
+                "default_model": s.default_model,
+                "default_thinking_mode": s.default_thinking_mode,
+                "default_context": s.default_context,
+                "preferred_tools": s.preferred_tools,
+                "blocked_tools": s.blocked_tools,
+                "tags": s.tags,
+                "enabled": s.enabled,
+            }
+        )
+    return {"skills": skills}

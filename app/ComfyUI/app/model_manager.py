@@ -18,7 +18,9 @@ class ModelFileManager:
     def __init__(self) -> None:
         self.cache: dict[str, tuple[list[dict], dict[str, float], float]] = {}
 
-    def get_cache(self, key: str, default=None) -> tuple[list[dict], dict[str, float], float] | None:
+    def get_cache(
+        self, key: str, default=None
+    ) -> tuple[list[dict], dict[str, float], float] | None:
         return self.cache.get(key, default)
 
     def set_cache(self, key: str, value: tuple[list[dict], dict[str, float], float]):
@@ -37,7 +39,9 @@ class ModelFileManager:
             for folder in model_types:
                 if folder in folder_black_list:
                     continue
-                output_folders.append({"name": folder, "folders": folder_paths.get_folder_paths(folder)})
+                output_folders.append(
+                    {"name": folder, "folders": folder_paths.get_folder_paths(folder)}
+                )
             return web.json_response(output_folders)
 
         # NOTE: This is an experiment to replace `/models/{folder}`
@@ -64,7 +68,9 @@ class ModelFileManager:
 
             previews = self.get_model_previews(full_filename)
             default_preview = previews[0] if len(previews) > 0 else None
-            if default_preview is None or (isinstance(default_preview, str) and not os.path.isfile(default_preview)):
+            if default_preview is None or (
+                isinstance(default_preview, str) and not os.path.isfile(default_preview)
+            ):
                 return web.Response(status=404)
 
             try:
@@ -72,7 +78,9 @@ class ModelFileManager:
                     img_bytes = BytesIO()
                     img.save(img_bytes, format="WEBP")
                     img_bytes.seek(0)
-                    return web.Response(body=img_bytes.getvalue(), content_type="image/webp")
+                    return web.Response(
+                        body=img_bytes.getvalue(), content_type="image/webp"
+                    )
             except:
                 return web.Response(status=404)
 
@@ -109,7 +117,9 @@ class ModelFileManager:
 
         return model_file_list_cache
 
-    def recursive_search_models_(self, directory: str, pathIndex: int) -> tuple[list[str], dict[str, float], float]:
+    def recursive_search_models_(
+        self, directory: str, pathIndex: int
+    ) -> tuple[list[str], dict[str, float], float]:
         if not os.path.isdir(directory):
             return [], {}, time.perf_counter()
 
@@ -120,13 +130,17 @@ class ModelFileManager:
         result: list[str] = []
         dirs: dict[str, float] = {}
 
-        for dirpath, subdirs, filenames in os.walk(directory, followlinks=True, topdown=True):
+        for dirpath, subdirs, filenames in os.walk(
+            directory, followlinks=True, topdown=True
+        ):
             subdirs[:] = [d for d in subdirs if d not in excluded_dir_names]
             if not include_hidden_files:
                 subdirs[:] = [d for d in subdirs if not d.startswith(".")]
                 filenames = [f for f in filenames if not f.startswith(".")]
 
-            filenames = filter_files_extensions(filenames, folder_paths.supported_pt_extensions)
+            filenames = filter_files_extensions(
+                filenames, folder_paths.supported_pt_extensions
+            )
 
             for file_name in filenames:
                 try:
@@ -137,14 +151,18 @@ class ModelFileManager:
                     file_info = {
                         "name": relative_path,
                         "pathIndex": pathIndex,
-                        "modified": os.path.getmtime(full_path),  # Add modification time
-                        "created": os.path.getctime(full_path),   # Add creation time
-                        "size": os.path.getsize(full_path)        # Add file size
+                        "modified": os.path.getmtime(
+                            full_path
+                        ),  # Add modification time
+                        "created": os.path.getctime(full_path),  # Add creation time
+                        "size": os.path.getsize(full_path),  # Add file size
                     }
                     result.append(file_info)
 
                 except Exception as e:
-                    logging.warning(f"Warning: Unable to access {file_name}. Error: {e}. Skipping this file.")
+                    logging.warning(
+                        f"Warning: Unable to access {file_name}. Error: {e}. Skipping this file."
+                    )
                     continue
 
             for d in subdirs:
@@ -152,7 +170,9 @@ class ModelFileManager:
                 try:
                     dirs[path] = os.path.getmtime(path)
                 except FileNotFoundError:
-                    logging.warning(f"Warning: Unable to access {path}. Skipping this path.")
+                    logging.warning(
+                        f"Warning: Unable to access {path}. Skipping this path."
+                    )
                     continue
 
         return result, dirs, time.perf_counter()
@@ -166,7 +186,9 @@ class ModelFileManager:
         basename = os.path.splitext(filepath)[0]
         match_files = glob.glob(f"{basename}.*", recursive=False)
         image_files = filter_files_content_types(match_files, "image")
-        safetensors_file = next(filter(lambda x: x.endswith(".safetensors"), match_files), None)
+        safetensors_file = next(
+            filter(lambda x: x.endswith(".safetensors"), match_files), None
+        )
         safetensors_metadata = {}
 
         result: list[str | BytesIO] = []
@@ -180,10 +202,14 @@ class ModelFileManager:
 
         if safetensors_file:
             safetensors_filepath = os.path.join(dirname, safetensors_file)
-            header = comfy.utils.safetensors_header(safetensors_filepath, max_size=8*1024*1024)
+            header = comfy.utils.safetensors_header(
+                safetensors_filepath, max_size=8 * 1024 * 1024
+            )
             if header:
                 safetensors_metadata = json.loads(header)
-        safetensors_images = safetensors_metadata.get("__metadata__", {}).get("ssmd_cover_images", None)
+        safetensors_images = safetensors_metadata.get("__metadata__", {}).get(
+            "ssmd_cover_images", None
+        )
         if safetensors_images:
             safetensors_images = json.loads(safetensors_images)
             for image in safetensors_images:

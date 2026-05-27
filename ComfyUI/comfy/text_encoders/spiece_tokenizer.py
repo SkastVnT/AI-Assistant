@@ -1,6 +1,7 @@
 import torch
 import os
 
+
 class SPieceTokenizer:
     @staticmethod
     def from_pretrained(path, **kwargs):
@@ -10,15 +11,20 @@ class SPieceTokenizer:
         self.add_bos = add_bos
         self.add_eos = add_eos
         import sentencepiece
+
         if torch.is_tensor(tokenizer_path):
             tokenizer_path = tokenizer_path.numpy().tobytes()
 
         if isinstance(tokenizer_path, bytes):
-            self.tokenizer = sentencepiece.SentencePieceProcessor(model_proto=tokenizer_path, add_bos=self.add_bos, add_eos=self.add_eos)
+            self.tokenizer = sentencepiece.SentencePieceProcessor(
+                model_proto=tokenizer_path, add_bos=self.add_bos, add_eos=self.add_eos
+            )
         else:
             if not os.path.isfile(tokenizer_path):
                 raise ValueError("invalid tokenizer")
-            self.tokenizer = sentencepiece.SentencePieceProcessor(model_file=tokenizer_path, add_bos=self.add_bos, add_eos=self.add_eos)
+            self.tokenizer = sentencepiece.SentencePieceProcessor(
+                model_file=tokenizer_path, add_bos=self.add_bos, add_eos=self.add_eos
+            )
 
     def get_vocab(self):
         out = {}

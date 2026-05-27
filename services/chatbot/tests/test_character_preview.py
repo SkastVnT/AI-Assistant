@@ -3,12 +3,10 @@
 Pure function — no GPU, no network, no file writes (the module only
 *reads* the optional overrides file and the optional cache directory).
 """
+
 from __future__ import annotations
 
 import json
-from pathlib import Path
-
-import pytest
 
 from core import character_preview as cp
 from core.character_preview import PLACEHOLDER_URL, build_preview
@@ -64,20 +62,24 @@ def test_priority_3_overrides_file_used_when_present(tmp_path, monkeypatch):
     # Point the loader at a temp overrides file.
     fake_path = tmp_path / "character_overrides.json"
     fake_path.write_text(
-        json.dumps({
-            "characters": [{
-                "canonical_id": "iroha@cosmic_princess",
-                "display_name": "Iroha",
-                "series_name": "Cosmic Princess",
-                "series_slug": "cosmic_princess",
-                "aliases": ["iroha"],
-                "reference_images": ["https://example.com/iroha.png"],
-                "needs_review": True,
-                "lora_hint": None,
-                "safe_to_attach_lora": False,
-                "confidence": 0.7,
-            }]
-        }),
+        json.dumps(
+            {
+                "characters": [
+                    {
+                        "canonical_id": "iroha@cosmic_princess",
+                        "display_name": "Iroha",
+                        "series_name": "Cosmic Princess",
+                        "series_slug": "cosmic_princess",
+                        "aliases": ["iroha"],
+                        "reference_images": ["https://example.com/iroha.png"],
+                        "needs_review": True,
+                        "lora_hint": None,
+                        "safe_to_attach_lora": False,
+                        "confidence": 0.7,
+                    }
+                ]
+            }
+        ),
         encoding="utf-8",
     )
     monkeypatch.setattr(cp, "_OVERRIDES_PATH", fake_path)
@@ -90,20 +92,26 @@ def test_priority_3_overrides_file_used_when_present(tmp_path, monkeypatch):
     assert p.needs_review is True
 
 
-def test_priority_3_overrides_safe_to_attach_lora_requires_both_flags(tmp_path, monkeypatch):
+def test_priority_3_overrides_safe_to_attach_lora_requires_both_flags(
+    tmp_path, monkeypatch
+):
     fake_path = tmp_path / "character_overrides.json"
     fake_path.write_text(
-        json.dumps({
-            "characters": [{
-                "canonical_id": "ok@series",
-                "display_name": "Ok",
-                "series_slug": "series",
-                "aliases": [],
-                "reference_images": [],
-                "lora_hint": "ok_v1.safetensors",
-                "safe_to_attach_lora": True,
-            }]
-        }),
+        json.dumps(
+            {
+                "characters": [
+                    {
+                        "canonical_id": "ok@series",
+                        "display_name": "Ok",
+                        "series_slug": "series",
+                        "aliases": [],
+                        "reference_images": [],
+                        "lora_hint": "ok_v1.safetensors",
+                        "safe_to_attach_lora": True,
+                    }
+                ]
+            }
+        ),
         encoding="utf-8",
     )
     monkeypatch.setattr(cp, "_OVERRIDES_PATH", fake_path)
@@ -134,9 +142,7 @@ def test_priority_5_local_cache_returned_when_file_exists(tmp_path, monkeypatch)
     monkeypatch.setattr(cp, "_LOCAL_CACHE_DIR", cache_dir)
     monkeypatch.setattr(cp, "_OVERRIDES_PATH", tmp_path / "missing.json")
     # Force registry + SAA misses by using a key the registry won't know.
-    monkeypatch.setattr(
-        cp, "_saa_thumbnail_url", lambda key: None
-    )
+    monkeypatch.setattr(cp, "_saa_thumbnail_url", lambda key: None)
     p = build_preview(key="hu_tao")
     assert p.preview_source == "local_cache"
     assert p.preview_url.endswith("/character_previews/hu_tao.png")
@@ -146,11 +152,20 @@ def test_to_dict_contains_documented_fields():
     p = build_preview(query="Test")
     d = p.to_dict()
     for field in (
-        "preview_url", "preview_source", "source_url",
-        "display_name", "canonical_id", "provisional_id",
-        "series_name", "series_slug", "source",
-        "safe_to_attach_lora", "needs_review", "confidence",
-        "tooltip_lines", "warnings",
+        "preview_url",
+        "preview_source",
+        "source_url",
+        "display_name",
+        "canonical_id",
+        "provisional_id",
+        "series_name",
+        "series_slug",
+        "source",
+        "safe_to_attach_lora",
+        "needs_review",
+        "confidence",
+        "tooltip_lines",
+        "warnings",
     ):
         assert field in d, f"missing field: {field}"
 
@@ -161,6 +176,7 @@ def test_route_preview_endpoint_returns_json(monkeypatch, tmp_path):
 
     from flask import Flask
     from routes.characters import characters_bp
+
     app = Flask(__name__)
     app.register_blueprint(characters_bp)
     client = app.test_client()

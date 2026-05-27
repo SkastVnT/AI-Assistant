@@ -1,28 +1,29 @@
-﻿"""
+"""
 ComfyUI API Client
 Connect to ComfyUI for image generation
 """
 
-import os
-import json
-import uuid
-import time
-import requests
 import base64
-from typing import Optional, Dict, List, Any
 import logging
+import os
+import time
+import uuid
+
+import requests
 
 logger = logging.getLogger(__name__)
 
 
 class ComfyUIClient:
     """Client for ComfyUI API"""
-    
+
     def __init__(self, api_url: str = None):
         """Initialize ComfyUI Client"""
-        self.api_url = (api_url or os.getenv('COMFYUI_URL', 'http://localhost:8188')).rstrip('/')
+        self.api_url = (
+            api_url or os.getenv("COMFYUI_URL", "http://localhost:8188")
+        ).rstrip("/")
         self.client_id = str(uuid.uuid4())
-        
+
     def check_health(self) -> bool:
         """Check if ComfyUI is running"""
         try:
@@ -30,35 +31,42 @@ class ComfyUIClient:
             return response.status_code == 200
         except:
             return False
-    
+
     # Known working models (verified with non-zero file size)
     WORKING_MODELS = [
-        'animagine-xl-4.0-opt.safetensors',
-        'juggernautXL_v9.safetensors',
-        'dreamshaper_xl.safetensors',
-        'realvisxlV50_v50LightningBakedvae.safetensors',
-        'sd_xl_base_1.0.safetensors',
-        'counterfeit_v30.safetensors',
-        'realisticVision_v60.safetensors',
+        "animagine-xl-4.0-opt.safetensors",
+        "juggernautXL_v9.safetensors",
+        "dreamshaper_xl.safetensors",
+        "realvisxlV50_v50LightningBakedvae.safetensors",
+        "sd_xl_base_1.0.safetensors",
+        "counterfeit_v30.safetensors",
+        "realisticVision_v60.safetensors",
     ]
-    
+
     # Known corrupt models (0 bytes or broken)
     BROKEN_MODELS = [
-        'absolutereality_v181.safetensors',
-        'anythingV5_PrtRE.safetensors',
-        'cyberrealistic_xl.safetensors',
-        'epicrealism_xl.safetensors',
-        'leosam_helloworld_xl.safetensors',
-        'meinamix_v11.safetensors',
+        "absolutereality_v181.safetensors",
+        "anythingV5_PrtRE.safetensors",
+        "cyberrealistic_xl.safetensors",
+        "epicrealism_xl.safetensors",
+        "leosam_helloworld_xl.safetensors",
+        "meinamix_v11.safetensors",
     ]
-    
-    def get_models(self) -> List[str]:
+
+    def get_models(self) -> list[str]:
         """Get available checkpoint models (excludes known broken models)"""
         try:
-            response = requests.get(f"{self.api_url}/object_info/CheckpointLoaderSimple", timeout=10)
+            response = requests.get(
+                f"{self.api_url}/object_info/CheckpointLoaderSimple", timeout=10
+            )
             if response.status_code == 200:
                 data = response.json()
-                models = data.get('CheckpointLoaderSimple', {}).get('input', {}).get('required', {}).get('ckpt_name', [[]])[0]
+                models = (
+                    data.get("CheckpointLoaderSimple", {})
+                    .get("input", {})
+                    .get("required", {})
+                    .get("ckpt_name", [[]])[0]
+                )
                 if isinstance(models, list):
                     # Filter out known broken models
                     working = [m for m in models if m not in self.BROKEN_MODELS]
@@ -68,68 +76,97 @@ class ComfyUIClient:
         except Exception as e:
             logger.error(f"Error getting models: {e}")
             return []
-    
+
     def get_current_model(self) -> str:
         """Get current/default model (prioritize known working models)"""
         models = self.get_models()
         if not models:
             return "No model loaded"
-        
+
         # Prioritize known working models
         for preferred in self.WORKING_MODELS:
             if preferred in models:
                 return preferred
-        
+
         return models[0]
-    
-    def get_samplers(self) -> List[str]:
+
+    def get_samplers(self) -> list[str]:
         """Get available samplers from ComfyUI"""
         try:
             response = requests.get(f"{self.api_url}/object_info/KSampler", timeout=10)
             if response.status_code == 200:
                 data = response.json()
-                samplers = data.get('KSampler', {}).get('input', {}).get('required', {}).get('sampler_name', [[]])[0]
+                samplers = (
+                    data.get("KSampler", {})
+                    .get("input", {})
+                    .get("required", {})
+                    .get("sampler_name", [[]])[0]
+                )
                 return samplers if isinstance(samplers, list) else []
-            return ['euler', 'euler_ancestral', 'heun', 'dpm_2', 'dpm_2_ancestral', 'lms', 'dpm_fast', 'dpm_adaptive', 'dpmpp_2s_ancestral', 'dpmpp_sde', 'dpmpp_2m']
+            return [
+                "euler",
+                "euler_ancestral",
+                "heun",
+                "dpm_2",
+                "dpm_2_ancestral",
+                "lms",
+                "dpm_fast",
+                "dpm_adaptive",
+                "dpmpp_2s_ancestral",
+                "dpmpp_sde",
+                "dpmpp_2m",
+            ]
         except Exception as e:
             logger.error(f"Error getting samplers: {e}")
-            return ['euler', 'dpmpp_2m', 'dpmpp_sde']
-    
-    def get_loras(self) -> List[Dict]:
+            return ["euler", "dpmpp_2m", "dpmpp_sde"]
+
+    def get_loras(self) -> list[dict]:
         """Get available LoRA models"""
         try:
-            response = requests.get(f"{self.api_url}/object_info/LoraLoader", timeout=10)
+            response = requests.get(
+                f"{self.api_url}/object_info/LoraLoader", timeout=10
+            )
             if response.status_code == 200:
                 data = response.json()
-                loras = data.get('LoraLoader', {}).get('input', {}).get('required', {}).get('lora_name', [[]])[0]
+                loras = (
+                    data.get("LoraLoader", {})
+                    .get("input", {})
+                    .get("required", {})
+                    .get("lora_name", [[]])[0]
+                )
                 if isinstance(loras, list):
-                    return [{'name': lora, 'alias': lora} for lora in loras]
+                    return [{"name": lora, "alias": lora} for lora in loras]
             return []
         except Exception as e:
             logger.error(f"Error getting LoRAs: {e}")
             return []
-    
-    def get_vaes(self) -> List[Dict]:
+
+    def get_vaes(self) -> list[dict]:
         """Get available VAE models"""
         try:
             response = requests.get(f"{self.api_url}/object_info/VAELoader", timeout=10)
             if response.status_code == 200:
                 data = response.json()
-                vaes = data.get('VAELoader', {}).get('input', {}).get('required', {}).get('vae_name', [[]])[0]
+                vaes = (
+                    data.get("VAELoader", {})
+                    .get("input", {})
+                    .get("required", {})
+                    .get("vae_name", [[]])[0]
+                )
                 if isinstance(vaes, list):
-                    return [{'name': vae, 'alias': vae} for vae in vaes]
-            return [{'name': 'Automatic (Default)', 'alias': 'auto'}]
+                    return [{"name": vae, "alias": vae} for vae in vaes]
+            return [{"name": "Automatic (Default)", "alias": "auto"}]
         except Exception as e:
             logger.error(f"Error getting VAEs: {e}")
-            return [{'name': 'Automatic (Default)', 'alias': 'auto'}]
-    
+            return [{"name": "Automatic (Default)", "alias": "auto"}]
+
     def change_model(self, model_name: str) -> bool:
         """Change checkpoint model - Note: ComfyUI loads model per-workflow"""
         # ComfyUI doesn't have a global model change API
         # Model is specified per workflow, so we just validate it exists
         models = self.get_models()
         return model_name in models
-    
+
     def interrupt(self) -> bool:
         """Interrupt current generation"""
         try:
@@ -137,10 +174,10 @@ class ComfyUIClient:
             return response.status_code == 200
         except:
             return False
-    
+
     def img2img(
         self,
-        init_images: List[str],
+        init_images: list[str],
         prompt: str,
         negative_prompt: str = "bad quality, blurry",
         denoising_strength: float = 0.7,
@@ -151,49 +188,53 @@ class ComfyUIClient:
         seed: int = -1,
         sampler_name: str = "euler",
         model: str = None,
-        lora_models: List[Dict] = None,
+        lora_models: list[dict] = None,
         vae: str = None,
-        **kwargs
-    ) -> Dict:
+        **kwargs,
+    ) -> dict:
         """
         Img2Img using ComfyUI workflow
         """
         try:
             # Check ComfyUI connectivity first
             if not self.check_health():
-                return {'error': 'ComfyUI is not running. Please start ComfyUI on port 8188.'}
+                return {
+                    "error": "ComfyUI is not running. Please start ComfyUI on port 8188."
+                }
 
             if not init_images or not init_images[0]:
-                return {'error': 'No input image provided'}
-            
+                return {"error": "No input image provided"}
+
             # Get model
             if model and model not in self.BROKEN_MODELS:
                 # Validate the model exists
                 available = self.get_models()
                 if available and model not in available:
-                    logger.warning(f"Model '{model}' not found, falling back to default")
+                    logger.warning(
+                        f"Model '{model}' not found, falling back to default"
+                    )
                     model = self.get_current_model()
             else:
                 model = self.get_current_model()
             if model == "No model loaded":
                 model = "animagine-xl-4.0-opt.safetensors"
-            
+
             # Random seed if -1
             if seed == -1:
                 seed = int(time.time() * 1000) % (2**32)
-            
+
             # Decode base64 image and upload to ComfyUI
             image_data = init_images[0]
-            if ',' in image_data:
-                image_data = image_data.split(',')[1]
-            
+            if "," in image_data:
+                image_data = image_data.split(",")[1]
+
             # Upload image to ComfyUI
             image_bytes = base64.b64decode(image_data)
             upload_result = self._upload_image(image_bytes)
             if not upload_result:
-                return {'error': 'Failed to upload image to ComfyUI'}
-            
-            input_image_name = upload_result.get('name')
+                return {"error": "Failed to upload image to ComfyUI"}
+
+            input_image_name = upload_result.get("name")
 
             # Validate sampler
             available_samplers = self.get_samplers()
@@ -203,12 +244,7 @@ class ComfyUIClient:
             # Build workflow nodes
             next_node_id = 10
             workflow = {
-                "1": {
-                    "class_type": "LoadImage",
-                    "inputs": {
-                        "image": input_image_name
-                    }
-                },
+                "1": {"class_type": "LoadImage", "inputs": {"image": input_image_name}},
                 "1b": {
                     "class_type": "ImageScale",
                     "inputs": {
@@ -216,14 +252,12 @@ class ComfyUIClient:
                         "upscale_method": "lanczos",
                         "width": width,
                         "height": height,
-                        "crop": "center"
-                    }
+                        "crop": "center",
+                    },
                 },
                 "2": {
                     "class_type": "CheckpointLoaderSimple",
-                    "inputs": {
-                        "ckpt_name": model
-                    }
+                    "inputs": {"ckpt_name": model},
                 },
             }
 
@@ -234,10 +268,19 @@ class ComfyUIClient:
 
             # Add LoRA nodes if specified
             if lora_models:
-                available_loras = [l.get('name', l) if isinstance(l, dict) else l for l in self.get_loras()]
+                available_loras = [
+                    l.get("name", l) if isinstance(l, dict) else l
+                    for l in self.get_loras()
+                ]
                 for lora in lora_models:
-                    lora_name = lora.get('name', lora) if isinstance(lora, dict) else lora
-                    lora_weight = float(lora.get('weight', 1.0)) if isinstance(lora, dict) else 1.0
+                    lora_name = (
+                        lora.get("name", lora) if isinstance(lora, dict) else lora
+                    )
+                    lora_weight = (
+                        float(lora.get("weight", 1.0))
+                        if isinstance(lora, dict)
+                        else 1.0
+                    )
                     if not lora_name or lora_name not in available_loras:
                         continue
                     node_id = str(next_node_id)
@@ -249,128 +292,116 @@ class ComfyUIClient:
                             "clip": clip_out,
                             "lora_name": lora_name,
                             "strength_model": lora_weight,
-                            "strength_clip": lora_weight
-                        }
+                            "strength_clip": lora_weight,
+                        },
                     }
                     model_out = [node_id, 0]
                     clip_out = [node_id, 1]
 
             # Add separate VAE loader if specified
-            if vae and vae not in ('', 'auto', 'Automatic (Default)'):
+            if vae and vae not in ("", "auto", "Automatic (Default)"):
                 node_id = str(next_node_id)
                 next_node_id += 1
                 workflow[node_id] = {
                     "class_type": "VAELoader",
-                    "inputs": {
-                        "vae_name": vae
-                    }
+                    "inputs": {"vae_name": vae},
                 }
                 vae_out = [node_id, 0]
 
             # Add remaining workflow nodes
-            workflow.update({
-                "3": {
-                    "class_type": "VAEEncode",
-                    "inputs": {
-                        "pixels": ["1b", 0],
-                        "vae": vae_out
-                    }
-                },
-                "4": {
-                    "class_type": "CLIPTextEncode",
-                    "inputs": {
-                        "clip": clip_out,
-                        "text": prompt
-                    }
-                },
-                "5": {
-                    "class_type": "CLIPTextEncode",
-                    "inputs": {
-                        "clip": clip_out,
-                        "text": negative_prompt
-                    }
-                },
-                "6": {
-                    "class_type": "KSampler",
-                    "inputs": {
-                        "cfg": cfg_scale,
-                        "denoise": denoising_strength,
-                        "latent_image": ["3", 0],
-                        "model": model_out,
-                        "negative": ["5", 0],
-                        "positive": ["4", 0],
-                        "sampler_name": sampler_name,
-                        "scheduler": "normal",
-                        "seed": seed,
-                        "steps": steps
-                    }
-                },
-                "7": {
-                    "class_type": "VAEDecode",
-                    "inputs": {
-                        "samples": ["6", 0],
-                        "vae": vae_out
-                    }
-                },
-                "8": {
-                    "class_type": "SaveImage",
-                    "inputs": {
-                        "filename_prefix": "ComfyUI_img2img",
-                        "images": ["7", 0]
-                    }
+            workflow.update(
+                {
+                    "3": {
+                        "class_type": "VAEEncode",
+                        "inputs": {"pixels": ["1b", 0], "vae": vae_out},
+                    },
+                    "4": {
+                        "class_type": "CLIPTextEncode",
+                        "inputs": {"clip": clip_out, "text": prompt},
+                    },
+                    "5": {
+                        "class_type": "CLIPTextEncode",
+                        "inputs": {"clip": clip_out, "text": negative_prompt},
+                    },
+                    "6": {
+                        "class_type": "KSampler",
+                        "inputs": {
+                            "cfg": cfg_scale,
+                            "denoise": denoising_strength,
+                            "latent_image": ["3", 0],
+                            "model": model_out,
+                            "negative": ["5", 0],
+                            "positive": ["4", 0],
+                            "sampler_name": sampler_name,
+                            "scheduler": "normal",
+                            "seed": seed,
+                            "steps": steps,
+                        },
+                    },
+                    "7": {
+                        "class_type": "VAEDecode",
+                        "inputs": {"samples": ["6", 0], "vae": vae_out},
+                    },
+                    "8": {
+                        "class_type": "SaveImage",
+                        "inputs": {
+                            "filename_prefix": "ComfyUI_img2img",
+                            "images": ["7", 0],
+                        },
+                    },
                 }
-            })
-            
+            )
+
             # Queue the prompt
             prompt_id = self._queue_prompt(workflow)
             if not prompt_id:
-                return {'error': 'Failed to queue prompt in ComfyUI. Check if the model is valid.'}
-            
+                return {
+                    "error": "Failed to queue prompt in ComfyUI. Check if the model is valid."
+                }
+
             # Wait for completion
             output = self._wait_for_prompt(prompt_id, timeout=300)
             if output is None:
-                return {'error': 'Generation timeout - ComfyUI did not complete in time'}
-            if isinstance(output, dict) and output.get('error'):
-                return {'error': f"ComfyUI execution error: {output['error']}"}
-            
+                return {
+                    "error": "Generation timeout - ComfyUI did not complete in time"
+                }
+            if isinstance(output, dict) and output.get("error"):
+                return {"error": f"ComfyUI execution error: {output['error']}"}
+
             # Get the image
             image_bytes = self._get_image(output)
             if not image_bytes:
-                return {'error': 'Failed to get generated image from ComfyUI output'}
-            
+                return {"error": "Failed to get generated image from ComfyUI output"}
+
             # Return base64 encoded image
-            base64_image = base64.b64encode(image_bytes).decode('utf-8')
-            return {'images': [base64_image]}
-            
-        except Exception as e:
+            base64_image = base64.b64encode(image_bytes).decode("utf-8")
+            return {"images": [base64_image]}
+
+        except Exception:
             # Log full exception details server-side, but return a generic message to the caller
             logger.exception("Error in img2img")
-            return {'error': 'Internal error during img2img processing'}
-            return {'error': 'Internal error during image generation'}
-    
-    def _upload_image(self, image_bytes: bytes, filename: str = None) -> Optional[Dict]:
+            return {"error": "Internal error during img2img processing"}
+            return {"error": "Internal error during image generation"}
+
+    def _upload_image(self, image_bytes: bytes, filename: str = None) -> dict | None:
         """Upload image to ComfyUI input folder"""
         try:
             if not filename:
                 filename = f"input_{int(time.time() * 1000)}.png"
-            
-            files = {
-                'image': (filename, image_bytes, 'image/png')
-            }
-            
+
+            files = {"image": (filename, image_bytes, "image/png")}
+
             response = requests.post(
-                f"{self.api_url}/upload/image",
-                files=files,
-                timeout=30
+                f"{self.api_url}/upload/image", files=files, timeout=30
             )
-            
+
             if response.status_code == 200:
                 return response.json()
             return None
         except Exception as e:
             logger.error(f"Error uploading image: {e}")
             return None
-    
+
     def generate_image(
         self,
         prompt: str,
@@ -380,11 +411,11 @@ class ComfyUIClient:
         steps: int = 20,
         cfg_scale: float = 7.0,
         seed: int = -1,
-        model: str = None
-    ) -> Optional[bytes]:
+        model: str = None,
+    ) -> bytes | None:
         """
         Generate image using ComfyUI
-        
+
         Returns:
             Image bytes or None if failed
         """
@@ -395,13 +426,13 @@ class ComfyUIClient:
                 model = self.get_current_model()
                 if model == "No model loaded":
                     model = "animagine-xl-4.0-opt.safetensors"
-            
+
             logger.info(f"Using model: {model}")
-            
+
             # Random seed if -1
             if seed == -1:
                 seed = int(time.time() * 1000) % (2**32)
-            
+
             # ComfyUI workflow
             workflow = {
                 "3": {
@@ -416,93 +447,75 @@ class ComfyUIClient:
                         "sampler_name": "euler",
                         "scheduler": "normal",
                         "seed": seed,
-                        "steps": steps
-                    }
+                        "steps": steps,
+                    },
                 },
                 "4": {
                     "class_type": "CheckpointLoaderSimple",
-                    "inputs": {
-                        "ckpt_name": model
-                    }
+                    "inputs": {"ckpt_name": model},
                 },
                 "5": {
                     "class_type": "EmptyLatentImage",
-                    "inputs": {
-                        "batch_size": 1,
-                        "height": height,
-                        "width": width
-                    }
+                    "inputs": {"batch_size": 1, "height": height, "width": width},
                 },
                 "6": {
                     "class_type": "CLIPTextEncode",
-                    "inputs": {
-                        "clip": ["4", 1],
-                        "text": prompt
-                    }
+                    "inputs": {"clip": ["4", 1], "text": prompt},
                 },
                 "7": {
                     "class_type": "CLIPTextEncode",
-                    "inputs": {
-                        "clip": ["4", 1],
-                        "text": negative_prompt
-                    }
+                    "inputs": {"clip": ["4", 1], "text": negative_prompt},
                 },
                 "8": {
                     "class_type": "VAEDecode",
-                    "inputs": {
-                        "samples": ["3", 0],
-                        "vae": ["4", 2]
-                    }
+                    "inputs": {"samples": ["3", 0], "vae": ["4", 2]},
                 },
                 "9": {
                     "class_type": "SaveImage",
-                    "inputs": {
-                        "filename_prefix": "ComfyUI",
-                        "images": ["8", 0]
-                    }
-                }
+                    "inputs": {"filename_prefix": "ComfyUI", "images": ["8", 0]},
+                },
             }
-            
+
             # Queue the prompt
             prompt_id = self._queue_prompt(workflow)
             if not prompt_id:
                 return None
-            
+
             # Wait for completion
             output = self._wait_for_prompt(prompt_id, timeout=300)
             if not output:
-                logger.error(f"ComfyUI prompt {prompt_id} returned no output (timeout or execution error)")
+                logger.error(
+                    f"ComfyUI prompt {prompt_id} returned no output (timeout or execution error)"
+                )
                 return None
-            if 'error' in output:
-                logger.error(f"ComfyUI prompt {prompt_id} execution error: {output['error']}")
+            if "error" in output:
+                logger.error(
+                    f"ComfyUI prompt {prompt_id} execution error: {output['error']}"
+                )
                 return None
 
             # Get the image
             image_data = self._get_image(output)
             if image_data is None:
-                logger.error(f"ComfyUI _get_image returned None for outputs: {list(output.keys())}")
+                logger.error(
+                    f"ComfyUI _get_image returned None for outputs: {list(output.keys())}"
+                )
             return image_data
-            
+
         except Exception as e:
             import traceback
+
             logger.error(f"Error generating image: {e}\n{traceback.format_exc()}")
             return None
-    
-    def _queue_prompt(self, workflow: Dict) -> Optional[str]:
+
+    def _queue_prompt(self, workflow: dict) -> str | None:
         """Queue a prompt and return prompt_id"""
         try:
-            data = {
-                "prompt": workflow,
-                "client_id": self.client_id
-            }
-            response = requests.post(
-                f"{self.api_url}/prompt",
-                json=data,
-                timeout=30
-            )
+            data = {"prompt": workflow, "client_id": self.client_id}
+            response = requests.post(f"{self.api_url}/prompt", json=data, timeout=30)
             if response.status_code == 200:
                 result = response.json()
-                prompt_id = result.get('prompt_id')
+                prompt_id = result.get("prompt_id")
                 if not prompt_id:
                     logger.error(f"ComfyUI /prompt returned no prompt_id: {result}")
                 return prompt_id
@@ -516,58 +529,61 @@ class ComfyUIClient:
         except Exception as e:
             logger.error(f"Error queuing prompt: {e}")
             return None
-    
-    def _wait_for_prompt(self, prompt_id: str, timeout: int = 300) -> Optional[Dict]:
+
+    def _wait_for_prompt(self, prompt_id: str, timeout: int = 300) -> dict | None:
         """Wait for prompt to complete"""
         start_time = time.time()
-        
+
         while time.time() - start_time < timeout:
             try:
-                response = requests.get(f"{self.api_url}/history/{prompt_id}", timeout=10)
+                response = requests.get(
+                    f"{self.api_url}/history/{prompt_id}", timeout=10
+                )
                 if response.status_code == 200:
                     history = response.json()
                     if prompt_id in history:
                         entry = history[prompt_id]
                         # Check for execution error
-                        status = entry.get('status', {})
-                        if status.get('status_str') == 'error':
-                            error_msg = status.get('messages', [{}])
+                        status = entry.get("status", {})
+                        if status.get("status_str") == "error":
+                            error_msg = status.get("messages", [{}])
                             logger.error(f"ComfyUI execution error: {error_msg}")
-                            return {'error': str(error_msg)}
-                        outputs = entry.get('outputs', {})
+                            return {"error": str(error_msg)}
+                        outputs = entry.get("outputs", {})
                         if outputs:
                             return outputs
                         # Entry exists but no outputs yet and no error â€” still running
-                        if status.get('completed', False) or status.get('status_str') == 'success':
+                        if (
+                            status.get("completed", False)
+                            or status.get("status_str") == "success"
+                        ):
                             return outputs
             except:
                 pass
             time.sleep(1)
-        
+
         return None
-    
-    def _get_image(self, outputs: Dict) -> Optional[bytes]:
+
+    def _get_image(self, outputs: dict) -> bytes | None:
         """Get image from outputs"""
         try:
-            for node_id, output in outputs.items():
-                if 'images' in output:
-                    for image_info in output['images']:
-                        filename = image_info.get('filename')
-                        subfolder = image_info.get('subfolder', '')
-                        folder_type = image_info.get('type', 'output')
-                        
+            for _node_id, output in outputs.items():
+                if "images" in output:
+                    for image_info in output["images"]:
+                        filename = image_info.get("filename")
+                        subfolder = image_info.get("subfolder", "")
+                        folder_type = image_info.get("type", "output")
+
                         params = {
-                            'filename': filename,
-                            'subfolder': subfolder,
-                            'type': folder_type
+                            "filename": filename,
+                            "subfolder": subfolder,
+                            "type": folder_type,
                         }
-                        
+
                         response = requests.get(
-                            f"{self.api_url}/view",
-                            params=params,
-                            timeout=30
+                            f"{self.api_url}/view", params=params, timeout=30
                         )
-                        
+
                         if response.status_code == 200:
                             return response.content
             return None
@@ -585,4 +601,3 @@ def get_comfyui_client(api_url: str = None) -> ComfyUIClient:
 def get_sd_client(api_url: str = None) -> ComfyUIClient:
     """Get SD client (uses ComfyUI) - Alias for compatibility"""
     return ComfyUIClient(api_url)
-

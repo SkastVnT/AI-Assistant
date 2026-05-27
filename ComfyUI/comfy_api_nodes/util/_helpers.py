@@ -40,7 +40,9 @@ async def sleep_with_interrupt(
     start_ts: float | None = None,
     estimated_total: int | None = None,
     *,
-    display_callback: Callable[[type[IO.ComfyNode], str, int, int | None], None] | None = None,
+    display_callback: (
+        Callable[[type[IO.ComfyNode], str, int, int | None], None] | None
+    ) = None,
 ):
     """
     Sleep in 1s slices while:

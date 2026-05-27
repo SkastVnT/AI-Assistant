@@ -8,7 +8,7 @@ REM Force UTF-8 encoding to prevent Unicode errors
 chcp 65001 >nul 2>&1
 
 REM Navigate to project root (parent of scripts folder)
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 echo.
 echo ============================================
@@ -17,7 +17,7 @@ echo ============================================
 echo.
 
 REM Get the root directory (parent of scripts folder)
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 REM Check if MCP Server exists
 if not exist "services\mcp-server\server.py" (

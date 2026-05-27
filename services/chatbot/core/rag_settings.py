@@ -4,10 +4,11 @@ Centralised RAG settings loaded from environment variables.
 When RAG_ENABLED is false (the default) every helper in this module
 returns safe no-op values and the chatbot behaves exactly as before.
 """
+
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import lru_cache
 
 
@@ -26,7 +27,7 @@ class RAGSettings:
     database_url: str = "sqlite+aiosqlite:///./rag.db"
 
     # ── Embedding ──────────────────────────────────────────────────────
-    embed_provider: str = "openai"       # openai | gemini
+    embed_provider: str = "openai"  # openai | gemini
     embed_model: str = "text-embedding-3-small"
     embed_dim: int = 1536
 

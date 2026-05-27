@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # =============================================================================
 # Start MCP Server
 # Port: 8000
@@ -7,7 +7,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
+PROJECT_ROOT="$(dirname "$(dirname "${SCRIPT_DIR}")")"
 SERVICE_DIR="${PROJECT_ROOT}/services/mcp-server"
 LOGS_DIR="${PROJECT_ROOT}/logs"
 PORT=8000
@@ -53,7 +53,7 @@ echo "${PID}" > "${LOGS_DIR}/mcp-server.pid"
 sleep 3
 
 if netstat -tlnp 2>/dev/null | grep -q ":${PORT} " || ss -tlnp 2>/dev/null | grep -q ":${PORT} "; then
-    echo -e "${GREEN}✓ MCP Server started successfully (PID: ${PID})${NC}"
+    echo -e "${GREEN}âœ“ MCP Server started successfully (PID: ${PID})${NC}"
     echo -e "${GREEN}  URL: http://localhost:${PORT}${NC}"
 else
     echo -e "${YELLOW}MCP Server starting... Check log: ${LOGS_DIR}/mcp-server.log${NC}"

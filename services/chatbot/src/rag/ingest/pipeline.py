@@ -1,11 +1,12 @@
 """
 Ingest pipeline — chunk → embed → store documents.
 """
+
 import logging
 
 from ..config import RAG_CHUNK_OVERLAP, RAG_CHUNK_SIZE
-from ..embeddings.base import EmbeddingProvider
 from ..db.chroma import VectorStore
+from ..embeddings.base import EmbeddingProvider
 from ..models import Document
 from .chunking import split_text
 

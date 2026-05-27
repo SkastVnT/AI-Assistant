@@ -3,7 +3,12 @@ from typing import Optional
 
 import torch
 import comfy.model_management
-from .base import WeightAdapterBase, WeightAdapterTrainBase, weight_decompose, factorization
+from .base import (
+    WeightAdapterBase,
+    WeightAdapterTrainBase,
+    weight_decompose,
+    factorization,
+)
 
 
 class OFTDiff(WeightAdapterTrainBase):
@@ -68,10 +73,10 @@ class OFTAdapter(WeightAdapterBase):
     def create_train(cls, weight, rank=1, alpha=1.0):
         out_dim = weight.shape[0]
         block_size, block_num = factorization(out_dim, rank)
-        block = torch.zeros(block_num, block_size, block_size, device=weight.device, dtype=torch.float32)
-        return OFTDiff(
-            (block, None, alpha, None)
+        block = torch.zeros(
+            block_num, block_size, block_size, device=weight.device, dtype=torch.float32
         )
+        return OFTDiff((block, None, alpha, None))
 
     def to_train(self):
         return OFTDiff(self.weights)
@@ -127,9 +132,13 @@ class OFTAdapter(WeightAdapterBase):
             alpha = 0
         dora_scale = v[3]
 
-        blocks = comfy.model_management.cast_to_device(blocks, weight.device, intermediate_dtype)
+        blocks = comfy.model_management.cast_to_device(
+            blocks, weight.device, intermediate_dtype
+        )
         if rescale is not None:
-            rescale = comfy.model_management.cast_to_device(rescale, weight.device, intermediate_dtype)
+            rescale = comfy.model_management.cast_to_device(
+                rescale, weight.device, intermediate_dtype
+            )
 
         block_num, block_size, *_ = blocks.shape
 
@@ -139,7 +148,7 @@ class OFTAdapter(WeightAdapterBase):
             # for Q = -Q^T
             q = blocks - blocks.transpose(1, 2)
             normed_q = q
-            if alpha > 0: # alpha in oft/boft is for constraint
+            if alpha > 0:  # alpha in oft/boft is for constraint
                 q_norm = torch.norm(q) + 1e-8
                 if q_norm > alpha:
                     normed_q = q * alpha / q_norm
@@ -153,7 +162,15 @@ class OFTAdapter(WeightAdapterBase):
                 weight.view(block_num, block_size, *shape),
             ).view(-1, *shape)
             if dora_scale is not None:
-                weight = weight_decompose(dora_scale, weight, lora_diff, alpha, strength, intermediate_dtype, function)
+                weight = weight_decompose(
+                    dora_scale,
+                    weight,
+                    lora_diff,
+                    alpha,
+                    strength,
+                    intermediate_dtype,
+                    function,
+                )
             else:
                 weight += function((strength * lora_diff).type(weight.dtype))
         except Exception as e:

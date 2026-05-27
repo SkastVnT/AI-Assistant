@@ -8,6 +8,7 @@ behavior depends on data that may be added later (alias entries, registry
 seeds, manual overrides), the tests assert *safety properties* rather
 than specific resolved ids.
 """
+
 from __future__ import annotations
 
 import json
@@ -22,8 +23,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core import character_understanding as cu  # noqa: E402
 
-
 # ── Helpers (duplicated locally so this file is self-contained) ──────────────
+
 
 def _empty_registry(monkeypatch):
     stub = MagicMock()
@@ -37,11 +38,14 @@ def _empty_registry(monkeypatch):
 
 def _disable_saa(monkeypatch):
     fake = types.ModuleType("image_pipeline.anime_pipeline.saa_character_db")
+
     def _boom(*a, **kw):
         raise RuntimeError("SAA not installed in this test")
+
     fake.lookup_character = _boom  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules,
-                        "image_pipeline.anime_pipeline.saa_character_db", fake)
+    monkeypatch.setitem(
+        sys.modules, "image_pipeline.anime_pipeline.saa_character_db", fake
+    )
 
 
 def _no_overrides(monkeypatch):
@@ -57,6 +61,7 @@ def _isolate(monkeypatch):
 
 
 # ── 1. Common-word character names (collision torture) ───────────────────────
+
 
 class TestCommonWordNames:
     def test_firefly_without_series_hint(self):
@@ -93,22 +98,21 @@ class TestCommonWordNames:
 
 # ── 2. Same-name / niche character ───────────────────────────────────────────
 
+
 class TestNicheCharacter:
     def test_iroha_kaguya_no_override_yields_unknown(self):
-        r = cu.resolve_character(
-            "Iroha trong Kaguya Cosmic Princess mặc váy trắng"
-        )
+        r = cu.resolve_character("Iroha trong Kaguya Cosmic Princess mặc váy trắng")
         assert r.mode == "unresolved_unknown"
         assert r.safe_to_attach_lora is False
         assert r.unknown_profile is not None
-        assert r.unknown_profile.provisional_id == "unknown:iroha@cosmic_princess_kaguya"
+        assert (
+            r.unknown_profile.provisional_id == "unknown:iroha@cosmic_princess_kaguya"
+        )
 
     def test_iroha_must_not_substitute_known_iroha(self):
         # Even when a different-series Iroha is in the alias table,
         # the series hint must prevent substitution.
-        r = cu.resolve_character(
-            "Iroha trong Kaguya Cosmic Princess mặc váy trắng"
-        )
+        r = cu.resolve_character("Iroha trong Kaguya Cosmic Princess mặc váy trắng")
         if r.best is not None:
             # If anything resolved, it must be in the same series.
             assert r.best.series_slug == "cosmic_princess_kaguya"
@@ -127,11 +131,10 @@ class TestNicheCharacter:
 
 # ── 3. Known-ish game cases ──────────────────────────────────────────────────
 
+
 class TestKnownGameCases:
     def test_shorekeeper_wuwa_pins_series(self):
-        r = cu.resolve_character(
-            "shorekeeper wuwa mặc váy trắng trong vườn hoa"
-        )
+        r = cu.resolve_character("shorekeeper wuwa mặc váy trắng trong vườn hoa")
         # Either resolves to shorekeeper@wuthering_waves, or unknown
         # form with that series — never another series.
         if r.best is not None:
@@ -151,9 +154,7 @@ class TestKnownGameCases:
             assert r.best.character_slug == "klee"
 
     def test_main_female_protagonist_zzz_phrase(self):
-        r = cu.resolve_character(
-            "nhân vật main nữ trong zzz đứng bên tường uống nước"
-        )
+        r = cu.resolve_character("nhân vật main nữ trong zzz đứng bên tường uống nước")
         assert r.safe_to_attach_lora is False
         # Series hint must resolve.
         if r.unknown_profile is not None:
@@ -165,6 +166,7 @@ class TestKnownGameCases:
 
 
 # ── 4. Style vs character ────────────────────────────────────────────────────
+
 
 class TestStyleVsCharacter:
     def test_style_phrase_does_not_resolve_real_character(self):
@@ -189,6 +191,7 @@ class TestStyleVsCharacter:
 
 # ── 5. Original characters ───────────────────────────────────────────────────
 
+
 class TestOriginalCharacter:
     def test_oc_luna_is_safe(self):
         r = cu.resolve_character("OC tên Luna mặc áo giáp")
@@ -204,6 +207,7 @@ class TestOriginalCharacter:
 
 # ── 6. Multi-character ───────────────────────────────────────────────────────
 
+
 class TestMultiCharacter:
     def test_multi_character_does_not_collapse(self):
         # "Furina và Nahida" — two characters. Resolver must not
@@ -213,21 +217,27 @@ class TestMultiCharacter:
         # And whatever is returned must not be a third unrelated identity.
         if r.best is not None:
             assert r.best.character_slug in {
-                "furina", "nahida", "furina_va_nahida_di",
+                "furina",
+                "nahida",
+                "furina_va_nahida_di",
             } or r.best.canonical_id.startswith("unknown:")
 
 
 # ── 7. LoRA safety invariants (apply across all unsafe modes) ────────────────
 
+
 class TestLoraSafetyInvariants:
-    @pytest.mark.parametrize("query", [
-        "firefly trên bầu trời pháo hoa",
-        "sparkle lấp lánh trên váy",
-        "Iroha trong Kaguya Cosmic Princess",
-        "OC tên Luna mặc áo giáp",
-        "Furina và Nahida đi chơi trong vườn",
-        "vẽ cô gái phong cách Bocchi the Rock",
-    ])
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "firefly trên bầu trời pháo hoa",
+            "sparkle lấp lánh trên váy",
+            "Iroha trong Kaguya Cosmic Princess",
+            "OC tên Luna mặc áo giáp",
+            "Furina và Nahida đi chơi trong vườn",
+            "vẽ cô gái phong cách Bocchi the Rock",
+        ],
+    )
     def test_unsafe_modes_never_attach_lora(self, query):
         r = cu.resolve_character(query)
         assert r.safe_to_attach_lora is False
@@ -239,20 +249,24 @@ class TestLoraSafetyInvariants:
 
 # ── 8. Serialization invariants ──────────────────────────────────────────────
 
+
 class TestSerializationTorture:
-    @pytest.mark.parametrize("query", [
-        "firefly hsr trên bầu trời pháo hoa",
-        "sparkle hsr mặc váy đỏ",
-        "Iroha trong Kaguya Cosmic Princess, không phải Kaguya",
-        "shorekeeper wuwa mặc váy trắng trong vườn hoa",
-        "nhân vật main nữ trong zzz đứng bên tường uống nước",
-        "vẽ cô gái phong cách Bocchi the Rock",
-        "bocchi trong bocchi the rock chơi đàn rock",
-        "OC tên Luna mặc áo giáp",
-        "Furina và Nahida đi chơi trong vườn",
-        "klee câu cá bằng bom",
-        "",
-    ])
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "firefly hsr trên bầu trời pháo hoa",
+            "sparkle hsr mặc váy đỏ",
+            "Iroha trong Kaguya Cosmic Princess, không phải Kaguya",
+            "shorekeeper wuwa mặc váy trắng trong vườn hoa",
+            "nhân vật main nữ trong zzz đứng bên tường uống nước",
+            "vẽ cô gái phong cách Bocchi the Rock",
+            "bocchi trong bocchi the rock chơi đàn rock",
+            "OC tên Luna mặc áo giáp",
+            "Furina và Nahida đi chơi trong vườn",
+            "klee câu cá bằng bom",
+            "",
+        ],
+    )
     def test_result_round_trips_json(self, query):
         r = cu.resolve_character(query)
         encoded = json.dumps(r.to_dict())
@@ -261,6 +275,9 @@ class TestSerializationTorture:
         assert decoded["safe_to_attach_lora"] == r.safe_to_attach_lora
         # Mode must be one of the documented values.
         assert decoded["mode"] in {
-            "", "resolved_known", "ambiguous",
-            "low_data_profile", "unresolved_unknown",
+            "",
+            "resolved_known",
+            "ambiguous",
+            "low_data_profile",
+            "unresolved_unknown",
         }

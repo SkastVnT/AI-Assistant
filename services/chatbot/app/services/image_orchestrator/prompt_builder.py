@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -33,19 +32,19 @@ except ImportError:
     # Fallback: minimal inline copy so the module is self-contained
     STYLE_PRESETS: dict[str, str] = {
         "photorealistic": "photorealistic, DSLR quality, natural lighting, 8K resolution",
-        "anime":          "anime art style, vibrant colors, clean linework, studio Ghibli inspired",
-        "cinematic":      "cinematic composition, dramatic lighting, film grain, movie still",
-        "watercolor":     "watercolor painting, soft washes, paper texture",
-        "digital_art":    "digital art, artstation trending, concept art, highly detailed",
-        "oil_painting":   "oil painting on canvas, rich impasto texture, classical composition",
-        "pixel_art":      "pixel art, retro 16-bit style, limited color palette",
-        "3d_render":      "3D render, octane render, ray tracing, physically based materials",
-        "sketch":         "pencil sketch, detailed cross-hatching, graphite on paper",
-        "minimalist":     "minimalist design, clean lines, simple shapes, modern aesthetic",
-        "fantasy":        "fantasy art, magical atmosphere, ethereal glow, mythical",
-        "noir":           "film noir style, high contrast, dramatic shadows, moody",
-        "vaporwave":      "vaporwave aesthetic, pink and blue neon, retro 80s, glitch art",
-        "studio_photo":   "professional studio photography, softbox lighting, clean background",
+        "anime": "anime art style, vibrant colors, clean linework, studio Ghibli inspired",
+        "cinematic": "cinematic composition, dramatic lighting, film grain, movie still",
+        "watercolor": "watercolor painting, soft washes, paper texture",
+        "digital_art": "digital art, artstation trending, concept art, highly detailed",
+        "oil_painting": "oil painting on canvas, rich impasto texture, classical composition",
+        "pixel_art": "pixel art, retro 16-bit style, limited color palette",
+        "3d_render": "3D render, octane render, ray tracing, physically based materials",
+        "sketch": "pencil sketch, detailed cross-hatching, graphite on paper",
+        "minimalist": "minimalist design, clean lines, simple shapes, modern aesthetic",
+        "fantasy": "fantasy art, magical atmosphere, ethereal glow, mythical",
+        "noir": "film noir style, high contrast, dramatic shadows, moody",
+        "vaporwave": "vaporwave aesthetic, pink and blue neon, retro 80s, glitch art",
+        "studio_photo": "professional studio photography, softbox lighting, clean background",
     }
 
 
@@ -55,10 +54,10 @@ except ImportError:
 
 _QUALITY_SUFFIX: dict[str, str] = {
     "quality": "highly detailed, sharp focus, 4K, masterpiece, award-winning",
-    "fast":    "simple composition, clean, well-lit",
-    "free":    "clean composition, good quality",
-    "cheap":   "clean composition",
-    "auto":    "highly detailed, sharp focus",
+    "fast": "simple composition, clean, well-lit",
+    "free": "clean composition, good quality",
+    "cheap": "clean composition",
+    "auto": "highly detailed, sharp focus",
 }
 
 # Common low-quality negative terms always appended to negative prompt
@@ -74,45 +73,45 @@ _UNIVERSAL_NEGATIVE = (
 
 _VI_TO_EN: list[tuple[str, str]] = [
     # Colors
-    (r"\btóc hồng\b",        "pink hair"),
-    (r"\btóc vàng\b",        "blonde hair"),
-    (r"\btóc đen\b",         "black hair"),
-    (r"\btóc trắng\b",       "white hair"),
-    (r"\btóc xanh\b",        "blue hair"),
-    (r"\btóc đỏ\b",          "red hair"),
+    (r"\btóc hồng\b", "pink hair"),
+    (r"\btóc vàng\b", "blonde hair"),
+    (r"\btóc đen\b", "black hair"),
+    (r"\btóc trắng\b", "white hair"),
+    (r"\btóc xanh\b", "blue hair"),
+    (r"\btóc đỏ\b", "red hair"),
     # Subjects
-    (r"\bcô gái\b",          "girl"),
+    (r"\bcô gái\b", "girl"),
     (r"\bcậu bé\b|\bchàng trai\b", "young man"),
-    (r"\bcon mèo\b",         "cat"),
-    (r"\bcon chó\b",         "dog"),
-    (r"\bcon rồng\b",        "dragon"),
-    (r"\bcon ngựa\b",        "horse"),
-    (r"\bcon thỏ\b",         "rabbit"),
-    (r"\bcây\b",             "tree"),
-    (r"\bhoa\b",             "flowers"),
+    (r"\bcon mèo\b", "cat"),
+    (r"\bcon chó\b", "dog"),
+    (r"\bcon rồng\b", "dragon"),
+    (r"\bcon ngựa\b", "horse"),
+    (r"\bcon thỏ\b", "rabbit"),
+    (r"\bcây\b", "tree"),
+    (r"\bhoa\b", "flowers"),
     # Settings
-    (r"\bthành phố\b",       "city"),
+    (r"\bthành phố\b", "city"),
     (r"\bbiển\b|\bbãi biển\b", "beach"),
-    (r"\bnúi\b",             "mountains"),
-    (r"\brừng\b",            "forest"),
-    (r"\bvũ trụ\b",          "outer space"),
+    (r"\bnúi\b", "mountains"),
+    (r"\brừng\b", "forest"),
+    (r"\bvũ trụ\b", "outer space"),
     # Actions
-    (r"\bngồi\b",            "sitting"),
-    (r"\bđứng\b",            "standing"),
-    (r"\bchạy\b",            "running"),
-    (r"\bbay\b",             "flying"),
-    (r"\bchiến đấu\b",       "fighting"),
+    (r"\bngồi\b", "sitting"),
+    (r"\bđứng\b", "standing"),
+    (r"\bchạy\b", "running"),
+    (r"\bbay\b", "flying"),
+    (r"\bchiến đấu\b", "fighting"),
     # Time / lighting words
-    (r"\bánh trăng\b",       "moonlight"),
-    (r"\bhoàng hôn\b",       "sunset"),
-    (r"\bbình minh\b",       "sunrise"),
+    (r"\bánh trăng\b", "moonlight"),
+    (r"\bhoàng hôn\b", "sunset"),
+    (r"\bbình minh\b", "sunrise"),
     (r"\bban đêm\b|\bđêm khuya\b", "late night"),
-    (r"\bgiữa trưa\b",       "midday"),
+    (r"\bgiữa trưa\b", "midday"),
     # Misc
-    (r"\bkiếm\b",            "sword"),
-    (r"\báo giáp\b",         "armor"),
-    (r"\bcánh\b",            "wings"),
-    (r"\blâu đài\b",         "castle"),
+    (r"\bkiếm\b", "sword"),
+    (r"\báo giáp\b", "armor"),
+    (r"\bcánh\b", "wings"),
+    (r"\blâu đài\b", "castle"),
 ]
 
 
@@ -126,6 +125,7 @@ def _partial_translate_vi(text: str) -> str:
 # ─────────────────────────────────────────────────────────────────────
 # PromptBuilder
 # ─────────────────────────────────────────────────────────────────────
+
 
 class PromptBuilder:
     """
@@ -144,6 +144,7 @@ class PromptBuilder:
         """Load the existing PromptEnhancer (best-effort)."""
         try:
             from core.image_gen.enhancer import create_enhancer
+
             return create_enhancer()
         except Exception as exc:
             logger.warning(f"[PromptBuilder] Enhancer unavailable: {exc}")
@@ -151,10 +152,10 @@ class PromptBuilder:
 
     def build(
         self,
-        scene:            "SceneSpec",  # type: ignore[name-defined]
-        language:         str  = "vi",
-        original_message: str  = "",
-        session_context:  str  = "",
+        scene: SceneSpec,  # type: ignore[name-defined]
+        language: str = "vi",
+        original_message: str = "",
+        session_context: str = "",
     ) -> str:
         """
         Assemble the final positive prompt string from a SceneSpec.
@@ -180,7 +181,11 @@ class PromptBuilder:
 
         # ── 3. Action ─────────────────────────────────────────────────
         if scene.action:
-            action = _partial_translate_vi(scene.action) if language.startswith("vi") else scene.action
+            action = (
+                _partial_translate_vi(scene.action)
+                if language.startswith("vi")
+                else scene.action
+            )
             parts.append(action.strip())
 
         # ── 4. Background / environment ───────────────────────────────
@@ -241,19 +246,23 @@ class PromptBuilder:
                     style_preset=effective_style,
                     context=session_context or None,
                 )
-                logger.debug(f"[PromptBuilder] LLM enhanced: {len(raw_prompt)} → {len(enhanced)} chars")
+                logger.debug(
+                    f"[PromptBuilder] LLM enhanced: {len(raw_prompt)} → {len(enhanced)} chars"
+                )
                 return enhanced
             except Exception as exc:
-                logger.warning(f"[PromptBuilder] LLM enhance failed, using rule-based: {exc}")
+                logger.warning(
+                    f"[PromptBuilder] LLM enhance failed, using rule-based: {exc}"
+                )
 
         return raw_prompt
 
     def build_for_edit(
         self,
-        scene:           "SceneSpec",
-        edit_ops:        list,       # list[EditOperation]
-        previous_prompt: str  = "",
-        language:        str  = "vi",
+        scene: SceneSpec,
+        edit_ops: list,  # list[EditOperation]
+        previous_prompt: str = "",
+        language: str = "vi",
     ) -> str:
         """
         Build a short prompt optimised for img2img editing.
@@ -266,8 +275,8 @@ class PromptBuilder:
 
         change_parts: list[str] = []
         for op in edit_ops:
-            t   = op.target or ""
-            v   = op.new_value or ""
+            t = op.target or ""
+            v = op.new_value or ""
             mod = op.modifier or ""
 
             if op.operation == "add_text":
@@ -280,14 +289,18 @@ class PromptBuilder:
                 change_parts.append(f"change {t} to {v}" if v else f"change {t}")
             elif op.operation in ("modify", "modify_general"):
                 change_parts.append(
-                    f"make {t} {mod}" if t and t != "lighting/atmosphere" else f"overall {mod}"
+                    f"make {t} {mod}"
+                    if t and t != "lighting/atmosphere"
+                    else f"overall {mod}"
                 )
             elif op.operation == "keep":
                 change_parts.append(f"keep {t} the same")
 
-        anchor = ("maintain consistent character design, keep same character"
-                  if scene.wants_consistency_with_previous
-                  else "keep overall composition and character")
+        anchor = (
+            "maintain consistent character design, keep same character"
+            if scene.wants_consistency_with_previous
+            else "keep overall composition and character"
+        )
 
         parts = [anchor, ", ".join(change_parts)]
         if scene.lighting:
@@ -301,7 +314,7 @@ class PromptBuilder:
 
         return ", ".join(p.strip() for p in parts if p.strip())
 
-    def build_negative(self, scene: "SceneSpec") -> str:  # type: ignore[name-defined]
+    def build_negative(self, scene: SceneSpec) -> str:  # type: ignore[name-defined]
         """
         Build the negative prompt string.
 

@@ -8,10 +8,11 @@ API contract and gracefully degrades when models are unavailable.
 This module is **pure logic** — it does not import ModelRegistry at
 module level, so it can be tested without API keys or network access.
 """
+
 from __future__ import annotations
 
 import logging
-from typing import Callable, Sequence
+from collections.abc import Callable
 
 from core.agentic.contracts import AgentRole
 
@@ -36,7 +37,13 @@ ROLE_FALLBACK_CHAINS: dict[AgentRole, list[str]] = {
 
 # Exhaustive last-resort chain if the role-specific one is empty
 _GLOBAL_FALLBACK: list[str] = [
-    "grok", "openai", "deepseek", "gemini", "step-flash", "stepfun", "qwen",
+    "grok",
+    "openai",
+    "deepseek",
+    "gemini",
+    "step-flash",
+    "stepfun",
+    "qwen",
 ]
 
 
@@ -70,12 +77,15 @@ def resolve_model(
 
     # 1. Client override
     if preferred and check(preferred):
-        logger.debug("[resolve] role=%s → preferred=%s (override)", role.value, preferred)
+        logger.debug(
+            "[resolve] role=%s → preferred=%s (override)", role.value, preferred
+        )
         return preferred
     if preferred:
         logger.info(
             "[resolve] role=%s — preferred=%s not available, falling back",
-            role.value, preferred,
+            role.value,
+            preferred,
         )
 
     # 2. Role-specific chain
@@ -88,7 +98,9 @@ def resolve_model(
     # 3. Global fallback
     for model in _GLOBAL_FALLBACK:
         if check(model):
-            logger.warning("[resolve] role=%s → %s (global fallback)", role.value, model)
+            logger.warning(
+                "[resolve] role=%s → %s (global fallback)", role.value, model
+            )
             return model
 
     # 4. Absolute last resort
@@ -110,16 +122,24 @@ def resolve_all_roles(
     """
     return {
         AgentRole.planner: resolve_model(
-            AgentRole.planner, preferred=preferred_planner, is_available=is_available,
+            AgentRole.planner,
+            preferred=preferred_planner,
+            is_available=is_available,
         ),
         AgentRole.researcher: resolve_model(
-            AgentRole.researcher, preferred=preferred_researcher, is_available=is_available,
+            AgentRole.researcher,
+            preferred=preferred_researcher,
+            is_available=is_available,
         ),
         AgentRole.critic: resolve_model(
-            AgentRole.critic, preferred=preferred_critic, is_available=is_available,
+            AgentRole.critic,
+            preferred=preferred_critic,
+            is_available=is_available,
         ),
         AgentRole.synthesizer: resolve_model(
-            AgentRole.synthesizer, preferred=preferred_synthesizer, is_available=is_available,
+            AgentRole.synthesizer,
+            preferred=preferred_synthesizer,
+            is_available=is_available,
         ),
     }
 
