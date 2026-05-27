@@ -20,7 +20,6 @@ class Sanitizer:
     SQL_CHARS = [";", "--", "/*", "*/", "xp_", "EXEC", "EXECUTE"]
     HTML_TAGS = re.compile(r"<[^>]+>")
 
-
     def __init__(self, allow_html: bool = False, max_length: int = 10000):
         """
         Initialize sanitizer.
