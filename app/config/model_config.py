@@ -4,23 +4,22 @@ Centralized configuration for all AI services
 """
 
 import os
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from dataclasses import dataclass
 
 try:
-    from services.shared_env import load_shared_env
     from services.chatbot.core.secret_key import resolve_flask_secret_key
+    from services.shared_env import load_shared_env
 except ModuleNotFoundError:
-    from pathlib import Path
     import sys
+    from pathlib import Path
 
     for _parent in Path(__file__).resolve().parents:
         if (_parent / "services" / "shared_env.py").exists():
             if str(_parent) not in sys.path:
                 sys.path.insert(0, str(_parent))
             break
-    from services.shared_env import load_shared_env
     from services.chatbot.core.secret_key import resolve_flask_secret_key
+    from services.shared_env import load_shared_env
 
 load_shared_env(__file__)
 
@@ -35,8 +34,8 @@ class ServiceConfig:
     port: int
     url: str  # Local URL
     color: str
-    features: List[str]
-    public_url: Optional[str] = None  # Public URL if exposed
+    features: list[str]
+    public_url: str | None = None  # Public URL if exposed
 
     def get_effective_url(self, prefer_public: bool = True) -> str:
         """Get the URL to use - public if available and preferred."""
@@ -58,7 +57,7 @@ class HubConfig:
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
 
     # Services Configuration
-    SERVICES: Dict[str, ServiceConfig] = {
+    SERVICES: dict[str, ServiceConfig] = {
         "chatbot": ServiceConfig(
             name="AI ChatBot",
             description="Trợ lý AI đa năng - chat, voice, OCR, RAG",
@@ -128,7 +127,7 @@ class HubConfig:
     @classmethod
     def get_all_services(
         cls, update_public_urls: bool = True
-    ) -> Dict[str, ServiceConfig]:
+    ) -> dict[str, ServiceConfig]:
         """
         Get all service configurations.
 

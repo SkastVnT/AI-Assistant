@@ -44,8 +44,7 @@ logger = logging.getLogger(__name__)
 _IMAGE_KEYWORD_RE = re.compile(
     r"(?:"
     # Vietnamese phrases (require verb context so bare "ảnh" doesn't match)
-    r"\btạo\s+(?:ảnh|tranh|hình)\b"
-    r"|\bsinh\s+(?:ảnh|tranh|hình)\b"
+    r"\btạo\s+(?:ảnh|tranh|hình)\b" r"|\bsinh\s+(?:ảnh|tranh|hình)\b"
     # vẽ + specific object (required, not optional — avoids \s+X?\b backtracking)
     r"|\bvẽ\s+(?:ảnh|tranh|hình|cho|một|cái|cảnh|nhân\s+vật|người|chân\s+dung)\b"
     r"|\bvẽ\s+\w+"  # "vẽ Hoshino", "vẽ landscape"

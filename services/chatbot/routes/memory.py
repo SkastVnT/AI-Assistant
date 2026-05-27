@@ -226,7 +226,6 @@ def update_memory(memory_id):
 
         # Find memory file
         memory_file = None
-        memory_folder = None
 
         # Old format
         old_file = MEMORY_DIR / f"{memory_id}.json"
@@ -242,7 +241,6 @@ def update_memory(memory_id):
                             memory = json.load(f)
                             if memory.get("id") == memory_id:
                                 memory_file = mf
-                                memory_folder = folder
                                 break
 
         if not memory_file:

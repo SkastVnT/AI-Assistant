@@ -1,10 +1,10 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Dependency Conflict Resolver for AI-Assistant
 Handles protobuf and other version conflicts.
 
 Usage:
-    python scripts/fix_dependencies.py
+    python app/scripts/fix_dependencies.py
 """
 
 import subprocess
@@ -123,9 +123,9 @@ def verify_dependencies():
     for module, attr in test_imports:
         try:
             importlib.import_module(module)
-            logger.info(f"✅ {module} - OK")
+            logger.info(f"âœ… {module} - OK")
         except ImportError as e:
-            logger.warning(f"❌ {module} - FAILED: {e}")
+            logger.warning(f"âŒ {module} - FAILED: {e}")
 
     logger.info("Dependency verification complete.")
 

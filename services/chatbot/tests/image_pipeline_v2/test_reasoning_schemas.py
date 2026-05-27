@@ -15,12 +15,15 @@ import json
 import sys
 from pathlib import Path
 
-# Ensure the workspace root is importable so `image_pipeline` resolves when
+# Ensure app/ is importable so `image_pipeline` resolves when
 # pytest is invoked from `services/chatbot/`. Mirrors the bootstrap used by
 # tests/test_anime_pipeline.py.
 _ROOT = Path(__file__).resolve().parents[4]
+_APP_ROOT = _ROOT / "app"
+if str(_APP_ROOT) not in sys.path:
+    sys.path.insert(0, str(_APP_ROOT))
 if str(_ROOT) not in sys.path:
-    sys.path.insert(0, str(_ROOT))
+    sys.path.insert(1, str(_ROOT))
 
 import pytest
 

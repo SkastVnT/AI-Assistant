@@ -26,9 +26,8 @@ Nếu bạn muốn sử dụng MCP Server V2.0 (với memory system):
 cd services/mcp-server
 start-mcp.bat
 
-# Hoặc từ menu chính
-menu.bat
-# Chọn option 20: Start MCP Server
+# Hoặc từ repo root
+app\scripts\start-mcp.bat
 ```
 
 > **Lưu ý**: ChatBot có thể hoạt động với MCP **mà không cần** MCP Server V2.0. Nó sử dụng MCP client tích hợp sẵn để access files trực tiếp.

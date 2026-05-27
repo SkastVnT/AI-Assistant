@@ -66,7 +66,9 @@ class CharacterPreview:
     """Shape returned by ``build_preview`` and ``GET /api/characters/preview``."""
 
     preview_url: str = PLACEHOLDER_URL
-    preview_source: str = "placeholder"  # saa_thumbnail | manual_profile | local_cache | external_cached | placeholder
+    preview_source: str = (
+        "placeholder"  # saa_thumbnail | manual_profile | local_cache | external_cached | placeholder
+    )
     source_url: str | None = None
     display_name: str = ""
     canonical_id: str | None = None

@@ -187,7 +187,7 @@ def _build_reference_collage(image_paths: list[str | Path], size: str) -> Path:
         }
 
         slots = layouts[len(opened)]
-        for img, slot in zip(opened, slots):
+        for img, slot in zip(opened, slots, strict=False):
             x1, y1, x2, y2 = slot
             w, h = x2 - x1, y2 - y1
             fitted = _fit_image_exact(img.copy(), w, h)
@@ -238,9 +238,12 @@ def generate_video(
     )
 
     client = _get_client()
-    create_kwargs: dict[str, Any] = dict(
-        prompt=prompt, model=model, seconds=sec, size=api_size
-    )
+    create_kwargs: dict[str, Any] = {
+        "prompt": prompt,
+        "model": model,
+        "seconds": sec,
+        "size": api_size,
+    }
     temp_collage: Path | None = None
     if len(imgs) == 1:
         temp_collage = _build_single_reference(imgs[0], api_size)
@@ -290,9 +293,12 @@ def generate_video_sync(
     )
 
     client = _get_client()
-    create_kwargs: dict[str, Any] = dict(
-        prompt=prompt, model=model, seconds=sec, size=api_size
-    )
+    create_kwargs: dict[str, Any] = {
+        "prompt": prompt,
+        "model": model,
+        "seconds": sec,
+        "size": api_size,
+    }
     temp_collage: Path | None = None
     if len(imgs) == 1:
         temp_collage = _build_single_reference(imgs[0], api_size)

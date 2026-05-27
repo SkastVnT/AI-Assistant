@@ -30,7 +30,7 @@ class MemoryService:
     ) -> dict[str, Any]:
         """Create a new memory entry"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -61,7 +61,7 @@ class MemoryService:
     def get(self, memory_id: str) -> dict[str, Any] | None:
         """Get a memory by ID"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -80,7 +80,7 @@ class MemoryService:
     ) -> list[dict[str, Any]]:
         """List memories for a user"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -108,7 +108,7 @@ class MemoryService:
     def update(self, memory_id: str, updates: dict[str, Any]) -> dict[str, Any]:
         """Update a memory"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -131,7 +131,7 @@ class MemoryService:
     def delete(self, memory_id: str) -> bool:
         """Delete a memory"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -153,7 +153,7 @@ class MemoryService:
     ) -> list[dict[str, Any]]:
         """Search memories by text or tags"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 

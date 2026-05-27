@@ -4,6 +4,13 @@ Supports FLUX.2, FLUX.1-Kontext, Seedream, Nano-Banana, and more.
 """
 
 from __future__ import annotations
+from .base import (
+    BaseImageProvider,
+    ImageMode,
+    ImageRequest,
+    ImageResult,
+    ProviderTier,
+)
 
 import logging
 import os
@@ -27,14 +34,6 @@ def _fal_timeout() -> float:
     except ValueError:
         return _FAL_TIMEOUT_DEFAULT
 
-
-from .base import (
-    BaseImageProvider,
-    ImageMode,
-    ImageRequest,
-    ImageResult,
-    ProviderTier,
-)
 
 logger = logging.getLogger(__name__)
 

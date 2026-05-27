@@ -17,10 +17,10 @@ AI-Assistant is a local-first AI workspace that combines a Python chatbot servic
 | Chatbot service | `services/chatbot/` | Flask monolith, SSE streaming, routes, skills, memory, image/video proxies |
 | Shared service code | `services/shared_env.py`, `app/src/` | Shared environment loading, cache, database, health, security helpers |
 | MCP server | `services/mcp-server/` | FastMCP stdio server used by the chatbot |
-| Image pipeline | `image_pipeline/` | Local reasoning/anime pipeline modules |
+| Image pipeline | `app/image_pipeline/` | Local reasoning/anime pipeline modules |
 | ComfyUI/edit image | `ComfyUI/`, `services/edit-image/` | Local image workflow runtimes and integrations |
-| RAG | `rag/` | API, worker, libraries, tests, and compose file |
-| Desktop | `desktop/electron/` | Electron wrapper and installer workflow |
+| RAG | `app/rag/` | API, worker, libraries, tests, and compose file |
+| Desktop | `app/electron/` | Electron wrapper and installer workflow |
 | Deployment | `docker-compose.yml`, `app/docker/` | Local Docker entrypoint and supporting assets |
 
 ## Quick Start
@@ -41,7 +41,7 @@ Open `http://127.0.0.1:5000`.
 ### Desktop
 
 ```powershell
-cd desktop\electron
+cd app\electron
 npm install
 npm run dev
 ```
@@ -75,15 +75,15 @@ At least one LLM API key is required for hosted chat. Local image, video, and Co
 | MCP server | stdio | `services/mcp-server/server.py` | Started by clients, not an HTTP server |
 | Stable Diffusion | `7861` | `services/stable-diffusion/` | Local image backend |
 | Edit Image / ComfyUI | `8100` | `services/edit-image/` | ComfyUI-backed image editing |
-| RAG API | service config | `rag/apps/api/` | Uses `rag/docker-compose.yml` for local infra |
-| Electron | app window | `desktop/electron/` | Desktop shell around the chatbot |
+| RAG API | service config | `app/rag/apps/api/` | Uses `app/rag/docker-compose.yml` for local infra |
+| Electron | app window | `app/electron/` | Desktop shell around the chatbot |
 
 ## Development Commands
 
 ```powershell
-python -m compileall services app image_pipeline rag
+python -m compileall services app
 pytest
-cd desktop\electron
+cd app\electron
 npm run dev
 docker compose config
 ```
@@ -92,16 +92,16 @@ Run GPU/model checks only on machines with the required local model files.
 
 ## Documentation
 
-- [Docs index](docs/README.md)
-- [API reference](docs/API_REFERENCE.md)
-- [Environment variables](docs/ENVIRONMENT.md)
-- [Deployment](docs/DEPLOYMENT.md)
-- [Local runtime data](docs/LOCAL_RUNTIME.md)
-- [LLM providers](docs/LLM_PROVIDERS.md)
-- [Image generation](docs/IMAGE_GENERATION.md)
-- [Video generation](docs/VIDEO_GENERATION.md)
-- [MCP server](docs/MCP_SERVER.md)
-- [Repository structure](docs/REPO_STRUCTURE.md)
+- [Docs index](app/docs/README.md)
+- [API reference](app/docs/API_REFERENCE.md)
+- [Environment variables](app/docs/ENVIRONMENT.md)
+- [Deployment](app/docs/DEPLOYMENT.md)
+- [Local runtime data](app/docs/LOCAL_RUNTIME.md)
+- [LLM providers](app/docs/LLM_PROVIDERS.md)
+- [Image generation](app/docs/IMAGE_GENERATION.md)
+- [Video generation](app/docs/VIDEO_GENERATION.md)
+- [MCP server](app/docs/MCP_SERVER.md)
+- [Repository structure](app/docs/REPO_STRUCTURE.md)
 - [Agent guidelines](.claude/skills/repo-guidelines/SKILL.md)
 
 ## License

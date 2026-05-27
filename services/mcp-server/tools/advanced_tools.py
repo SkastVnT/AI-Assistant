@@ -243,7 +243,9 @@ def list_database_tables(db_path: str) -> dict[str, Any]:
             columns = [{"name": col[1], "type": col[2]} for col in cursor.fetchall()]
 
             # Use parameterized query for SELECT, quote table name for safety
-            cursor.execute(f'SELECT COUNT(*) FROM "{table}"')  # nosec B608  # Table name validated above
+            cursor.execute(
+                f'SELECT COUNT(*) FROM "{table}"'
+            )  # nosec B608  # Table name validated above
             row_count = cursor.fetchone()[0]
 
             table_info.append(
@@ -490,7 +492,7 @@ def search_stackoverflow(query: str, max_results: int = 5) -> dict[str, Any]:
 # ==================== FILE OPERATIONS ====================
 
 
-def count_lines_in_project(extensions: list[str] = [".py"]) -> dict[str, Any]:
+def count_lines_in_project(extensions: list[str] = None) -> dict[str, Any]:
     """
     Äáº¿m tá»•ng sá»‘ dÃ²ng code trong project.
 
@@ -500,6 +502,8 @@ def count_lines_in_project(extensions: list[str] = [".py"]) -> dict[str, Any]:
     Returns:
         Dict chá»©a thá»‘ng kÃª
     """
+    if extensions is None:
+        extensions = [".py"]
     try:
         base_dir = Path(__file__).parent.parent.parent
 

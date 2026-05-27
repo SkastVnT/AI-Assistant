@@ -5,10 +5,10 @@ Cache responses để tránh gọi API lặp lại cho cùng 1 prompt
 
 import hashlib
 import json
-import time
-from typing import Optional, Dict, Any
-from pathlib import Path
 import logging
+import time
+from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class ResponseCache:
             max_size: Số lượng items tối đa trong cache
             ttl_seconds: Thời gian cache hết hạn (default 1 hour)
         """
-        self.cache: Dict[str, Dict[str, Any]] = {}
+        self.cache: dict[str, dict[str, Any]] = {}
         self.max_size = max_size
         self.ttl_seconds = ttl_seconds
 
@@ -53,7 +53,7 @@ class ResponseCache:
         key = hashlib.sha256(params_str.encode()).hexdigest()[:16]
         return key
 
-    def get(self, prompt: str, model: str, **kwargs) -> Optional[str]:
+    def get(self, prompt: str, model: str, **kwargs) -> str | None:
         """
         Lấy response từ cache
 
@@ -92,7 +92,7 @@ class ResponseCache:
                 self.cache.keys(), key=lambda k: self.cache[k]["timestamp"]
             )
             del self.cache[oldest_key]
-            logger.debug(f"🗑️ Cache full, removed oldest item")
+            logger.debug("🗑️ Cache full, removed oldest item")
 
         self.cache[key] = {
             "response": response,
@@ -107,9 +107,9 @@ class ResponseCache:
     def clear(self):
         """Xóa toàn bộ cache"""
         self.cache.clear()
-        logger.info(f"🗑️ Cache cleared")
+        logger.info("🗑️ Cache cleared")
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Lấy thống kê cache"""
         total_requests = self.hits + self.misses
         hit_rate = (self.hits / total_requests * 100) if total_requests > 0 else 0
@@ -158,7 +158,7 @@ class FileBasedCache(ResponseCache):
         """Load cache từ file"""
         if self.cache_file.exists():
             try:
-                with open(self.cache_file, "r", encoding="utf-8") as f:
+                with open(self.cache_file, encoding="utf-8") as f:
                     data = json.load(f)
                     self.cache = data.get("cache", {})
                     self.hits = data.get("hits", 0)
@@ -218,7 +218,7 @@ chat_cache = FileBasedCache(
 
 def get_cached_response(
     prompt: str, model: str, provider: str = "gemini", **kwargs
-) -> Optional[str]:
+) -> str | None:
     """
     Lấy cached response cho prompt
 
@@ -261,7 +261,7 @@ def cache_response(
         chat_cache.set(prompt, model, response, **kwargs)
 
 
-def get_all_cache_stats() -> Dict[str, Any]:
+def get_all_cache_stats() -> dict[str, Any]:
     """
     Lấy stats của tất cả caches
     """
@@ -300,7 +300,7 @@ if __name__ == "__main__":
     print(f"Second call: {result}")  # "AI is artificial intelligence"
 
     # Stats
-    print(f"\n📊 Stats:")
+    print("\n📊 Stats:")
     print(json.dumps(get_all_cache_stats(), indent=2))
 
     print("\n✅ Test completed!")

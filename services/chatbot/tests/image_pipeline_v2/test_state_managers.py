@@ -299,7 +299,7 @@ class TestSharedEnvHygiene:
 
         The shared-env contract (services/shared_env.py) is the only loader.
         """
-        state_dir = _ROOT / "image_pipeline" / "reasoning" / "state"
+        state_dir = _ROOT / "app" / "image_pipeline" / "reasoning" / "state"
         offenders = []
         for path in state_dir.glob("*.py"):
             content = path.read_text(encoding="utf-8")
@@ -308,7 +308,7 @@ class TestSharedEnvHygiene:
         assert offenders == [], f"load_dotenv leaked into: {offenders}"
 
     def test_state_modules_do_not_import_dotenv(self):
-        state_dir = _ROOT / "image_pipeline" / "reasoning" / "state"
+        state_dir = _ROOT / "app" / "image_pipeline" / "reasoning" / "state"
         offenders = []
         for path in state_dir.glob("*.py"):
             content = path.read_text(encoding="utf-8")

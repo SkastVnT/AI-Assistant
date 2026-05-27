@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # =============================================================================
 # Start Hub Gateway Service
 # Port: 3000
@@ -7,7 +7,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
+PROJECT_ROOT="$(dirname "$(dirname "${SCRIPT_DIR}")")"
 SERVICE_DIR="${PROJECT_ROOT}/services/hub-gateway"
 LOGS_DIR="${PROJECT_ROOT}/logs"
 PORT=3000
@@ -45,7 +45,7 @@ echo "${PID}" > "${LOGS_DIR}/hub-gateway.pid"
 sleep 2
 
 if netstat -tlnp 2>/dev/null | grep -q ":${PORT} " || ss -tlnp 2>/dev/null | grep -q ":${PORT} "; then
-    echo -e "${GREEN}✓ Hub Gateway started successfully (PID: ${PID})${NC}"
+    echo -e "${GREEN}âœ“ Hub Gateway started successfully (PID: ${PID})${NC}"
     echo -e "${GREEN}  URL: http://localhost:${PORT}${NC}"
     echo -e "${GREEN}  Health: http://localhost:${PORT}/health${NC}"
 else

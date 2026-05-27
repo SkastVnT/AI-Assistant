@@ -1,9 +1,9 @@
-"""Character registry — searchable, alias-aware character database.
+"""Character registry â€” searchable, alias-aware character database.
 
-Loads JSON seed data from ``storage/character_db/`` and exposes a thread-safe
+Loads JSON seed data from ``app/storage/character_db/`` and exposes a thread-safe
 singleton with search, series filtering, and alias resolution.
 
-Additive layer on top of ``image_pipeline/anime_pipeline/character_parser`` —
+Additive layer on top of ``app/image_pipeline/anime_pipeline/character_parser`` â€”
 does not replace the existing parser. When the registry resolves a query
 explicitly (by key or alias), it returns a fully-qualified identity that the
 anime pipeline can use directly, bypassing the heuristic parser.
@@ -17,11 +17,14 @@ import threading
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+try:
+    from .project_paths import REPO_ROOT, STORAGE_DIR
+except ImportError:  # pragma: no cover - supports top-level core imports
+    from core.project_paths import REPO_ROOT, STORAGE_DIR
+
 logger = logging.getLogger(__name__)
 
-# Repo root is 3 levels up from this file: services/chatbot/core/character_registry.py
-_REPO_ROOT = Path(__file__).resolve().parents[3]
-_CHAR_DB_DIR = _REPO_ROOT / "storage" / "character_db"
+_CHAR_DB_DIR = STORAGE_DIR / "character_db"
 _CHARACTERS_FILE = _CHAR_DB_DIR / "characters.json"
 _SERIES_ALIASES_FILE = _CHAR_DB_DIR / "series_aliases.json"
 
@@ -80,7 +83,7 @@ class CharacterRegistry:
                             payload.setdefault("key", key)
                             self._records[key] = CharacterRecord(**payload)
                         except TypeError as exc:
-                            logger.warning("character_registry: skip %s — %s", key, exc)
+                            logger.warning("character_registry: skip %s â€” %s", key, exc)
                 except Exception as exc:
                     logger.error(
                         "character_registry: failed to load characters.json: %s", exc
@@ -179,7 +182,7 @@ class CharacterRegistry:
     def resolve_query(self, query: str) -> CharacterRecord | None:
         """Best-effort single-record resolution for an explicit query.
 
-        Tries: exact key → exact display_name (case-insensitive) → alias →
+        Tries: exact key â†’ exact display_name (case-insensitive) â†’ alias â†’
         partial display_name match. Returns the first hit.
         """
         if not query:
@@ -218,14 +221,14 @@ def get_registry() -> CharacterRegistry:
     return CharacterRegistry.get_instance()
 
 
-# ── Thumbnail resolution ────────────────────────────────────────────────
-_CHAR_REFS_DIR = _REPO_ROOT / "storage" / "character_refs"
+# â”€â”€ Thumbnail resolution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+_CHAR_REFS_DIR = STORAGE_DIR / "character_refs"
 _IMAGE_EXTS = {".webp", ".png", ".jpg", ".jpeg", ".gif"}
 
 
 def _normalize_token(s: str) -> str:
     """Lowercase + strip punctuation so dirnames and tags can be compared
-    loosely (``hu_tao_(genshin_impact)`` ↔ ``hu_tao_genshin_impact``)."""
+    loosely (``hu_tao_(genshin_impact)`` â†” ``hu_tao_genshin_impact``)."""
     out = []
     for ch in (s or "").lower():
         if ch.isalnum():
@@ -236,11 +239,30 @@ def _normalize_token(s: str) -> str:
     return "".join(out).strip("_")
 
 
+def _resolve_registry_path(raw_path: str) -> Path | None:
+    """Resolve registry paths after moving local runtime data under app/storage."""
+    raw = Path(raw_path)
+    if raw.is_absolute():
+        candidate = raw.resolve()
+    elif raw.parts and raw.parts[0].lower() == "storage":
+        candidate = (STORAGE_DIR / Path(*raw.parts[1:])).resolve()
+    else:
+        candidate = (REPO_ROOT / raw).resolve()
+
+    for root in (REPO_ROOT.resolve(), STORAGE_DIR.resolve()):
+        try:
+            candidate.relative_to(root)
+            return candidate
+        except ValueError:
+            continue
+    return None
+
+
 def resolve_thumbnail_data_url(rec: CharacterRecord) -> str | None:
     """Try the SAA WAI character DB for a base64 data-URL thumbnail.
 
     Used as a fallback when no on-disk image is found in
-    ``storage/character_refs/``. The WAI DB ships ~5000 SDXL character
+    ``app/storage/character_refs/``. The WAI DB ships ~5000 SDXL character
     thumbnails keyed by their tag (with spaces). We try several spellings
     derived from the registry record: the SDXL ``character_tag``, a
     ``"name (series)"`` form built from the tags, and the lowercase
@@ -283,7 +305,7 @@ def resolve_thumbnail_path(rec: CharacterRecord) -> Path | None:
 
     Priority:
         1. ``rec.thumbnail`` if the file exists.
-        2. First image found inside any ``storage/character_refs/<dir>``
+        2. First image found inside any ``app/storage/character_refs/<dir>``
            whose normalized name matches ``character_tag`` or ``key``.
 
     Returns an absolute :class:`Path` under the repo root, or ``None`` when
@@ -293,14 +315,12 @@ def resolve_thumbnail_path(rec: CharacterRecord) -> Path | None:
         return None
     # 1) Direct path from registry data.
     if rec.thumbnail:
-        direct = (_REPO_ROOT / rec.thumbnail).resolve()
-        try:
-            direct.relative_to(_REPO_ROOT)
-        except ValueError:
+        direct = _resolve_registry_path(rec.thumbnail)
+        if direct is None:
             return None
         if direct.is_file():
             return direct
-    # 2) Fallback — scan storage/character_refs for a matching dir.
+    # 2) Fallback â€” scan app/storage/character_refs for a matching dir.
     if not _CHAR_REFS_DIR.is_dir():
         return None
     candidates = {_normalize_token(rec.character_tag), _normalize_token(rec.key)}

@@ -5,7 +5,7 @@ AI-Assistant Public Deployment Script
 Starts all services and exposes them via ngrok for public access.
 
 Usage:
-    python3 scripts/deploy_public.py [--services all|hub,chatbot,...]
+    python3 app/scripts/deploy_public.py [--services all|hub,chatbot,...]
 
 Requirements:
     pip install pyngrok
@@ -120,7 +120,7 @@ def check_pyngrok():
 def get_project_root() -> Path:
     """Get project root directory"""
     script_dir = Path(__file__).parent
-    return script_dir.parent
+    return script_dir.parent.parent
 
 
 def is_port_in_use(port: int) -> bool:

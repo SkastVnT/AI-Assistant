@@ -1262,19 +1262,19 @@ _LORA_INVENTORY_MTIME: float = 0.0
 
 
 def _load_lora_inventory() -> dict:
-    """Load (and cache) `storage/lora_inventory.json` produced by
-    `scripts/scan_lora_inventory.py`. Re-reads when the file mtime changes.
+    """Load (and cache) `app/storage/lora_inventory.json` produced by
+    `app/scripts/scan_lora_inventory.py`. Re-reads when the file mtime changes.
     """
     global _LORA_INVENTORY_CACHE, _LORA_INVENTORY_MTIME
     import json as _json
-    from pathlib import Path
+    from core.project_paths import STORAGE_DIR
 
-    p = Path(__file__).resolve().parents[3] / "storage" / "lora_inventory.json"
+    p = STORAGE_DIR / "lora_inventory.json"
     if not p.exists():
         return {
             "items": [],
             "total_count": 0,
-            "error": "inventory not generated; run scripts/scan_lora_inventory.py",
+            "error": "inventory not generated; run app/scripts/scan_lora_inventory.py",
         }
     mtime = p.stat().st_mtime
     if _LORA_INVENTORY_CACHE is None or mtime != _LORA_INVENTORY_MTIME:

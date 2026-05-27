@@ -25,7 +25,7 @@ class CacheService:
             self._enabled = app.config.get("CACHE_ENABLED", True)
             # Get redis client once during initialization to avoid cyclic import
             try:
-                from ..extensions import get_redis
+                from app.extensions import get_redis
 
                 self._redis_client = get_redis()
             except (ImportError, Exception):

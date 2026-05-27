@@ -17,7 +17,7 @@ description: "Reason about the impact of chatbot/core changes on GitHub workflow
 ## Do not use for
 
 - ComfyUI, image pipeline, or Stable Diffusion workflow changes — those are out of scope.
-- RAG subsystem changes — `rag-eval.yml` triggers only on `rag/**` paths.
+- RAG subsystem changes — `rag-eval.yml` triggers only on `app/rag/**` paths.
 - Writing workflow YAML from scratch — this skill is for impact assessment, not authoring.
 
 ---
@@ -96,7 +96,7 @@ Six workflows exist under `.github/workflows/`. Each has different triggers, sco
 
 | Property | Value |
 |----------|-------|
-| Triggers | PRs to `main` or `feat/adv_RAG` that change `rag/**` |
+| Triggers | PRs to `main` or `feat/adv_RAG` that change `app/rag/**` |
 | Scope | RAG subsystem only |
 
 **Not affected by chatbot changes.** Ignore for chatbot-only work.

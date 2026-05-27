@@ -3,29 +3,21 @@ ChatbotAgent class - Multi-model AI chatbot with streaming, retry, and fallback 
 Refactored to eliminate code duplication and add enterprise features
 """
 
-import logging
-import sys
-from collections.abc import Generator
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Union
-
-# Setup path
-CHATBOT_DIR = Path(__file__).parent.parent.resolve()
-if str(CHATBOT_DIR) not in sys.path:
-    sys.path.insert(0, str(CHATBOT_DIR))
-
-from core.base_chat import (
-    DEFAULT_FALLBACK_CHAIN,
-    BloomVNChat,
-    ChatContext,
-    ChatResponse,
-    ContextWindowManager,
-    ModelConfig,
-    ModelFallbackManager,
-    ModelProvider,
-    OpenAICompatibleChat,
-    QwenChat,
+from core.extensions import (
+    LOCALMODELS_AVAILABLE,
+    MONGODB_ENABLED,
+    ConversationDB,
+    cache_response,
+    get_cached_response,
+    logger,
+    model_loader,
+    wait_for_openai_rate_limit,
+)
+from core.db_helpers import (
+    get_user_id_from_session,
+    load_conversation_history,
+    save_message_to_db,
+    set_active_conversation,
 )
 from core.config import (
     DEEPSEEK_API_KEY,
@@ -40,22 +32,29 @@ from core.config import (
     SYSTEM_PROMPTS,
     get_system_prompts,
 )
-from core.db_helpers import (
-    get_user_id_from_session,
-    load_conversation_history,
-    save_message_to_db,
-    set_active_conversation,
+from core.base_chat import (
+    DEFAULT_FALLBACK_CHAIN,
+    BloomVNChat,
+    ChatContext,
+    ChatResponse,
+    ContextWindowManager,
+    ModelConfig,
+    ModelFallbackManager,
+    ModelProvider,
+    OpenAICompatibleChat,
+    QwenChat,
 )
-from core.extensions import (
-    LOCALMODELS_AVAILABLE,
-    MONGODB_ENABLED,
-    ConversationDB,
-    cache_response,
-    get_cached_response,
-    logger,
-    model_loader,
-    wait_for_openai_rate_limit,
-)
+import logging
+import sys
+from collections.abc import Generator
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Union
+
+# Setup path
+CHATBOT_DIR = Path(__file__).parent.parent.resolve()
+if str(CHATBOT_DIR) not in sys.path:
+    sys.path.insert(0, str(CHATBOT_DIR))
 
 
 class ChatError(Exception):
@@ -487,7 +486,6 @@ class ChatbotAgent:
         )
 
         # ── Auto-route to vision model when images are attached ──
-        original_model = model
         if images and images:
             vision_model = self.registry.get_vision_model(model)
             if vision_model and vision_model != model:

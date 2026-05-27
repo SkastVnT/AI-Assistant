@@ -223,7 +223,7 @@ def list_models():
             "models": models,
             "total": len(models),
             "available_count": sum(1 for m in models if m["available"]),
-            "tiers": list(set(m.get("tier", "standard") for m in models)),
+            "tiers": list({m.get("tier", "standard") for m in models}),
         }
     )
 

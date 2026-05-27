@@ -105,7 +105,7 @@ def record_stream_error(*, backend: str, request_id: str, error: str) -> None:
 
 def get_stream_metrics_snapshot() -> dict[str, Any]:
     with _LOCK:
-        total = _COUNTERS["total_requests"]
+        _COUNTERS["total_requests"]
         completed = _COUNTERS["completed_requests"]
         fallback = _COUNTERS["fallback_to_standard"]
         near_limit = _COUNTERS["near_token_limit"]

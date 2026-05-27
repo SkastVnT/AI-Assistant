@@ -6,10 +6,9 @@ NOTE: API keys are loaded from environment variables (.env file)
 Never commit API keys directly in code!
 """
 
-import os
 import json
 import logging
-from datetime import datetime
+import os
 from pathlib import Path
 
 try:
@@ -55,17 +54,17 @@ def get_firebase_script_tag():
   import {{ initializeApp }} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
   import {{ getAnalytics }} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
   import {{ getFirestore, collection, addDoc, serverTimestamp }} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
-  
+
   const firebaseConfig = {json.dumps(FIREBASE_CONFIG, indent=4)};
-  
+
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
   const db = getFirestore(app);
-  
+
   // Auto log page view
   window.firebaseApp = app;
   window.firebaseDb = db;
-  
+
   // Function to log events to Firestore
   window.logToFirebase = async function(collectionName, data) {{
     try {{
@@ -82,7 +81,7 @@ def get_firebase_script_tag():
       return null;
     }}
   }};
-  
+
   // Log page view on load
   window.addEventListener('load', () => {{
     window.logToFirebase('page_views', {{

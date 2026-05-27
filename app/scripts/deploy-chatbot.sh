@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # ============================================================
 # Chatbot Service Deployment Script for Linux/Mac
 # ============================================================
@@ -13,7 +13,7 @@ echo ""
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 SERVICE_DIR="$PROJECT_ROOT/services/chatbot"
 BACKUP_DIR="$PROJECT_ROOT/backups"
 LOG_DIR="$PROJECT_ROOT/logs"

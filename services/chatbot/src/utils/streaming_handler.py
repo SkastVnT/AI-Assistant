@@ -200,10 +200,10 @@ def chat_stream():
     data = request.json
     message = data['message']
     model = data['model']
-    
+
     if model == 'gemini':
         generator = StreamingHandler.stream_gemini_response(
-            gemini_model, 
+            gemini_model,
             message
         )
     elif model == 'openai':
@@ -211,7 +211,7 @@ def chat_stream():
             openai_client,
             [{'role': 'user', 'content': message}]
         )
-    
+
     return StreamingHandler.create_sse_response(
         generator,
         model=model,
@@ -225,22 +225,22 @@ const eventSource = new EventSource('/api/chat/stream');
 
 eventSource.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    
+
     switch (data.type) {
         case 'start':
             console.log('Stream started:', data.model);
             break;
-            
+
         case 'token':
             // Append token to message
             appendToken(data.content);
             break;
-            
+
         case 'complete':
             console.log('Stream complete');
             eventSource.close();
             break;
-            
+
         case 'error':
             console.error('Stream error:', data.error);
             eventSource.close();

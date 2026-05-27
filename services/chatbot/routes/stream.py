@@ -187,9 +187,9 @@ def _needs_web_search(message: str, tools: list) -> bool:
     msg_lower = message.lower()
     if any(kw in msg_lower for kw in _SEARCH_KEYWORDS):
         return True
-    if any(p in msg_lower for p in _REALTIME_PATTERNS_VI + _REALTIME_PATTERNS_EN):
-        return True
-    return False
+    return bool(
+        any(p in msg_lower for p in _REALTIME_PATTERNS_VI + _REALTIME_PATTERNS_EN)
+    )
 
 
 def _run_web_search(query: str, engine: str = "google") -> str:
@@ -367,7 +367,7 @@ def chat_stream():
         # Defensive history cap (frontend already caps; this is depth-in-defense).
         if _normalized["history"] is not None:
             history = _normalized["history"]
-        generated_images = _normalized["generated_images"]
+        _normalized["generated_images"]
 
         # ── Runtime Skill Resolution + Application ────────────────────
         skill_overrides = resolve_skill(
@@ -840,7 +840,6 @@ def chat_stream():
                 # ── Response Phase (with integrated thinking) ──
                 full_response = ""
                 chunk_count = 0
-                has_model_reasoning = False
                 fallback_used = False
 
                 # ── 4-Agents Coordinated Reasoning ──
@@ -1008,7 +1007,6 @@ def chat_stream():
                             if reasoning_text and use_thinking:
                                 if not thinking_started:
                                     thinking_started = True
-                                    has_model_reasoning = True
                                     yield _emit(
                                         "thinking_start",
                                         {

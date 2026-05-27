@@ -12,7 +12,7 @@ python services/chatbot/run.py
 # mở http://127.0.0.1:5000
 
 # Desktop (Recommended) — Electron frameless + tray
-cd desktop/electron
+cd app/electron
 npm install
 npm run dev
 ```

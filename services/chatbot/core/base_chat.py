@@ -425,12 +425,12 @@ class OpenAICompatibleChat(BaseModelChat):
         max_tokens: int,
         top_p: float | None = None,
     ) -> str:
-        kwargs = dict(
-            model=self.config.model_id,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        kwargs = {
+            "model": self.config.model_id,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
         if top_p is not None:
             kwargs["top_p"] = top_p
         response = self.client.chat.completions.create(**kwargs)
@@ -443,13 +443,13 @@ class OpenAICompatibleChat(BaseModelChat):
         max_tokens: int,
         top_p: float | None = None,
     ) -> Generator[str, None, None]:
-        kwargs = dict(
-            model=self.config.model_id,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stream=True,
-        )
+        kwargs = {
+            "model": self.config.model_id,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": True,
+        }
         if top_p is not None:
             kwargs["top_p"] = top_p
         stream = self.client.chat.completions.create(**kwargs)

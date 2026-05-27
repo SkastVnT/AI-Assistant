@@ -106,7 +106,7 @@ class BaseRepository(ABC, Generic[T]):
 
             result = self.collection.insert_many(documents)
 
-            for doc, inserted_id in zip(documents, result.inserted_ids):
+            for doc, inserted_id in zip(documents, result.inserted_ids, strict=False):
                 doc["_id"] = inserted_id
 
             logger.debug(

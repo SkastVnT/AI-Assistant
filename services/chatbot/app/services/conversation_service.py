@@ -25,7 +25,7 @@ class ConversationService:
     ) -> dict[str, Any]:
         """Create a new conversation"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -56,7 +56,7 @@ class ConversationService:
     def get(self, conversation_id: str) -> dict[str, Any] | None:
         """Get a conversation by ID"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -79,7 +79,7 @@ class ConversationService:
     ) -> list[dict[str, Any]]:
         """List conversations for a user"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -103,7 +103,7 @@ class ConversationService:
                 if not include_archived:
                     convs = [c for c in convs if not c.get("is_archived", False)]
                 convs.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
-                return convs[offset : offset + limit]
+                return convs[offset: offset + limit]
 
         except Exception as e:
             logger.error(f"Error listing conversations: {e}")
@@ -112,7 +112,7 @@ class ConversationService:
     def count_by_user(self, user_id: str, include_archived: bool = False) -> int:
         """Count conversations for a user"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -137,7 +137,7 @@ class ConversationService:
     def update(self, conversation_id: str, updates: dict[str, Any]) -> dict[str, Any]:
         """Update a conversation"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -160,7 +160,7 @@ class ConversationService:
     def delete(self, conversation_id: str) -> bool:
         """Delete a conversation and its messages"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -190,7 +190,7 @@ class ConversationService:
     ) -> dict[str, Any]:
         """Add a message to a conversation"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -230,7 +230,7 @@ class ConversationService:
     ) -> list[dict[str, Any]]:
         """Get messages for a conversation"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -256,7 +256,7 @@ class ConversationService:
         messages = self.get_messages(conversation_id, limit=limit * 2)
 
         history = []
-        for msg in messages[-limit * 2 :]:
+        for msg in messages[-limit * 2:]:
             history.append(
                 {"role": msg.get("role", "user"), "content": msg.get("content", "")}
             )

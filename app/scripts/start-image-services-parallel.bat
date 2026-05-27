@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul 2>&1
 
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 if not exist "venv-image\Scripts\python.exe" (
     echo [ERROR] venv-image not found. Please create/install image profile first.

@@ -212,7 +212,7 @@ def build_records(
     }
 
     chunk_records = []
-    for i, (chunk, emb) in enumerate(zip(chunks, embeddings)):
+    for i, (chunk, emb) in enumerate(zip(chunks, embeddings, strict=False)):
         chunk_records.append(
             {
                 "_id": _uid(),

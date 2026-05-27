@@ -243,7 +243,7 @@ class TestOrchestratorEmitsEvents:
                     collected.append(e)
 
             collect_task = asyncio.ensure_future(collect())
-            result = await orch.run(pre)
+            await orch.run(pre)
             await emitter.close()
             await collect_task
 

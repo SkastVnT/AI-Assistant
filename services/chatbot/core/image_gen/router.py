@@ -845,9 +845,8 @@ class ImageGenerationRouter:
         if (
             "replicate" in self._providers
             and self._providers["replicate"].provider.is_available
-        ):
-            if model_key in REPLICATE_COST:
-                costs.append(REPLICATE_COST[model_key])
+        ) and model_key in REPLICATE_COST:
+            costs.append(REPLICATE_COST[model_key])
         if not costs:
             return None
         return min(costs)
@@ -867,7 +866,7 @@ class ImageGenerationRouter:
                 return [cfg]
 
         candidates = []
-        for name, cfg in self._providers.items():
+        for _name, cfg in self._providers.items():
             if not cfg.enabled:
                 continue
             prov = cfg.provider
@@ -890,9 +889,7 @@ class ImageGenerationRouter:
                 key=lambda c: (
                     0
                     if c.provider.tier == ProviderTier.FAST
-                    else 1
-                    if c.provider.tier == ProviderTier.LOCAL
-                    else 2
+                    else 1 if c.provider.tier == ProviderTier.LOCAL else 2
                 )
             )
         elif quality == QualityMode.QUALITY:
@@ -901,9 +898,7 @@ class ImageGenerationRouter:
                 key=lambda c: (
                     0
                     if c.provider.tier == ProviderTier.ULTRA
-                    else 1
-                    if c.provider.tier == ProviderTier.HIGH
-                    else 2
+                    else 1 if c.provider.tier == ProviderTier.HIGH else 2
                 )
             )
         elif quality == QualityMode.FREE:

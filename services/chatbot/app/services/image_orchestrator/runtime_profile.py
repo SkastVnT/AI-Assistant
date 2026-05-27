@@ -83,9 +83,7 @@ class RuntimeProfile:
         # Skip when user explicitly disabled local services
         if not self.auto_start_image_services:
             return True
-        if not self.auto_start_comfyui:
-            return True
-        return False
+        return bool(not self.auto_start_comfyui)
 
     @property
     def prefer_local_when_healthy(self) -> bool:

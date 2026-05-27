@@ -171,7 +171,7 @@ app/config/                 Centralized config (.env, config.yml, model_config.p
                             rate_limiter.py, response_cache.py, firebase_config.py)
 app/src/                    Shared modules (utils, database, cache, security, health)
 
-image_pipeline/             Local multi-stage image pipeline (image-only tasks)
+app/image_pipeline/         Local multi-stage image pipeline (image-only tasks)
   reasoning/                Reasoning library: capability_router, prompt_parser,
                             prompt_revision, schemas, state/, execution/
   anime_pipeline/           7-agent ComfyUI anime pipeline (orchestrator, agents,
@@ -181,13 +181,13 @@ image_pipeline/             Local multi-stage image pipeline (image-only tasks)
   planner/                  PromptLayerEngine
   BLUEPRINT.md              Architecture reference (locked stack decisions)
 
-character_select_stand_alone_app-main/   SAA — Electron character picker sidecar
+app/character_select_stand_alone_app-main/   SAA — Electron character picker sidecar
   data/wai_characters.csv               5149 verified WAI SDXL characters
   data/danbooru_e621_merged.csv         Tag autocomplete vocabulary
   data/wai_character_thumbs.json        Character thumbnail index
   (webserver runs on port 51028)
 
-storage/character_db/       Local character registry JSON (editable seed data)
+app/storage/character_db/   Local character registry JSON (editable seed data)
   characters.json           Registry entries (key, display_name, series, tags...)
   series_aliases.json       Series key aliases (GI→genshin_impact, HSR→...)
 ```
@@ -205,7 +205,7 @@ storage/character_db/       Local character registry JSON (editable seed data)
 ```
 ComfyUI/                    External dependency subtree — do not modify
 app/ComfyUI/                ComfyUI within app context
-image_pipeline/             Image pipeline internals
+app/image_pipeline/         Image pipeline internals
 services/stable-diffusion/  SDXL stack
 services/edit-image/        ComfyUI-based image editing
 venv-core/                  Generated — never edit manually
@@ -335,7 +335,7 @@ After making or proposing a change, summarize using:
 | FastAPI mode | Removed in May 2026; Flask monolith only |
 | Hermes sidecar | HTTP at `HERMES_API_URL` (default 8080) — opt-in via `HERMES_ENABLED=true` |
 | SAA sidecar | Electron app at port 51028 — opt-in via `CHARACTER_SELECT_ENABLED=true` |
-| SAA data path | `character_select_stand_alone_app-main/data/` — read-only by `saa_character_db.py` |
+| SAA data path | `app/character_select_stand_alone_app-main/data/` — read-only by `saa_character_db.py` |
 | Reasoning pipeline | Local ComfyUI multi-panel — opt-in via `REASONING_PIPELINE=true` |
 | Reasoning endpoint | `POST /api/reasoning-image-gen/generate` |
 | Hermes endpoint | `POST /api/hermes/chat` |
@@ -346,6 +346,6 @@ After making or proposing a change, summarize using:
 | Sidecar | Default port | Enable flag | Entry point |
 |---|---|---|---|
 | Hermes Agent | 8080 | `HERMES_ENABLED=true` | `NousResearch/hermes-agent` — separate process |
-| SAA character picker | 51028 | `CHARACTER_SELECT_ENABLED=true` | `character_select_stand_alone_app-main/` — `npm start` |
+| SAA character picker | 51028 | `CHARACTER_SELECT_ENABLED=true` | `app/character_select_stand_alone_app-main/` — `npm start` |
 
 **Hermes ↔ Reasoning pipeline:** These are **separate, non-overlapping paths** by default. Hermes is a chat AI proxy. The reasoning pipeline is a ComfyUI-backed local image pipeline. A lightweight bridge exists in `core/image_intent.py` and is active only when **both** `HERMES_ENABLED=true` and `REASONING_PIPELINE=true`. When both flags are set, `POST /api/hermes/chat` runs `image_pipeline.reasoning.capability_router.classify()` before forwarding to Hermes; image-generation requests (confidence ≥ 0.75) are redirected to the reasoning pipeline transparently. The bridge fails-safe: if `image_pipeline` is not importable or classification fails, the request falls through to Hermes unchanged.

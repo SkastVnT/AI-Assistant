@@ -428,9 +428,9 @@ class TestRegistryEdgeCases:
         reg = SkillRegistry()
         reg.load_builtins()
         for skill in reg.list_all():
-            assert len(skill.trigger_keywords) > 0, (
-                f"Builtin '{skill.id}' has no trigger_keywords"
-            )
+            assert (
+                len(skill.trigger_keywords) > 0
+            ), f"Builtin '{skill.id}' has no trigger_keywords"
 
 
 # ═════════════════════════════════════════════════════════════════════════

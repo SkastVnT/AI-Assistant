@@ -105,7 +105,7 @@ class FileService:
     def get(self, file_id: str) -> dict[str, Any] | None:
         """Get file info by ID"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -122,7 +122,7 @@ class FileService:
     def list_by_user(self, user_id: str) -> list[dict[str, Any]]:
         """List files for a user"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -152,7 +152,7 @@ class FileService:
                 file_path.unlink()
 
             # Delete record
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -172,7 +172,7 @@ class FileService:
     def _save_record(self, record: dict[str, Any]) -> None:
         """Save file record to database or memory"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 

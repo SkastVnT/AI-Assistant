@@ -9,6 +9,13 @@ so the chatbot UI can deep-link into the running picker. Contract mirrors
 """
 
 from __future__ import annotations
+from core.config import (
+    CHARACTER_SELECT_ENABLED,
+    CHARACTER_SELECT_PATH,
+    CHARACTER_SELECT_PORT,
+    CHARACTER_SELECT_TIMEOUT,
+    CHARACTER_SELECT_URL,
+)
 
 import logging
 import socket
@@ -23,13 +30,6 @@ CHATBOT_DIR = Path(__file__).parent.parent.resolve()
 if str(CHATBOT_DIR) not in sys.path:
     sys.path.insert(0, str(CHATBOT_DIR))
 
-from core.config import (
-    CHARACTER_SELECT_ENABLED,
-    CHARACTER_SELECT_PATH,
-    CHARACTER_SELECT_PORT,
-    CHARACTER_SELECT_TIMEOUT,
-    CHARACTER_SELECT_URL,
-)
 
 logger = logging.getLogger(__name__)
 

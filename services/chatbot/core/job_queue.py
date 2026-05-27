@@ -1,16 +1,16 @@
 """In-memory job queue for local image generation jobs.
 
 Thread-safe singleton tracking job lifecycle:
-``queued → running → completed | failed | cancelled``.
+``queued â†’ running â†’ completed | failed | cancelled``.
 
-This is **state tracking only** — the pipeline orchestrator still runs
+This is **state tracking only** â€” the pipeline orchestrator still runs
 synchronously inside the request that creates the job. The queue gives the
 UI visibility into job history, in-flight jobs, manifest links, and a
 best-effort cancellation flag.
 
 Persistence: jobs are kept in memory with a bounded history (default 200).
 For durable manifests use the existing ``ResultStore`` which writes to
-``storage/metadata/<job_id>.json``.
+``app/storage/metadata/<job_id>.json``.
 """
 
 from __future__ import annotations
@@ -297,7 +297,7 @@ class JobQueue:
                     )
                     continue
                 # Jobs that were running when the process died can never
-                # complete — surface as failed so the UI clears spinners.
+                # complete â€” surface as failed so the UI clears spinners.
                 if rec.state in ("queued", "running"):
                     rec.state = "failed"
                     if rec.completed_at is None:

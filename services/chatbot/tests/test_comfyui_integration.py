@@ -333,7 +333,7 @@ class TestAgentComfyIntegration:
         wf = builder.build_composition(pc, seed=42)
 
         # All node IDs are strings
-        assert all(isinstance(k, str) for k in wf.keys())
+        assert all(isinstance(k, str) for k in wf)
         # All nodes have class_type and inputs
         for node in wf.values():
             assert "class_type" in node

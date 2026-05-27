@@ -234,12 +234,15 @@ def validate_input(schema: dict[str, dict], strict: bool = False):
             result = validator.validate(data, schema)
 
             if not result.is_valid:
-                return jsonify(
-                    {
-                        "error": "Validation failed",
-                        "details": result.to_dict()["errors"],
-                    }
-                ), 400
+                return (
+                    jsonify(
+                        {
+                            "error": "Validation failed",
+                            "details": result.to_dict()["errors"],
+                        }
+                    ),
+                    400,
+                )
 
             # Add sanitized data to request
             request.validated_data = result.sanitized_data

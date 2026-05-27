@@ -68,7 +68,7 @@ When behavior changes, update docs and identify the smallest sufficient validati
 
 ## Project rules (project-specific, override nothing above)
 
-**Service scope for chatbot tasks:** only edit `services/chatbot/`, `services/shared_env.py`, `services/mcp-server/`, `app/config/`, `app/src/`. Never touch `ComfyUI/`, `image_pipeline/`, `services/stable-diffusion/`, `services/edit-image/`.
+**Service scope for chatbot tasks:** only edit `services/chatbot/`, `services/shared_env.py`, `services/mcp-server/`, `app/config/`, `app/src/`. Never touch `ComfyUI/`, `app/image_pipeline/`, `services/stable-diffusion/`, `services/edit-image/`.
 
 **Env loading:** `services/shared_env.py` → `load_shared_env(__file__)` once per service. Never add a second `load_dotenv` that overrides it.
 
@@ -87,7 +87,7 @@ When behavior changes, update docs and identify the smallest sufficient validati
 | Sidecar | Flag | Port | Entry |
 |---|---|---|---|
 | Hermes Agent | `HERMES_ENABLED=true` | 8080 | separate process — `NousResearch/hermes-agent` |
-| SAA character picker | `CHARACTER_SELECT_ENABLED=true` | 51028 | `character_select_stand_alone_app-main/` — `npm start` |
+| SAA character picker | `CHARACTER_SELECT_ENABLED=true` | 51028 | `app/character_select_stand_alone_app-main/` — `npm start` |
 
 **Hermes ↔ Reasoning pipeline are separate paths by default.** `POST /api/hermes/chat` is a chat proxy. `POST /api/reasoning-image-gen/generate` is a ComfyUI multi-panel pipeline (opt-in: `REASONING_PIPELINE=true`). A bridge (`core/image_intent.py`) activates only when **both** `HERMES_ENABLED=true` and `REASONING_PIPELINE=true` — it classifies the message and redirects image requests to the reasoning pipeline. Fails-safe: any import or classification error falls through to Hermes.
 

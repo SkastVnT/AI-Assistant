@@ -5,6 +5,10 @@ This module creates and configures the Flask application
 using the factory pattern for better testability and modularity.
 """
 
+from .routes import register_blueprints
+from .extensions import init_extensions
+from .error_handlers import register_error_handlers
+from .config import get_config
 import logging
 import os
 import sys
@@ -28,11 +32,6 @@ except ModuleNotFoundError:
 
 # Add parent paths for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-
-from .config import get_config
-from .error_handlers import register_error_handlers
-from .extensions import init_extensions
-from .routes import register_blueprints
 
 
 def create_application(config_name: str = "default") -> Flask:

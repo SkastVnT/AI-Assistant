@@ -1,10 +1,10 @@
-"""
-Anime Layered Pipeline API routes — Flask Blueprint.
+﻿"""
+Anime Layered Pipeline API routes â€” Flask Blueprint.
 
 Endpoints:
-    GET  /api/anime-pipeline/health     → Availability check
-    POST /api/anime-pipeline/stream     → SSE streaming pipeline run
-    POST /api/anime-pipeline/generate   → Blocking pipeline run (returns JSON)
+    GET  /api/anime-pipeline/health     â†’ Availability check
+    POST /api/anime-pipeline/stream     â†’ SSE streaming pipeline run
+    POST /api/anime-pipeline/generate   â†’ Blocking pipeline run (returns JSON)
 """
 
 from __future__ import annotations
@@ -36,19 +36,19 @@ def _enrich_with_character(data: dict) -> dict:
     character_parser resolves identity reliably. Returns enriched dict.
 
     Resolution order:
-      1. Local hand-curated registry (``storage/character_db/``) — preferred,
+      1. Local hand-curated registry (``app/storage/character_db/``) â€” preferred,
          carries display_name + series + LoRA hints.
       2. SAA WAI database (5149 entries from
-         ``character_select_stand_alone_app-main/data/wai_characters.csv``)
-         — long-tail fallback.
+         ``app/character_select_stand_alone_app-main/data/wai_characters.csv``)
+         â€” long-tail fallback.
 
     Backward-compatible: if no character_key (or unresolved), returns input.
     """
     char_key = (data.get("character_key") or "").strip()
 
-    # ── NLU pass: auto-derive character_key from the prompt itself
+    # â”€â”€ NLU pass: auto-derive character_key from the prompt itself
     # when the client didn't pre-select one. Lets users say
-    # "Tạo ảnh Hoshino trong Blue Archive..." and get the right LoRA
+    # "Táº¡o áº£nh Hoshino trong Blue Archive..." and get the right LoRA
     # without opening the character picker.
     if not char_key:
         prompt_text = (data.get("prompt") or "").strip()
@@ -59,7 +59,7 @@ def _enrich_with_character(data: dict) -> dict:
                 )
 
                 derived = extract_character_key(prompt_text)
-            except Exception as exc:  # pragma: no cover — defensive
+            except Exception as exc:  # pragma: no cover â€” defensive
                 logger.debug("[anime_pipeline] character_nlu unavailable: %s", exc)
                 derived = None
             if derived:
@@ -84,7 +84,7 @@ def _enrich_with_character(data: dict) -> dict:
             from image_pipeline.anime_pipeline.saa_character_db import lookup_character
 
             saa_hit = lookup_character(char_key)
-        except Exception as e:  # pragma: no cover — defensive import guard
+        except Exception as e:  # pragma: no cover â€” defensive import guard
             logger.debug("[anime_pipeline] SAA fallback unavailable: %s", e)
             saa_hit = None
 
@@ -135,7 +135,7 @@ def _wrap_stream_with_queue(
 
     Parses ``ap_status``, ``ap_stage_start``, ``ap_stage_done``, ``ap_result``,
     ``ap_error``, ``ap_done`` frames to extract job_id and update queue state.
-    Pass-through everything verbatim — never modifies the SSE stream.
+    Pass-through everything verbatim â€” never modifies the SSE stream.
     """
     queue = get_queue()
     job_id_seen: dict[str, str] = {}
@@ -252,8 +252,8 @@ def _wrap_stream_with_queue(
     return _gen()
 
 
-# ── Rate limiting (shared with image-gen pattern) ───────────────────────
-_RATE_WINDOW = 120  # wider window — pipeline jobs take longer
+# â”€â”€ Rate limiting (shared with image-gen pattern) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+_RATE_WINDOW = 120  # wider window â€” pipeline jobs take longer
 _RATE_MAX = 5  # fewer concurrent jobs allowed
 _req_log: dict = {}
 
@@ -269,7 +269,7 @@ def _rate_check() -> str | None:
     return None
 
 
-# ── Health / availability ───────────────────────────────────────────────
+# â”€â”€ Health / availability â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @anime_pipeline_bp.route("/api/anime-pipeline/health", methods=["GET"])
@@ -285,7 +285,7 @@ def health():
     return jsonify(result.to_dict()), status
 
 
-# ── Streaming SSE endpoint ──────────────────────────────────────────────
+# â”€â”€ Streaming SSE endpoint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @anime_pipeline_bp.route("/api/anime-pipeline/stream", methods=["POST"])
@@ -294,26 +294,26 @@ def stream_pipeline():
     Run the layered anime pipeline with real-time SSE progress events.
 
     Body (JSON):
-        prompt:              str   — required, max 2 000 chars
-        reference_images:    [str] — optional list of base64 images (max 4)
-        preset:              str   — anime_quality | anime_speed | anime_balanced
-        quality_mode:        str   — auto | fast | quality
-        model_base:          str   — optional checkpoint override (composition pass)
-        model_cleanup:       str   — optional checkpoint override (cleanup pass)
-        model_final:         str   — optional checkpoint override (beauty pass)
-        debug:               bool  — if true, stream intermediate previews
-        width:               int   — override width (0 = auto from config)
-        height:              int   — override height (0 = auto from config)
+        prompt:              str   â€” required, max 2 000 chars
+        reference_images:    [str] â€” optional list of base64 images (max 4)
+        preset:              str   â€” anime_quality | anime_speed | anime_balanced
+        quality_mode:        str   â€” auto | fast | quality
+        model_base:          str   â€” optional checkpoint override (composition pass)
+        model_cleanup:       str   â€” optional checkpoint override (cleanup pass)
+        model_final:         str   â€” optional checkpoint override (beauty pass)
+        debug:               bool  â€” if true, stream intermediate previews
+        width:               int   â€” override width (0 = auto from config)
+        height:              int   â€” override height (0 = auto from config)
 
     SSE events:
-        ap_status       — pipeline initialised
-        ap_stage_start  — stage begun   { stage, label, stage_num, total_stages }
-        ap_stage_done   — stage done    { stage, latency_ms }
-        ap_preview      — intermediate  { stage, image_b64 }   (debug only)
-        ap_refine       — refine round  { round, previous_score }
-        ap_result       — final result  { job_id, image_b64, manifest, ... }
-        ap_error        — error         { error, recoverable }
-        ap_done         — sentinel      { job_id }
+        ap_status       â€” pipeline initialised
+        ap_stage_start  â€” stage begun   { stage, label, stage_num, total_stages }
+        ap_stage_done   â€” stage done    { stage, latency_ms }
+        ap_preview      â€” intermediate  { stage, image_b64 }   (debug only)
+        ap_refine       â€” refine round  { round, previous_score }
+        ap_result       â€” final result  { job_id, image_b64, manifest, ... }
+        ap_error        â€” error         { error, recoverable }
+        ap_done         â€” sentinel      { job_id }
     """
     from core.anime_pipeline_service import (
         check_availability,
@@ -323,7 +323,7 @@ def stream_pipeline():
         stream_pipeline as _stream,
     )
 
-    # ── Availability gate ───────────────────────────────────────────
+    # â”€â”€ Availability gate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     avail = check_availability()
     if not avail.available:
 
@@ -347,7 +347,7 @@ def stream_pipeline():
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
 
-    # ── Rate check ──────────────────────────────────────────────────
+    # â”€â”€ Rate check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     rate_err = _rate_check()
     if rate_err:
 
@@ -356,7 +356,7 @@ def stream_pipeline():
 
         return Response(_err_rate(), mimetype="text/event-stream", status=429)
 
-    # ── Validate payload ────────────────────────────────────────────
+    # â”€â”€ Validate payload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     data = request.get_json(force=True, silent=True) or {}
     data = _enrich_with_character(data)
     resolved_char = data.pop("_resolved_character", None)
@@ -392,7 +392,7 @@ def stream_pipeline():
     )
 
 
-# ── Blocking endpoint (JSON) ───────────────────────────────────────────
+# â”€â”€ Blocking endpoint (JSON) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @anime_pipeline_bp.route("/api/anime-pipeline/generate", methods=["POST"])
@@ -437,7 +437,7 @@ def generate_pipeline():
         from image_pipeline.anime_pipeline import AnimePipelineOrchestrator
 
         job = build_job(req)
-        # Register in JobQueue for visibility (sync call — no SSE wrapper)
+        # Register in JobQueue for visibility (sync call â€” no SSE wrapper)
         get_queue().create(
             job_id=job.job_id,
             prompt=req.prompt[:500],
@@ -476,7 +476,7 @@ def generate_pipeline():
         return jsonify({"error": str(e)}), 500
 
 
-# ── Upload reference images endpoint ────────────────────────────────────
+# â”€â”€ Upload reference images endpoint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @anime_pipeline_bp.route("/api/anime-pipeline/upload-refs", methods=["POST"])
@@ -498,7 +498,7 @@ def upload_reference_images():
         return jsonify({"error": "Maximum 4 reference images allowed"}), 400
 
     character_tag = request.form.get("character_tag", "").strip()
-    # Sanitize to prevent path traversal — only allow safe characters
+    # Sanitize to prevent path traversal â€” only allow safe characters
     character_tag = re.sub(r"[^A-Za-z0-9_\-]", "_", character_tag)
     refs_b64 = []
 
@@ -524,7 +524,7 @@ def upload_reference_images():
 
             ref_dir = _REF_DIR / character_tag / "user"
             ref_dir.mkdir(parents=True, exist_ok=True)
-            for i, b64 in enumerate(refs_b64):
+            for _i, b64 in enumerate(refs_b64):
                 img_bytes = base64.b64decode(b64)
                 h = hashlib.md5(img_bytes, usedforsecurity=False).hexdigest()[:8]
                 path = ref_dir / f"upload_{h}.png"
@@ -542,7 +542,7 @@ def upload_reference_images():
     )
 
 
-# ── Upscale endpoint (re-runnable) ──────────────────────────────────────
+# â”€â”€ Upscale endpoint (re-runnable) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def run_upscale_payload(data: dict) -> tuple[dict, int]:
@@ -609,7 +609,7 @@ def run_upscale_payload(data: dict) -> tuple[dict, int]:
     if src_w * src_h > 4_000_000:
         return {
             "ok": False,
-            "error": f"Source too large ({src_w}×{src_h}={src_w * src_h:,} px). Max 4 MP.",
+            "error": f"Source too large ({src_w}Ã—{src_h}={src_w * src_h:,} px). Max 4 MP.",
         }, 413
 
     factor = float(data.get("factor", 2.0))
@@ -639,7 +639,7 @@ def run_upscale_payload(data: dict) -> tuple[dict, int]:
             "well-formed typography, high quality lettering, "
             "crisp letter shapes, accurate spelling"
         )
-        # Hires face/hand/body fix booster — the img2img redraw at
+        # Hires face/hand/body fix booster â€” the img2img redraw at
         # higher resolution will regenerate these regions, so steering
         # the SDXL model with explicit anatomy quality terms cleans up
         # the most common artifacts (broken eyes, malformed hands,
@@ -708,7 +708,7 @@ def run_upscale_payload(data: dict) -> tuple[dict, int]:
 
         # Fallback: if Ultimate SD Upscale custom node is missing,
         # rebuild with the built-in Hires.fix workflow (UpscaleModel
-        # → ImageScale → VAEEncode → KSampler → VAEDecode).
+        # â†’ ImageScale â†’ VAEEncode â†’ KSampler â†’ VAEDecode).
         validation = (getattr(result, "validation_error", "") or "").lower()
         node_missing = not result.success and (
             "ultimatesdupscale" in validation
@@ -790,7 +790,7 @@ def upscale_image():
     """Upscale **and** fix-text in a single pass via Ultimate SD Upscale.
 
     Combines two operations the user used to run separately:
-      1. ESRGAN-style upsampling to ``factor`` (1.5×–4×)
+      1. ESRGAN-style upsampling to ``factor`` (1.5Ã—â€“4Ã—)
       2. SDXL img2img tile redraw at moderate denoise to clean up
          garbled letters / typography artifacts.
     """
@@ -803,7 +803,7 @@ def upscale_image():
     return jsonify(body), status
 
 
-# ── Fix-text endpoint (kept as alias of /upscale with factor=1.0) ──────
+# â”€â”€ Fix-text endpoint (kept as alias of /upscale with factor=1.0) â”€â”€â”€â”€â”€â”€
 # The combined /upscale endpoint above now handles text repair too. This
 # alias is kept for backward compatibility with any external caller and
 # forwards to /upscale forcing factor=1.0 + denoise=0.40.
@@ -824,7 +824,7 @@ def fix_text_image():
     # request.json via a tiny shim.
     from werkzeug.wrappers import Request as _WReq  # noqa: F401
 
-    # Simplest path: just call upscale_image — Flask's request is
+    # Simplest path: just call upscale_image â€” Flask's request is
     # request-scoped and we cannot easily rebuild it; instead, replicate
     # the body inline by passing through the JSON cache.
     # Flask caches parsed JSON on the request object.
@@ -832,7 +832,7 @@ def fix_text_image():
     return upscale_image()
 
 
-# ── Cancel endpoint ─────────────────────────────────────────────────────
+# â”€â”€ Cancel endpoint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @anime_pipeline_bp.route("/api/anime-pipeline/cancel", methods=["POST"])
@@ -840,13 +840,13 @@ def cancel_pipeline():
     """Request cancellation of an in-flight anime-pipeline job.
 
     Body (JSON):
-        job_id: str   — the job_id captured from the first ap_status frame
+        job_id: str   â€” the job_id captured from the first ap_status frame
 
     Sets the JobQueue's ``cancel_requested`` flag. The orchestrator polls
     this flag between major stages (composition_pass, structure_lock,
     beauty_pass) and on the next checkpoint emits ``ap_cancelled`` plus a
     final ``ap_result`` containing the best-so-far image. The SSE stream
-    is never killed by this endpoint — the partial image flows through
+    is never killed by this endpoint â€” the partial image flows through
     the normal chat-bubble code path.
 
     Returns:
@@ -873,9 +873,9 @@ def cancel_pipeline():
 
     # Hard-stop: also POST /interrupt to ComfyUI so the GPU pass that is
     # currently in flight stops too. Without this, the orchestrator only
-    # bails between stages — the active KSampler keeps painting on the
+    # bails between stages â€” the active KSampler keeps painting on the
     # GPU for another 30-60 s after the user clicked Stop, which is what
-    # the user means by "Đã ngưng rồi mà bên ComfyUI còn chạy". Failure
+    # the user means by "ÄÃ£ ngÆ°ng rá»“i mÃ  bÃªn ComfyUI cÃ²n cháº¡y". Failure
     # is silently swallowed (best-effort) so a missing ComfyUI does not
     # turn the cancel button into a 500.
     if accepted:
@@ -918,11 +918,11 @@ def _interrupt_comfyui() -> None:
     """Best-effort halt of the active ComfyUI server.
 
     Sends two requests in sequence:
-      1. ``POST /queue`` with ``{"clear": true}`` — drops every queued
+      1. ``POST /queue`` with ``{"clear": true}`` â€” drops every queued
          prompt so the queued workflows do not start once the current
          one ends. Without this, the user sees ComfyUI keep printing
          ``got prompt`` for ~30 s after Stop while the queue drains.
-      2. ``POST /interrupt`` — aborts the currently running KSampler.
+      2. ``POST /interrupt`` â€” aborts the currently running KSampler.
 
     Both calls are best-effort; failures are logged but never raise.
     Uses the same env vars the pipeline ComfyClient honors so we always

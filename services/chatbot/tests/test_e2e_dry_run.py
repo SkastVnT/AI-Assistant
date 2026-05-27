@@ -279,10 +279,7 @@ class TestE2EDryRunCritiqueRetry:
 
         def _execute(job):
             call_count["n"] += 1
-            if call_count["n"] == 1:
-                critique = _bad_critique()
-            else:
-                critique = _good_critique()
+            critique = _bad_critique() if call_count["n"] == 1 else _good_critique()
             job.critique_results.append(critique)
             job.stages_executed.append("critique")
             job.stage_timings_ms["critique"] = 200.0
@@ -341,7 +338,7 @@ class TestE2EAgentFailure:
         orch._composition.execute = _failing_composition
 
         events = list(orch.run_stream(job))
-        event_names = [e["event"] for e in events]
+        [e["event"] for e in events]
 
         # Should have error event
         error_events = [e for e in events if "error" in e["event"]]
@@ -369,7 +366,7 @@ class TestE2EAgentFailure:
 
         orch._beauty.execute = _failing_beauty
 
-        events = list(orch.run_stream(job))
+        list(orch.run_stream(job))
 
         # Even though it failed, we should have a fallback from composition
         assert job.status == AnimePipelineStatus.FAILED

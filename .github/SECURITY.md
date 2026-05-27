@@ -99,8 +99,8 @@ app.run(host='0.0.0.0', port=5000, debug=os.getenv('DEBUG', 'False') == 'True')
 **Recommendation:** Avoid `shell=True` or carefully sanitize inputs
 
 **Affected Files:**
-- `scripts/deploy_public.py`
-- `scripts/utilities/system_check.py`
+- `app/scripts/deploy_public.py`
+- `app/scripts/check_system.py`
 - `services/hub-gateway/utils/process_manager.py`
 
 **Secure Alternative:**
@@ -157,7 +157,7 @@ torch.load(path, weights_only=False)  # Only if you control the file
 **Recommendation:** Use safer alternatives or strict input validation
 
 **Affected Files:**
-- `scripts/fix_dependencies.py`
+- `app/scripts/fix_dependencies.py`
 - `services/chatbot/src/sandbox/code_executor.py`
 
 #### 8. Eval Usage (3 occurrences)
@@ -504,7 +504,7 @@ services:
 ```bash
 # Set secure file permissions
 chmod 600 .env
-chmod 700 scripts/*.sh
+chmod 700 app/scripts/*.sh
 
 # Restrict service user permissions
 useradd -r -s /bin/false aiassistant

@@ -5,6 +5,7 @@ Hiển thị real-time stats về API usage
 
 import sys
 from pathlib import Path
+
 from flask import Blueprint, jsonify, make_response
 
 # Import utilities
@@ -172,26 +173,26 @@ def monitor_dashboard():
 <body>
     <div class="container">
         <h1>🎯 API Monitor Dashboard</h1>
-        
+
         <div class="section">
             <h2>⏱️ Rate Limits - Gemini API</h2>
             <div class="stats-grid" id="gemini-stats"></div>
         </div>
-        
+
         <div class="section">
             <h2>⏱️ Rate Limits - OpenAI</h2>
             <div class="stats-grid" id="openai-stats"></div>
         </div>
-        
+
         <div class="section">
             <h2>💾 Response Cache</h2>
             <div class="stats-grid" id="cache-stats"></div>
         </div>
-        
+
         <button class="refresh-btn" onclick="loadStats()">🔄 Refresh</button>
         <div class="last-update" id="last-update"></div>
     </div>
-    
+
     <script>
         function loadStats() {
             fetch('/api/stats')
@@ -200,24 +201,24 @@ def monitor_dashboard():
                     renderGeminiStats(data.rate_limits.gemini);
                     renderOpenAIStats(data.rate_limits.openai);
                     renderCacheStats(data.cache);
-                    
-                    document.getElementById('last-update').textContent = 
+
+                    document.getElementById('last-update').textContent =
                         'Last updated: ' + new Date().toLocaleString();
                 })
                 .catch(err => console.error('Error loading stats:', err));
         }
-        
+
         function renderGeminiStats(gemini) {
             const container = document.getElementById('gemini-stats');
             container.innerHTML = '';
-            
+
             Object.entries(gemini).forEach(([key, stats]) => {
                 const card = document.createElement('div');
                 card.className = 'stat-card';
-                
+
                 const usage = stats.usage_percentage;
                 const statusClass = usage > 80 ? 'danger' : (usage > 60 ? 'warning' : 'success');
-                
+
                 card.innerHTML = `
                     <h3>${key.toUpperCase()}</h3>
                     <div class="stat-item">
@@ -238,19 +239,19 @@ def monitor_dashboard():
                         </div>
                     </div>
                 `;
-                
+
                 container.appendChild(card);
             });
         }
-        
+
         function renderOpenAIStats(openai) {
             const container = document.getElementById('openai-stats');
             const card = document.createElement('div');
             card.className = 'stat-card';
-            
+
             const usage = openai.usage_percentage;
             const statusClass = usage > 80 ? 'danger' : (usage > 60 ? 'warning' : 'success');
-            
+
             card.innerHTML = `
                 <h3>OPENAI GPT-4O-MINI</h3>
                 <div class="stat-item">
@@ -271,22 +272,22 @@ def monitor_dashboard():
                     </div>
                 </div>
             `;
-            
+
             container.innerHTML = '';
             container.appendChild(card);
         }
-        
+
         function renderCacheStats(cache) {
             const container = document.getElementById('cache-stats');
             container.innerHTML = '';
-            
+
             Object.entries(cache).forEach(([key, stats]) => {
                 const card = document.createElement('div');
                 card.className = 'stat-card';
-                
+
                 const hitRate = stats.hit_rate_percentage;
                 const statusClass = hitRate > 70 ? 'success' : (hitRate > 40 ? 'warning' : 'danger');
-                
+
                 card.innerHTML = `
                     <h3>${key.toUpperCase()}</h3>
                     <div class="stat-item">
@@ -315,11 +316,11 @@ def monitor_dashboard():
                         </div>
                     </div>
                 `;
-                
+
                 container.appendChild(card);
             });
         }
-        
+
         // Auto refresh every 5 seconds
         loadStats();
         setInterval(loadStats, 5000);

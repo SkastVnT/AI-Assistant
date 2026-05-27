@@ -186,12 +186,15 @@ def api_key_required(manager: APIKeyManager = None, header_name: str = "X-API-Ke
                 api_key = request.args.get("api_key")
 
             if not api_key:
-                return jsonify(
-                    {
-                        "error": "API key required",
-                        "message": f"Provide key in {header_name} header or api_key parameter",
-                    }
-                ), 401
+                return (
+                    jsonify(
+                        {
+                            "error": "API key required",
+                            "message": f"Provide key in {header_name} header or api_key parameter",
+                        }
+                    ),
+                    401,
+                )
 
             # Validate key
             if manager:

@@ -198,7 +198,7 @@ def test_settings_operations():
     try:
         # Create default settings
         print("\nâš™ï¸  Creating default settings...")
-        settings = UserSettingsDB.create_default_settings("test_user_001")
+        UserSettingsDB.create_default_settings("test_user_001")
         print("âœ… Created settings for user: test_user_001")
 
         # Update settings

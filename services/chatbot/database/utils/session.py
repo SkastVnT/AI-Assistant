@@ -232,7 +232,7 @@ class RepositoryFactory:
     @staticmethod
     def get_conversation_repository():
         """Get ConversationRepository instance"""
-        from ..repositories.conversation_repository import ConversationRepository
+        from database.repositories.conversation_repository import ConversationRepository
 
         db = DatabaseSession().get_database()
         if db is None:
@@ -242,7 +242,7 @@ class RepositoryFactory:
     @staticmethod
     def get_message_repository():
         """Get MessageRepository instance"""
-        from ..repositories.message_repository import MessageRepository
+        from database.repositories.message_repository import MessageRepository
 
         db = DatabaseSession().get_database()
         if db is None:
@@ -252,7 +252,7 @@ class RepositoryFactory:
     @staticmethod
     def get_memory_repository():
         """Get MemoryRepository instance"""
-        from ..repositories.memory_repository import MemoryRepository
+        from database.repositories.memory_repository import MemoryRepository
 
         db = DatabaseSession().get_database()
         if db is None:

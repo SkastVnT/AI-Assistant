@@ -37,7 +37,7 @@ class SettingsService:
     def get(self, user_id: str) -> dict[str, Any] | None:
         """Get settings for a user"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -59,7 +59,7 @@ class SettingsService:
     def update(self, user_id: str, settings: dict[str, Any]) -> dict[str, Any]:
         """Update user settings"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -84,7 +84,7 @@ class SettingsService:
     def list_custom_prompts(self, user_id: str) -> list[dict[str, Any]]:
         """List custom prompts for a user"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 
@@ -104,7 +104,7 @@ class SettingsService:
     ) -> dict[str, Any]:
         """Create a new custom prompt"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 

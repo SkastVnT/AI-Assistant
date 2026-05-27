@@ -54,7 +54,7 @@ class InMemoryTraceStore:
         try:
             self._items.append(trace.to_dict())
             if len(self._items) > self.max_items:
-                self._items = self._items[-self.max_items :]
+                self._items = self._items[-self.max_items:]
             return True
         except Exception as exc:  # fail-safe by design
             logger.warning("trace save failed: %s", exc)

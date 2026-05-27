@@ -382,7 +382,7 @@ class LearningService:
     def _save_to_database(self, entry: dict[str, Any]) -> None:
         """Save learning entry to MongoDB (if available)"""
         try:
-            from ..extensions import get_db, get_mongodb
+            from app.extensions import get_db, get_mongodb
 
             client = get_mongodb()
 

@@ -224,9 +224,9 @@ def test_wrap_stream_handles_ap_cancelled_keeps_state_cancelled(monkeypatch):
     frames = list(_wrap_stream_with_queue(inner(), prompt_preview="x"))
     assert len(frames) == 4  # all forwarded verbatim
     final_state = fake._jobs["j1"].state
-    assert final_state == "cancelled", (
-        f"expected cancelled, got {final_state}; transitions={fake.transition_calls}"
-    )
+    assert (
+        final_state == "cancelled"
+    ), f"expected cancelled, got {final_state}; transitions={fake.transition_calls}"
 
 
 # ---------------------------------------------------------------------------

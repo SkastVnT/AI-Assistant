@@ -53,7 +53,7 @@ class ThinkTagParser:
                     thinking_text = self.buffer[:end_idx]
                     if thinking_text:
                         results.append((True, thinking_text))
-                    self.buffer = self.buffer[end_idx + len("</think>") :]
+                    self.buffer = self.buffer[end_idx + len("</think>"):]
                     self.in_think = False
                 else:
                     # Emit all but potentially partial tag at the end
@@ -69,7 +69,7 @@ class ThinkTagParser:
                     prefix = self.buffer[:start_idx]
                     if prefix.strip():
                         results.append((False, prefix))
-                    self.buffer = self.buffer[start_idx + len("<think>") :]
+                    self.buffer = self.buffer[start_idx + len("<think>"):]
                     self.in_think = True
                 else:
                     # Emit all but potentially partial tag at the end

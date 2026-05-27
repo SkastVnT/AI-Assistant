@@ -1,5 +1,5 @@
 """
-One-shot script: update all 16 all-characters LoRA entries in configs/lora_registry.yaml.
+One-shot script: update all 16 all-characters LoRA entries in app/configs_vps/lora_registry.yaml.
 Adds civitai_version_id, civitai_filename, characters list, and fixes trigger_words/notes.
 Run from repo root: python app/scripts/_update_all_chars_registry.py
 """
@@ -17,7 +17,7 @@ except ImportError:
     USE_RUAMEL = False
 
 REGISTRY_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "..", "configs", "lora_registry.yaml"
+    os.path.dirname(__file__), "..", "configs_vps", "lora_registry.yaml"
 )
 REGISTRY_PATH = os.path.normpath(REGISTRY_PATH)
 

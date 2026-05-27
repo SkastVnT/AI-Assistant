@@ -57,7 +57,7 @@ def init_mongodb(app: Flask) -> None:
             uri = x509_uri
 
         # Only force TLS for non-SRV URIs (Atlas+srv handles TLS automatically)
-        connect_kwargs = dict(serverSelectionTimeoutMS=5000)
+        connect_kwargs = {"serverSelectionTimeoutMS": 5000}
         if uri and not uri.startswith("mongodb+srv://"):
             parsed_host = (
                 uri.split("@")[-1].split("/")[0].split(":")[0]

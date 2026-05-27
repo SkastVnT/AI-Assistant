@@ -567,7 +567,7 @@ class ComfyUIClient:
     def _get_image(self, outputs: dict) -> bytes | None:
         """Get image from outputs"""
         try:
-            for node_id, output in outputs.items():
+            for _node_id, output in outputs.items():
                 if "images" in output:
                     for image_info in output["images"]:
                         filename = image_info.get("filename")

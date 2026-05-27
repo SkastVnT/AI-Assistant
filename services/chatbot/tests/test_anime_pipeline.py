@@ -2364,22 +2364,22 @@ def _make_composition_pc(**overrides) -> PassConfig:
     """Helper to create a PassConfig for composition tests."""
     from image_pipeline.anime_pipeline.schemas import PassConfig
 
-    defaults = dict(
-        pass_name="composition",
-        model_slot="base",
-        checkpoint="animagine-xl-4.0-opt.safetensors",
-        width=832,
-        height=1216,
-        sampler="dpmpp_2m_sde",
-        scheduler="karras",
-        steps=30,
-        cfg=5.0,
-        denoise=1.0,
-        positive_prompt="masterpiece, best quality, 1girl standing in park, full body, anime",
-        negative_prompt="low quality, bad anatomy, blurry",
-        prompt_strategy="broad",
-        expected_output="Structurally sound draft with correct pose and composition",
-    )
+    defaults = {
+        "pass_name": "composition",
+        "model_slot": "base",
+        "checkpoint": "animagine-xl-4.0-opt.safetensors",
+        "width": 832,
+        "height": 1216,
+        "sampler": "dpmpp_2m_sde",
+        "scheduler": "karras",
+        "steps": 30,
+        "cfg": 5.0,
+        "denoise": 1.0,
+        "positive_prompt": "masterpiece, best quality, 1girl standing in park, full body, anime",
+        "negative_prompt": "low quality, bad anatomy, blurry",
+        "prompt_strategy": "broad",
+        "expected_output": "Structurally sound draft with correct pose and composition",
+    }
     defaults.update(overrides)
     return PassConfig(**defaults)
 
@@ -2511,7 +2511,7 @@ class TestCompositionWorkflowTxt2Img:
         pc = _make_composition_pc()
         wf = wb.build_composition(pc, seed=42)
 
-        for nid in wf.keys():
+        for nid in wf:
             assert nid.isdigit(), f"Node ID '{nid}' is not a digit string"
 
 
@@ -2741,17 +2741,17 @@ def _make_lineart_layer_config(**overrides):
     """Helper to create a StructureLayerConfig for lineart tests."""
     from image_pipeline.anime_pipeline.config import StructureLayerConfig
 
-    defaults = dict(
-        layer_type="lineart_anime",
-        preprocessor="AnimeLineArtPreprocessor",
-        controlnet_model="control_v11p_sd15_lineart_anime",
-        strength=0.85,
-        start_percent=0.0,
-        end_percent=0.8,
-        priority=1,
-        optional=False,
-        enabled=True,
-    )
+    defaults = {
+        "layer_type": "lineart_anime",
+        "preprocessor": "AnimeLineArtPreprocessor",
+        "controlnet_model": "control_v11p_sd15_lineart_anime",
+        "strength": 0.85,
+        "start_percent": 0.0,
+        "end_percent": 0.8,
+        "priority": 1,
+        "optional": False,
+        "enabled": True,
+    }
     defaults.update(overrides)
     return StructureLayerConfig(**defaults)
 
@@ -2760,17 +2760,17 @@ def _make_depth_layer_config(**overrides):
     """Helper to create a StructureLayerConfig for depth tests."""
     from image_pipeline.anime_pipeline.config import StructureLayerConfig
 
-    defaults = dict(
-        layer_type="depth",
-        preprocessor="DepthAnythingV2Preprocessor",
-        controlnet_model="control_v11f1p_sd15_depth",
-        strength=0.55,
-        start_percent=0.0,
-        end_percent=0.6,
-        priority=2,
-        optional=False,
-        enabled=True,
-    )
+    defaults = {
+        "layer_type": "depth",
+        "preprocessor": "DepthAnythingV2Preprocessor",
+        "controlnet_model": "control_v11f1p_sd15_depth",
+        "strength": 0.55,
+        "start_percent": 0.0,
+        "end_percent": 0.6,
+        "priority": 2,
+        "optional": False,
+        "enabled": True,
+    }
     defaults.update(overrides)
     return StructureLayerConfig(**defaults)
 
@@ -2779,17 +2779,17 @@ def _make_canny_layer_config(**overrides):
     """Helper to create a StructureLayerConfig for canny tests."""
     from image_pipeline.anime_pipeline.config import StructureLayerConfig
 
-    defaults = dict(
-        layer_type="canny",
-        preprocessor="CannyEdgePreprocessor",
-        controlnet_model="control_v11p_sd15_canny",
-        strength=0.35,
-        start_percent=0.0,
-        end_percent=0.4,
-        priority=3,
-        optional=True,
-        enabled=False,
-    )
+    defaults = {
+        "layer_type": "canny",
+        "preprocessor": "CannyEdgePreprocessor",
+        "controlnet_model": "control_v11p_sd15_canny",
+        "strength": 0.35,
+        "start_percent": 0.0,
+        "end_percent": 0.4,
+        "priority": 3,
+        "optional": True,
+        "enabled": False,
+    }
     defaults.update(overrides)
     return StructureLayerConfig(**defaults)
 
@@ -2848,7 +2848,7 @@ class TestStructureLockWorkflowLineart:
         lc = _make_lineart_layer_config()
         wf = wb.build_structure_lock_layer("fake_b64", lc)
 
-        for nid in wf.keys():
+        for nid in wf:
             assert nid.isdigit(), f"Node ID '{nid}' is not a digit string"
 
     def test_all_nodes_have_class_type_and_inputs(self):
@@ -3260,22 +3260,22 @@ _FAKE_IMG_B64 = "iVBORw0KGgoAAAANSUhEUg" + "A" * 200
 def _make_cleanup_pc(**overrides) -> PassConfig:
     from image_pipeline.anime_pipeline.schemas import PassConfig
 
-    defaults = dict(
-        pass_name="cleanup",
-        model_slot="base",
-        checkpoint="animagine-xl-4.0-opt.safetensors",
-        width=832,
-        height=1216,
-        sampler="euler_a",
-        scheduler="normal",
-        steps=20,
-        cfg=5.0,
-        denoise=0.45,
-        seed=42,
-        positive_prompt="1girl, school uniform, anime",
-        negative_prompt="worst quality, lowres",
-        control_inputs=[],
-    )
+    defaults = {
+        "pass_name": "cleanup",
+        "model_slot": "base",
+        "checkpoint": "animagine-xl-4.0-opt.safetensors",
+        "width": 832,
+        "height": 1216,
+        "sampler": "euler_a",
+        "scheduler": "normal",
+        "steps": 20,
+        "cfg": 5.0,
+        "denoise": 0.45,
+        "seed": 42,
+        "positive_prompt": "1girl, school uniform, anime",
+        "negative_prompt": "worst quality, lowres",
+        "control_inputs": [],
+    }
     defaults.update(overrides)
     return PassConfig(**defaults)
 
@@ -3301,31 +3301,31 @@ def _make_structure_layer(layer_type="lineart_anime", strength=0.85, **kw):
 def _make_critique(**overrides) -> CritiqueReport:
     from image_pipeline.anime_pipeline.schemas import CritiqueReport
 
-    defaults = dict(
-        anatomy_score=7,
-        face_score=7,
-        eye_consistency_score=7,
-        hands_score=7,
-        clothing_score=7,
-        composition_score=7,
-        color_score=7,
-        style_score=7,
-        background_score=7,
-        accessories_score=7,
-        pose_score=7,
-        anatomy_issues=[],
-        face_issues=[],
-        eye_issues=[],
-        hand_issues=[],
-        clothing_issues=[],
-        composition_issues=[],
-        color_issues=[],
-        style_drift=[],
-        background_issues=[],
-        accessories_issues=[],
-        pose_issues=[],
-        retry_recommendation=False,
-    )
+    defaults = {
+        "anatomy_score": 7,
+        "face_score": 7,
+        "eye_consistency_score": 7,
+        "hands_score": 7,
+        "clothing_score": 7,
+        "composition_score": 7,
+        "color_score": 7,
+        "style_score": 7,
+        "background_score": 7,
+        "accessories_score": 7,
+        "pose_score": 7,
+        "anatomy_issues": [],
+        "face_issues": [],
+        "eye_issues": [],
+        "hand_issues": [],
+        "clothing_issues": [],
+        "composition_issues": [],
+        "color_issues": [],
+        "style_drift": [],
+        "background_issues": [],
+        "accessories_issues": [],
+        "pose_issues": [],
+        "retry_recommendation": False,
+    }
     defaults.update(overrides)
     return CritiqueReport(**defaults)
 
@@ -4030,22 +4030,22 @@ class TestCleanupPassExport:
 def _make_beauty_pc(**overrides) -> PassConfig:
     from image_pipeline.anime_pipeline.schemas import PassConfig
 
-    defaults = dict(
-        pass_name="beauty",
-        model_slot="final",
-        checkpoint="noobaiXLNAIXL_vPred10Version.safetensors",
-        width=832,
-        height=1216,
-        sampler="euler_a",
-        scheduler="normal",
-        steps=28,
-        cfg=5.5,
-        denoise=0.30,
-        seed=42,
-        positive_prompt="1girl, school uniform, anime",
-        negative_prompt="worst quality, lowres",
-        control_inputs=[],
-    )
+    defaults = {
+        "pass_name": "beauty",
+        "model_slot": "final",
+        "checkpoint": "noobaiXLNAIXL_vPred10Version.safetensors",
+        "width": 832,
+        "height": 1216,
+        "sampler": "euler_a",
+        "scheduler": "normal",
+        "steps": 28,
+        "cfg": 5.5,
+        "denoise": 0.30,
+        "seed": 42,
+        "positive_prompt": "1girl, school uniform, anime",
+        "negative_prompt": "worst quality, lowres",
+        "control_inputs": [],
+    }
     defaults.update(overrides)
     return PassConfig(**defaults)
 
@@ -4057,17 +4057,17 @@ def _make_beauty_config(**overrides):
         ModelConfig,
     )
 
-    defaults = dict(
-        comfyui_url="http://localhost:8188",
-        composition_model=ModelConfig(
+    defaults = {
+        "comfyui_url": "http://localhost:8188",
+        "composition_model": ModelConfig(
             checkpoint="animagine-xl-4.0-opt.safetensors",
             clip_skip=2,
         ),
-        beauty_model=ModelConfig(
+        "beauty_model": ModelConfig(
             checkpoint="flatpiececorexl_a1818.safetensors",
             denoise_strength=0.45,
         ),
-        final_model=ModelConfig(
+        "final_model": ModelConfig(
             checkpoint="noobaiXLNAIXL_vPred10Version.safetensors",
             sampler="euler_a",
             scheduler="normal",
@@ -4076,9 +4076,9 @@ def _make_beauty_config(**overrides):
             clip_skip=2,
             denoise_strength=0.30,
         ),
-        upscale_model="RealESRGAN_x4plus_anime_6B",
-        beauty_strength=BeautyStrength.BALANCED,
-    )
+        "upscale_model": "RealESRGAN_x4plus_anime_6B",
+        "beauty_strength": BeautyStrength.BALANCED,
+    }
     defaults.update(overrides)
     return AnimePipelineConfig(**defaults)
 
@@ -4842,17 +4842,17 @@ def _make_refine_config(**overrides):
         ModelConfig,
     )
 
-    defaults = dict(
-        comfyui_url="http://localhost:8188",
-        composition_model=ModelConfig(
+    defaults = {
+        "comfyui_url": "http://localhost:8188",
+        "composition_model": ModelConfig(
             checkpoint="animagine-xl-4.0-opt.safetensors",
             clip_skip=2,
         ),
-        beauty_model=ModelConfig(
+        "beauty_model": ModelConfig(
             checkpoint="flatpiececorexl_a1818.safetensors",
             denoise_strength=0.45,
         ),
-        final_model=ModelConfig(
+        "final_model": ModelConfig(
             checkpoint="noobaiXLNAIXL_vPred10Version.safetensors",
             sampler="euler_a",
             scheduler="normal",
@@ -4861,18 +4861,18 @@ def _make_refine_config(**overrides):
             clip_skip=2,
             denoise_strength=0.30,
         ),
-        upscale_model="RealESRGAN_x4plus_anime_6B",
-        beauty_strength=BeautyStrength.BALANCED,
-        max_refine_rounds=2,
-        return_best_on_fail=True,
-        refine_score_threshold=7.0,
-        refine_denoise_step_up=0.05,
-        refine_denoise_step_down=0.03,
-        refine_denoise_floor=0.12,
-        refine_denoise_ceiling=0.55,
-        refine_control_boost=0.10,
-        refine_control_reduce=0.05,
-        refine_dimension_thresholds={
+        "upscale_model": "RealESRGAN_x4plus_anime_6B",
+        "beauty_strength": BeautyStrength.BALANCED,
+        "max_refine_rounds": 2,
+        "return_best_on_fail": True,
+        "refine_score_threshold": 7.0,
+        "refine_denoise_step_up": 0.05,
+        "refine_denoise_step_down": 0.03,
+        "refine_denoise_floor": 0.12,
+        "refine_denoise_ceiling": 0.55,
+        "refine_control_boost": 0.10,
+        "refine_control_reduce": 0.05,
+        "refine_dimension_thresholds": {
             "anatomy": 5,
             "face_symmetry": 5,
             "eye_consistency": 5,
@@ -4885,8 +4885,8 @@ def _make_refine_config(**overrides):
             "missing_accessories": 4,
             "pose_drift": 5,
         },
-        refine_artifact_accumulation_limit=8,
-    )
+        "refine_artifact_accumulation_limit": 8,
+    }
     defaults.update(overrides)
     return AnimePipelineConfig(**defaults)
 
@@ -6095,7 +6095,7 @@ class TestRefineLoopAgent:
         agent = RefineLoopAgent(config)
         job = _make_refine_job()
 
-        result = agent.execute(job)
+        agent.execute(job)
         # Should have attempted max_refine_rounds (2) then stopped at round 3 check
         # Initial critique + up to 2 refine round critiques
         assert MockCritique.return_value.execute.call_count >= 2
@@ -6196,17 +6196,17 @@ def _make_upscale_config(**overrides):
         ModelConfig,
     )
 
-    defaults = dict(
-        comfyui_url="http://localhost:8188",
-        composition_model=ModelConfig(
+    defaults = {
+        "comfyui_url": "http://localhost:8188",
+        "composition_model": ModelConfig(
             checkpoint="animagine-xl-4.0-opt.safetensors",
             clip_skip=2,
         ),
-        beauty_model=ModelConfig(
+        "beauty_model": ModelConfig(
             checkpoint="flatpiececorexl_a1818.safetensors",
             denoise_strength=0.45,
         ),
-        final_model=ModelConfig(
+        "final_model": ModelConfig(
             checkpoint="noobaiXLNAIXL_vPred10Version.safetensors",
             sampler="euler_a",
             scheduler="normal",
@@ -6215,14 +6215,14 @@ def _make_upscale_config(**overrides):
             clip_skip=2,
             denoise_strength=0.30,
         ),
-        upscale_model="RealESRGAN_x4plus_anime_6B",
-        upscale_factor=2,
-        upscale_tile_size=512,
-        upscale_denoise=0.2,
-        beauty_strength=BeautyStrength.BALANCED,
-        quality_prefix="masterpiece, best quality",
-        negative_base="lowres, worst quality",
-    )
+        "upscale_model": "RealESRGAN_x4plus_anime_6B",
+        "upscale_factor": 2,
+        "upscale_tile_size": 512,
+        "upscale_denoise": 0.2,
+        "beauty_strength": BeautyStrength.BALANCED,
+        "quality_prefix": "masterpiece, best quality",
+        "negative_base": "lowres, worst quality",
+    }
     defaults.update(overrides)
     return AnimePipelineConfig(**defaults)
 
@@ -7050,7 +7050,6 @@ class TestUpscaleService:
         svc._client.submit_workflow.return_value = _make_comfy_result(success=False)
         job = _make_upscale_job()
         # Status should transition through UPSCALING
-        original_status = job.status
         svc.execute(job)
         # The stage was recorded
         assert "upscale" in job.stages_executed

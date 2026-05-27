@@ -12,9 +12,12 @@ import pytest
 # `src` are always resolved to the correct location, even when other modules
 # (e.g. core/__init__.py) manipulate sys.path during test collection.
 _CHATBOT_DIR = str(Path(__file__).parent.parent.resolve())
+_APP_ROOT = str(Path(__file__).resolve().parents[3] / "app")
 if _CHATBOT_DIR in sys.path:
     sys.path.remove(_CHATBOT_DIR)
 sys.path.insert(0, _CHATBOT_DIR)
+if _APP_ROOT not in sys.path:
+    sys.path.insert(1, _APP_ROOT)
 
 # Pre-import src to cache the correct package in sys.modules before any
 # other import can displace it (core/__init__.py manipulates sys.path).

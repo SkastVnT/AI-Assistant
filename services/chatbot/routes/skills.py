@@ -50,10 +50,7 @@ def list_skills():
     include_disabled = request.args.get("include_disabled", "false").lower() == "true"
     filter_tags = request.args.getlist("tag")
 
-    if include_disabled:
-        skills = registry.list_all()
-    else:
-        skills = registry.list_ui_visible()
+    skills = registry.list_all() if include_disabled else registry.list_ui_visible()
 
     if filter_tags:
         skills = [s for s in skills if any(t in s.tags for t in filter_tags)]

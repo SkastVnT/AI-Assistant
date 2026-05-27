@@ -1,0 +1,265 @@
+# ─────────────────────────────────────────────────────────────────────
+# Anime Multi-Pass Pipeline — Local PC Config (RTX 5070 12 GB, Blackwell sm_120)
+# ─────────────────────────────────────────────────────────────────────
+# Purpose : Local test profile for owner's home PC (RTX 5070 12 GB).
+#           Optimized for fast iteration loops before renting a VPS
+#           (RTX 5090 / RTX PRO 6000) for production-quality runs.
+#
+# Activate: ANIME_PIPELINE_CONFIG=app/configs_vps/anime_pipeline_rtx5070.yaml
+# Production VPS: use app/configs_vps/anime_pipeline.yaml (do not modify)
+# Laptop / 6–8 GB demo: use app/configs_vps/anime_pipeline_laptop.yaml
+#
+# Differences vs official 12 GB config (anime_pipeline.yaml):
+#   • profile pinned to normalvram (avoid auto-detect surprises on Blackwell)
+#   • steps reduced 28/30 → 22 across all passes (faster iteration)
+#   • resolutions reduced 832×1216 → 768×1152 (headroom for ControlNet)
+#   • LoRA defaults disabled (enable per-run when needed)
+#   • structure_lock.max_simultaneous reduced 2 → 1 (avoid OOM spikes)
+#   • upscale scale_factor reduced 2 → 1.5 (shorter test loop)
+#   • critique max_refine_rounds 8 → 3, quality_threshold 0.80 → 0.70
+#   • eye_refine.max_steps 3 → 2 (skip a step in test loop)
+#   • detection_inpaint fully disabled (requires 27 YOLO models + heavy VRAM)
+#   • composition_pass timeout 120s → 180s (Blackwell first-compile overhead)
+#
+# Blackwell sm_120 requirements (verify before first run):
+#   • PyTorch >= 2.7 with CUDA 12.8+ (nightly may be required on stable channels)
+#   • NVIDIA driver >= 555
+#   • venv-image: torch 2.11.0+cu128 confirmed working as of 2026-05-18
+# ─────────────────────────────────────────────────────────────────────
+
+
+# ── VRAM Profile ────────────────────────────────────────────────────
+# Pin to normalvram explicitly. Auto-detect treats RTX 5070 as normalvram
+# (12 GB >= 10 GB threshold) which is correct, but pinning removes the
+# nvidia-smi roundtrip and any future Blackwell detection ambiguity.
+vram:
+  profile: normalvram
+
+
+# ── Model Strategy ──────────────────────────────────────────────────
+# Same WAI-illustrious-SDXL stack as production for consistent test results.
+# If the WAI checkpoint is not downloaded locally, fall back to:
+#   sd_xl_base_1.0_fp8.safetensors  (generic SDXL fp8, ~4 GB VRAM)
+# by swapping the `checkpoint:` value below.
+
+models:
+  composition:
+    checkpoint: "waiIllustriousSDXL_v160.safetensors"
+    type: sdxl
+    sampler: dpmpp_2m       # faster sampler for test iterations
+    scheduler: karras
+    steps: 22               # 28 prod → 22 test
+    cfg: 5.0
+    clip_skip: 2
+    vae: null
+
+  beauty:
+    checkpoint: "waiIllustriousSDXL_v160.safetensors"
+    type: sdxl
+    sampler: dpmpp_2m_sde
+    scheduler: karras
+    steps: 22               # 30 prod → 22 test
+    cfg: 6.0
+    clip_skip: 2
+    vae: null
+    denoise_strength: 0.45  # keep prod value — beauty pass needs the redraw budget
+
+  final:
+    checkpoint: "waiIllustriousSDXL_v160.safetensors"
+    type: sdxl
+    sampler: euler_ancestral
+    scheduler: karras
+    steps: 22               # 28 prod → 22 test
+    cfg: 6.0
+    clip_skip: 2
+    vae: null
+    denoise_strength: 0.30
+
+  # LoRAs disabled by default for local test — enable per-run when testing
+  # LoRA-specific behavior. Saves ~0.5 GB VRAM and ~5s load time.
+  loras:
+    defaults:
+      - name: "Anime_artistic_2.safetensors"
+        strength: 0.65
+        enabled: false
+      - name: "HueSpark1llust.safetensors"
+        strength: 0.35
+        enabled: false
+
+  upscale:
+    model: "RealESRGAN_x4plus_anime_6B"
+    scale_factor: 1.5       # 2.0 prod → 1.5 test (faster, smaller output)
+    fallback_model: "RealESRGAN_x4plus"
+
+
+# ── Beauty Pass Presets ─────────────────────────────────────────────
+
+beauty_pass:
+  strength: balanced
+  control_strength_factor: 0.7
+
+
+# ── Resolution Presets (12 GB safe — reduced from 832×1216 prod) ───
+# 768×1152 still SDXL-native aspect (2:3). Leaves ~2 GB headroom over
+# 832×1216 for ControlNet + beauty pass spikes on a 12 GB card.
+
+resolutions:
+  portrait:
+    width: 768
+    height: 1152
+  landscape:
+    width: 1152
+    height: 768
+  square:
+    width: 896
+    height: 896
+  max_upscale:
+    width: 1728      # 768 × 1.5 × 1.5 ceiling — matches scale_factor=1.5
+    height: 1728
+
+
+# ── Structure Lock (ControlNet) ─────────────────────────────────────
+# Only 1 layer active at a time on 12 GB — avoids OOM during composition.
+# Lineart is the most useful single layer for anime composition lock.
+
+structure_lock:
+  max_simultaneous: 1
+  layers:
+    - type: lineart_anime
+      preprocessor: "AnimeLineArtPreprocessor"
+      controlnet_model: "control_v11p_sd15_lineart_anime"
+      strength: 0.85
+      start_percent: 0.0
+      end_percent: 0.8
+      priority: 1
+      optional: true
+      enabled: true
+
+    - type: depth
+      preprocessor: "DepthAnythingV2Preprocessor"
+      controlnet_model: "control_v11f1p_sd15_depth"
+      strength: 0.55
+      start_percent: 0.0
+      end_percent: 0.6
+      priority: 2
+      optional: true
+      enabled: false
+
+    - type: canny
+      preprocessor: "CannyEdgePreprocessor"
+      controlnet_model: "control_v11p_sd15_canny"
+      strength: 0.35
+      start_percent: 0.0
+      end_percent: 0.4
+      priority: 3
+      optional: true
+      enabled: false
+
+
+# ── Vision Analyst ──────────────────────────────────────────────────
+# API calls — unaffected by VRAM. Trim tokens slightly for test speed.
+
+vision:
+  model_priority:
+    - gemini-2.0-flash
+    - gpt-4o-mini
+  max_tokens: 400
+  temperature: 0.2
+
+
+# ── Critique ────────────────────────────────────────────────────────
+# Lower bar and fewer rounds for fast test iteration.
+# Production threshold is 0.80 / 8 rounds — adjust upward when validating
+# real output quality on this profile.
+
+critique:
+  quality_threshold: 0.70
+  max_refine_rounds: 3
+  dimensions:
+    - instruction_adherence
+    - identity_consistency
+    - detail_handling
+  return_best_on_fail: true
+
+
+# ── Refine Loop ─────────────────────────────────────────────────────
+
+refine:
+  score_threshold: 7.5      # 8.0 prod → 7.5 test (exit earlier)
+  max_rounds: 3             # 8 prod → 3 test
+  denoise_step_up: 0.05
+  denoise_step_down: 0.03
+  denoise_floor: 0.12
+  denoise_ceiling: 0.55
+  control_boost: 0.10
+  control_reduce: 0.05
+  dimension_thresholds:
+    anatomy: 6
+    face_symmetry: 7
+    eye_consistency: 7
+    hand_quality: 5
+    clothing_consistency: 6
+    style_drift: 6
+    color_drift: 6
+    background_clutter: 5
+    missing_accessories: 5
+    pose_drift: 6
+  artifact_accumulation_limit: 8
+
+
+# ── Eye-Refine Micro Workflow ───────────────────────────────────────
+
+eye_refine:
+  enabled: true
+  trigger_score: 8
+  max_steps: 2              # 3 prod → 2 test
+
+
+# ── Detection Inpaint ───────────────────────────────────────────────
+# Fully disabled on local test profile:
+#   • Requires 27 YOLO detection models (~3 GB extra)
+#   • Each region inpaint adds 15-25s of generation time
+#   • Production behavior already disabled by default in anime_pipeline.yaml
+# Re-enable only when explicitly testing detection_inpaint pipeline.
+
+detection_inpaint:
+  enabled: false
+
+
+# ── Pipeline Behavior ───────────────────────────────────────────────
+
+pipeline:
+  timeouts:
+    vision_analysis: 15000
+    layer_planning: 5000
+    composition_pass: 180000   # 120s prod → 180s (Blackwell first-compile overhead)
+    structure_lock: 60000
+    beauty_pass: 180000        # 120s prod → 180s (same reason)
+    detection_inpaint: 180000
+    critique: 15000
+    upscale: 90000             # 60s prod → 90s (1.5× scale still tiles)
+
+  save_intermediates: true     # critical for local debug
+  intermediate_dir: "app/storage/intermediate"
+  stream_events: true
+  unload_between_passes: true  # required on 12 GB to avoid cumulative drift
+
+
+# ── Prompt Enhancement ──────────────────────────────────────────────
+# Same prompt formula as production — keep style consistent across profiles.
+
+prompts:
+  quality_prefix: "masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest, highly detailed, vivid colors"
+
+  negative_base: >-
+    lowres, bad anatomy, bad hands, text, error, missing fingers,
+    extra digit, fewer digits, cropped, worst quality, low quality,
+    normal quality, jpeg artifacts, signature, watermark, username, blurry,
+    artist name, bad proportions, deformed, disfigured, ugly,
+    monochrome, greyscale, grayscale, sketch, lineart, black_and_white,
+    logo, copyright, credit, stamp, title_text, author_name, english_text,
+    twitter_username, instagram_username, url, website
+
+  style_negatives:
+    anime: "3d, photorealistic, photo, cgi"
+    realistic: "anime, cartoon, drawing, illustration"

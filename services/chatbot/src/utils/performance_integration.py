@@ -254,10 +254,10 @@ INTEGRATION STEPS:
 @app.route('/chat', methods=['POST'])
 def chat():
     # ... existing code ...
-    
+
     session_id = session.get('session_id')
     chatbot = get_chatbot(session_id)
-    
+
     # USE OPTIMIZED METHOD WITH CACHING
     response = chat_with_cache_and_db(
         chatbot,
@@ -269,7 +269,7 @@ def chat():
         memories,
         session_id
     )
-    
+
     # ... rest of code ...
 
 

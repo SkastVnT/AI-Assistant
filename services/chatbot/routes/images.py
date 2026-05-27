@@ -449,12 +449,10 @@ def get_gallery():
                     metadata = {}
 
             image_session_id = metadata.get("session_id")
-            if not show_all:
-                if (
-                    image_session_id is not None
-                    and image_session_id != current_session_id
-                ):
-                    continue
+            if not show_all and (
+                image_session_id is not None and image_session_id != current_session_id
+            ):
+                continue
 
             # Build a servable URL: image_gen_v2 images served via /api/image-gen/images/<id>
             image_id = metadata.get("image_id", "")

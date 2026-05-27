@@ -20,6 +20,11 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
+try:
+    from .project_paths import COMFYUI_DIR, resolve_character_select_path
+except ImportError:  # pragma: no cover - supports top-level core imports
+    from core.project_paths import COMFYUI_DIR, resolve_character_select_path
+
 
 def _bool(key: str, default: str = "false") -> bool:
     return os.getenv(key, default).lower() in ("1", "true", "yes", "on")
@@ -95,9 +100,7 @@ class CharacterSelectSettings:
         default_factory=lambda: _bool("CHARACTER_SELECT_AUTO_START")
     )
     path: str = field(
-        default_factory=lambda: os.getenv(
-            "CHARACTER_SELECT_PATH", "./character_select_stand_alone_app-main"
-        )
+        default_factory=lambda: str(resolve_character_select_path())
     )
     timeout: int = field(default_factory=lambda: _int("CHARACTER_SELECT_TIMEOUT", 5))
 
@@ -179,7 +182,7 @@ class Settings:
 
     @property
     def comfyui_output_dir(self) -> Path:
-        default = (self.root_dir / "ComfyUI" / "output").resolve()
+        default = (COMFYUI_DIR / "output").resolve()
         return Path(os.getenv("COMFYUI_OUTPUT_DIR", str(default)))
 
 

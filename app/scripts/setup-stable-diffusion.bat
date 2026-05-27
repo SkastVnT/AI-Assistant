@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 REM Navigate to project root
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 echo ============================================================================
 echo   Stable Diffusion Virtual Environment Setup

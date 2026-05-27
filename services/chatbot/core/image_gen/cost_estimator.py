@@ -61,9 +61,9 @@ def _is_high_res(payload: Mapping[str, Any]) -> bool:
     h = int(payload.get("height") or 0)
     if w and h and (w * h) >= _LARGE_PIXEL_THRESHOLD:
         return True
-    if payload.get("upscale") or payload.get("refine") or payload.get("hires_fix"):
-        return True
-    return False
+    return bool(
+        payload.get("upscale") or payload.get("refine") or payload.get("hires_fix")
+    )
 
 
 def _correction_loop_requested(payload: Mapping[str, Any]) -> bool:

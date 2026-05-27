@@ -6,7 +6,7 @@ REM Force UTF-8 encoding to prevent Unicode errors
 chcp 65001 >nul 2>&1
 
 REM Get the project root
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 echo ================================================================================
 echo.
@@ -236,7 +236,7 @@ python scripts\utilities\service_health_checker.py "Image Upscale" "services\ima
 
 echo.
 echo ================================================================================
-echo   ✅ AI-Enhanced Setup Complete!
+echo   ??? AI-Enhanced Setup Complete!
 echo ================================================================================
 echo.
 echo All services have been set up and verified by AI.
@@ -244,12 +244,12 @@ echo.
 echo Next steps:
 echo   1. Check the health check results above
 echo   2. Configure .env files for each service
-echo   3. Run: menu.bat and select 'A' to start all services
-echo   4. Run: menu.bat and select 'T' to run tests
+echo   3. Run: app\scripts\start-all.bat to start all services
+echo   4. Run: app\scripts\test-all.bat to run tests
 echo.
 echo AI Features:
-echo   ✓ Automatic dependency verification
-echo   ✓ Smart error detection
-echo   ✓ Auto-fix for common issues
+echo   ??? Automatic dependency verification
+echo   ??? Smart error detection
+echo   ??? Auto-fix for common issues
 echo.
 pause

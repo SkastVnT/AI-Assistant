@@ -119,14 +119,12 @@ def apply_skill_overrides(
     user_set_context = "context" in data and data["context"] != "casual"
 
     # ── Context override ──────────────────────────────────────────────
-    if skill_overrides.context:
-        if user_chose_skill or not user_set_context:
-            context = skill_overrides.context
+    if skill_overrides.context and (user_chose_skill or not user_set_context):
+        context = skill_overrides.context
 
     # ── Model override ────────────────────────────────────────────────
-    if skill_overrides.model:
-        if user_chose_skill or not user_set_model:
-            model = skill_overrides.model
+    if skill_overrides.model and (user_chose_skill or not user_set_model):
+        model = skill_overrides.model
 
     # ── Thinking mode override ────────────────────────────────────────
     if skill_overrides.thinking_mode:

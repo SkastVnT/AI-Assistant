@@ -282,10 +282,10 @@ LOGIN_TEMPLATE = """
         <div class="logo">
             <h1>ðŸ¤– AI <span>Assistant</span></h1>
         </div>
-        
+
         <div id="error-message" class="error-message"></div>
         <div id="success-message" class="success-message"></div>
-        
+
         <form id="login-form">
             <div class="form-group">
                 <label for="email">Email</label>
@@ -297,9 +297,9 @@ LOGIN_TEMPLATE = """
             </div>
             <button type="submit" class="btn btn-primary" id="submit-btn">Sign In</button>
         </form>
-        
+
         <div class="divider">or</div>
-        
+
         <button class="btn btn-google" id="google-btn">
             <svg width="20" height="20" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -309,7 +309,7 @@ LOGIN_TEMPLATE = """
             </svg>
             Sign in with Google
         </button>
-        
+
         <div class="toggle-form" id="toggle-container">
             Don't have an account? <a href="#" id="toggle-link">Sign up</a>
         </div>
@@ -317,19 +317,19 @@ LOGIN_TEMPLATE = """
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { 
-            getAuth, 
-            signInWithEmailAndPassword, 
+        import {
+            getAuth,
+            signInWithEmailAndPassword,
             createUserWithEmailAndPassword,
-            signInWithPopup, 
-            GoogleAuthProvider 
+            signInWithPopup,
+            GoogleAuthProvider
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        
+
         const firebaseConfig = {{ firebase_config|tojson }};
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const googleProvider = new GoogleAuthProvider();
-        
+
         let isSignUp = false;
         const form = document.getElementById('login-form');
         const submitBtn = document.getElementById('submit-btn');
@@ -337,19 +337,19 @@ LOGIN_TEMPLATE = """
         const toggleContainer = document.getElementById('toggle-container');
         const errorDiv = document.getElementById('error-message');
         const successDiv = document.getElementById('success-message');
-        
+
         function showError(msg) {
             errorDiv.textContent = msg;
             errorDiv.style.display = 'block';
             successDiv.style.display = 'none';
         }
-        
+
         function showSuccess(msg) {
             successDiv.textContent = msg;
             successDiv.style.display = 'block';
             errorDiv.style.display = 'none';
         }
-        
+
         function onSuccess(user) {
             showSuccess('Login successful! Redirecting...');
             // Store user info
@@ -368,25 +368,25 @@ LOGIN_TEMPLATE = """
                 }, 1000);
             });
         }
-        
+
         // Toggle between sign in and sign up
         toggleLink.addEventListener('click', (e) => {
             e.preventDefault();
             isSignUp = !isSignUp;
             submitBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
             toggleLink.textContent = isSignUp ? 'Sign in' : 'Sign up';
-            toggleContainer.innerHTML = isSignUp 
+            toggleContainer.innerHTML = isSignUp
                 ? 'Already have an account? <a href="#" id="toggle-link">Sign in</a>'
                 : 'Don\\'t have an account? <a href="#" id="toggle-link">Sign up</a>';
             document.getElementById('toggle-link').addEventListener('click', arguments.callee);
         });
-        
+
         // Email/Password auth
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            
+
             try {
                 let result;
                 if (isSignUp) {
@@ -399,7 +399,7 @@ LOGIN_TEMPLATE = """
                 showError(error.message);
             }
         });
-        
+
         // Google auth
         document.getElementById('google-btn').addEventListener('click', async () => {
             try {

@@ -7,7 +7,7 @@ REM Force UTF-8 encoding to prevent Unicode errors
 chcp 65001 >nul 2>&1
 
 REM Get the project root (parent of scripts directory)
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 echo ================================================================================
 echo.
@@ -65,14 +65,14 @@ if exist ".venv\Scripts\activate.bat" (
         )
         echo.
         echo ================================================================================
-        echo                    ✅ Setup Complete!
+        echo                    ??? Setup Complete!
         echo ================================================================================
         echo.
         echo All packages installed successfully!
     ) else (
         echo.
         echo ================================================================================
-        echo                    ✅ Environment Ready!
+        echo                    ??? Environment Ready!
         echo ================================================================================
         echo.
         echo [OK] All required packages are already installed
@@ -128,7 +128,7 @@ if exist ".venv\Scripts\activate.bat" (
     )
     echo.
     echo ================================================================================
-    echo                    ✅ Setup Complete!
+    echo                    ??? Setup Complete!
     echo ================================================================================
     echo.
     echo Virtual environment created and all packages installed successfully!

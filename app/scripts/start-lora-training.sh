@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # =============================================================================
 # Start LoRA Training Web UI
 # Port: 7862
@@ -7,7 +7,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
+PROJECT_ROOT="$(dirname "$(dirname "${SCRIPT_DIR}")")"
 SERVICE_DIR="${PROJECT_ROOT}/services/lora-training"
 LOGS_DIR="${PROJECT_ROOT}/logs"
 PORT=7862
@@ -44,7 +44,7 @@ echo "${PID}" > "${LOGS_DIR}/lora-training.pid"
 sleep 5
 
 if netstat -tlnp 2>/dev/null | grep -q ":${PORT} " || ss -tlnp 2>/dev/null | grep -q ":${PORT} "; then
-    echo -e "${GREEN}✓ LoRA Training started successfully (PID: ${PID})${NC}"
+    echo -e "${GREEN}âœ“ LoRA Training started successfully (PID: ${PID})${NC}"
     echo -e "${GREEN}  URL: http://localhost:${PORT}${NC}"
 else
     echo -e "${YELLOW}LoRA Training starting... Check log: ${LOGS_DIR}/lora-training.log${NC}"

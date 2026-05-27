@@ -193,7 +193,9 @@ class MemoryManager:
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
 
         with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute(f"DELETE FROM memory_context {where}", params)  # nosec B608  # Uses parameterized query with params
+            cursor = conn.execute(
+                f"DELETE FROM memory_context {where}", params
+            )  # nosec B608  # Uses parameterized query with params
             deleted = cursor.rowcount
             conn.commit()
 
@@ -219,18 +221,13 @@ class MemoryManager:
                 "SELECT COUNT(*) AS c FROM memory_context WHERE expires_at IS NOT NULL AND expires_at <= ?",
                 (now_utc,),
             ).fetchone()["c"]
-            top_types = [
-                dict(row)
-                for row in conn.execute(
-                    """
+            top_types = [dict(row) for row in conn.execute("""
                     SELECT context_type, COUNT(*) AS count
                     FROM memory_context
                     GROUP BY context_type
                     ORDER BY count DESC
                     LIMIT 10
-                    """
-                ).fetchall()
-            ]
+                    """).fetchall()]
 
         return {
             "total_entries": total,
@@ -328,7 +325,7 @@ class MemoryManager:
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 """
-                UPDATE sessions 
+                UPDATE sessions
                 SET end_time = ?, status = 'completed', summary = ?
                 WHERE id = ?
             """,
@@ -342,9 +339,9 @@ class MemoryManager:
         """Láº¥y session Ä‘ang active"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute("""
-                SELECT id FROM sessions 
-                WHERE status = 'active' 
-                ORDER BY start_time DESC 
+                SELECT id FROM sessions
+                WHERE status = 'active'
+                ORDER BY start_time DESC
                 LIMIT 1
             """)
             row = cursor.fetchone()
@@ -381,8 +378,8 @@ class MemoryManager:
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 """
-                INSERT INTO tool_usage 
-                (id, session_id, timestamp, tool_name, input_params, output_data, 
+                INSERT INTO tool_usage
+                (id, session_id, timestamp, tool_name, input_params, output_data,
                  duration_ms, success, error_message)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
@@ -402,7 +399,7 @@ class MemoryManager:
             # Update session tool count
             conn.execute(
                 """
-                UPDATE sessions 
+                UPDATE sessions
                 SET tool_count = tool_count + 1
                 WHERE id = ?
             """,
@@ -492,12 +489,16 @@ class MemoryManager:
                     normalized_output,
                     normalized_observation,
                     normalized_type,
-                    json.dumps(normalized_tags, ensure_ascii=False)
-                    if normalized_tags
-                    else None,
-                    json.dumps(normalized_files, ensure_ascii=False)
-                    if normalized_files
-                    else None,
+                    (
+                        json.dumps(normalized_tags, ensure_ascii=False)
+                        if normalized_tags
+                        else None
+                    ),
+                    (
+                        json.dumps(normalized_files, ensure_ascii=False)
+                        if normalized_files
+                        else None
+                    ),
                     normalized_importance,
                 ),
             )
@@ -585,7 +586,7 @@ class MemoryManager:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 """
-                SELECT 
+                SELECT
                     o.*,
                     s.project_name
                 FROM observations o
@@ -607,7 +608,7 @@ class MemoryManager:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 """
-                SELECT 
+                SELECT
                     o.*,
                     s.project_name
                 FROM observations o
@@ -629,7 +630,7 @@ class MemoryManager:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 """
-                SELECT 
+                SELECT
                     o.*,
                     s.project_name
                 FROM observations o
@@ -739,9 +740,7 @@ class MemoryManager:
             importance_icon = (
                 "ðŸ”´"
                 if obs["importance"] >= 8
-                else "ðŸŸ¡"
-                if obs["importance"] >= 6
-                else "ðŸ”µ"
+                else "ðŸŸ¡" if obs["importance"] >= 6 else "ðŸ”µ"
             )
             type_label = (
                 obs["observation_type"].upper()
@@ -886,7 +885,7 @@ class MemoryManager:
 
             # Total counts
             cursor = conn.execute("""
-                SELECT 
+                SELECT
                     COUNT(DISTINCT id) as total_sessions,
                     SUM(tool_count) as total_tools,
                     SUM(tokens_used) as total_tokens
@@ -1047,9 +1046,9 @@ class MemoryManager:
             "page_count": page_count,
             "page_size": page_size,
             "estimated_size_bytes": page_count * page_size,
-            "file_size_bytes": Path(self.db_path).stat().st_size
-            if Path(self.db_path).exists()
-            else 0,
+            "file_size_bytes": (
+                Path(self.db_path).stat().st_size if Path(self.db_path).exists() else 0
+            ),
         }
 
 

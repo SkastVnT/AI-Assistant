@@ -23,6 +23,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+try:
+    from .project_paths import COMFYUI_DIR
+except ImportError:  # pragma: no cover - supports top-level core imports
+    from core.project_paths import COMFYUI_DIR
+
 logger = logging.getLogger(__name__)
 
 # ── Feature-flag helpers ────────────────────────────────────────────────
@@ -37,8 +42,7 @@ _IMAGE_STORAGE_DIR = Path(__file__).parent.parent / "Storage" / "Image_Gen"
 # ComfyUI sibling folder for the final canonical image of every run, including
 # runs that ended early via Stop. Mirrors the file already written under
 # Storage/Image_Gen so users can browse it next to ComfyUI/input + output.
-# Repo root is parents[3] of this file: services/chatbot/core/<file> -> repo.
-_COMFYUI_FINAL_DIR = Path(__file__).resolve().parents[3] / "ComfyUI" / "final"
+_COMFYUI_FINAL_DIR = COMFYUI_DIR / "final"
 
 
 def _mirror_final_to_comfyui(b64: str, filename: str) -> str | None:

@@ -289,64 +289,79 @@ def register_error_handlers(app, include_traceback: bool = False):
 
     @app.errorhandler(400)
     def handle_400(error):
-        return jsonify(
-            {
-                "error": {
-                    "code": "BAD_REQUEST",
-                    "message": str(error.description),
-                    "status": 400,
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "BAD_REQUEST",
+                        "message": str(error.description),
+                        "status": 400,
+                    }
                 }
-            }
-        ), 400
+            ),
+            400,
+        )
 
     @app.errorhandler(404)
     def handle_404(error):
-        return jsonify(
-            {
-                "error": {
-                    "code": "NOT_FOUND",
-                    "message": "Resource not found",
-                    "status": 404,
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "NOT_FOUND",
+                        "message": "Resource not found",
+                        "status": 404,
+                    }
                 }
-            }
-        ), 404
+            ),
+            404,
+        )
 
     @app.errorhandler(405)
     def handle_405(error):
-        return jsonify(
-            {
-                "error": {
-                    "code": "METHOD_NOT_ALLOWED",
-                    "message": "Method not allowed",
-                    "status": 405,
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "METHOD_NOT_ALLOWED",
+                        "message": "Method not allowed",
+                        "status": 405,
+                    }
                 }
-            }
-        ), 405
+            ),
+            405,
+        )
 
     @app.errorhandler(429)
     def handle_429(error):
-        return jsonify(
-            {
-                "error": {
-                    "code": "RATE_LIMITED",
-                    "message": "Too many requests",
-                    "status": 429,
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "RATE_LIMITED",
+                        "message": "Too many requests",
+                        "status": 429,
+                    }
                 }
-            }
-        ), 429
+            ),
+            429,
+        )
 
     @app.errorhandler(500)
     def handle_500(error):
         logger.exception("Internal server error")
-        return jsonify(
-            {
-                "error": {
-                    "code": "INTERNAL_ERROR",
-                    "message": "Internal server error",
-                    "status": 500,
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "INTERNAL_ERROR",
+                        "message": "Internal server error",
+                        "status": 500,
+                    }
                 }
-            }
-        ), 500
+            ),
+            500,
+        )
 
 
 # ============================================================================

@@ -19,11 +19,12 @@ import uuid
 
 import httpx
 
-from ..workflow_builder import (
+from core.image_gen.workflow_builder import (
     build_hires_fix_workflow,
     build_img2img_workflow,
     build_txt2img_workflow,
 )
+
 from .base import (
     BaseImageProvider,
     ImageMode,
@@ -1186,15 +1187,15 @@ class ComfyUIProvider(BaseImageProvider):
             neg = req.negative_prompt if req.negative_prompt else NEGATIVE_SD15
 
         # Shared kwargs for all builders
-        builder_kwargs = dict(
-            sampler=wb_sampler,
-            scheduler=wb_scheduler,
-            steps=wb_steps,
-            cfg=wb_cfg,
-            clip_skip=wb_clip_skip,
-            quality_prefix=quality_prefix,
-            negative_prompt=neg,
-        )
+        builder_kwargs = {
+            "sampler": wb_sampler,
+            "scheduler": wb_scheduler,
+            "steps": wb_steps,
+            "cfg": wb_cfg,
+            "clip_skip": wb_clip_skip,
+            "quality_prefix": quality_prefix,
+            "negative_prompt": neg,
+        }
 
         logger.info(
             f"[ComfyUI/LoRA] ckpt={checkpoint} type={mtype} "

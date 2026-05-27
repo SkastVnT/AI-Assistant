@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # =============================================================================
 # Expose Services to Public via Cloudflared
 # Creates free tunnels for all running services
@@ -7,7 +7,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
+PROJECT_ROOT="$(dirname "$(dirname "${SCRIPT_DIR}")")"
 LOGS_DIR="${PROJECT_ROOT}/logs"
 
 # Colors
@@ -22,10 +22,10 @@ mkdir -p "${LOGS_DIR}"
 
 echo -e "${BLUE}"
 cat << "EOF"
-═══════════════════════════════════════════════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
                     EXPOSING SERVICES TO PUBLIC
                          via Cloudflared Tunnels
-═══════════════════════════════════════════════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 EOF
 echo -e "${NC}"
 
@@ -95,12 +95,12 @@ for service in "${!SERVICES_TO_EXPOSE[@]}"; do
     
     # Check if service is running
     if ! (netstat -tlnp 2>/dev/null | grep -q ":${port} " || ss -tlnp 2>/dev/null | grep -q ":${port} "); then
-        echo -e "${YELLOW}⚠ ${service} is not running on port ${port}. Starting it...${NC}"
+        echo -e "${YELLOW}âš  ${service} is not running on port ${port}. Starting it...${NC}"
         if [[ -f "${SCRIPT_DIR}/start-${service}.sh" ]]; then
             bash "${SCRIPT_DIR}/start-${service}.sh"
             sleep 3
         else
-            echo -e "${RED}✗ Cannot start ${service} - script not found${NC}"
+            echo -e "${RED}âœ— Cannot start ${service} - script not found${NC}"
             continue
         fi
     fi
@@ -121,9 +121,9 @@ for service in "${!SERVICES_TO_EXPOSE[@]}"; do
     if [[ -n "${public_url}" ]]; then
         PUBLIC_URLS[$service]="${public_url}"
         echo "${public_url}" > "${LOGS_DIR}/${service}_public_url.txt"
-        echo -e "${GREEN}✓ ${service}: ${public_url}${NC}"
+        echo -e "${GREEN}âœ“ ${service}: ${public_url}${NC}"
     else
-        echo -e "${YELLOW}⏳ ${service}: Tunnel starting... (check ${log_file})${NC}"
+        echo -e "${YELLOW}â³ ${service}: Tunnel starting... (check ${log_file})${NC}"
     fi
     
     sleep 2
@@ -132,16 +132,16 @@ done
 echo ""
 echo -e "${GREEN}"
 cat << "EOF"
-═══════════════════════════════════════════════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
                          PUBLIC URLS SUMMARY
-═══════════════════════════════════════════════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 EOF
 echo -e "${NC}"
 
 echo ""
 for service in "${!PUBLIC_URLS[@]}"; do
     url=${PUBLIC_URLS[$service]}
-    printf "  ${GREEN}●${NC} %-25s → ${CYAN}%s${NC}\n" "${service}" "${url}"
+    printf "  ${GREEN}â—${NC} %-25s â†’ ${CYAN}%s${NC}\n" "${service}" "${url}"
 done
 
 # Check for any services that might have delayed URL assignment
@@ -153,21 +153,21 @@ for service in "${!SERVICES_TO_EXPOSE[@]}"; do
         if [[ -n "${public_url}" ]]; then
             PUBLIC_URLS[$service]="${public_url}"
             echo "${public_url}" > "${LOGS_DIR}/${service}_public_url.txt"
-            printf "  ${GREEN}●${NC} %-25s → ${CYAN}%s${NC}\n" "${service}" "${public_url}"
+            printf "  ${GREEN}â—${NC} %-25s â†’ ${CYAN}%s${NC}\n" "${service}" "${public_url}"
         fi
     fi
 done
 
 echo ""
-echo -e "${CYAN}───────────────────────────────────────────────────────────────────────────────${NC}"
+echo -e "${CYAN}â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€${NC}"
 echo ""
 echo -e "${YELLOW}Notes:${NC}"
-echo "  • URLs are temporary (free tier) - change on restart"
-echo "  • For permanent URLs, create a Cloudflare account and use named tunnels"
-echo "  • To stop tunnels: pkill -f cloudflared"
-echo "  • Logs: ${LOGS_DIR}/cloudflared_*.log"
+echo "  â€¢ URLs are temporary (free tier) - change on restart"
+echo "  â€¢ For permanent URLs, create a Cloudflare account and use named tunnels"
+echo "  â€¢ To stop tunnels: pkill -f cloudflared"
+echo "  â€¢ Logs: ${LOGS_DIR}/cloudflared_*.log"
 echo ""
-echo -e "${GREEN}═══════════════════════════════════════════════════════════════════════════════${NC}"
+echo -e "${GREEN}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
 
 # Save summary
 cat > "${LOGS_DIR}/public_urls_summary.txt" << EOF

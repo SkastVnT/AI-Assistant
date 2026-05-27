@@ -155,9 +155,9 @@ class Metrics:
             "total_requests": self.total_requests,
             "tool_calls": dict(self.tool_calls),
             "errors": dict(self.errors),
-            "requests_per_minute": round(self.total_requests / (uptime / 60), 2)
-            if uptime > 0
-            else 0,
+            "requests_per_minute": (
+                round(self.total_requests / (uptime / 60), 2) if uptime > 0 else 0
+            ),
         }
 
 
@@ -472,7 +472,9 @@ def list_directory(dir_path: str = ".", include_hidden: bool = False) -> dict[st
             return {"error": f"ThÆ° má»¥c khÃ´ng tá»“n táº¡i: {dir_path}"}
 
         if not full_path.is_dir():
-            return {"error": f"ÄÆ°á»ng dáº«n khÃ´ng pháº£i lÃ  thÆ° má»¥c: {dir_path}"}
+            return {
+                "error": f"ÄÆ°á»ng dáº«n khÃ´ng pháº£i lÃ  thÆ° má»¥c: {dir_path}"
+            }
 
         files = []
         folders = []
@@ -536,10 +538,10 @@ def get_project_info() -> dict[str, Any]:
             "services": sorted(services),
             "service_count": len(services),
             "structure": {
-                "config": (BASE_DIR / "config").exists(),
+                "config": (BASE_DIR / "app" / "config").exists(),
                 "services": (BASE_DIR / "services").exists(),
                 "tests": (BASE_DIR / "tests").exists(),
-                "docs": (BASE_DIR / "docs").exists(),
+                "docs": (BASE_DIR / "app" / "docs").exists(),
                 "resources": (BASE_DIR / "resources").exists(),
                 "local_data": (BASE_DIR / "local_data").exists(),
             },
@@ -692,7 +694,7 @@ def clear_cache() -> dict[str, Any]:
 def get_model_config() -> str:
     """Láº¥y cáº¥u hÃ¬nh model tá»« config/model_config.py"""
     try:
-        config_file = BASE_DIR / "config" / "model_config.py"
+        config_file = BASE_DIR / "app" / "config" / "model_config.py"
         if config_file.exists():
             with open(config_file, encoding="utf-8") as f:
                 return f.read()
@@ -705,7 +707,7 @@ def get_model_config() -> str:
 def get_logging_config() -> str:
     """Láº¥y cáº¥u hÃ¬nh logging tá»« config/logging_config.py"""
     try:
-        config_file = BASE_DIR / "config" / "logging_config.py"
+        config_file = BASE_DIR / "app" / "config" / "logging_config.py"
         if config_file.exists():
             with open(config_file, encoding="utf-8") as f:
                 return f.read()
@@ -731,11 +733,11 @@ def get_readme() -> str:
 def get_structure_doc() -> str:
     """Láº¥y tÃ i liá»‡u cáº¥u trÃºc project"""
     try:
-        structure_file = BASE_DIR / "docs" / "STRUCTURE.md"
+        structure_file = BASE_DIR / "app" / "docs" / "REPO_STRUCTURE.md"
         if structure_file.exists():
             with open(structure_file, encoding="utf-8") as f:
                 return f.read()
-        return "STRUCTURE.md not found"
+        return "REPO_STRUCTURE.md not found"
     except Exception as e:
         return f"Error reading structure doc: {str(e)}"
 

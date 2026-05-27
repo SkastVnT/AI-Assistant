@@ -45,20 +45,20 @@ def _install_fake_queue(monkeypatch, jobs):
 
 
 def _job(**fields):
-    base = dict(
-        job_id="job_abc123",
-        state="completed",
-        prompt="Raiden Shogun in Genshin Impact, lightning",
-        character_key="raiden_shogun_genshin_impact",
-        character_display="Raiden Shogun",
-        series_key="genshin_impact",
-        preset="anime_quality",
-        progress_stage="composition_pass",
-        progress_pct=100.0,
-        manifest_path="storage/metadata/job_abc123.json",
-        final_image_path="storage/output/job_abc123.png",
-        error=None,
-    )
+    base = {
+        "job_id": "job_abc123",
+        "state": "completed",
+        "prompt": "Raiden Shogun in Genshin Impact, lightning",
+        "character_key": "raiden_shogun_genshin_impact",
+        "character_display": "Raiden Shogun",
+        "series_key": "genshin_impact",
+        "preset": "anime_quality",
+        "progress_stage": "composition_pass",
+        "progress_pct": 100.0,
+        "manifest_path": "storage/metadata/job_abc123.json",
+        "final_image_path": "storage/output/job_abc123.png",
+        "error": None,
+    }
     base.update(fields)
     return _FakeJob(**base)
 

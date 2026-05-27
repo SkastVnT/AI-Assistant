@@ -277,10 +277,7 @@ class MemoryLimiter:
         if len(self._entries) >= self.max_entries:
             return False
 
-        if self._total_size + size > self.max_size_bytes:
-            return False
-
-        return True
+        return not self._total_size + size > self.max_size_bytes
 
     def add(self, key: str, value: Any) -> bool:
         """Add entry if within limits"""

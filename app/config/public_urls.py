@@ -3,10 +3,8 @@ Public URL Manager for AI-Assistant Services
 Manages dynamic public URLs from Cloudflared tunnels
 """
 
-import os
 import json
 from pathlib import Path
-from typing import Dict, Optional
 
 try:
     from services.shared_env import load_shared_env
@@ -41,11 +39,11 @@ class PublicURLManager:
         "mcp_server": {"port": 8000, "url": "http://localhost:8000"},
     }
 
-    _cache: Dict[str, str] = {}
+    _cache: dict[str, str] = {}
     _urls_file = LOGS_DIR / "public_urls.json"
 
     @classmethod
-    def get_public_url(cls, service_name: str) -> Optional[str]:
+    def get_public_url(cls, service_name: str) -> str | None:
         """Get public URL for a service if available."""
         # First check cache
         if service_name in cls._cache:
@@ -128,7 +126,7 @@ class PublicURLManager:
         cls._cache[service_name] = url
 
     @classmethod
-    def get_all_urls(cls, prefer_public: bool = True) -> Dict[str, str]:
+    def get_all_urls(cls, prefer_public: bool = True) -> dict[str, str]:
         """Get all service URLs."""
         urls = {}
         for service_name in cls.LOCAL_SERVICES:

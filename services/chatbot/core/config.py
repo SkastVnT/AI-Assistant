@@ -19,6 +19,11 @@ except ModuleNotFoundError:
             break
     from services.shared_env import load_shared_env
 
+try:
+    from .project_paths import COMFYUI_DIR, resolve_character_select_path
+except ImportError:  # pragma: no cover - supports top-level core imports
+    from core.project_paths import COMFYUI_DIR, resolve_character_select_path
+
 # Paths
 CHATBOT_DIR = Path(__file__).resolve().parent.parent
 ROOT_DIR = CHATBOT_DIR.parent.parent
@@ -114,15 +119,14 @@ CHARACTER_SELECT_ENABLED = _truthy(os.getenv("CHARACTER_SELECT_ENABLED"))
 CHARACTER_SELECT_URL = os.getenv("CHARACTER_SELECT_URL", "http://localhost:51028")
 CHARACTER_SELECT_PORT = int(os.getenv("CHARACTER_SELECT_PORT", "51028"))
 CHARACTER_SELECT_AUTO_START = _truthy(os.getenv("CHARACTER_SELECT_AUTO_START"))
-CHARACTER_SELECT_PATH = os.getenv(
-    "CHARACTER_SELECT_PATH", "./character_select_stand_alone_app-main"
-)
+CHARACTER_SELECT_PATH = str(resolve_character_select_path())
 CHARACTER_SELECT_TIMEOUT = int(os.getenv("CHARACTER_SELECT_TIMEOUT", "5"))
 
 # ComfyUI output dir — watched by /api/local-image-gen/recent so the chatbot can
 # surface images that SAA (or any other ComfyUI client) just generated.
-# Defaults to repo-local ``ComfyUI/output`` next to the chatbot service tree.
-_DEFAULT_COMFY_OUTPUT = (CHATBOT_DIR.parent.parent / "ComfyUI" / "output").resolve()
+# Defaults to repo-local ``ComfyUI/output``. ComfyUI stays at repo root in this
+# cleanup pass because a duplicate app/ComfyUI tree already exists.
+_DEFAULT_COMFY_OUTPUT = (COMFYUI_DIR / "output").resolve()
 COMFYUI_OUTPUT_DIR = os.getenv("COMFYUI_OUTPUT_DIR", str(_DEFAULT_COMFY_OUTPUT))
 
 # Stable Diffusion

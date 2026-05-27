@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # =============================================================================
 # Start ChatBot Service
 # Port: 5000
@@ -7,7 +7,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
+PROJECT_ROOT="$(dirname "$(dirname "${SCRIPT_DIR}")")"
 SERVICE_DIR="${PROJECT_ROOT}/services/chatbot"
 LOGS_DIR="${PROJECT_ROOT}/logs"
 PORT=5000
@@ -52,7 +52,7 @@ echo "${PID}" > "${LOGS_DIR}/chatbot.pid"
 sleep 3
 
 if netstat -tlnp 2>/dev/null | grep -q ":${PORT} " || ss -tlnp 2>/dev/null | grep -q ":${PORT} "; then
-    echo -e "${GREEN}✓ ChatBot started successfully (PID: ${PID})${NC}"
+    echo -e "${GREEN}âœ“ ChatBot started successfully (PID: ${PID})${NC}"
     echo -e "${GREEN}  URL: http://localhost:${PORT}${NC}"
     echo -e "${GREEN}  Chat: POST http://localhost:${PORT}/chat${NC}"
 else

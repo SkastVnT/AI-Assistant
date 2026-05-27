@@ -943,7 +943,7 @@ class ScenePlanner:
             re.IGNORECASE,
         )
         if add_text:
-            text_val = message[add_text.start("text") : add_text.end("text")].strip()
+            text_val = message[add_text.start("text"): add_text.end("text")].strip()
             ops.append(EditOperation("add_text", text_val, raw_target=text_val))
             return ops
 

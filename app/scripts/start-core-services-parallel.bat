@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul 2>&1
 
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 if not exist "venv-core\Scripts\python.exe" (
     echo [ERROR] venv-core not found. Please create/install core profile first.

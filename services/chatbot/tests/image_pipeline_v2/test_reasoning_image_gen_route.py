@@ -33,10 +33,13 @@ from pathlib import Path
 
 import pytest
 
-# Repo root for image_pipeline.* imports (matches sibling test files).
+# app/ for image_pipeline.* imports (matches sibling test files).
 _ROOT = Path(__file__).resolve().parents[4]
+_APP_ROOT = _ROOT / "app"
+if str(_APP_ROOT) not in sys.path:
+    sys.path.insert(0, str(_APP_ROOT))
 if str(_ROOT) not in sys.path:
-    sys.path.insert(0, str(_ROOT))
+    sys.path.insert(1, str(_ROOT))
 
 # services/chatbot must be on sys.path so ``core.*`` and ``routes.*``
 # resolve the same way the live Flask app sees them. When pytest is run

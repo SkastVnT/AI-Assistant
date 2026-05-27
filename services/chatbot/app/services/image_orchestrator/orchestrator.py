@@ -21,6 +21,16 @@ Public API (module-level convenience):
 """
 
 from __future__ import annotations
+from .session_memory import SessionMemoryStore, get_session_memory_store
+from .schemas import (
+    ImageFollowupRequest,
+    ImageGenerationRequest,
+    ImageGenerationResult,
+    ImageIntent,
+)
+from .scene_planner import ScenePlanner
+from .provider_router import ProviderRouter
+from .prompt_builder import PromptBuilder
 
 import logging
 import time
@@ -31,16 +41,6 @@ logger = logging.getLogger(__name__)
 
 # ── New layer components ──────────────────────────────────────────────
 
-from .prompt_builder import PromptBuilder
-from .provider_router import ProviderRouter
-from .scene_planner import ScenePlanner
-from .schemas import (
-    ImageFollowupRequest,
-    ImageGenerationRequest,
-    ImageGenerationResult,
-    ImageIntent,
-)
-from .session_memory import SessionMemoryStore, get_session_memory_store
 
 # ── Existing layer (imported lazily inside methods to defer heavy init) ────────
 

@@ -14,7 +14,7 @@ Unless a task explicitly targets image generation, stable diffusion, or ComfyUI 
 - `app/config/`
 - `app/src/`
 
-Do **not** edit `ComfyUI/`, `image_pipeline/`, `services/stable-diffusion/`, or `services/edit-image/` for chatbot tasks.
+Do **not** edit `ComfyUI/`, `app/image_pipeline/`, `services/stable-diffusion/`, or `services/edit-image/` for chatbot tasks.
 
 ## Entry points
 
@@ -28,7 +28,7 @@ Do **not** edit `ComfyUI/`, `image_pipeline/`, `services/stable-diffusion/`, or 
 
 Chatbot startup:
 - `python services/chatbot/run.py` → Flask monolith on port 5000 (the only supported mode since May 2026; `USE_FASTAPI` / `USE_NEW_STRUCTURE` were removed).
-- `cd desktop/electron && npm run dev` → Frameless Electron desktop (tray, single-instance, auto-spawns backend).
+- `cd app/electron && npm run dev` → Frameless Electron desktop (tray, single-instance, auto-spawns backend).
 
 ## Environment loading contract
 
@@ -71,7 +71,7 @@ src/handlers/           Multimodal handler, advanced image gen handler
 src/utils/              Utility modules (imgbb, SD client, MCP integration)
 src/rag/                RAG subsystem (ingest, embeddings, retrieval)
 app/                    Nested Flask modular helper (services + middleware only)
-desktop/electron/       Frameless Electron desktop wrapper (tray, IPC, single-instance)
+app/electron/           Frameless Electron desktop wrapper (tray, IPC, single-instance)
 ```
 
 **Warning — two config layers:** `core/config.py` (API keys from env) vs `config/mongodb_config.py` + `config/mongodb_helpers.py` (MongoDB setup, imported by `chatbot_main.py` via importlib). Do not confuse `services/chatbot/config/` with `app/config/`.

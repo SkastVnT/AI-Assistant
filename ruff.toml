@@ -1,5 +1,21 @@
 # Ruff configuration for AI-Assistant.
-# Lint scope: services/ and app/src/. ComfyUI, private, and venvs are excluded.
+# Lint scope: services/ app/src/ app/config/ — ComfyUI, private, venv excluded.
+
+exclude = [
+    "venv-core",
+    "venv-image",
+    "ComfyUI",
+    "app/ComfyUI",
+    "services/edit-image/ComfyUI",
+    "services/stable-diffusion/repositories",
+    "character_select_stand_alone_app-main",
+    "image_pipeline",
+    "private",
+    "private copy",
+    "rag",
+    ".git",
+    "node_modules",
+]
 
 [lint]
 # Rules: E/W = pycodestyle, F = pyflakes, I = isort, UP = pyupgrade.

@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # =============================================================================
 # AI-Assistant First-Time Setup
 # Installs all dependencies and prepares the environment
@@ -7,7 +7,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
+PROJECT_ROOT="$(dirname "$(dirname "${SCRIPT_DIR}")")"
 
 # Colors
 RED='\033[0;31m'
@@ -19,9 +19,9 @@ NC='\033[0m'
 
 echo -e "${CYAN}"
 cat << "EOF"
-═══════════════════════════════════════════════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
                     AI-ASSISTANT FIRST-TIME SETUP
-═══════════════════════════════════════════════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 EOF
 echo -e "${NC}"
 
@@ -29,9 +29,9 @@ echo -e "${NC}"
 echo -e "${BLUE}[1/7] Checking Python...${NC}"
 if command -v python3 &> /dev/null; then
     PYTHON_VERSION=$(python3 --version)
-    echo -e "${GREEN}✓ ${PYTHON_VERSION}${NC}"
+    echo -e "${GREEN}âœ“ ${PYTHON_VERSION}${NC}"
 else
-    echo -e "${RED}✗ Python 3 not found. Please install Python 3.10+${NC}"
+    echo -e "${RED}âœ— Python 3 not found. Please install Python 3.10+${NC}"
     exit 1
 fi
 
@@ -39,9 +39,9 @@ fi
 echo ""
 echo -e "${BLUE}[2/7] Checking pip...${NC}"
 if command -v pip3 &> /dev/null || command -v pip &> /dev/null; then
-    echo -e "${GREEN}✓ pip available${NC}"
+    echo -e "${GREEN}âœ“ pip available${NC}"
 else
-    echo -e "${RED}✗ pip not found. Installing...${NC}"
+    echo -e "${RED}âœ— pip not found. Installing...${NC}"
     curl https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
     python3 /tmp/get-pip.py
 fi
@@ -52,7 +52,7 @@ echo -e "${BLUE}[3/7] Creating directories...${NC}"
 mkdir -p "${PROJECT_ROOT}/logs"
 mkdir -p "${PROJECT_ROOT}/backups"
 mkdir -p "${PROJECT_ROOT}/app/data/cache"
-echo -e "${GREEN}✓ Directories created${NC}"
+echo -e "${GREEN}âœ“ Directories created${NC}"
 
 # Install dependencies in chunks (more reliable)
 echo ""
@@ -76,7 +76,7 @@ else
         echo -e "${YELLOW}  Some packages failed, continuing...${NC}"
     }
 fi
-echo -e "${GREEN}✓ Core dependencies installed${NC}"
+echo -e "${GREEN}âœ“ Core dependencies installed${NC}"
 
 # Run fix dependencies script
 echo ""
@@ -86,7 +86,7 @@ if [[ -f "${SCRIPT_DIR}/fix_dependencies.py" ]]; then
 else
     echo -e "${YELLOW}  No fix script found, skipping${NC}"
 fi
-echo -e "${GREEN}✓ Compatibility fixes applied${NC}"
+echo -e "${GREEN}âœ“ Compatibility fixes applied${NC}"
 
 # Setup environment file
 echo ""
@@ -94,28 +94,27 @@ echo -e "${BLUE}[6/7] Setting up environment...${NC}"
 if [[ ! -f "${PROJECT_ROOT}/.env" ]]; then
     if [[ -f "${PROJECT_ROOT}/.env.example" ]]; then
         cp "${PROJECT_ROOT}/.env.example" "${PROJECT_ROOT}/.env"
-        echo -e "${GREEN}✓ Created .env from .env.example${NC}"
-        echo -e "${YELLOW}  ⚠ Please edit .env and add your API keys${NC}"
+        echo -e "${GREEN}âœ“ Created .env from .env.example${NC}"
+        echo -e "${YELLOW}  âš  Please edit .env and add your API keys${NC}"
     else
         echo -e "${YELLOW}  No .env.example found${NC}"
     fi
 else
-    echo -e "${GREEN}✓ .env already exists${NC}"
+    echo -e "${GREEN}âœ“ .env already exists${NC}"
 fi
 
 # Make scripts executable
 echo ""
 echo -e "${BLUE}[7/7] Setting permissions...${NC}"
 chmod +x "${SCRIPT_DIR}"/*.sh 2>/dev/null || true
-chmod +x "${PROJECT_ROOT}/menu.sh" 2>/dev/null || true
-echo -e "${GREEN}✓ Scripts made executable${NC}"
+echo -e "${GREEN}âœ“ Scripts made executable${NC}"
 
 echo ""
 echo -e "${GREEN}"
 cat << "EOF"
-═══════════════════════════════════════════════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
                          SETUP COMPLETE!
-═══════════════════════════════════════════════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 EOF
 echo -e "${NC}"
 
@@ -127,12 +126,11 @@ echo "     - GEMINI_API_KEY"
 echo "     - etc."
 echo ""
 echo "  2. Start services:"
-echo "     bash menu.sh          # Interactive menu"
-echo "     bash scripts/start-all.sh  # Start all services"
+echo "     bash app/scripts/start-all.sh"
 echo ""
 echo "  3. Expose to public:"
-echo "     bash scripts/expose-public.sh"
+echo "     bash app/scripts/expose-public.sh"
 echo ""
 echo "  4. Check health:"
-echo "     bash scripts/health-check-all.sh"
+echo "     bash app/scripts/health-check-all.sh"
 echo ""

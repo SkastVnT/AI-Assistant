@@ -11,8 +11,8 @@ echo   Chatbot Service Rollback
 echo ========================================
 echo.
 
-set SERVICE_DIR=%~dp0..\services\chatbot
-set BACKUP_DIR=%~dp0..\backups
+set SERVICE_DIR=%~dp0..\..\services\chatbot
+set BACKUP_DIR=%~dp0..\..\backups
 
 REM List available backups
 echo Available backups:

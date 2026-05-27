@@ -257,12 +257,11 @@ resources/templates/temp/
 local_data/
 data/connections/
 data/knowledge_base/
-storage/**
-!storage/**/
-!storage/**/.gitkeep
-!storage/character_db/
-!storage/character_db/*.json
-**.**/storage/
+app/storage/**
+!app/storage/**/
+!app/storage/**/.gitkeep
+!app/storage/character_db/
+!app/storage/character_db/*.json
 outputs/**
 
 # ============================================
@@ -284,6 +283,15 @@ logs/cloudflared*.pid
 # ============================================
 !**/.gitkeep
 !**/README.md
+!app/docs/**
+!app/scripts/**
+!app/configs_vps/**
+!.claude/skills/repo-guidelines/**
+
+# Local temporary scripts generated during ad hoc MCP/debug work.
+app/scripts/.tmp_*.py
+app/scripts/**/__pycache__/
+app/scripts/**/__pycache__/**
 
 # ComfyUI - ignore large files
 ComfyUI/models/

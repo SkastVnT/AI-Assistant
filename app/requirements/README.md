@@ -62,7 +62,8 @@ Note: `profile_image_ai_services.txt` may still need CUDA-specific PyTorch index
 
 ## Local anime image pipeline — dependency matrix
 
-The chatbot imports `image_pipeline/anime_pipeline/` from the **core profile**
+The chatbot imports `image_pipeline/anime_pipeline/` from `app/image_pipeline/`
+via the **core profile**
 (`venv-core`). Only the minimum runtime pieces live in core; the heavy
 diffusion / upscale stack stays in the image profile.
 
@@ -74,7 +75,7 @@ local anime pipeline code paths to run at all.
 | Package | Where declared | Why it belongs in core |
 |---|---|---|
 | `httpx` | `requirements_chunk_4_ai_apis.txt` | ComfyUI HTTP client, vision + CivitAI calls |
-| `pyyaml` | `requirements_chunk_1_core.txt` | Loads `configs/anime_pipeline.yaml`, `configs/lora_registry.yaml` |
+| `pyyaml` | `requirements_chunk_1_core.txt` | Loads `app/configs_vps/anime_pipeline.yaml`, `app/configs_vps/lora_registry.yaml` |
 | `numpy` | `requirements_chunk_1_core.txt` | Detection mask math in `agents/detection_detail.py` |
 | `requests` | `requirements_chunk_1_core.txt` | Reference image downloads |
 | `Pillow` | `profile_core_services.txt` (direct) | Reference image encode/decode in orchestrator + detection agents |

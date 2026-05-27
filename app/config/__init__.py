@@ -20,7 +20,7 @@ def load_config_yml() -> dict:
 
     config_file = CONFIG_DIR / "config.yml"
     if config_file.exists():
-        with open(config_file, "r", encoding="utf-8") as f:
+        with open(config_file, encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
     return {}
 

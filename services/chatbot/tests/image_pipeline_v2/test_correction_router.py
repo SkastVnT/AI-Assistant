@@ -444,7 +444,7 @@ class TestResultSerialization:
 
 
 class TestCorrectionRouterHygiene:
-    EXECUTION_DIR = _ROOT / "image_pipeline" / "reasoning" / "execution"
+    EXECUTION_DIR = _ROOT / "app" / "image_pipeline" / "reasoning" / "execution"
 
     def test_no_load_dotenv(self):
         offenders = [

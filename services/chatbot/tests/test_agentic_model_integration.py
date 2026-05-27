@@ -99,7 +99,7 @@ class TestResolveAllRoles:
 
     def test_returns_all_four_roles(self):
         result = resolve_all_roles()
-        assert set(result.keys()) == {r for r in AgentRole}
+        assert set(result.keys()) == set(AgentRole)
 
     def test_preferred_overrides_applied(self):
         result = resolve_all_roles(preferred_planner="qwen", preferred_critic="gemini")

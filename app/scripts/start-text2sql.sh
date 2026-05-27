@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # =============================================================================
 # Start Text2SQL Service
 # Port: 5002
@@ -7,7 +7,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
+PROJECT_ROOT="$(dirname "$(dirname "${SCRIPT_DIR}")")"
 SERVICE_DIR="${PROJECT_ROOT}/services/text2sql"
 LOGS_DIR="${PROJECT_ROOT}/logs"
 PORT=5002
@@ -44,7 +44,7 @@ echo "${PID}" > "${LOGS_DIR}/text2sql.pid"
 sleep 3
 
 if netstat -tlnp 2>/dev/null | grep -q ":${PORT} " || ss -tlnp 2>/dev/null | grep -q ":${PORT} "; then
-    echo -e "${GREEN}✓ Text2SQL started successfully (PID: ${PID})${NC}"
+    echo -e "${GREEN}âœ“ Text2SQL started successfully (PID: ${PID})${NC}"
     echo -e "${GREEN}  URL: http://localhost:${PORT}${NC}"
 else
     echo -e "${YELLOW}Text2SQL starting... Check log: ${LOGS_DIR}/text2sql.log${NC}"

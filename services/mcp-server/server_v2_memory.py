@@ -233,7 +233,6 @@ def with_memory(importance: int = 5, observation_type: str = "general"):
         @wraps(func)
         def wrapper(*args, **kwargs):
             start_time = time.time()
-            success = True
             error_msg = None
             result = None
 
@@ -271,7 +270,6 @@ def with_memory(importance: int = 5, observation_type: str = "general"):
                 return result
 
             except Exception as e:
-                success = False
                 error_msg = str(e)
 
                 # Log error to memory
@@ -1088,7 +1086,11 @@ def http_request(
     import urllib.request
 
     # Security: only allow localhost and http/https schemes
-    allowed_hosts = ("localhost", "127.0.0.1", "0.0.0.0")  # nosec B104  # Only localhost allowed in validation below
+    allowed_hosts = (
+        "localhost",
+        "127.0.0.1",
+        "0.0.0.0",
+    )  # nosec B104  # Only localhost allowed in validation below
     try:
         parsed = urllib.parse.urlparse(url)
         # Validate URL scheme
@@ -1121,7 +1123,9 @@ def http_request(
     try:
         data = body.encode("utf-8") if body else None
         req = urllib.request.Request(url, data=data, headers=req_headers, method=method)
-        with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310  # URL scheme and hostname validated above
+        with urllib.request.urlopen(
+            req, timeout=timeout
+        ) as resp:  # nosec B310  # URL scheme and hostname validated above
             response_body = resp.read().decode("utf-8", errors="replace")
             return {
                 "status_code": resp.status,
@@ -1571,7 +1575,7 @@ def run_memory_maintenance(
 @mcp.resource("config://model")
 def get_model_config() -> str:
     """Cáº¥u hÃ¬nh models cá»§a AI-Assistant"""
-    config_file = BASE_DIR / "config" / "model_config.py"
+    config_file = BASE_DIR / "app" / "config" / "model_config.py"
     if config_file.exists():
         with open(config_file, encoding="utf-8") as f:
             return f.read()
@@ -1581,7 +1585,7 @@ def get_model_config() -> str:
 @mcp.resource("config://logging")
 def get_logging_config() -> str:
     """Cáº¥u hÃ¬nh logging cá»§a AI-Assistant"""
-    config_file = BASE_DIR / "config" / "logging_config.py"
+    config_file = BASE_DIR / "app" / "config" / "logging_config.py"
     if config_file.exists():
         with open(config_file, encoding="utf-8") as f:
             return f.read()
@@ -1601,7 +1605,7 @@ def get_readme() -> str:
 @mcp.resource("docs://structure")
 def get_project_structure() -> str:
     """Cáº¥u trÃºc thÆ° má»¥c cá»§a AI-Assistant"""
-    structure_file = BASE_DIR / "docs" / "STRUCTURE.md"
+    structure_file = BASE_DIR / "app" / "docs" / "REPO_STRUCTURE.md"
     if structure_file.exists():
         with open(structure_file, encoding="utf-8") as f:
             return f.read()

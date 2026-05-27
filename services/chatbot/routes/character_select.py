@@ -1,11 +1,11 @@
-"""
-Flask blueprint — Character Select SAA sidecar status route.
+﻿"""
+Flask blueprint â€” Character Select SAA sidecar status route.
 
 Endpoints:
-  GET /api/character-select/status — feature flag + reachability
-  GET /api/character-select/url    — URL the frontend should open
-  GET /api/local-image-gen/recent  — list new ComfyUI output files since `since`
-  GET /api/local-image-gen/file/<name> — serve one file from the ComfyUI output dir
+  GET /api/character-select/status â€” feature flag + reachability
+  GET /api/character-select/url    â€” URL the frontend should open
+  GET /api/local-image-gen/recent  â€” list new ComfyUI output files since `since`
+  GET /api/local-image-gen/file/<name> â€” serve one file from the ComfyUI output dir
 """
 
 import logging
@@ -60,7 +60,7 @@ def character_select_url_route():
     )
 
 
-# ── Local image gen bridge (ComfyUI output watcher) ──────────────────
+# â”€â”€ Local image gen bridge (ComfyUI output watcher) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @character_select_bp.route("/api/local-image-gen/recent", methods=["GET"])
@@ -93,9 +93,9 @@ def local_image_gen_file(name: str):
     return send_file(str(path), mimetype=mime, conditional=True)
 
 
-# ── SAA offline DB endpoints (tag autocomplete + character lookup) ───
-# Powered by image_pipeline/anime_pipeline/saa_character_db.py which
-# reads character_select_stand_alone_app-main/data/{wai_characters.csv,
+# â”€â”€ SAA offline DB endpoints (tag autocomplete + character lookup) â”€â”€â”€
+# Powered by app/image_pipeline/anime_pipeline/saa_character_db.py which
+# reads app/character_select_stand_alone_app-main/data/{wai_characters.csv,
 # danbooru_e621_merged.csv, wai_character_thumbs.json}. All lookups are
 # in-memory after the first call, so these endpoints are safe to call
 # from the chat input on every keystroke.
@@ -202,7 +202,7 @@ def character_lookup_route():
 
 @character_select_bp.route("/api/saa-db/stats", methods=["GET"])
 def saa_db_stats_route():
-    """Diagnostic endpoint — returns counts for the three DB files."""
+    """Diagnostic endpoint â€” returns counts for the three DB files."""
     try:
         from image_pipeline.anime_pipeline.saa_character_db import db_stats
 
@@ -211,13 +211,13 @@ def saa_db_stats_route():
         return jsonify({"ok": False, "error": str(exc)}), 200
 
 
-# ── Continuous-generation helpers (random pick + prompt swap) ────────
+# â”€â”€ Continuous-generation helpers (random pick + prompt swap) â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @character_select_bp.route("/api/characters/random", methods=["GET"])
 def character_random_route():
     """Pick a random WAI character, optionally avoiding a comma-separated
-    ``exclude`` list of tags. Powers the chatbot's "Tạo liên tục" loop
+    ``exclude`` list of tags. Powers the chatbot's "Táº¡o liÃªn tá»¥c" loop
     so every iteration uses a fresh female character.
 
     Response shape::
@@ -266,7 +266,7 @@ def character_random_route():
 @character_select_bp.route("/api/characters/swap-in-prompt", methods=["POST"])
 def character_swap_in_prompt_route():
     """Rewrite a prompt so its lead character is replaced by a fresh
-    random pick. Used by the "Tạo liên tục" loop on every iteration.
+    random pick. Used by the "Táº¡o liÃªn tá»¥c" loop on every iteration.
 
     Request body::
         {"prompt": "...", "exclude": ["tag1", "tag2", ...]}

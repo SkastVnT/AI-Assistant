@@ -384,8 +384,14 @@ def create_health_blueprint(health_checker: HealthChecker, url_prefix: str = "")
     @bp.route("/version")
     def version():
         """Version info."""
-        return jsonify(
-            {"service": health_checker.service_name, "version": health_checker.version}
-        ), 200
+        return (
+            jsonify(
+                {
+                    "service": health_checker.service_name,
+                    "version": health_checker.version,
+                }
+            ),
+            200,
+        )
 
     return bp

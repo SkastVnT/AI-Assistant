@@ -216,7 +216,7 @@ class TestConcurrentPerformance:
 
                 start = time.perf_counter()
                 for i in range(10):
-                    conv = repo.create_conversation(
+                    repo.create_conversation(
                         user_id=f"user_{thread_id}", title=f"Chat {i}"
                     )
                 elapsed = (time.perf_counter() - start) * 1000

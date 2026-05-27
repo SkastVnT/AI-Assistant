@@ -18,6 +18,30 @@ and are applied by both endpoints regardless of which agent class they
 resolve.
 """
 
+from core.extensions import (
+    LOCALMODELS_AVAILABLE,
+    MONGODB_ENABLED,
+    ConversationDB,
+    cache_response,
+    get_cached_response,
+    model_loader,
+    wait_for_openai_rate_limit,
+)
+from core.db_helpers import (
+    get_user_id_from_session,
+    load_conversation_history,
+    save_message_to_db,
+    set_active_conversation,
+)
+from core.config import (
+    DEEPSEEK_API_KEY,
+    GROK_API_KEY,
+    HUGGINGFACE_API_KEY,
+    OPENAI_API_KEY,
+    QWEN_API_KEY,
+    SYSTEM_PROMPTS,
+    get_system_prompts,
+)
 import logging
 import sys
 from datetime import datetime
@@ -31,32 +55,8 @@ CHATBOT_DIR = Path(__file__).parent.parent.resolve()
 if str(CHATBOT_DIR) not in sys.path:
     sys.path.insert(0, str(CHATBOT_DIR))
 
-from core.config import (
-    DEEPSEEK_API_KEY,
-    GROK_API_KEY,
-    HUGGINGFACE_API_KEY,
-    OPENAI_API_KEY,
-    QWEN_API_KEY,
-    SYSTEM_PROMPTS,
-    get_system_prompts,
-)
 
 # Import DB helpers
-from core.db_helpers import (
-    get_user_id_from_session,
-    load_conversation_history,
-    save_message_to_db,
-    set_active_conversation,
-)
-from core.extensions import (
-    LOCALMODELS_AVAILABLE,
-    MONGODB_ENABLED,
-    ConversationDB,
-    cache_response,
-    get_cached_response,
-    model_loader,
-    wait_for_openai_rate_limit,
-)
 
 
 class ChatbotAgent:

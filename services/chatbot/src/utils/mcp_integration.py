@@ -647,7 +647,7 @@ class MCPClient:
             }
 
         scores: dict[str, int] = dict.fromkeys(self.DOMAIN_QUERY_MAP.keys(), 0)
-        matched: dict[str, list[str]] = {k: [] for k in self.DOMAIN_QUERY_MAP.keys()}
+        matched: dict[str, list[str]] = {k: [] for k in self.DOMAIN_QUERY_MAP}
 
         for domain, keywords in self.DOMAIN_QUERY_MAP.items():
             for kw in keywords:
@@ -713,7 +713,9 @@ class MCPClient:
                     headers={"Content-Type": "application/json"},
                     method="POST",
                 )
-                with urllib.request.urlopen(req, timeout=8) as resp:  # nosec B310  # URL scheme validated above
+                with urllib.request.urlopen(
+                    req, timeout=8
+                ) as resp:  # nosec B310  # URL scheme validated above
                     body = resp.read().decode("utf-8", errors="replace")
                     parsed = json.loads(body) if body else {}
                     return {

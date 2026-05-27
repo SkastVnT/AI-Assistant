@@ -2,6 +2,7 @@
 Database helpers for MongoDB integration
 """
 
+from core.extensions import MONGODB_ENABLED, ConversationDB, MemoryDB, MessageDB
 import logging
 import sys
 from pathlib import Path
@@ -12,8 +13,6 @@ from flask import session
 CHATBOT_DIR = Path(__file__).parent.parent.resolve()
 if str(CHATBOT_DIR) not in sys.path:
     sys.path.insert(0, str(CHATBOT_DIR))
-
-from core.extensions import MONGODB_ENABLED, ConversationDB, MemoryDB, MessageDB
 
 
 def get_user_id_from_session():

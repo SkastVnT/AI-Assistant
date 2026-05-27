@@ -26,7 +26,7 @@ def _load_root_config_module(module_name, file_name):
     app_path = str(ROOT_DIR / "app")
     chatbot_path = str(CHATBOT_DIR)
 
-    original_path_0 = sys.path[0] if sys.path else None
+    sys.path[0] if sys.path else None
 
     if root_path in sys.path:
         sys.path.remove(root_path)
@@ -45,15 +45,12 @@ def _load_root_config_module(module_name, file_name):
         spec.loader.exec_module(module)
         return module
     finally:
-        if root_path in sys.path:
-            sys.path.remove(root_path)
-        if app_path in sys.path:
-            sys.path.remove(app_path)
-        if chatbot_path in sys.path:
-            sys.path.remove(chatbot_path)
+        for path in (root_path, app_path, chatbot_path):
+            if path in sys.path:
+                sys.path.remove(path)
         sys.path.insert(0, chatbot_path)
-        if root_path not in sys.path:
-            sys.path.insert(1, root_path)
+        sys.path.insert(1, app_path)
+        sys.path.insert(2, root_path)
 
 
 # Load rate limiter

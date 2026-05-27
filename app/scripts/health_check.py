@@ -1,10 +1,10 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 AI-Assistant Service Health Check
 Tests all services and reports their status.
 
 Usage:
-    python scripts/health_check.py
+    python app/scripts/health_check.py
 """
 
 import os
@@ -18,7 +18,7 @@ from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 
 # Add project root to path
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 logging.basicConfig(
@@ -178,7 +178,7 @@ def check_stable_diffusion() -> ServiceStatus:
 def print_report(services: List[ServiceStatus]) -> None:
     """Print service status report."""
     print("\n" + "=" * 70)
-    print("🏥 AI-ASSISTANT SERVICE HEALTH CHECK REPORT")
+    print("ðŸ¥ AI-ASSISTANT SERVICE HEALTH CHECK REPORT")
     print("=" * 70 + "\n")
 
     # Group by status
@@ -188,24 +188,24 @@ def print_report(services: List[ServiceStatus]) -> None:
 
     # Running services
     if running:
-        print("🟢 RUNNING SERVICES:")
+        print("ðŸŸ¢ RUNNING SERVICES:")
         for s in running:
-            print(f"   ✅ {s.name:25s} Port {s.port:5d} - {s.message}")
+            print(f"   âœ… {s.name:25s} Port {s.port:5d} - {s.message}")
         print()
 
     # Ready to start
     if ready:
-        print("🟡 READY TO START (imports OK):")
+        print("ðŸŸ¡ READY TO START (imports OK):")
         for s in ready:
             port_str = f"Port {s.port:5d}" if s.port > 0 else "stdio    "
-            print(f"   ⏸️  {s.name:25s} {port_str} - {s.message}")
+            print(f"   â¸ï¸  {s.name:25s} {port_str} - {s.message}")
         print()
 
     # Failed
     if failed:
-        print("🔴 FAILED SERVICES:")
+        print("ðŸ”´ FAILED SERVICES:")
         for s in failed:
-            print(f"   ❌ {s.name:25s} - {s.message}")
+            print(f"   âŒ {s.name:25s} - {s.message}")
         print()
 
     # Summary

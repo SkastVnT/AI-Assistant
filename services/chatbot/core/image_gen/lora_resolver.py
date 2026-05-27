@@ -6,7 +6,7 @@ Lets the chatbot turn plain natural-language text into a usable
 Pipeline:
 1. Build a *runtime catalog* by merging the curated `LORA_CATALOG`
    (model_presets) with auto-derived entries from
-   `storage/lora_inventory.json` so all 328 files become reachable
+   `app/storage/lora_inventory.json` so all 328 files become reachable
    via plain-text triggers.
 2. Word-boundary scan of the prompt for every trigger phrase. Avoids
    false positives where short triggers used to substring-match
@@ -26,17 +26,19 @@ import re
 import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass
-from pathlib import Path
 
 from config.model_presets import LORA_CATALOG  # type: ignore
+
+try:
+    from core.project_paths import STORAGE_DIR
+except ImportError:  # pragma: no cover - package import fallback
+    from ..project_paths import STORAGE_DIR
 
 from .providers.base import LoraSpec
 
 logger = logging.getLogger(__name__)
 
-_INVENTORY_PATH = (
-    Path(__file__).resolve().parents[4] / "storage" / "lora_inventory.json"
-)
+_INVENTORY_PATH = STORAGE_DIR / "lora_inventory.json"
 
 # Trigger phrases shorter than this are dropped entirely.
 _MIN_TRIGGER_LEN = 4
@@ -197,7 +199,7 @@ def _load_inventory() -> dict:
 def _build_runtime_catalog() -> dict[str, dict]:
     out: dict[str, dict] = {}
 
-    # 1) Curated catalog — also expand triggers with diacritic-stripped variants.
+    # 1) Curated catalog â€” also expand triggers with diacritic-stripped variants.
     for key, entry in LORA_CATALOG.items():
         triggers = list(entry.get("trigger") or [])
         extra = []
@@ -258,7 +260,7 @@ def _compile_patterns(
     """Compile word-boundary anchored patterns per trigger.
 
     Patterns match against ASCII-folded text so 'huohuo' fires on
-    'hỏa hỏa' too. Boundaries use lookarounds instead of `\\b` to
+    'há»a há»a' too. Boundaries use lookarounds instead of `\\b` to
     keep behavior identical for ASCII and non-ASCII contexts.
     """
     patterns: list[tuple[re.Pattern, str, str, dict]] = []

@@ -32,7 +32,7 @@ EXAMPLES:
 User: "váº½ con mÃ¨o"
 Enhanced: A fluffy white cat sitting gracefully on a sunlit windowsill, golden hour lighting streaming through lace curtains, photorealistic, shallow depth of field, 4K, warm color palette
 
-User: "cyberpunk city at night"  
+User: "cyberpunk city at night"
 Enhanced: Sprawling cyberpunk metropolis at night, neon signs reflecting on rain-soaked streets, towering holographic billboards, flying vehicles between skyscrapers, blade runner atmosphere, dramatic rain, volumetric fog, cinematic wide angle, ultra detailed, 8K
 
 User: "logo for a coffee shop called Bean & Brew"

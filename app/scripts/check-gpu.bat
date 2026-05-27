@@ -7,7 +7,7 @@ title AI-Assistant - GPU Check
 color 0B
 
 REM Get project root
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 echo.
 echo ================================================================================

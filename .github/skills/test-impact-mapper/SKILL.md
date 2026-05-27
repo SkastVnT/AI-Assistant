@@ -84,7 +84,7 @@ Use this table to find the minimum test set for a changed file.
 | `security-scan.yml` | Push/PR to master, develop + weekly cron | bandit + pip-audit |
 | `codeql-analysis.yml` | Push to master, develop + weekly cron | CodeQL security-and-quality |
 | `dependency-review.yml` | PR to master, develop (requirements paths) | License + vulnerability check |
-| `rag-eval.yml` | PR to main, feat/adv_RAG (rag/** paths) | RAG evaluation metrics |
+| `rag-eval.yml` | PR to main, feat/adv_RAG (`app/rag/**` paths) | RAG evaluation metrics |
 
 If CI will run the same tests automatically, say so. The user may still want to run locally first for faster feedback.
 

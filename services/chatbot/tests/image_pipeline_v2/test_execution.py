@@ -348,7 +348,7 @@ class TestBuildWorkflow:
     def test_node_ids_are_strings_and_unique(self, simple_panel):
         plan = plan_panel(simple_panel, route_fn=_route_fn_factory())
         wf = build_workflow(plan)
-        assert all(isinstance(k, str) for k in wf.keys())
+        assert all(isinstance(k, str) for k in wf)
         assert len(wf) == len(set(wf.keys()))
 
     def test_workflow_is_json_serializable(self, simple_panel):
@@ -446,7 +446,7 @@ class TestRunner:
 
 
 class TestExecutionHygiene:
-    EXECUTION_DIR = _ROOT / "image_pipeline" / "reasoning" / "execution"
+    EXECUTION_DIR = _ROOT / "app" / "image_pipeline" / "reasoning" / "execution"
 
     def test_no_load_dotenv(self):
         offenders = [

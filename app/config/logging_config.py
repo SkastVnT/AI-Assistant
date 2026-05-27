@@ -3,10 +3,8 @@ Logging Configuration for AI Assistant Hub
 Centralized logging setup with file and console handlers
 """
 
-import os
 import logging
 from pathlib import Path
-from datetime import datetime
 
 
 def setup_logging(log_level: str = "INFO", log_file: str = None) -> logging.Logger:

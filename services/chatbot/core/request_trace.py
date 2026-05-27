@@ -48,7 +48,7 @@ class RequestTraceStore:
         try:
             self._items.append(trace.to_dict())
             if len(self._items) > self.max_items:
-                self._items = self._items[-self.max_items :]
+                self._items = self._items[-self.max_items:]
             return True
         except Exception as exc:
             logger.warning("trace store save failed: %s", exc)

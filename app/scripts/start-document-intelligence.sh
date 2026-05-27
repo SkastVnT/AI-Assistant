@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # =============================================================================
 # Start Document Intelligence Service
 # Port: 5003
@@ -7,7 +7,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
+PROJECT_ROOT="$(dirname "$(dirname "${SCRIPT_DIR}")")"
 SERVICE_DIR="${PROJECT_ROOT}/services/document-intelligence"
 LOGS_DIR="${PROJECT_ROOT}/logs"
 PORT=5003
@@ -44,7 +44,7 @@ echo "${PID}" > "${LOGS_DIR}/document-intelligence.pid"
 sleep 3
 
 if netstat -tlnp 2>/dev/null | grep -q ":${PORT} " || ss -tlnp 2>/dev/null | grep -q ":${PORT} "; then
-    echo -e "${GREEN}✓ Document Intelligence started successfully (PID: ${PID})${NC}"
+    echo -e "${GREEN}âœ“ Document Intelligence started successfully (PID: ${PID})${NC}"
     echo -e "${GREEN}  URL: http://localhost:${PORT}${NC}"
 else
     echo -e "${YELLOW}Document Intelligence starting... Check log: ${LOGS_DIR}/document-intelligence.log${NC}"

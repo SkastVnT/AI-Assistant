@@ -6,7 +6,7 @@ REM Force UTF-8 encoding to prevent Unicode errors
 chcp 65001 >nul 2>&1
 
 REM Navigate to project root (parent of scripts folder)
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 echo ================================================================================
 echo.
@@ -60,8 +60,7 @@ if exist ".venv\Scripts\activate.bat" (
 ) else (
     echo [ERROR] Main virtual environment not found!
     echo.
-    echo Please run: menu.bat - Select [0] Quick Setup
-    echo   OR run: scripts\SETUP.bat
+    echo Please run: app\scripts\setup-all.bat
     echo.
     pause
     exit /b 1
@@ -184,16 +183,15 @@ echo.
 echo Next Steps:
 echo.
 echo   If .venv is MISSING:
-echo     - Run: menu.bat - Select [0] Quick Setup
-echo     - OR run: scripts\SETUP.bat
+echo     - Run: app\scripts\setup-all.bat
 echo.
 echo   If dependencies are MISSING:
 echo     - Activate venv: .venv\Scripts\activate.bat
 echo     - Install: pip install -r requirements.txt
 echo.
 echo   If all OK:
-echo     - Run: menu.bat - Select [A] Start All Services
-echo     - OR start individual services via menu options 1-9
+echo     - Run: app\scripts\start-all.bat
+echo     - OR start individual services via app\scripts\start-*.bat
 echo.
 echo ================================================================================
 echo.

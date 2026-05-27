@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # =============================================================================
 # Start All Core Services
 # =============================================================================
@@ -6,7 +6,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
+PROJECT_ROOT="$(dirname "$(dirname "${SCRIPT_DIR}")")"
 
 # Colors
 GREEN='\033[0;32m'
@@ -51,5 +51,5 @@ echo -e "${CYAN}================================================================
 echo -e "${GREEN}All core services started!${NC}"
 echo -e "${CYAN}=================================================================================${NC}"
 echo ""
-echo "Run 'bash scripts/health-check-all.sh' to verify all services"
-echo "Run 'bash scripts/expose-public.sh' to expose services via Cloudflared"
+echo "Run 'bash app/scripts/health-check-all.sh' to verify all services"
+echo "Run 'bash app/scripts/expose-public.sh' to expose services via Cloudflared"

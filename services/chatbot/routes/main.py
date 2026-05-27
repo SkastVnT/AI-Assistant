@@ -809,7 +809,7 @@ CHá»ˆ tráº£ JSON."""
             prompt_data = json.loads(json_match.group())
             generated_prompt = prompt_data.get("prompt", "")
             generated_neg = prompt_data.get("negative_prompt", "")
-            explanation = prompt_data.get("explanation", "")
+            prompt_data.get("explanation", "")
 
             # Add NSFW filters
             nsfw_filters = "nsfw, nude, naked, explicit, sexual, porn"

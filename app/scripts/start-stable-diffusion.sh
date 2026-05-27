@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # =============================================================================
 # Start Stable Diffusion Web UI
 # Port: 7860
@@ -7,7 +7,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
+PROJECT_ROOT="$(dirname "$(dirname "${SCRIPT_DIR}")")"
 SERVICE_DIR="${PROJECT_ROOT}/services/stable-diffusion"
 LOGS_DIR="${PROJECT_ROOT}/logs"
 PORT=7860
@@ -44,7 +44,7 @@ echo "${PID}" > "${LOGS_DIR}/stable-diffusion.pid"
 sleep 10
 
 if netstat -tlnp 2>/dev/null | grep -q ":${PORT} " || ss -tlnp 2>/dev/null | grep -q ":${PORT} "; then
-    echo -e "${GREEN}✓ Stable Diffusion started successfully (PID: ${PID})${NC}"
+    echo -e "${GREEN}âœ“ Stable Diffusion started successfully (PID: ${PID})${NC}"
     echo -e "${GREEN}  URL: http://localhost:${PORT}${NC}"
 else
     echo -e "${YELLOW}Stable Diffusion starting (may take a while)... Check log: ${LOGS_DIR}/stable-diffusion.log${NC}"

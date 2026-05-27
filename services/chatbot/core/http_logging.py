@@ -59,7 +59,7 @@ def _body_summary_for_log(path: str, body):
     tools = body.get("tools")
     history = body.get("history")
     return {
-        "keys": sorted(str(key) for key in body.keys()),
+        "keys": sorted(str(key) for key in body),
         "message_length": len(message) if isinstance(message, str) else 0,
         "model": body.get("model"),
         "context": body.get("context"),

@@ -123,7 +123,7 @@ class TestPromptEngineering:
         """Test system prompt format"""
         from app import SYSTEM_PROMPTS
 
-        for key, prompt in SYSTEM_PROMPTS.items():
+        for _key, prompt in SYSTEM_PROMPTS.items():
             assert isinstance(prompt, str)
             assert len(prompt) > 10
             # Should contain meaningful content

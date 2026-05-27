@@ -5,6 +5,8 @@ Desktop-only build: launches the Flask monolith (chatbot_main.py).
 FastAPI and modular-app-factory modes were removed.
 """
 
+from dotenv import load_dotenv
+from services.shared_env import load_shared_env
 import atexit
 import logging
 import os
@@ -64,16 +66,17 @@ sys.path.insert(0, str(service_dir))
 # Add project root for shared configs
 project_root = service_dir.parent.parent
 sys.path.insert(0, str(project_root))
+app_root = project_root / "app"
+if str(app_root) not in sys.path:
+    sys.path.insert(1, str(app_root))
 
 # Load environment variables EARLY — before any app module imports
 # so that config class attributes (evaluated at import time) pick up .env values.
-from services.shared_env import load_shared_env
 
 load_shared_env(__file__)
 
 # Load chatbot-specific .env for vars not already set by shared env
 # (e.g. FAL_API_KEY, STEPFUN_API_KEY that only exist in chatbot .env).
-from dotenv import load_dotenv
 
 _chatbot_env = service_dir / ".env"
 if _chatbot_env.exists():
@@ -355,7 +358,7 @@ def _start_character_select_if_needed() -> None:
 
     saa_path_str = os.getenv(
         "CHARACTER_SELECT_PATH",
-        str(project_root / "character_select_stand_alone_app-main"),
+        str(app_root / "character_select_stand_alone_app-main"),
     )
     saa_path = Path(saa_path_str)
     if not saa_path.is_absolute():
@@ -430,9 +433,7 @@ def _start_character_select_if_needed() -> None:
 def _should_autostart_services() -> bool:
     if os.getenv("WERKZEUG_RUN_MAIN") == "true":
         return False
-    if os.getenv("RUN_MAIN") == "true":
-        return False
-    return True
+    return os.getenv("RUN_MAIN") != "true"
 
 
 USE_FASTAPI = False

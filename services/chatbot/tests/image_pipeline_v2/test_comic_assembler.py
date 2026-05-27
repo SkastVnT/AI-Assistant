@@ -288,7 +288,11 @@ class TestResultSerialization:
 
 
 _EXEC_DIR = (
-    Path(__file__).resolve().parents[4] / "image_pipeline" / "reasoning" / "execution"
+    Path(__file__).resolve().parents[4]
+    / "app"
+    / "image_pipeline"
+    / "reasoning"
+    / "execution"
 )
 _ASSEMBLER = _EXEC_DIR / "comic_assembler.py"
 

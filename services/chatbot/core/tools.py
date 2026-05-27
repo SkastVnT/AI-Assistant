@@ -2,6 +2,14 @@
 Tool functions for chatbot
 """
 
+from core.config import (
+    GITHUB_TOKEN,
+    GOOGLE_CSE_ID,
+    GOOGLE_SEARCH_API_KEY_1,
+    GOOGLE_SEARCH_API_KEY_2,
+    SAUCENAO_API_KEY,
+    SERPAPI_API_KEY,
+)
 import logging
 import sys
 from pathlib import Path
@@ -15,14 +23,6 @@ CHATBOT_DIR = Path(__file__).parent.parent.resolve()
 if str(CHATBOT_DIR) not in sys.path:
     sys.path.insert(0, str(CHATBOT_DIR))
 
-from core.config import (
-    GITHUB_TOKEN,
-    GOOGLE_CSE_ID,
-    GOOGLE_SEARCH_API_KEY_1,
-    GOOGLE_SEARCH_API_KEY_2,
-    SAUCENAO_API_KEY,
-    SERPAPI_API_KEY,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -483,10 +483,7 @@ def serpapi_reverse_image(image_url: str) -> str:
                 snippet = item.get("snippet", "")
                 link = item.get("link", item.get("original", "")) or ""
                 thumb = item.get("thumbnail", "") or item.get("original", "")
-                if thumb:
-                    image_md = f"[![{title}]({thumb})]({link or thumb})\n"
-                else:
-                    image_md = ""
+                image_md = f"[![{title}]({thumb})]({link or thumb})\n" if thumb else ""
                 parts.append(
                     f"**#{i + 1}** {title}\n{image_md}{snippet}\n🔗 [{link}]({link})"
                 )

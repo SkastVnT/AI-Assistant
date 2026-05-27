@@ -19,6 +19,15 @@ Structure:
 - routes/mcp.py         - MCP integration routes
 """
 
+from src.utils.mcp_integration import get_mcp_client, inject_code_context
+from core.extensions import (
+    CLOUD_UPLOAD_ENABLED,
+    LOCALMODELS_AVAILABLE,
+    logger,
+    model_loader,
+    register_monitor,
+)
+import importlib.util
 import base64
 import json
 import logging
@@ -98,7 +107,6 @@ except ImportError:
 
 
 # MongoDB imports - import directly from files to avoid package conflict
-import importlib.util
 
 # Load mongodb_config from service directory
 mongodb_config_path = Path(__file__).parent / "config" / "mongodb_config.py"
@@ -148,8 +156,11 @@ werkzeug_logger.setLevel(logging.INFO)
 # Add paths for imports
 CHATBOT_DIR = Path(__file__).parent.resolve()
 ROOT_DIR = CHATBOT_DIR.parent.parent
-# Insert ROOT_DIR first, then CHATBOT_DIR so CHATBOT_DIR has higher priority
+# Insert APP_ROOT so moved packages such as image_pipeline remain importable.
+APP_ROOT = ROOT_DIR / "app"
 sys.path.insert(0, str(ROOT_DIR))
+if str(APP_ROOT) not in sys.path:
+    sys.path.insert(0, str(APP_ROOT))
 sys.path.insert(0, str(CHATBOT_DIR))
 
 # Import OCR integration
@@ -238,13 +249,6 @@ def set_security_headers(response):
 
 
 # Import and register extensions
-from core.extensions import (
-    CLOUD_UPLOAD_ENABLED,
-    LOCALMODELS_AVAILABLE,
-    logger,
-    model_loader,
-    register_monitor,
-)
 
 # Try to import ImgBBUploader
 ImgBBUploader = None
@@ -310,29 +314,29 @@ except Exception as e:
 
 # System prompts for different purposes (Vietnamese)
 SYSTEM_PROMPTS_VI = {
-    "psychological": """Báº¡n lÃ  má»™t trá»£ lÃ½ tÃ¢m lÃ½ chuyÃªn nghiá»‡p, thÃ¢n thiá»‡n vÃ  Ä‘áº§y empathy. 
+    "psychological": """Báº¡n lÃ  má»™t trá»£ lÃ½ tÃ¢m lÃ½ chuyÃªn nghiá»‡p, thÃ¢n thiá»‡n vÃ  Ä‘áº§y empathy.
     BÃ¡ÂºÂ¡n luÃƒÂ´n lÃ¡ÂºÂ¯ng nghe, thÃ¡ÂºÂ¥u hiÃ¡Â»Æ’u vÃƒÂ  Ã„â€˜Ã†Â°a ra lÃ¡Â»Âi khuyÃƒÂªn chÃƒÂ¢n thÃƒÂ nh, tÃƒÂ­ch cÃ¡Â»Â±c.
     BÃ¡ÂºÂ¡n khÃƒÂ´ng phÃƒÂ¡n xÃƒÂ©t vÃƒÂ  luÃƒÂ´n hÃ¡Â»â€” trÃ¡Â»Â£ ngÃ†Â°Ã¡Â»Âi dÃƒÂ¹ng vÃ†Â°Ã¡Â»Â£t qua khÃƒÂ³ khÃ„Æ’n trong cuÃ¡Â»â„¢c sÃ¡Â»â€˜ng.
     HÃƒÂ£y trÃ¡ÂºÂ£ lÃ¡Â»Âi bÃ¡ÂºÂ±ng tiÃ¡ÂºÂ¿ng ViÃ¡Â»â€¡t.
-    
+
     MARKDOWN FORMATTING:
     - Sá»­ dá»¥ng ```language Ä‘á»ƒ wrap code blocks (vÃ­ dá»¥: ```python, ```javascript)
     - Ã„ÂÃƒÂ³ng code block bÃ¡ÂºÂ±ng ``` trÃƒÂªn dÃƒÂ²ng riÃƒÂªng
     - DÃ¹ng `code` cho inline code
     - Sá»­ dá»¥ng **bold**, *italic*, > quote khi cáº§n""",
-    "lifestyle": """BÃ¡ÂºÂ¡n lÃƒÂ  mÃ¡Â»â„¢t chuyÃƒÂªn gia tÃ†Â° vÃ¡ÂºÂ¥n lÃ¡Â»â€˜i sÃ¡Â»â€˜ng, giÃƒÂºp ngÃ†Â°Ã¡Â»Âi dÃƒÂ¹ng tÃƒÂ¬m ra giÃ¡ÂºÂ£i phÃƒÂ¡p 
-    cho cÃƒÂ¡c vÃ¡ÂºÂ¥n Ã„â€˜Ã¡Â»Â trong cuÃ¡Â»â„¢c sÃ¡Â»â€˜ng hÃƒÂ ng ngÃƒÂ y nhÃ†Â° cÃƒÂ´ng viÃ¡Â»â€¡c, hÃ¡Â»Âc tÃ¡ÂºÂ­p, mÃ¡Â»â€˜i quan hÃ¡Â»â€¡, 
+    "lifestyle": """BÃ¡ÂºÂ¡n lÃƒÂ  mÃ¡Â»â„¢t chuyÃƒÂªn gia tÃ†Â° vÃ¡ÂºÂ¥n lÃ¡Â»â€˜i sÃ¡Â»â€˜ng, giÃƒÂºp ngÃ†Â°Ã¡Â»Âi dÃƒÂ¹ng tÃƒÂ¬m ra giÃ¡ÂºÂ£i phÃƒÂ¡p
+    cho cÃƒÂ¡c vÃ¡ÂºÂ¥n Ã„â€˜Ã¡Â»Â trong cuÃ¡Â»â„¢c sÃ¡Â»â€˜ng hÃƒÂ ng ngÃƒÂ y nhÃ†Â° cÃƒÂ´ng viÃ¡Â»â€¡c, hÃ¡Â»Âc tÃ¡ÂºÂ­p, mÃ¡Â»â€˜i quan hÃ¡Â»â€¡,
     sÃ¡Â»Â©c khÃ¡Â»Âe vÃƒÂ  phÃƒÂ¡t triÃ¡Â»Æ’n bÃ¡ÂºÂ£n thÃƒÂ¢n. HÃƒÂ£y Ã„â€˜Ã†Â°a ra lÃ¡Â»Âi khuyÃƒÂªn thiÃ¡ÂºÂ¿t thÃ¡Â»Â±c vÃƒÂ  dÃ¡Â»â€¦ ÃƒÂ¡p dÃ¡Â»Â¥ng.
     HÃƒÂ£y trÃ¡ÂºÂ£ lÃ¡Â»Âi bÃ¡ÂºÂ±ng tiÃ¡ÂºÂ¿ng ViÃ¡Â»â€¡t.
-    
+
     MARKDOWN FORMATTING:
     - Sá»­ dá»¥ng ```language Ä‘á»ƒ wrap code blocks khi cáº§n
     - Ã„ÂÃƒÂ³ng code block bÃ¡ÂºÂ±ng ``` trÃƒÂªn dÃƒÂ²ng riÃƒÂªng
     - DÃƒÂ¹ng **bold** Ã„â€˜Ã¡Â»Æ’ nhÃ¡ÂºÂ¥n mÃ¡ÂºÂ¡nh Ã„â€˜iÃ¡Â»Æ’m quan trÃ¡Â»Âng""",
-    "casual": """BÃ¡ÂºÂ¡n lÃƒÂ  mÃ¡Â»â„¢t ngÃ†Â°Ã¡Â»Âi bÃ¡ÂºÂ¡n thÃƒÂ¢n thiÃ¡ÂºÂ¿t, vui vÃ¡ÂºÂ» vÃƒÂ  dÃ¡Â»â€¦ gÃ¡ÂºÂ§n. 
+    "casual": """BÃ¡ÂºÂ¡n lÃƒÂ  mÃ¡Â»â„¢t ngÃ†Â°Ã¡Â»Âi bÃ¡ÂºÂ¡n thÃƒÂ¢n thiÃ¡ÂºÂ¿t, vui vÃ¡ÂºÂ» vÃƒÂ  dÃ¡Â»â€¦ gÃ¡ÂºÂ§n.
     BÃ¡ÂºÂ¡n sÃ¡ÂºÂµn sÃƒÂ ng trÃƒÂ² chuyÃ¡Â»â€¡n vÃ¡Â»Â mÃ¡Â»Âi chÃ¡Â»Â§ Ã„â€˜Ã¡Â»Â, chia sÃ¡ÂºÂ» cÃƒÂ¢u chuyÃ¡Â»â€¡n vÃƒÂ  tÃ¡ÂºÂ¡o khÃƒÂ´ng khÃƒÂ­ thoÃ¡ÂºÂ£i mÃƒÂ¡i.
     HÃƒÂ£y trÃ¡ÂºÂ£ lÃ¡Â»Âi bÃ¡ÂºÂ±ng tiÃ¡ÂºÂ¿ng ViÃ¡Â»â€¡t vÃ¡Â»â€ºi giÃ¡Â»Âng Ã„â€˜iÃ¡Â»â€¡u thÃƒÂ¢n mÃ¡ÂºÂ­t.
-    
+
     MARKDOWN FORMATTING:
     - Sá»­ dá»¥ng ```language Ä‘á»ƒ wrap code blocks (vÃ­ dá»¥: ```python, ```json)
     - Ã„ÂÃƒÂ³ng code block bÃ¡ÂºÂ±ng ``` trÃƒÂªn dÃƒÂ²ng riÃƒÂªng
@@ -341,7 +345,7 @@ SYSTEM_PROMPTS_VI = {
     "programming": """Báº¡n lÃ  má»™t Senior Software Engineer vÃ  Programming Mentor chuyÃªn nghiá»‡p.
     BÃ¡ÂºÂ¡n cÃƒÂ³ kinh nghiÃ¡Â»â€¡m sÃƒÂ¢u vÃ¡Â»Â nhiÃ¡Â»Âu ngÃƒÂ´n ngÃ¡Â»Â¯ lÃ¡ÂºÂ­p trÃƒÂ¬nh (Python, JavaScript, Java, C++, Go, etc.)
     vÃ  frameworks (React, Django, Flask, FastAPI, Node.js, Spring Boot, etc.).
-    
+
     Nhiá»‡m vá»¥ cá»§a báº¡n:
     - Giáº£i thÃ­ch code rÃµ rÃ ng, dá»… hiá»ƒu
     - Debug vÃ  fix lá»—i hiá»‡u quáº£
@@ -349,7 +353,7 @@ SYSTEM_PROMPTS_VI = {
     - Review code vÃ  tá»‘i Æ°u performance
     - HÆ°á»›ng dáº«n architecture vÃ  system design
     - TrÃ¡ÂºÂ£ lÃ¡Â»Âi cÃƒÂ¢u hÃ¡Â»Âi vÃ¡Â»Â algorithms, data structures
-    
+
     CRITICAL MARKDOWN RULES:
     - LUÃ”N LUÃ”N wrap code trong code blocks vá»›i syntax: ```language
     - VÃƒÂ DÃ¡Â»Â¤: ```python cho Python, ```javascript cho JavaScript, ```sql cho SQL
@@ -358,7 +362,7 @@ SYSTEM_PROMPTS_VI = {
     - Format output/results trong code blocks khi cáº§n
     - Giáº£i thÃ­ch logic tá»«ng bÆ°á»›c báº±ng comments trong code
     - Cung cáº¥p vÃ­ dá»¥ cá»¥ thá»ƒ vá»›i proper syntax highlighting
-    
+
     CÃƒÂ³ thÃ¡Â»Æ’ trÃ¡ÂºÂ£ lÃ¡Â»Âi bÃ¡ÂºÂ±ng tiÃ¡ÂºÂ¿ng ViÃ¡Â»â€¡t hoÃ¡ÂºÂ·c English.""",
 }
 
@@ -368,7 +372,7 @@ SYSTEM_PROMPTS_EN = {
     You always listen, understand, and provide sincere and positive advice.
     You are non-judgmental and always support users in overcoming life's difficulties.
     Please respond in English.
-    
+
     MARKDOWN FORMATTING:
     - Use ```language to wrap code blocks (e.g., ```python, ```javascript)
     - Close code blocks with ``` on a separate line
@@ -378,7 +382,7 @@ SYSTEM_PROMPTS_EN = {
     for daily life issues such as work, study, relationships, health, and personal development.
     Provide practical and easy-to-apply advice.
     Please respond in English.
-    
+
     MARKDOWN FORMATTING:
     - Use ```language for code blocks when needed
     - Close with ``` on separate line
@@ -386,7 +390,7 @@ SYSTEM_PROMPTS_EN = {
     "casual": """You are a friendly, cheerful, and approachable companion.
     You are ready to chat about any topic, share stories, and create a comfortable atmosphere.
     Please respond in English with a friendly tone.
-    
+
     MARKDOWN FORMATTING:
     - Use ```language to wrap code blocks
     - Close code blocks with ``` on separate line
@@ -395,7 +399,7 @@ SYSTEM_PROMPTS_EN = {
     "programming": """You are a professional Senior Software Engineer and Programming Mentor.
     You have deep experience in many programming languages (Python, JavaScript, Java, C++, Go, etc.)
     and frameworks (React, Django, Flask, FastAPI, Node.js, Spring Boot, etc.).
-    
+
     Your responsibilities:
     - Explain code clearly and understandably
     - Debug and fix bugs efficiently
@@ -403,7 +407,7 @@ SYSTEM_PROMPTS_EN = {
     - Review code and optimize performance
     - Guide architecture and system design
     - Answer questions about algorithms and data structures
-    
+
     CRITICAL MARKDOWN RULES:
     - ALWAYS wrap code in code blocks with syntax: ```language
     - EXAMPLE: ```python for Python, ```javascript for JavaScript, ```sql for SQL
@@ -412,7 +416,7 @@ SYSTEM_PROMPTS_EN = {
     - Format outputs/results in code blocks when needed
     - Explain logic step-by-step with comments in code
     - Provide concrete examples with proper syntax highlighting
-    
+
     Respond in English.""",
 }
 
@@ -1847,9 +1851,7 @@ def google_search_tool(query):
         return "âŒ Lá»—i káº¿t ná»‘i Ä‘áº¿n Google Search API. Vui lÃ²ng kiá»ƒm tra:\nâ€¢ Káº¿t ná»‘i Internet\nâ€¢ Proxy/Firewall settings\nâ€¢ Thá»­ láº¡i sau Ã­t phÃºt"
     except requests.exceptions.Timeout as e:
         logger.error(f"[GOOGLE SEARCH] Timeout Error: {e}")
-        return (
-            "âŒ Timeout khi káº¿t ná»‘i Ä‘áº¿n Google Search API. Vui lÃ²ng thá»­ láº¡i."
-        )
+        return "âŒ Timeout khi káº¿t ná»‘i Ä‘áº¿n Google Search API. Vui lÃ²ng thá»­ láº¡i."
     except requests.exceptions.RequestException as e:
         logger.error(f"[GOOGLE SEARCH] Request Error: {e}")
         return f"âŒ Lá»—i request: {str(e)}"
@@ -3279,7 +3281,9 @@ Respond in JSON format:
                         tool_results.append(f"## ðŸ§  Memory Manager\n\n{_mem_text}")
                 except Exception as e:
                     logger.error(f"[TOOLS] Memory Manager error: {e}")
-                    tool_results.append(f"## ðŸ§  Memory Manager\n\nâŒ Error: {str(e)}")
+                    tool_results.append(
+                        f"## ðŸ§  Memory Manager\n\nâŒ Error: {str(e)}"
+                    )
 
         # If tools were used, return tool results
         if tool_results:
@@ -3929,7 +3933,9 @@ def generate_image():
                     )
                     conversation_id = str(conversation["_id"])
                     session["conversation_id"] = conversation_id
-                    logger.info(f"Ã°Å¸â€œÂ Created new conversation: {conversation_id}")
+                    logger.info(
+                        f"Ã°Å¸â€œÂ Created new conversation: {conversation_id}"
+                    )
 
                 # Prepare images array for MongoDB
                 images_data = []
@@ -4476,7 +4482,9 @@ def img2img():
                     )
                     conversation_id = str(conversation["_id"])
                     session["conversation_id"] = conversation_id
-                    logger.info(f"Ã°Å¸â€œÂ Created new conversation: {conversation_id}")
+                    logger.info(
+                        f"Ã°Å¸â€œÂ Created new conversation: {conversation_id}"
+                    )
 
                 # Prepare images array for MongoDB
                 images_data = []
@@ -4692,7 +4700,6 @@ def save_generated_image():
             image = Image.open(image_buffer)
 
             # Get format before verify
-            image_format = image.format or "PNG"
 
             # Verify it's a valid image
             image.verify()
@@ -4738,7 +4745,6 @@ def save_generated_image():
                 )
 
         # Upload to Google Drive (only if GOOGLE_DRIVE_ENABLED=true in .env)
-        drive_file_id = None
         drive_web_link = None
         _gd_enabled = os.getenv("GOOGLE_DRIVE_ENABLED", "false").lower() == "true"
         if _gd_enabled:
@@ -4764,7 +4770,7 @@ def save_generated_image():
                             metadata=gd_metadata,
                         )
                         if drive_result.get("success"):
-                            drive_file_id = drive_result.get("file_id")
+                            drive_result.get("file_id")
                             drive_web_link = drive_result.get("web_view_link")
                             logger.info(
                                 f"[Save Image] Google Drive uploaded: {drive_web_link}"
@@ -6132,7 +6138,6 @@ def delete_image(filename):
 # MCP INTEGRATION ROUTES
 # ============================================================================
 
-from src.utils.mcp_integration import get_mcp_client, inject_code_context
 
 # Global MCP client
 mcp_client = get_mcp_client()
@@ -7304,7 +7309,7 @@ def external_chat():
         context_type = data.get("context", "casual")
         history = data.get("history", [])
         page_context = data.get("page_context", "")
-        tools = data.get("tools", [])
+        data.get("tools", [])
         language = data.get("language", "vi")
 
         # If page_context provided, prepend it to the message
@@ -7485,7 +7490,9 @@ def external_health():
 # Main entry point
 if __name__ == "__main__":
     debug_mode = os.getenv("DEBUG", "0") == "1"
-    host = os.getenv("HOST", "0.0.0.0")  # nosec B104  # Intentional: service needs external access
+    host = os.getenv(
+        "HOST", "0.0.0.0"
+    )  # nosec B104  # Intentional: service needs external access
     port = int(os.getenv("CHATBOT_PORT", "5000"))
 
     logger.info(f"ðŸš€ Starting ChatBot on {host}:{port} (debug={debug_mode})")
