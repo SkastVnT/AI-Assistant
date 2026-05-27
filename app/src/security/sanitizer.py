@@ -19,7 +19,9 @@ class Sanitizer:
     # Characters to remove/escape
     SQL_CHARS = [";", "--", "/*", "*/", "xp_", "EXEC", "EXECUTE"]
     HTML_TAGS = re.compile(r"<[^>]+>")
-    SCRIPT_PATTERN = re.compile(r"<script[^>]*>.*?</script>", re.IGNORECASE | re.DOTALL)
+    SCRIPT_PATTERN = re.compile(
+        r"<script\b[^>]*>.*?</script\b[^>]*>", re.IGNORECASE | re.DOTALL
+    )
 
     def __init__(self, allow_html: bool = False, max_length: int = 10000):
         """
