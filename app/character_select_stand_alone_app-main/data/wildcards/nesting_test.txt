@@ -1,4 +1,0 @@
-{ standing | sitting | on back | on stomach }
-{ redhair | blue hair | blonde }
-{ small breasts | large breasts }
-{ standing, looking at viewer | sitting, looking at viewer | on back, looking back | on stomach, pov }, {small breasts | large breasts }, { redhair | blue hair | blonde }

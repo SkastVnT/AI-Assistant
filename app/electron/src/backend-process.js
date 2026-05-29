@@ -97,10 +97,16 @@ function startBackend({ onLog } = {}) {
 
         const py = pickPython();
         const args = [path.join('services', 'chatbot', 'run.py')];
+        const existingPythonPath = process.env.PYTHONPATH || '';
+        const chatbotRoot = path.join(REPO_ROOT, 'services', 'chatbot');
+        const extraPaths = [REPO_ROOT, chatbotRoot].join(path.delimiter);
         const env = Object.assign({}, process.env, {
             FLASK_PORT: String(PORT),
             PYTHONIOENCODING: 'utf-8',
-            ELECTRON_DESKTOP: 'true'
+            ELECTRON_DESKTOP: 'true',
+            PYTHONPATH: existingPythonPath
+                ? extraPaths + path.delimiter + existingPythonPath
+                : extraPaths,
         });
 
         let child;

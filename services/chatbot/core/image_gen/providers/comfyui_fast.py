@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 # ── SAA-default knobs (override via env) ──────────────────────────────
 DEFAULT_CKPT = os.getenv(
     "COMFYUI_FAST_CHECKPOINT",
-    "waiIllustriousSDXL_v170.safetensors",
+    "WAI-illustrious-SDXL_17.safetensors",
 )
 DEFAULT_W = int(os.getenv("COMFYUI_FAST_WIDTH", "1024"))
 DEFAULT_H = int(os.getenv("COMFYUI_FAST_HEIGHT", "1360"))

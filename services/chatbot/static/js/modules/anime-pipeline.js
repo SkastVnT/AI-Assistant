@@ -894,6 +894,11 @@ export class AnimePipeline {
                 }
                 break;
             }
+            case 'ap_queued': {
+                const pos = data.position || 1;
+                this._inlineSetCurrent(uid, `⏳ Đang chờ GPU — vị trí ${pos}…`);
+                break;
+            }
             case 'ap_result':
                 this._inlineShowResult(bubble, uid, data, prompt, startTime, chatContainer);
                 break;

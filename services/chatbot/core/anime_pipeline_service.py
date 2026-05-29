@@ -432,8 +432,10 @@ def stream_pipeline(req: PipelineRequest) -> Generator[str, None, None]:
     from image_pipeline.anime_pipeline import AnimePipelineOrchestrator
 
     job = build_job(req)
-    orchestrator = AnimePipelineOrchestrator()
 
+    # Yield ap_status FIRST so the browser starts rendering immediately.
+    # The orchestrator is constructed *after* this yield so the client
+    # receives the initial status frame before any blocking init work runs.
     yield _sse_line(
         "ap_status",
         {
@@ -442,6 +444,28 @@ def stream_pipeline(req: PipelineRequest) -> Generator[str, None, None]:
             "stages": list(_STAGE_LABELS.keys()),
         },
     )
+
+    # Construct orchestrator after the first yield — takes ~2 s on cold
+    # import because it loads YAML config and instantiates all agents.
+    try:
+        orchestrator = AnimePipelineOrchestrator()
+    except Exception as _orch_exc:
+        logger.error(
+            "[AnimePipelineService] Orchestrator init failed for job=%s: %s",
+            job.job_id,
+            _orch_exc,
+        )
+        yield _sse_line(
+            "ap_error",
+            {
+                "job_id": job.job_id,
+                "stage": "init",
+                "error": f"Pipeline init failed: {_orch_exc}",
+                "recoverable": False,
+            },
+        )
+        yield _sse_line("ap_done", {"job_id": job.job_id})
+        return
 
     # ── Concurrency gate: at most _PIPELINE_MAX_CONCURRENT jobs on GPU ──
     global _PIPELINE_WAITING_COUNT

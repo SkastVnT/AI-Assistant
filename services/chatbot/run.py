@@ -63,14 +63,17 @@ logging.getLogger("multipart").setLevel(logging.WARNING)
 
 # Ensure the chatbot service directory is in path
 service_dir = Path(__file__).parent
-sys.path.insert(0, str(service_dir))
 
 # Add project root for shared configs
 project_root = service_dir.parent.parent
-sys.path.insert(0, str(project_root))
 app_root = project_root / "app"
-if str(app_root) not in sys.path:
-    sys.path.insert(1, str(app_root))
+
+# Guarantee priority order at the front of sys.path:
+#   project_root > service_dir > app_root
+# Strip any existing occurrences first (Python may have auto-inserted
+# service_dir, and PYTHONPATH may have added others), then prepend together.
+_priority = [str(project_root), str(service_dir), str(app_root)]
+sys.path = _priority + [p for p in sys.path if p not in set(_priority)]
 
 # Load environment variables EARLY — before any app module imports
 # so that config class attributes (evaluated at import time) pick up .env values.

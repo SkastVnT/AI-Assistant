@@ -505,6 +505,27 @@ WORKFLOW_PRESETS = {
         "category": "realistic",
         "hires_fix": False,
     },
+    # -- WAI Illustrious v17 (local ComfyUI fast path) -------------------
+    "wai_illustrious_v17": {
+        "name": "WAI Illustrious v17 (Local)",
+        "description": "High-quality anime generation with WAI-Illustrious-SDXL v17. "
+        "Uses the comfyui_fast single-pass pipeline on your local GPU. "
+        "Supports <lora:name:weight> syntax and character LoRAs.",
+        "checkpoint": "WAI-illustrious-SDXL_17.safetensors",
+        "default_loras": [],
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers, "
+        "extra digit, fewer digits, cropped, worst quality, low quality, "
+        "jpeg artifacts, signature, watermark, username, blurry",
+        "cfg_scale": 7.0,
+        "steps": 30,
+        "sampler": "euler_ancestral",
+        "scheduler": "normal",
+        "width": 1024,
+        "height": 1360,
+        "category": "anime",
+        "hires_fix": False,
+        "provider": "comfyui_fast",
+    },
     # -- Fantasy / artistic -----------------------------------------------
     "fantasy_anime": {
         "name": "Fantasy Anime",
