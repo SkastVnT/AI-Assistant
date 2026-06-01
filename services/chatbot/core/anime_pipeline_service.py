@@ -24,9 +24,9 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from .project_paths import COMFYUI_DIR
+    from .project_paths import COMFYUI_DIR, STORAGE_DIR
 except ImportError:  # pragma: no cover - supports top-level core imports
-    from core.project_paths import COMFYUI_DIR
+    from core.project_paths import COMFYUI_DIR, STORAGE_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +36,8 @@ _PIPELINE_FLAG = "IMAGE_PIPELINE_V2"
 _COMFYUI_URL_KEY = "COMFYUI_URL"
 _DEFAULT_COMFYUI_URL = "http://127.0.0.1:8188"
 
-# Image storage: services/chatbot/Storage/Image_Gen/
-_IMAGE_STORAGE_DIR = Path(__file__).parent.parent / "Storage" / "Image_Gen"
+# Image storage: app/storage/image_gen/ (canonical output root)
+_IMAGE_STORAGE_DIR = STORAGE_DIR / "image_gen"
 
 # ComfyUI sibling folder for the final canonical image of every run, including
 # runs that ended early via Stop. Mirrors the file already written under

@@ -1,7 +1,7 @@
 """
 image_pipeline.evaluator.benchmark_runner — CLI/programmatic benchmark executor.
 
-Loads test cases from configs/benchmark_suite.yaml, runs them through the
+Loads test cases from configs/anime_benchmark_suite.yaml, runs them through the
 pipeline, scores each with the Scorer, records results via ExperimentLog,
 and prints a suite summary.
 
@@ -40,7 +40,7 @@ from image_pipeline.paths import CONFIGS_DIR
 logger = logging.getLogger(__name__)
 
 _CONFIGS_DIR = CONFIGS_DIR
-_BENCHMARK_YAML = _CONFIGS_DIR / "benchmark_suite.yaml"
+_BENCHMARK_YAML = _CONFIGS_DIR / "anime_benchmark_suite.yaml"
 
 
 class BenchmarkRunner:

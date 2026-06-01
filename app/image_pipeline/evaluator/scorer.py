@@ -38,8 +38,8 @@ logger = logging.getLogger(__name__)
 # ── Config paths ──────────────────────────────────────────────────
 
 _CONFIGS_DIR = CONFIGS_DIR
-_PIPELINE_YAML = _CONFIGS_DIR / "pipeline.yaml"
-_BENCHMARK_YAML = _CONFIGS_DIR / "benchmark_suite.yaml"
+_PIPELINE_YAML = _CONFIGS_DIR / "anime_pipeline.yaml"
+_BENCHMARK_YAML = _CONFIGS_DIR / "anime_benchmark_suite.yaml"
 
 
 # ── Dimension → applicable intent mapping ─────────────────────────
@@ -145,8 +145,8 @@ class Scorer:
     """
     LLM-as-judge that scores pipeline outputs across 8 dimensions.
 
-    Loads thresholds and rubrics from configs/pipeline.yaml and
-    configs/benchmark_suite.yaml at initialization.
+    Loads thresholds and rubrics from configs/anime_pipeline.yaml and
+    configs/anime_benchmark_suite.yaml at initialization.
     """
 
     def __init__(

@@ -6,7 +6,7 @@ Runtime router that maps (task_type, quality_tier, availability) → (model, pro
 
 Reads three YAML configs at startup:
     configs/models.yaml     — model registry (capabilities, costs, VRAM)
-    configs/pipeline.yaml   — stage timeouts, eval thresholds, deployment topology
+    configs/anime_pipeline.yaml   — stage timeouts, eval thresholds, deployment topology
     configs/routing.yaml    — task-type → model chain mapping + quality overrides
 
 Usage:
@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 _CONFIGS_DIR = CONFIGS_DIR
 
 _MODELS_YAML = _CONFIGS_DIR / "models.yaml"
-_PIPELINE_YAML = _CONFIGS_DIR / "pipeline.yaml"
+_PIPELINE_YAML = _CONFIGS_DIR / "anime_pipeline.yaml"
 _ROUTING_YAML = _CONFIGS_DIR / "routing.yaml"
 
 

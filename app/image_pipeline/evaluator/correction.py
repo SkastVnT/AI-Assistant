@@ -33,7 +33,7 @@ from image_pipeline.paths import CONFIGS_DIR
 logger = logging.getLogger(__name__)
 
 _CONFIGS_DIR = CONFIGS_DIR
-_PIPELINE_YAML = _CONFIGS_DIR / "pipeline.yaml"
+_PIPELINE_YAML = _CONFIGS_DIR / "anime_pipeline.yaml"
 
 
 # ── Dimension → correction strategy mapping ───────────────────────

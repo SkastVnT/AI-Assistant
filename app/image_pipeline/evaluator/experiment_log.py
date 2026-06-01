@@ -32,7 +32,7 @@ from image_pipeline.paths import CONFIGS_DIR, STORAGE_DIR
 logger = logging.getLogger(__name__)
 
 _CONFIGS_DIR = CONFIGS_DIR
-_BENCHMARK_YAML = _CONFIGS_DIR / "benchmark_suite.yaml"
+_BENCHMARK_YAML = _CONFIGS_DIR / "anime_benchmark_suite.yaml"
 _STORAGE_DIR = STORAGE_DIR
 _BENCHMARK_DIR = _STORAGE_DIR / "metadata" / "benchmark"
 
