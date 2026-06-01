@@ -251,7 +251,7 @@ class ExperimentLog:
         """
         Produce a suite-level summary from all recorded cases.
 
-        Applies pass/fail rules from benchmark_suite.yaml:
+        Applies pass/fail rules from anime_benchmark_suite.yaml:
             - Per-category pass rate must be ≥ category_pass_rate
             - "Nano Banana-like" requires overall ≥ nano_banana_threshold
             - Critical dimension failures are flagged

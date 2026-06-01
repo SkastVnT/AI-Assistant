@@ -426,6 +426,9 @@ def test_run_lora_stage_falls_through_to_parser_identity(monkeypatch):
     inst._config.comfyui_url = ""
     inst._config.composition_model.checkpoint = "test.safetensors"
 
+    inst._runtime_policy = MagicMock()
+    inst._runtime_policy.allow_runtime_downloads = True
+
     # Capture what find_and_verify_character_lora is called with
     call_args = {}
 

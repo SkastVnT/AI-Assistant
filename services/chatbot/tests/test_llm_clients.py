@@ -127,7 +127,7 @@ class TestPromptEngineering:
             assert isinstance(prompt, str)
             assert len(prompt) > 10
             # Should contain meaningful content
-            assert any(word in prompt.lower() for word in ["you", "báº¡n", "assistant"])
+            assert any(word in prompt.lower() for word in ["you", "bạn", "assistant"])
 
 
 class TestModelSelection:

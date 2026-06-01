@@ -364,7 +364,7 @@ class RefinementPlan:
 # SCHEMA 4 — EvalResult (§13: 8-dimension benchmark)
 # ═════════════════════════════════════════════════════════════════════
 
-# Default thresholds — override via configs/pipeline.yaml
+# Default thresholds — override via configs/anime_pipeline.yaml
 _DEFAULT_THRESHOLDS: dict[str, float] = {
     EvalDimension.INSTRUCTION_ADHERENCE: 0.7,
     EvalDimension.SEMANTIC_EDIT: 0.7,
