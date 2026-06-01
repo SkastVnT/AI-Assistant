@@ -71,7 +71,7 @@ jsonschema>=4.26.0
 pyyaml>=6.0.3
 
 # File handling
-aiofiles>=23.0.0
+aiofiles>=25.1.0
 
 # ============= GOOGLE CLOUD / DRIVE =============
 google-auth>=2.53.0
