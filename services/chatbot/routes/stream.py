@@ -180,6 +180,13 @@ def _build_complete_event_payload(
     )
 
 
+def _with_rag_citations(payload: dict, citations: list | None) -> dict:
+    """Attach RAG citations to the complete-event payload when present."""
+    if citations:
+        payload["citations"] = citations
+    return payload
+
+
 def _needs_web_search(message: str, tools: list) -> bool:
     """Detect if the message needs web search for accurate real-time data."""
     if "google-search" in tools or "deep-research" in tools:
@@ -349,6 +356,19 @@ def chat_stream():
         memory_ids = data.get("memory_ids", [])
         mcp_selected_files = data.get("mcp_selected_files", [])
         history = data.get("history")
+
+        # ── RAG collection selection (opt-in; default empty) ──────────
+        rag_collection_ids = data.get("rag_collection_ids") or []
+        if isinstance(rag_collection_ids, str):
+            try:
+                rag_collection_ids = json.loads(rag_collection_ids)
+            except (ValueError, TypeError):
+                rag_collection_ids = [
+                    c.strip() for c in rag_collection_ids.split(",") if c.strip()
+                ]
+        if not isinstance(rag_collection_ids, list):
+            rag_collection_ids = []
+        rag_tenant_id = str(data.get("rag_tenant_id") or "default")
 
         # ── Shared request normalization ──────────────────────────────
         # Conversation id extract+validate+bind, image context injection,
@@ -530,6 +550,32 @@ def chat_stream():
                     )
             except Exception as e:
                 logger.warning(f"[MCP] Error injecting context: {e}")
+
+        # ── RAG retrieval (opt-in; gated by RAG_ENABLED + collections) ─
+        rag_citations = None
+        if rag_collection_ids:
+            try:
+                from core.rag_runner import run_rag_coro
+                from src.rag.service.orchestrator import RAGOrchestrator
+
+                _rag_result = run_rag_coro(
+                    RAGOrchestrator().retrieve_for_chat(
+                        message=message,
+                        custom_prompt=custom_prompt,
+                        language=language,
+                        tenant_id=rag_tenant_id,
+                        collection_ids=[str(c) for c in rag_collection_ids],
+                    )
+                )
+                message = _rag_result.message
+                custom_prompt = _rag_result.custom_prompt
+                rag_citations = _rag_result.citations
+                if _rag_result.chunk_count:
+                    logger.info(
+                        f"[SSE:{request_id}] RAG injected {_rag_result.chunk_count} chunk(s)"
+                    )
+            except Exception as e:  # noqa: BLE001 — never block streaming
+                logger.warning(f"[RAG] retrieval skipped: {e}")
 
         session_id = session.get("session_id")
         chatbot = get_chatbot(session_id)
@@ -1142,20 +1188,23 @@ def chat_stream():
                 yield StreamEvent(
                     event="complete",
                     data=json.dumps(
-                        _build_complete_event_payload(
-                            full_response=full_response,
-                            model=model,
-                            context=context,
-                            deep_thinking=deep_thinking,
-                            thinking_mode=thinking_mode,
-                            chunk_count=chunk_count,
-                            thinking_summary=thinking_summary,
-                            thinking_steps_text=thinking_steps_text,
-                            thinking_duration=thinking_duration,
-                            elapsed_time=_elapsed,
-                            tokens=_est_tokens,
-                            max_tokens=_max_tokens,
-                            request_id=request_id,
+                        _with_rag_citations(
+                            _build_complete_event_payload(
+                                full_response=full_response,
+                                model=model,
+                                context=context,
+                                deep_thinking=deep_thinking,
+                                thinking_mode=thinking_mode,
+                                chunk_count=chunk_count,
+                                thinking_summary=thinking_summary,
+                                thinking_steps_text=thinking_steps_text,
+                                thinking_duration=thinking_duration,
+                                elapsed_time=_elapsed,
+                                tokens=_est_tokens,
+                                max_tokens=_max_tokens,
+                                request_id=request_id,
+                            ),
+                            rag_citations,
                         )
                     ),
                 ).format()

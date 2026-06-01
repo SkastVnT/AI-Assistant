@@ -1,0 +1,9 @@
+# CLIP Embed Sidecar — image dependency profile (venv-image) only.
+# Do NOT install these into venv-core. The chatbot calls this service over HTTP.
+fastapi>=0.110
+uvicorn>=0.29
+pydantic>=2.6
+open-clip-torch>=2.20.0
+torch>=2.0
+Pillow>=10.0
+requests>=2.31

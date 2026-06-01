@@ -75,6 +75,7 @@ At least one LLM API key is required for hosted chat. Local image, video, and Co
 | MCP server | stdio | `services/mcp-server/server.py` | Started by clients, not an HTTP server |
 | Stable Diffusion | `7861` | `services/stable-diffusion/` | Local image backend |
 | Edit Image / ComfyUI | `8100` | `services/edit-image/` | ComfyUI-backed image editing |
+| CLIP embed sidecar | `8200` | `services/clip-embed/server.py` | Optional image-RAG encoder (venv-image); off unless `RAG_IMAGE_ENABLED=true` |
 | RAG API | service config | `app/rag/apps/api/` | Uses `app/rag/docker-compose.yml` for local infra |
 | Electron | app window | `app/electron/` | Desktop shell around the chatbot |
 

@@ -24,7 +24,7 @@ from sqlalchemy import func, select
 
 from core.rag_settings import get_rag_settings
 from src.rag.db.base import get_session_factory
-from src.rag.db.models import RagChunk, RagDocument
+from src.rag.db.models import RagChunk, RagDocument, RagImageChunk
 from src.rag.embeddings.base import EmbeddingProvider
 from src.rag.embeddings.factory import create_embedding_provider
 from src.rag.ingest.chunking_pkg import chunk_pages
@@ -143,6 +143,20 @@ class IngestService:
             raise IngestError(f"Storage upload failed: {exc}") from exc
 
         try:
+            # 2 ── Image branch (CLIP multimodal) ──────────────────────
+            if self._is_image(mime_type, filename):
+                return await self._ingest_image(
+                    doc_id=doc_id,
+                    tenant_id=tenant_id,
+                    file_bytes=file_bytes,
+                    filename=filename,
+                    mime_type=mime_type,
+                    title=title or filename,
+                    source_uri=source_uri,
+                    source_type=source_type,
+                    object_path=object_path,
+                )
+
             # 2 ── Parse ───────────────────────────────────────────────
             parser = get_parser(mime_type=mime_type, filename=filename)
             parsed = parser.parse(file_bytes, source=filename)
@@ -223,6 +237,105 @@ class IngestService:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _is_image(mime_type: str | None, filename: str) -> bool:
+        if mime_type and mime_type.lower().startswith("image/"):
+            return True
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        return ext in {"png", "jpg", "jpeg", "gif", "webp", "bmp"}
+
+    async def _ingest_image(
+        self,
+        *,
+        doc_id: uuid.UUID,
+        tenant_id: str,
+        file_bytes: bytes,
+        filename: str,
+        mime_type: str | None,
+        title: str,
+        source_uri: str | None,
+        source_type: str,
+        object_path: str,
+    ) -> IngestResult:
+        """Ingest a single image: store → CLIP embed → persist.
+
+        Skips text parsing/chunking. Requires the CLIP sidecar (image RAG).
+        """
+        import base64
+
+        from core import clip_adapter
+
+        if not clip_adapter.is_enabled():
+            raise IngestError(
+                "Image ingest requires RAG_IMAGE_ENABLED=true and a running "
+                "CLIP sidecar."
+            )
+
+        b64 = base64.b64encode(file_bytes).decode("ascii")
+        try:
+            vectors = clip_adapter.embed_images([b64])
+        except clip_adapter.ClipUnavailableError as exc:
+            raise IngestError(f"CLIP image embedding failed: {exc}") from exc
+        if not vectors:
+            raise IngestError("CLIP sidecar returned no image embedding")
+
+        await self._persist_image(
+            doc_id=doc_id,
+            tenant_id=tenant_id,
+            source_type=source_type,
+            source_uri=source_uri,
+            title=title,
+            mime_type=mime_type or "image/*",
+            object_path=object_path,
+            embedding=vectors[0],
+            caption=title,
+        )
+
+        logger.info(
+            "Ingested image doc=%s  storage=%s", doc_id, object_path
+        )
+        return IngestResult(
+            document_id=doc_id, num_chunks=1, object_path=object_path
+        )
+
+    async def _persist_image(
+        self,
+        *,
+        doc_id: uuid.UUID,
+        tenant_id: str,
+        source_type: str,
+        source_uri: str | None,
+        title: str,
+        mime_type: str | None,
+        object_path: str,
+        embedding: list[float],
+        caption: str | None,
+    ) -> None:
+        """Write RagDocument + RagImageChunk rows in one atomic transaction."""
+        session_factory = get_session_factory()
+
+        async with session_factory() as session, session.begin():
+            doc = RagDocument(
+                id=doc_id,
+                tenant_id=tenant_id,
+                source_type=source_type,
+                source_uri=source_uri,
+                title=title,
+                mime_type=mime_type,
+                object_path=object_path,
+            )
+            session.add(doc)
+            session.add(
+                RagImageChunk(
+                    tenant_id=tenant_id,
+                    document_id=doc_id,
+                    object_path=object_path,
+                    caption=caption,
+                    embedding=embedding,
+                    metadata_json={},
+                )
+            )
 
     def _batch_embed(self, texts: list[str]) -> list[list[float]]:
         """Embed texts in batches to respect API size limits."""

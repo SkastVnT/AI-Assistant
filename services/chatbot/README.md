@@ -66,7 +66,7 @@ src/
   video_generation.py     Sora 2 video
   handlers/               Multimodal + image gen handlers
   utils/                  imgbb, SD client, MCP integration
-  rag/                    RAG subsystem (ingest, embeddings, retrieval)
+  rag/                    RAG subsystem (ingest, embeddings, retrieval, CLIP image RAG)
 templates/            index.html (sole template)
 static/
   css/                app.css + component CSS

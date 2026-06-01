@@ -38,6 +38,7 @@ from core.rag_settings import get_rag_settings
 from .base import Base
 
 _dim = get_rag_settings().embed_dim
+_clip_dim = get_rag_settings().clip_embed_dim
 
 
 def _utcnow() -> datetime:
@@ -65,6 +66,9 @@ class RagDocument(Base):
     )
 
     chunks: Mapped[list[RagChunk]] = relationship(
+        back_populates="document", cascade="all, delete-orphan"
+    )
+    image_chunks: Mapped[list[RagImageChunk]] = relationship(
         back_populates="document", cascade="all, delete-orphan"
     )
 
@@ -116,3 +120,61 @@ class RagChunk(Base):
 
     def __repr__(self) -> str:
         return f"<RagChunk {self.id!s:.8} doc={self.document_id!s:.8} idx={self.chunk_index}>"
+
+
+class RagImageChunk(Base):
+    """Image embeddings in CLIP multimodal space.
+
+    Kept in a separate table from ``rag_chunks`` because CLIP vectors live in
+    a different (and differently-sized) vector space than the text embedding
+    provider. Retrieval queries this table with CLIP *text* embeddings of the
+    user query and merges results with text-chunk hits.
+    """
+
+    __tablename__ = "rag_image_chunks"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("rag_documents.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    object_path: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="MinIO/S3 object key of the image"
+    )
+    caption: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="Optional caption / alt text"
+    )
+    embedding: Mapped[list[float] | None] = mapped_column(  # type: ignore[assignment]
+        _PgVector(_clip_dim) if _PGVECTOR_AVAILABLE else Text,  # type: ignore[arg-type]
+        nullable=True,
+    )
+    metadata_json: Mapped[dict | None] = mapped_column(
+        JSONB, nullable=True, default=dict
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, nullable=False
+    )
+
+    document: Mapped[RagDocument] = relationship(back_populates="image_chunks")
+
+    __table_args__ = (
+        *(
+            (
+                Index(
+                    "ix_rag_image_chunks_embedding_hnsw",
+                    "embedding",
+                    postgresql_using="hnsw",
+                    postgresql_with={"m": 16, "ef_construction": 64},
+                    postgresql_ops={"embedding": "vector_cosine_ops"},
+                ),
+            )
+            if _PGVECTOR_AVAILABLE
+            else ()
+        ),
+    )
+
+    def __repr__(self) -> str:
+        return f"<RagImageChunk {self.id!s:.8} doc={self.document_id!s:.8}>"
