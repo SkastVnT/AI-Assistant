@@ -44,7 +44,7 @@ vram:
 
 models:
   composition:
-    checkpoint: "waiIllustriousSDXL_v160.safetensors"
+    checkpoint: "waiIllustriousSDXL_v170.safetensors"
     type: sdxl
     sampler: dpmpp_2m       # faster sampler for test iterations
     scheduler: karras
@@ -54,7 +54,7 @@ models:
     vae: null
 
   beauty:
-    checkpoint: "waiIllustriousSDXL_v160.safetensors"
+    checkpoint: "waiIllustriousSDXL_v170.safetensors"
     type: sdxl
     sampler: dpmpp_2m_sde
     scheduler: karras
@@ -65,7 +65,7 @@ models:
     denoise_strength: 0.45  # keep prod value — beauty pass needs the redraw budget
 
   final:
-    checkpoint: "waiIllustriousSDXL_v160.safetensors"
+    checkpoint: "waiIllustriousSDXL_v170.safetensors"
     type: sdxl
     sampler: euler_ancestral
     scheduler: karras
@@ -133,7 +133,7 @@ structure_lock:
       end_percent: 0.8
       priority: 1
       optional: true
-      enabled: true
+      enabled: false  # SD1.5 ControlNet is incompatible with SDXL
 
     - type: depth
       preprocessor: "DepthAnythingV2Preprocessor"

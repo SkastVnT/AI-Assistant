@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import logging
 import os
+import json
+from pathlib import Path
 from typing import Any
 
-from image_pipeline.paths import APP_ROOT, COMFYUI_DIR
+from image_pipeline.paths import APP_ROOT, COMFYUI_DIR, CONFIGS_DIR
 
 from .schemas import ControlInput, PassConfig
 
@@ -102,6 +104,54 @@ class WorkflowBuilder:
 
     def _reset(self) -> None:
         self._next_id = 1
+
+    def build_native(
+        self,
+        provider: str,
+        provider_config: dict[str, Any],
+        values: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Load an operator-exported native ComfyUI workflow template.
+
+        Flux2 Klein and Qwen Image Edit are native ComfyUI providers. Their
+        graph JSON must be exported from the installed ComfyUI version during
+        provisioning; runtime never invents or downloads a graph.
+        """
+        template_name = str(provider_config.get("workflow_template", ""))
+        if not template_name:
+            raise ValueError(f"Native provider {provider!r} has no workflow_template")
+        path = Path(template_name)
+        if not path.is_absolute():
+            path = CONFIGS_DIR / path
+        if not path.is_file():
+            raise FileNotFoundError(
+                f"Provision native workflow template for {provider}: {path}"
+            )
+        workflow = json.loads(path.read_text(encoding="utf-8"))
+        workflow = self._replace_native_tokens(workflow, values)
+        if not isinstance(workflow, dict) or not workflow:
+            raise ValueError(f"Native workflow template is empty: {path}")
+        for node_id, node in workflow.items():
+            if not isinstance(node, dict) or not node.get("class_type"):
+                raise ValueError(
+                    f"Native workflow node {node_id!r} is missing class_type"
+                )
+        return workflow
+
+    @classmethod
+    def _replace_native_tokens(cls, value: Any, values: dict[str, Any]) -> Any:
+        if isinstance(value, dict):
+            return {k: cls._replace_native_tokens(v, values) for k, v in value.items()}
+        if isinstance(value, list):
+            return [cls._replace_native_tokens(v, values) for v in value]
+        if not isinstance(value, str):
+            return value
+        for key, replacement in values.items():
+            token = "{{" + str(key) + "}}"
+            if value == token:
+                return replacement
+            value = value.replace(token, str(replacement))
+        return value
 
     # ── Composition pass ─────────────────────────────────────────────
 

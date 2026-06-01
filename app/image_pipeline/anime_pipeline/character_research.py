@@ -586,9 +586,7 @@ _CHARACTER_ALIASES: dict[str, tuple[str, str, str, str]] = {
     "yami": ("konjiki_no_yami", "to_love-ru", "Yami", "To Love-Ru"),
     "haruna": ("sairenji_haruna", "to_love-ru", "Haruna", "To Love-Ru"),
     # Oshi no Ko
-    "ai hoshino": ("hoshino_ai", "oshi_no_ko", "Hoshino Ai", "Oshi no Ko"),
     "ruby hoshino": ("hoshino_ruby", "oshi_no_ko", "Hoshino Ruby", "Oshi no Ko"),
-    "ruby": ("hoshino_ruby", "oshi_no_ko", "Hoshino Ruby", "Oshi no Ko"),
     "kana arima": ("arima_kana", "oshi_no_ko", "Arima Kana", "Oshi no Ko"),
     "akane kurokawa": ("kurokawa_akane", "oshi_no_ko", "Kurokawa Akane", "Oshi no Ko"),
     # Fire Emblem
@@ -1630,6 +1628,7 @@ def research_character(
     user_prompt: str,
     user_reference_images: Optional[list[str]] = None,
     force_refresh: bool = False,
+    allow_network: bool = False,
 ) -> Optional[CharacterResearchResult]:
     """Full character research pipeline.
 
@@ -1646,7 +1645,8 @@ def research_character(
     Args:
         user_prompt: The user's generation request text
         user_reference_images: Optional user-uploaded reference images (base64)
-        force_refresh: Skip cache, re-research from web
+        force_refresh: Skip cache before optional provisioning-time web research
+        allow_network: Explicit provisioning-only opt-in for web research
 
     Returns:
         CharacterResearchResult or None if no character detected
@@ -1675,6 +1675,44 @@ def research_character(
     # 2026-04-26: SAA-first — ALWAYS gather local refs (incl. SAA thumb)
     # before any web call so external search becomes a true fallback.
     local_refs = _collect_local_refs(danbooru_tag, max_images=10)
+    if not allow_network:
+        cached = None if force_refresh else _load_cached_research(danbooru_tag)
+        if cached:
+            cached.reference_images_b64 = (
+                list(user_reference_images or [])[:2] + local_refs
+            )[:12]
+            cached.reference_image_urls = []
+            cached.search_sources = []
+            cached.research_time_ms = (time.time() - t0) * 1000
+            cached.local_refs_count = len(local_refs)
+            cached.web_refs_count = 0
+            cached.web_search_skipped = True
+            cached.nsfw_intent = nsfw_intent
+            return cached
+
+        result = CharacterResearchResult(
+            danbooru_tag=danbooru_tag,
+            series_tag=series_tag,
+            display_name=display_name,
+            series_name=series_name,
+            reference_images_b64=(
+                list(user_reference_images or [])[:2] + local_refs
+            )[:12],
+            identity_tags=[danbooru_tag],
+            confidence=0.55 if local_refs or user_reference_images else 0.30,
+            local_refs_count=len(local_refs),
+            web_refs_count=0,
+            web_search_skipped=True,
+            nsfw_intent=nsfw_intent,
+        )
+        _save_research_cache(result)
+        logger.info(
+            "[CharResearch] Offline cache-only result for %s (%d local refs)",
+            danbooru_tag,
+            len(local_refs),
+        )
+        return result
+
     # When _SAA_MIN_LOCAL_REFS <= 0 (default) the cap is disabled — web
     # search ALWAYS runs so the ref cache keeps growing. Set a positive
     # int via CHAR_RESEARCH_MIN_LOCAL_REFS to opt back into capping.

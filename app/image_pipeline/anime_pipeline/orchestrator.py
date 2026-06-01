@@ -57,6 +57,8 @@ from .lora_manager import (
     get_cached_character_lora,
     lora_file_exists,
 )
+from .runtime_policy import RuntimePolicy
+from .preflight import configured_asset_checksums
 
 logger = logging.getLogger(__name__)
 
@@ -165,6 +167,14 @@ class AnimePipelineOrchestrator:
 
     def __init__(self, config: Optional[AnimePipelineConfig] = None):
         self._config = config or load_config()
+        self._runtime_policy = RuntimePolicy.from_config(self._config)
+        self._runtime_policy.assert_url(
+            self._config.comfyui_url
+            or os.getenv("ANIME_PIPELINE_COMFYUI_URL")
+            or os.getenv("COMFYUI_URL")
+            or "http://127.0.0.1:8188",
+            purpose="comfyui",
+        )
         self._vision = VisionAnalystAgent(self._config)
         self._planner = LayerPlannerAgent(self._config)
         self._composition = CompositionPassAgent(self._config)
@@ -210,6 +220,17 @@ class AnimePipelineOrchestrator:
         # threading t0 through every call.
         self._cancelled = False
         self._run_t0 = t0
+        job.deployment_profile = self._config.deployment_profile
+        job.network_policy = self._runtime_policy.to_dict()
+        job.benchmark_version = self._config.benchmark_version
+        job.metadata.setdefault("model_checksums", {}).update(
+            configured_asset_checksums(self._config.deployment_profile)
+        )
+        self._runtime_policy.validate_request(
+            content_mode=job.content_mode,
+            validator_mode=job.validator_mode,
+            adult_verified=job.adult_verified,
+        )
 
         yield self._event(
             "pipeline_start",
@@ -1377,7 +1398,9 @@ class AnimePipelineOrchestrator:
                 requested_eye_state=requested_state,
                 do_shadow=True,
                 do_highlight=True,
-                do_classify=True,
+                # Quality scoring is handled by the policy-aware local critic.
+                # The legacy painter classifier calls cloud APIs directly.
+                do_classify=False,
             )
         except Exception as e:
             logger.warning("[AnimePipeline] Layer painter crashed (non-fatal): %s", e)
@@ -1579,6 +1602,7 @@ class AnimePipelineOrchestrator:
             result = research_character(
                 job.user_prompt,
                 user_reference_images=job.reference_images_b64 or None,
+                allow_network=self._runtime_policy.allow_web_research,
             )
             self._research = result
 
@@ -1833,6 +1857,7 @@ class AnimePipelineOrchestrator:
                 base_checkpoint=base_checkpoint,
                 reference_images=research.reference_images_b64
                 or job.reference_images_b64,
+                allow_network=self._runtime_policy.allow_runtime_downloads,
             )
             self._verified_lora = lora_result
             latency = (time.time() - t0) * 1000
@@ -1930,6 +1955,12 @@ class AnimePipelineOrchestrator:
             "strength_clip": 0.85,
             "enabled": True,
         }
+        job.metadata.setdefault("loras", []).append(
+            {
+                "name": lora_name,
+                "trigger_words": list(self._verified_lora.trigger_words),
+            }
+        )
 
         for pass_cfg in job.layer_plan.passes:
             existing = pass_cfg.lora_models or []
@@ -2126,8 +2157,6 @@ class AnimePipelineOrchestrator:
 
         t0 = time.time()
         try:
-            import asyncio
-
             # Build council prompt from pipeline context
             va = job.vision_analysis
             va_summary = ""
@@ -2219,8 +2248,22 @@ class AnimePipelineOrchestrator:
                 },
             )
 
-    @staticmethod
     def _invoke_council_sync(
+        self, prompt: str, language: str = "en"
+    ) -> dict[str, Any] | None:
+        """Invoke the typed local-only image council."""
+        try:
+            from .image_council import LocalImageCouncil
+
+            return LocalImageCouncil(self._config, self._runtime_policy).run(
+                prompt, language
+            )
+        except Exception as e:
+            logger.warning("[AnimePipeline] Local image council failed: %s", e)
+            return None
+
+    @staticmethod
+    def _invoke_legacy_council_sync(
         prompt: str, language: str = "en"
     ) -> dict[str, Any] | None:
         """Invoke the 4-agent council synchronously.

@@ -17,6 +17,7 @@ import httpx
 
 from .config import AnimePipelineConfig
 from .schemas import CritiqueReport, LayerPlan
+from .runtime_policy import RuntimePolicy
 
 logger = logging.getLogger(__name__)
 
@@ -67,15 +68,23 @@ class CritiqueService:
 
     def __init__(self, config: AnimePipelineConfig):
         self._config = config
+        self._policy = RuntimePolicy.from_config(config)
+        self._active_content_mode = "sfw"
+        self._active_validator_mode = "local"
 
     def critique(
         self,
         image_b64: str,
         user_prompt: str,
         layer_plan: Optional[LayerPlan] = None,
+        *,
+        content_mode: str = "sfw",
+        validator_mode: str = "local",
     ) -> CritiqueReport:
         """Score an image against the original prompt and plan."""
         t0 = time.time()
+        self._active_content_mode = content_mode
+        self._active_validator_mode = validator_mode
         report: Optional[CritiqueReport] = None
 
         context_parts = [f"Original prompt: {user_prompt}"]
@@ -85,6 +94,18 @@ class CritiqueService:
         context = "\n".join(context_parts)
 
         for model_name in self._config.vision_model_priority:
+            purpose = (
+                "local_critique"
+                if model_name.lower().startswith("local")
+                else "external_validation"
+            )
+            if not self._policy.allows_provider(
+                model_name,
+                purpose=purpose,
+                content_mode=content_mode,
+                validator_mode=validator_mode,
+            ):
+                continue
             try:
                 report = self._call_model(model_name, image_b64, context)
                 if report:
@@ -94,16 +115,12 @@ class CritiqueService:
                 logger.warning("[CritiqueService] %s failed: %s", model_name, e)
 
         if not report:
-            logger.warning("[CritiqueService] All models failed, returning default")
+            logger.warning("[CritiqueService] All permitted models failed")
             report = CritiqueReport(
-                anatomy_score=5,
-                face_score=5,
-                hands_score=5,
-                composition_score=5,
-                color_score=5,
-                style_score=5,
-                background_score=5,
-                model_used="fallback",
+                retry_recommendation=True,
+                unscored=True,
+                scoring_error="All permitted critic models failed",
+                model_used="unscored",
             )
 
         report.latency_ms = (time.time() - t0) * 1000
@@ -121,6 +138,15 @@ class CritiqueService:
         # Grok (xAI) and StepFun do not apply Gemini/OpenAI-style image
         # safety filters, so they survive critiques on explicit content.
         name = model_name.lower()
+        if name.startswith("local"):
+            return self._openai_compat(
+                self._config.local_vlm_model or model_name,
+                image_b64,
+                context,
+                base_url=f"{self._config.local_vlm_url.rstrip('/')}/chat/completions",
+                api_key=os.getenv("ANIME_PIPELINE_LOCAL_VLM_API_KEY", "local"),
+                key_label="ANIME_PIPELINE_LOCAL_VLM_API_KEY",
+            )
         if name.startswith("grok"):
             return self._openai_compat(
                 model_name,
@@ -176,8 +202,15 @@ class CritiqueService:
         }
 
         with httpx.Client(timeout=30) as client:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
+            self._policy.assert_url(
+                url,
+                purpose="external_validation",
+                content_mode=self._active_content_mode,
+                validator_mode=self._active_validator_mode,
+            )
             resp = client.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent",
+                url,
                 headers={"X-goog-api-key": api_key},
                 json=payload,
             )
@@ -202,6 +235,13 @@ class CritiqueService:
         """
         if not api_key:
             raise RuntimeError(f"No {key_label} set")
+        purpose = "local_critique" if base_url.startswith(self._config.local_vlm_url) else "external_validation"
+        self._policy.assert_url(
+            base_url,
+            purpose=purpose,
+            content_mode=self._active_content_mode,
+            validator_mode=self._active_validator_mode,
+        )
 
         raw_img = image_b64.split(",", 1)[-1] if "," in image_b64 else image_b64
         user_content = [

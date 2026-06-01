@@ -217,12 +217,13 @@ class TestCritiqueParsing:
         result = agent._parse_critique("not json at all")
         assert result is None
 
-    def test_no_image_gives_neutral_scores(self, config):
+    def test_no_image_is_unscored(self, config):
         agent = self._make_agent(config)
         job = AnimePipelineJob(user_prompt="test")
         agent.execute(job)
         assert len(job.critique_results) == 1
-        assert job.critique_results[0].anatomy_score == 5
+        assert job.critique_results[0].unscored is True
+        assert job.critique_results[0].passed is False
         assert job.critique_results[0].model_used == "skipped"
 
 

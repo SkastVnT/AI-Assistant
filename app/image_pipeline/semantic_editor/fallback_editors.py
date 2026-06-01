@@ -16,7 +16,10 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    import httpx
 
 from image_pipeline.semantic_editor.qwen_client import EditResponse
 

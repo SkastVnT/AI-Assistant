@@ -1,0 +1,76 @@
+deployment:
+  profile: laptop_6gb
+  max_concurrent: 1
+  allowed_internal_origins:
+    - http://127.0.0.1:8188
+    - http://127.0.0.1:8080
+  adult_only_enabled: false
+capabilities:
+  flux2_klein: false
+  qwen_image_edit: false
+  controlnet: false
+  yolo_detailer: false
+  pre_upscale_v2: false
+models:
+  composition:
+    checkpoint: waiIllustriousSDXL_v170.safetensors
+    model_type: sdxl
+    steps: 22
+    cfg: 5.0
+  beauty:
+    checkpoint: waiIllustriousSDXL_v170.safetensors
+    model_type: sdxl
+    steps: 18
+    cfg: 5.0
+    denoise_strength: 0.18
+  final:
+    checkpoint: waiIllustriousSDXL_v170.safetensors
+    model_type: sdxl
+    steps: 18
+    cfg: 5.0
+    denoise_strength: 0.15
+resolutions:
+  portrait: [640, 896]
+  landscape: [896, 640]
+  square: [768, 768]
+structure_lock:
+  max_simultaneous_layers: 0
+  layers:
+    - type: lineart_anime
+      preprocessor: AnimeLineArtPreprocessor
+      controlnet_model: control_v11p_sd15_lineart_anime
+      strength: 0.85
+      priority: 1
+      optional: true
+      enabled: false
+    - type: depth
+      preprocessor: DepthAnythingV2Preprocessor
+      controlnet_model: control_v11f1p_sd15_depth
+      strength: 0.55
+      priority: 2
+      optional: true
+      enabled: false
+    - type: canny
+      preprocessor: CannyEdgePreprocessor
+      controlnet_model: control_v11p_sd15_canny
+      strength: 0.35
+      priority: 3
+      optional: true
+      enabled: false
+detection_inpaint:
+  enabled: false
+pipeline:
+  v2_upscale_first: false
+  unload_between_passes: true
+vision:
+  # External models are reachable only when a request explicitly selects
+  # validator_mode=external_sfw_opt_in. Vision analysis itself remains local.
+  model_priority: [local-vlm, gemini-2.0-flash, gpt-4o-mini]
+  max_tokens: 500
+local_vlm:
+  url: http://127.0.0.1:8080/v1
+  model: Qwen2.5-VL-3B-Instruct-GGUF
+  required: false
+council:
+  enabled: false
+  max_rounds: 0

@@ -280,7 +280,7 @@ def health():
     """
     from core.anime_pipeline_service import check_availability
 
-    result = check_availability()
+    result = check_availability(probe_remote=True)
     status = 200 if result.available else 503
     return jsonify(result.to_dict()), status
 
@@ -324,7 +324,7 @@ def stream_pipeline():
     )
 
     # â”€â”€ Availability gate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    avail = check_availability()
+    avail = check_availability(probe_remote=True)
     if not avail.available:
 
         def _err_unavail():
@@ -408,7 +408,7 @@ def generate_pipeline():
         validate_request,
     )
 
-    avail = check_availability()
+    avail = check_availability(probe_remote=True)
     if not avail.available:
         return (
             jsonify(

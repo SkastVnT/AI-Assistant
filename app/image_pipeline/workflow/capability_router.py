@@ -26,13 +26,16 @@ import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import yaml
 
 from image_pipeline.paths import CONFIGS_DIR
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from image_pipeline.anime_pipeline.runtime_policy import RuntimePolicy
 
 # ─── Locate configs ────────────────────────────────────────────────
 
@@ -88,6 +91,7 @@ class CapabilityRouter:
         models_path: str | Path | None = None,
         pipeline_path: str | Path | None = None,
         routing_path: str | Path | None = None,
+        runtime_policy: RuntimePolicy | None = None,
     ):
         self._models_path = Path(models_path or _MODELS_YAML)
         self._pipeline_path = Path(pipeline_path or _PIPELINE_YAML)
@@ -95,9 +99,11 @@ class CapabilityRouter:
 
         self._models: dict[str, ModelInfo] = {}
         self._task_routes: dict[str, dict[str, Any]] = {}
+        self._offline_task_routes: dict[str, dict[str, Any]] = {}
         self._quality_overrides: dict[str, dict[str, str]] = {}
         self._location_rules: dict[str, Any] = {}
         self._max_cost: float = 0.50
+        self._runtime_policy = runtime_policy
 
         self._load()
 
@@ -144,6 +150,7 @@ class CapabilityRouter:
         if not raw:
             return
         self._task_routes = raw.get("task_routes", {})
+        self._offline_task_routes = raw.get("offline_task_routes", {})
         self._quality_overrides = raw.get("quality_overrides", {})
         self._location_rules = raw.get("location_rules", {})
         self._max_cost = float(self._location_rules.get("max_cost_per_job", 0.50))
@@ -191,15 +198,23 @@ class CapabilityRouter:
         """
         unavailable = unavailable or set()
 
-        route_cfg = self._task_routes.get(task_type)
+        route_table = (
+            self._offline_task_routes if self._runtime_policy else self._task_routes
+        )
+        route_cfg = route_table.get(task_type)
         if not route_cfg:
             raise ValueError(
                 f"Unknown task type: {task_type!r}. "
-                f"Available: {sorted(self._task_routes.keys())}"
+                f"Available: {sorted(route_table.keys())}"
             )
 
         # 1. Determine primary model — quality override takes precedence
-        primary_model = self._resolve_primary(task_type, quality, route_cfg)
+        primary_model = self._resolve_primary(
+            task_type,
+            quality,
+            route_cfg,
+            allow_quality_override=self._runtime_policy is None,
+        )
 
         # 2. Build full candidate list: primary + fallbacks
         fallback_names: list[str] = route_cfg.get("fallbacks", [])
@@ -208,13 +223,23 @@ class CapabilityRouter:
         ]
 
         # 3. Apply rerouting for unavailable locations
-        candidates = self._apply_reroutes(task_type, candidates, unavailable)
+        if self._runtime_policy is None:
+            candidates = self._apply_reroutes(task_type, candidates, unavailable)
 
         # 4. Pick the first candidate whose location is available
         for model_name in candidates:
             info = self._models.get(model_name)
             if info is None:
                 logger.debug("Model %r not in registry, skipping", model_name)
+                continue
+            if self._runtime_policy and not self._runtime_policy.allows_location(
+                info.location
+            ):
+                logger.debug(
+                    "Model %r location %r blocked by runtime policy",
+                    model_name,
+                    info.location,
+                )
                 continue
             if info.location in unavailable:
                 logger.debug(
@@ -246,7 +271,8 @@ class CapabilityRouter:
 
     def list_task_types(self) -> list[str]:
         """Return all known task types."""
-        return sorted(self._task_routes.keys())
+        routes = self._offline_task_routes if self._runtime_policy else self._task_routes
+        return sorted(routes.keys())
 
     def list_models(self, *, location: str | None = None) -> list[ModelInfo]:
         """Return all registered models, optionally filtered by location."""
@@ -268,12 +294,15 @@ class CapabilityRouter:
         task_type: str,
         quality: str,
         route_cfg: dict[str, Any],
+        *,
+        allow_quality_override: bool = True,
     ) -> str:
         """Pick the primary model: quality override → route default."""
-        tier = self._quality_overrides.get(quality, {})
-        override = tier.get(task_type)
-        if override and override in self._models:
-            return override
+        if allow_quality_override:
+            tier = self._quality_overrides.get(quality, {})
+            override = tier.get(task_type)
+            if override and override in self._models:
+                return override
         return route_cfg["primary"]
 
     def _apply_reroutes(

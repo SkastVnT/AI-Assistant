@@ -423,6 +423,8 @@ class CritiqueReport:
     retry_recommendation: bool = False
     prompt_patch: list[str] = field(default_factory=list)
     control_patch: dict[str, float] = field(default_factory=dict)
+    unscored: bool = False
+    scoring_error: str = ""
 
     # ── Numeric scores (0-10) ─ 10 dimensions ───────────────────
     anatomy_score: int = 0
@@ -481,7 +483,7 @@ class CritiqueReport:
         Strict mode: no dimension is allowed to be below 8/10.
         Dimensions scored 0 are considered 'not evaluated' and skipped.
         """
-        if self.retry_recommendation:
+        if self.unscored or self.retry_recommendation:
             return False
         if self.overall_score < 8.0:
             return False
@@ -552,6 +554,8 @@ class CritiqueReport:
             "retry_recommendation": self.retry_recommendation,
             "prompt_patch": self.prompt_patch,
             "control_patch": self.control_patch,
+            "unscored": self.unscored,
+            "scoring_error": self.scoring_error,
             "anatomy_score": self.anatomy_score,
             "face_score": self.face_score,
             "eye_consistency_score": self.eye_consistency_score,
@@ -643,6 +647,12 @@ class AnimePipelineJob:
     orientation_hint: str = ""  # auto-detected if empty
     preset: str = "anime_quality"
     user_loras: list[dict[str, Any]] = field(default_factory=list)
+    deployment_profile: str = "laptop_6gb"
+    content_mode: str = "sfw"
+    validator_mode: str = "local"
+    adult_verified: bool = False
+    network_policy: dict[str, Any] = field(default_factory=dict)
+    benchmark_version: str = "anime-local-v1"
 
     # ── Character identity (populated by character_parser) ────────────
     # See image_pipeline.anime_pipeline.character_parser.ParsedIdentity.
@@ -718,6 +728,12 @@ class AnimePipelineJob:
             "style_hint": self.style_hint,
             "quality_hint": self.quality_hint,
             "preset": self.preset,
+            "deployment_profile": self.deployment_profile,
+            "content_mode": self.content_mode,
+            "validator_mode": self.validator_mode,
+            "adult_verified": self.adult_verified,
+            "network_policy": self.network_policy,
+            "benchmark_version": self.benchmark_version,
             "character_name": self.character_name,
             "series_name": self.series_name,
             "character_tag": self.character_tag,
@@ -735,6 +751,10 @@ class AnimePipelineJob:
             "total_latency_ms": self.total_latency_ms,
             "refine_rounds": self.refine_rounds,
             "models_used": self.models_used,
+            "model_checksums": self.metadata.get("model_checksums", {}),
+            "loras": self.metadata.get("loras", []),
+            "pass_lineage": self.metadata.get("pass_lineage", []),
+            "critic_provenance": self.metadata.get("critic_provenance", []),
             "has_final_image": self.final_image_b64 is not None,
             "final_image_url": self.final_image_url,
             "error": self.error,
@@ -757,6 +777,13 @@ class AnimePipelineJob:
         model = metadata.get("model") or metadata.get("checkpoint")
         if model and model not in self.models_used:
             self.models_used.append(model)
+        self.metadata.setdefault("pass_lineage", []).append(
+            {
+                "stage": stage,
+                "model": model or "",
+                "seed": metadata.get("seed"),
+            }
+        )
 
     def latest_render_image(self) -> Optional[str]:
         """Return the most recent *renderable* intermediate image_b64.

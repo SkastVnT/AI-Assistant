@@ -72,8 +72,8 @@ def _mirror_final_to_comfyui(b64: str, filename: str) -> str | None:
 
 # ── Concurrency control ─────────────────────────────────────────────────────
 # Limit concurrent ComfyUI pipeline jobs on local GPU.
-# Override via ANIME_PIPELINE_MAX_CONCURRENT env var (default 2).
-_PIPELINE_MAX_CONCURRENT = int(os.getenv("ANIME_PIPELINE_MAX_CONCURRENT", "2"))
+# Override via ANIME_PIPELINE_MAX_CONCURRENT env var (default 1).
+_PIPELINE_MAX_CONCURRENT = int(os.getenv("ANIME_PIPELINE_MAX_CONCURRENT", "1"))
 _PIPELINE_SEMAPHORE = _threading.Semaphore(_PIPELINE_MAX_CONCURRENT)
 _PIPELINE_QUEUE_LOCK = _threading.Lock()
 _PIPELINE_WAITING_COUNT = 0
@@ -106,7 +106,9 @@ def comfyui_reachable(timeout: float = 3.0) -> bool:
     """Quick connectivity probe against the ComfyUI /system_stats endpoint."""
     try:
         import httpx
+        from image_pipeline.anime_pipeline.runtime_policy import RuntimePolicy
 
+        RuntimePolicy.from_env().assert_url(comfyui_url(), purpose="comfyui_health")
         with httpx.Client(timeout=timeout) as client:
             r = client.get(f"{comfyui_url()}/system_stats")
             return r.status_code == 200
@@ -122,6 +124,12 @@ class AvailabilityResult:
     available: bool = False
     feature_flag: bool = False
     comfyui_reachable: bool = False
+    readiness: str = "blocked"
+    runtime_policy: dict[str, Any] = field(default_factory=dict)
+    capabilities: dict[str, str] = field(default_factory=dict)
+    missing_assets: list[str] = field(default_factory=list)
+    active_models: list[str] = field(default_factory=list)
+    endpoint_health: dict[str, bool] = field(default_factory=dict)
     errors: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -129,12 +137,18 @@ class AvailabilityResult:
             "available": self.available,
             "feature_flag": self.feature_flag,
             "comfyui_reachable": self.comfyui_reachable,
+            "readiness": self.readiness,
+            "runtime_policy": self.runtime_policy,
+            "capabilities": self.capabilities,
+            "missing_assets": self.missing_assets,
+            "active_models": self.active_models,
+            "endpoint_health": self.endpoint_health,
             "errors": self.errors,
         }
 
 
-def check_availability() -> AvailabilityResult:
-    """Pre-flight check before accepting a pipeline request."""
+def check_availability(*, probe_remote: bool = False) -> AvailabilityResult:
+    """Pre-flight check. Routes use deep endpoint probes before accepting work."""
     result = AvailabilityResult()
     result.feature_flag = pipeline_enabled()
     if not result.feature_flag:
@@ -149,7 +163,28 @@ def check_availability() -> AvailabilityResult:
             "Start ComfyUI or set COMFYUI_URL to the correct address."
         )
 
-    result.available = result.feature_flag and result.comfyui_reachable
+    try:
+        from image_pipeline.anime_pipeline.preflight import run_preflight
+
+        preflight = run_preflight(probe_remote=probe_remote)
+        result.readiness = preflight.readiness
+        result.runtime_policy = preflight.runtime_policy
+        result.capabilities = preflight.capabilities
+        result.missing_assets = preflight.missing_assets
+        result.active_models = preflight.active_models
+        result.endpoint_health = preflight.endpoint_health
+        result.errors.extend(preflight.errors)
+        if preflight.readiness == "blocked":
+            result.errors.append("Anime pipeline asset preflight is blocked")
+    except Exception as exc:
+        result.readiness = "blocked"
+        result.errors.append(f"Anime pipeline preflight failed: {exc}")
+
+    result.available = (
+        result.feature_flag
+        and result.comfyui_reachable
+        and result.readiness != "blocked"
+    )
     return result
 
 
@@ -189,6 +224,11 @@ class PipelineRequest:
     # workflow; only meaningful when ``image_only`` is True.
     image_only: bool = False
     batch_size: int = 1
+    deployment_profile: str = "laptop_6gb"
+    content_mode: str = "sfw"
+    validator_mode: str = "local"
+    adult_verified: bool = False
+    character_key: str = ""
 
 
 def validate_request(data: dict) -> tuple[PipelineRequest | None, str | None]:
@@ -213,6 +253,38 @@ def validate_request(data: dict) -> tuple[PipelineRequest | None, str | None]:
     if quality not in _VALID_QUALITY:
         quality = "quality"
 
+    try:
+        from image_pipeline.anime_pipeline.character_pack import (
+            character_is_adult_verified,
+        )
+        from image_pipeline.anime_pipeline.config import load_config
+        from image_pipeline.anime_pipeline.runtime_policy import RuntimePolicy
+
+        config = load_config()
+        deployment_profile = str(
+            data.get("deployment_profile") or config.deployment_profile
+        )
+        if deployment_profile != config.deployment_profile:
+            return (
+                None,
+                f"deployment_profile must match this worker ({config.deployment_profile})",
+            )
+        content_mode = str(data.get("content_mode", "sfw"))
+        validator_mode = str(data.get("validator_mode", "local"))
+        character_key = str(data.get("character_key", "") or "")
+        adult_verified = bool(data.get("adult_verified", False))
+        if content_mode == "adult_only" and character_key:
+            adult_verified = adult_verified and character_is_adult_verified(
+                character_key
+            )
+        RuntimePolicy.from_config(config).validate_request(
+            content_mode=content_mode,
+            validator_mode=validator_mode,
+            adult_verified=adult_verified,
+        )
+    except ValueError as exc:
+        return None, str(exc)
+
     req = PipelineRequest(
         prompt=prompt,
         reference_images_b64=refs,
@@ -229,6 +301,11 @@ def validate_request(data: dict) -> tuple[PipelineRequest | None, str | None]:
         thinking_mode=data.get("thinking_mode", "instant"),
         image_only=bool(data.get("image_only", False)),
         batch_size=max(1, min(int(data.get("batch_size", 1) or 1), 6)),
+        deployment_profile=deployment_profile,
+        content_mode=content_mode,
+        validator_mode=validator_mode,
+        adult_verified=adult_verified,
+        character_key=character_key,
     )
     return req, None
 
@@ -239,9 +316,17 @@ def validate_request(data: dict) -> tuple[PipelineRequest | None, str | None]:
 def build_job(req: PipelineRequest) -> Any:
     """Create an AnimePipelineJob from validated request params."""
     from image_pipeline.anime_pipeline import AnimePipelineJob
+    from image_pipeline.anime_pipeline.character_pack import get_character_pack
 
+    pack = get_character_pack(req.character_key) if req.character_key else None
+    prompt = req.prompt
+    if pack:
+        identity_tokens = [pack.prompt_alias, *pack.trigger_words]
+        identity_suffix = ", ".join(token for token in identity_tokens if token)
+        if identity_suffix:
+            prompt = f"{prompt}, {identity_suffix}"
     job = AnimePipelineJob(
-        user_prompt=req.prompt,
+        user_prompt=prompt,
         reference_images_b64=req.reference_images_b64,
         preset=req.preset,
         quality_hint=req.quality_mode,
@@ -249,7 +334,24 @@ def build_job(req: PipelineRequest) -> Any:
         thinking_mode=req.thinking_mode,
         image_only=req.image_only,
         batch_size=req.batch_size,
+        deployment_profile=req.deployment_profile,
+        content_mode=req.content_mode,
+        validator_mode=req.validator_mode,
+        adult_verified=req.adult_verified,
     )
+    from image_pipeline.anime_pipeline.runtime_policy import RuntimePolicy
+
+    job.network_policy = RuntimePolicy.from_profile(req.deployment_profile).to_dict()
+    if pack:
+        job.user_loras = [dict(lora) for lora in pack.loras]
+        job.metadata["character_pack"] = {
+            "key": pack.key,
+            "base_model": pack.base_model,
+            "refs": list(pack.refs),
+            "adult_verified": pack.adult_verified,
+        }
+        job.metadata["model_checksums"] = dict(pack.checksums)
+        job.metadata["loras"] = [dict(lora) for lora in pack.loras]
     return job
 
 
@@ -333,7 +435,7 @@ def _make_thumb_b64(b64: str, max_dim: int = 192) -> str | None:
 
 
 def persist_pipeline_result(job: Any, req: PipelineRequest) -> dict[str, Any]:
-    """Persist a final anime-pipeline image to local storage and cloud/db backends."""
+    """Persist a final image locally; cloud persistence is a legacy opt-in."""
     if not job.final_image_b64:
         return {}
 
@@ -366,6 +468,19 @@ def persist_pipeline_result(job: Any, req: PipelineRequest) -> dict[str, Any]:
         logger.warning(
             "[AnimePipelineService] Could not save image locally: %s", save_err
         )
+
+    from image_pipeline.anime_pipeline.runtime_policy import RuntimePolicy
+
+    policy = RuntimePolicy.from_profile(req.deployment_profile)
+    persisted["network_policy"] = policy.to_dict()
+    if os.getenv("ANIME_PIPELINE_ALLOW_CLOUD_PERSISTENCE", "").lower() not in (
+        "1",
+        "true",
+        "yes",
+    ):
+        persisted["share_url"] = local_url
+        persisted["cloud_persistence"] = "disabled_by_runtime_policy"
+        return persisted
 
     # Persist canonical record for gallery/admin (generated_images + optional Firebase/Drive).
     try:

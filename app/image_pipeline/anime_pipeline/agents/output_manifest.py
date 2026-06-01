@@ -49,11 +49,27 @@ def build_output_manifest(
         "job_id": job.job_id,
         "status": job.status.value,
         "preset": job.preset,
+        "deployment_profile": job.deployment_profile,
+        "content_mode": job.content_mode,
+        "validator_mode": job.validator_mode,
+        "network_policy": job.network_policy,
+        "benchmark_version": job.benchmark_version,
         "vram_profile": vram_profile,
         "passes": passes,
         "critique_rounds": len(job.critique_results),
         "refine_rounds": job.refine_rounds,
         "models_used": job.models_used,
+        "model_checksums": job.metadata.get("model_checksums", {}),
+        "loras": job.metadata.get("loras", []),
+        "pass_lineage": job.metadata.get("pass_lineage", []),
+        "critic_provenance": [
+            {
+                "model": report.model_used,
+                "unscored": report.unscored,
+                "latency_ms": report.latency_ms,
+            }
+            for report in job.critique_results
+        ],
         "total_latency_ms": round(job.total_latency_ms, 1),
         "selected_final": _selected_final_stage(job, rank_result),
     }

@@ -1,0 +1,58 @@
+deployment:
+  profile: vps_96gb
+  max_concurrent: 1
+  allowed_internal_origins:
+    - http://127.0.0.1:8188
+    - http://127.0.0.1:8080
+  adult_only_enabled: true
+capabilities:
+  flux2_klein: true
+  qwen_image_edit: true
+  controlnet: false
+  yolo_detailer: true
+  pre_upscale_v2: true
+  multi_reference: true
+models:
+  composition:
+    checkpoint: waiIllustriousSDXL_v170.safetensors
+    model_type: sdxl
+    steps: 32
+    cfg: 5.0
+  beauty:
+    checkpoint: waiIllustriousSDXL_v170.safetensors
+    model_type: sdxl
+    steps: 28
+    cfg: 5.0
+    denoise_strength: 0.25
+  final:
+    checkpoint: waiIllustriousSDXL_v170.safetensors
+    model_type: sdxl
+    steps: 26
+    cfg: 5.0
+    denoise_strength: 0.18
+structure_lock:
+  max_simultaneous_layers: 0
+  layers: []
+detection_inpaint:
+  enabled: false
+pipeline:
+  v2_upscale_first: true
+  unload_between_passes: true
+vision:
+  model_priority: [local-vlm]
+local_vlm:
+  url: http://127.0.0.1:8080/v1
+  model: Qwen3-VL-32B-Instruct-GGUF
+  fallback_model: Qwen2.5-VL-32B-Instruct-GGUF
+  required: true
+council:
+  enabled: true
+  max_rounds: 2
+native_providers:
+  flux2_klein:
+    workflow_template: comfy_workflows/flux2_klein_9b.json
+    model: FLUX.2-klein-9B-fp8
+  qwen_image_edit:
+    workflow_template: comfy_workflows/qwen_image_edit_2511.json
+    model: Qwen-Image-Edit-2511
+

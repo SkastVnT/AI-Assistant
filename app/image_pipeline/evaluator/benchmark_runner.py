@@ -90,6 +90,11 @@ class BenchmarkRunner:
         Returns:
             RunSummary with all aggregated results.
         """
+        if not dry_run and (self._pipeline_fn is None or self._scorer is None):
+            raise RuntimeError(
+                "Live benchmark requires both a real pipeline_fn and a scorer; "
+                "use --dry-run only for wiring checks"
+            )
         experiment = ExperimentLog(run_id=run_id)
 
         # Filter cases
@@ -122,13 +127,7 @@ class BenchmarkRunner:
                     output_path, run_meta = await self._pipeline_fn(job)
                     eval_result = await self._scorer.score(job, output_path)
                 else:
-                    logger.warning(
-                        "No pipeline or scorer configured; using stub for %s",
-                        case_id,
-                    )
-                    eval_result = self._stub_eval(job, case)
-                    output_path = ""
-                    run_meta = None
+                    raise RuntimeError("Live benchmark wiring disappeared during run")
 
                 experiment.record_case(
                     case_id=case_id,
