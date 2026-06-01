@@ -27,6 +27,7 @@ _PROFILE_CONFIGS = {
     "laptop_6gb": CONFIGS_DIR / "anime_pipeline_laptop_6gb.yaml",
     "pc_12gb": CONFIGS_DIR / "anime_pipeline_pc_12gb.yaml",
     "vps_96gb": CONFIGS_DIR / "anime_pipeline_vps_96gb.yaml",
+    "rtx5070": CONFIGS_DIR / "anime_pipeline_rtx5070.yaml",
 }
 
 

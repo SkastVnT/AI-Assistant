@@ -5,7 +5,7 @@ notes:
   - Empty sha256 values are operator-required before parity benchmarking.
 assets:
   - id: wai_illustrious_sdxl_v170
-    profiles: [laptop_6gb, pc_12gb, vps_96gb]
+    profiles: [laptop_6gb, pc_12gb, vps_96gb, rtx5070]
     destination: ComfyUI/models/checkpoints/waiIllustriousSDXL_v170.safetensors
     source_url: ""
     license: operator-verified
@@ -47,20 +47,20 @@ assets:
     license: operator-exported-workflow
     sha256: ""
   - id: esrgan_anime_upscaler
-    profiles: [laptop_6gb, pc_12gb, vps_96gb]
+    profiles: [laptop_6gb, pc_12gb, vps_96gb, rtx5070]
     destination: ComfyUI/models/upscale_models/RealESRGAN_x4plus_anime_6B.pth
     source_url: ""
     license: operator-verified
     sha256: ""
   - id: yolo_detailer_face
     profiles: [pc_12gb, vps_96gb]
-    destination: ComfyUI/models/ultralytics/bbox/face_yolov8m.pt
+    destination: ComfyUI/models/ultralytics/bbox/face_yolov8n.pt
     source_url: ""
     license: operator-verified
     sha256: ""
   - id: yolo_detailer_hands
     profiles: [pc_12gb, vps_96gb]
-    destination: ComfyUI/models/ultralytics/bbox/hand_yolov8s.pt
+    destination: ComfyUI/models/ultralytics/bbox/hand_yolov8n.pt
     source_url: ""
     license: operator-verified
     sha256: ""

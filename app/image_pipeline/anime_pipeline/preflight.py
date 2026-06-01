@@ -231,17 +231,26 @@ def run_preflight(
             report.endpoint_health["comfyui"] = False
             report.errors.append(str(exc))
 
-        if cfg.local_vlm_url:
+        if cfg.local_vlm_url and cfg.local_vlm_required:
             try:
                 policy.assert_url(cfg.local_vlm_url, purpose="local_vlm_health")
                 report.endpoint_health["local_vlm"] = _probe(
-                    cfg.local_vlm_url, "/models"
+                    cfg.local_vlm_url, "/models", timeout=3.0
                 )
-                if cfg.local_vlm_required and not report.endpoint_health["local_vlm"]:
+                if not report.endpoint_health["local_vlm"]:
                     report.errors.append("Required local VLM is not reachable")
             except Exception as exc:
                 report.endpoint_health["local_vlm"] = False
                 report.errors.append(str(exc))
+        elif cfg.local_vlm_url:
+            # VLM optional — probe but don't block on failure; use short timeout
+            try:
+                policy.assert_url(cfg.local_vlm_url, purpose="local_vlm_health")
+                report.endpoint_health["local_vlm"] = _probe(
+                    cfg.local_vlm_url, "/models", timeout=1.5
+                )
+            except Exception:
+                report.endpoint_health["local_vlm"] = False
 
     return report
 

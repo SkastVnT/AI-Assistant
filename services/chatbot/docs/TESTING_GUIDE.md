@@ -42,9 +42,9 @@
 
 ### Step 1: Start the Application
 ```powershell
-cd C:\Users\Asus\Downloads\Compressed\AI-Assistant\ChatBot
-.\venv_chatbot\Scripts\activate
-python app.py
+cd services/chatbot
+.\venv\Scripts\activate
+python run.py
 ```
 
 The server should start at: **http://localhost:5000**

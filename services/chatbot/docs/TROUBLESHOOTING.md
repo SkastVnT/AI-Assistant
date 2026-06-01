@@ -45,25 +45,19 @@ Make sure you have enough GPU RAM to fit the quantized model.
 
 ## Other Common Issues
 
-### 🔴 Stable Diffusion Connection Error
+### 🔴 ComfyUI Connection Error
 
 **Problem:**
 ```
-Error changing model: HTTPConnectionPool(host='127.0.0.1', port=7860): 
-Max retries exceeded with url: /sdapi/v1/options
+Error: HTTPConnectionPool(host='127.0.0.1', port=8188): 
+Max retries exceeded with url: /system_stats
 ```
 
 **Solution:**
-Stable Diffusion WebUI is not running. Start it first:
+ComfyUI is not running. Start it first (default `COMFYUI_URL=http://127.0.0.1:8188`):
 ```powershell
-cd I:\AI-Assistant\stable-diffusion-webui
-.\webui-user.bat
-```
-
-Or use the startup script:
-```powershell
-cd I:\AI-Assistant\scripts\startup
-.\start_chatbot_with_sd.bat
+cd ComfyUI
+python main.py --listen 127.0.0.1 --port 8188 --lowvram
 ```
 
 ### ⚠️ Python Version Warning

@@ -1,0 +1,17 @@
+{
+  "1": {
+    "class_type": "STUB_OPERATOR_MUST_EXPORT",
+    "_meta": {
+      "title": "STUB: export from ComfyUI after loading FLUX.2-klein-4B",
+      "stub": true,
+      "source_docs": "https://docs.comfy.org/tutorials/flux/flux-2-klein",
+      "destination": "app/configs_vps/comfy_workflows/flux2_klein_4b.json"
+    },
+    "inputs": {
+      "prompt": "{{prompt}}",
+      "seed": "{{seed}}",
+      "width": "{{width}}",
+      "height": "{{height}}"
+    }
+  }
+}

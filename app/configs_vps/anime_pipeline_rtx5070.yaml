@@ -35,6 +35,9 @@
 vram:
   profile: normalvram
 
+deployment:
+  profile: rtx5070
+  max_concurrent: 1
 
 # ── Model Strategy ──────────────────────────────────────────────────
 # Same WAI-illustrious-SDXL stack as production for consistent test results.

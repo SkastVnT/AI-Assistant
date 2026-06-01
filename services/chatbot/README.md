@@ -107,17 +107,24 @@ tests/                pytest (venv-core)
 
 ## Image Generation
 
-7 providers tại `core/image_gen/providers/`:
+Router `core/image_gen/router.py` (`ImageGenerationRouter`) đăng ký provider theo env key có sẵn. Provider chọn theo **priority giảm dần** + `QualityMode`, fallback xuống provider thấp hơn khi lỗi.
 
-| Provider | Priority | Models tiêu biểu |
-|---|---|---|
-| fal.ai | 90 | FLUX.2, nano-banana, seedream5 |
-| Black Forest Labs | 85 | FLUX Pro |
-| Replicate | 80 | marketplace |
-| StepFun | 75 | step image models |
-| OpenAI | 70 | DALL-E 3 |
-| Together AI | 60 | FLUX Schnell |
-| ComfyUI | 10 | local workflow |
+8 providers tại `core/image_gen/providers/`:
+
+| Provider | Priority | Env key | Models tiêu biểu |
+|---|---|---|---|
+| fal.ai | 90 | `FAL_API_KEY` | FLUX.2, nano-banana(-pro/-2), seedream5, recraft-v4 |
+| Black Forest Labs | 85 | `BFL_API_KEY` | FLUX.2 pro/dev/max, FLUX1 pro |
+| Replicate | 80 | `REPLICATE_API_TOKEN` | grok-imagine, FLUX.2, kontext, sdxl-lightning |
+| StepFun | 75 | `STEPFUN_API_KEY` | step1x turbo/medium/edit/fill |
+| OpenAI | 70 | `OPENAI_API_KEY` | gpt-image-1, DALL-E 3 |
+| Together AI | 60 | `TOGETHER_API_KEY` | FLUX1 schnell/dev/kontext/redux |
+| ComfyUI Fast | 15 | `COMFYUI_URL`/`SD_API_URL` | local single-pass (~10s, SAA-style) |
+| ComfyUI | 10 | `COMFYUI_URL`/`SD_API_URL` | local multi-pass workflow |
+
+> `nano_banana_provider.py` không đăng ký riêng trong router — các model `nano-banana*` được phục vụ qua fal.ai/Replicate. Surface trực tiếp ở `routes/nano_banana.py` (`/api/nano-banana/*`, gate `NANO_BANANA_ENABLED`, mặc định `true`).
+
+Provider tier `comfyui`/`comfyui_fast` chỉ đăng ký khi runtime profile không bật `skip_comfyui_provider`. AUTO mode gom provider cùng tier (chênh ≤15 điểm) rồi random để phân tải; `FREE` mode ép local; `QUALITY` ưu tiên tier cao.
 
 ---
 
@@ -143,7 +150,14 @@ explicit skill -> session skill -> auto-route (SkillRouter, threshold 1.05) -> n
 | `GET` | `/api/skills` | List skills |
 | `POST` | `/api/skills/activate` | Activate skill cho session |
 | `POST` | `/api/image-gen/generate` | Image gen (JSON) |
-| `POST` | `/api/image-gen/stream` | Image gen (SSE) |
+| `POST` | `/api/image-gen/stream` | Image gen (SSE, có event `provider_try`) |
+| `POST` | `/api/image-gen/edit` | Edit ảnh gần nhất (img2img) |
+| `GET` | `/api/image-gen/providers` | List provider đang bật |
+| `GET` | `/api/image-gen/gallery` | Ảnh đã tạo gần đây |
+| `GET` | `/api/image-gen/loras` | List LoRA catalog |
+| `POST` | `/api/nano-banana/generate` | Gemini Flash Image (gate `NANO_BANANA_ENABLED`) |
+| `POST` | `/api/anime-pipeline/stream` | Anime pipeline SSE (gate `IMAGE_PIPELINE_V2`) |
+| `POST` | `/api/reasoning-image-gen/stream` | Multi-panel pipeline (gate `REASONING_PIPELINE`) |
 | `POST` | `/api/video/generate` | Sora 2 video |
 | `POST` | `/memory/save` | Save AI memory |
 | `GET` | `/api/jobs` | Job queue status |
@@ -172,8 +186,10 @@ MONGODB_DB_NAME=ai_assistant_v2
 # Image gen
 FAL_API_KEY=
 BFL_API_KEY=
-REPLICATE_API_KEY=
+REPLICATE_API_TOKEN=
 TOGETHER_API_KEY=
+STEPFUN_API_KEY=
+COMFYUI_URL=http://127.0.0.1:8188
 SD_API_URL=http://127.0.0.1:7861
 
 # Search
@@ -183,6 +199,8 @@ GOOGLE_CSE_ID=
 
 # Optional flags
 REASONING_PIPELINE=false
+IMAGE_PIPELINE_V2=true
+NANO_BANANA_ENABLED=true
 HERMES_ENABLED=false
 CHARACTER_SELECT_ENABLED=false
 LAST30DAYS_ENABLED=false

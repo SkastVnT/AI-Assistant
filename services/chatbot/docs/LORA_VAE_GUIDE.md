@@ -52,14 +52,14 @@ Tính năng mới cho phép bạn sử dụng **Lora models** và **VAE models**
 
 ### Thêm Lora Models
 1. Tải file `.safetensors` hoặc `.pt` từ [Civitai](https://civitai.com)
-2. Copy vào: `stable-diffusion-webui/models/Lora/`
-3. Restart Stable Diffusion WebUI
+2. Copy vào thư mục LoRA của ComfyUI: `ComfyUI/models/loras/`
+3. Gọi `POST /api/image-gen/loras/reload` (hoặc restart) để rebuild catalog
 4. Reload ChatBot page
 
 ### Thêm VAE Models
 1. Tải VAE file `.safetensors` từ [HuggingFace](https://huggingface.co) hoặc Civitai
-2. Copy vào: `stable-diffusion-webui/models/VAE/`
-3. Restart Stable Diffusion WebUI
+2. Copy vào: `ComfyUI/models/vae/`
+3. Restart ComfyUI
 4. Reload ChatBot page
 
 ## 🎯 Các Lora Models hiện có
