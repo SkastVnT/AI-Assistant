@@ -215,6 +215,7 @@ def create_http_log_file(app):
         str(http_log_file),
         maxBytes=10485760,  # 10MB
         backupCount=5,
+        encoding="utf-8",
     )
 
     # Create formatter

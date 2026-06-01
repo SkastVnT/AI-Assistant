@@ -41,6 +41,13 @@ def _kill_sidecars() -> None:
 
 atexit.register(_kill_sidecars)
 
+# Ensure stdout/stderr emit UTF-8 on Windows (default is cp1252 which garbles emoji).
+# Python 3.7+ TextIOWrapper supports reconfigure(); falls back to PYTHONIOENCODING env var.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 # Configure logging early — before any module imports so all loggers inherit this config.
 # NOTE: force=False (default) so that when uvicorn worker re-imports this module it does NOT
 # wipe uvicorn's access-log handlers that were already set up by the worker bootstrap.

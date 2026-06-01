@@ -169,10 +169,10 @@ try:
     from src.ocr_integration import extract_file_content, ocr_client
 
     OCR_AVAILABLE = True
-    logger.info("âœ… OCR Integration loaded")
+    logger.info("✅ OCR Integration loaded")
 except ImportError as e:
     OCR_AVAILABLE = False
-    logger.warning(f"âš ï¸ OCR Integration not available: {e}")
+    logger.warning(f"⚠️ OCR Integration not available: {e}")
 
     def extract_file_content(data, filename):
         return False, ""
@@ -265,10 +265,10 @@ register_monitor(app)
 try:
     mongodb_client.connect()
     MONGODB_ENABLED = True
-    logger.info("Ã¢Å“â€¦ MongoDB connection established")
+    logger.info("✅ MongoDB connection established")
 except Exception as e:
     MONGODB_ENABLED = False
-    logger.warning(f"Ã¢Å¡Â Ã¯Â¸Â MongoDB not available, using session storage: {e}")
+    logger.warning(f"⚠️ MongoDB not available, using session storage: {e}")
 
 # Memory storage path
 MEMORY_DIR = Path(__file__).parent / "data" / "memory"
