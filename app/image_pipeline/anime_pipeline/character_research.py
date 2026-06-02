@@ -40,6 +40,16 @@ _RESEARCH_DIR = _STORAGE_ROOT / "character_research"
 # ── Research cache TTL (7 days) ──────────────────────────────────────
 _RESEARCH_TTL_SECONDS = 7 * 24 * 3600
 
+# ── Path-safe tag helper ─────────────────────────────────────────────
+# Danbooru tags can contain characters that are invalid in Windows paths
+# (e.g. rem_(re:zero) contains ':'). Sanitize before building any Path.
+_INVALID_PATH_CHARS = re.compile(r'[<>:"/\\|?*]')
+
+
+def _safe_dir(danbooru_tag: str) -> str:
+    """Return a filesystem-safe directory name for a danbooru tag."""
+    return _INVALID_PATH_CHARS.sub("_", danbooru_tag)
+
 
 # ── Seen-URL / byte-hash registry ────────────────────────────────────
 # 2026-04-23 user request: reference search MUST always find NEW images
@@ -58,7 +68,7 @@ _RESEARCH_TTL_SECONDS = 7 * 24 * 3600
 
 
 def _seen_registry_path(danbooru_tag: str) -> Path:
-    return _REF_DIR / danbooru_tag / "seen_urls.json"
+    return _REF_DIR / _safe_dir(danbooru_tag) / "seen_urls.json"
 
 
 def _load_seen_registry(danbooru_tag: str) -> dict[str, dict[str, str]]:
@@ -85,7 +95,7 @@ def _load_seen_registry(danbooru_tag: str) -> dict[str, dict[str, str]]:
 
     # Backfill: any image already in the ref dir but absent from the
     # registry should still be treated as seen.
-    ref_dir = _REF_DIR / danbooru_tag
+    ref_dir = _REF_DIR / _safe_dir(danbooru_tag)
     if ref_dir.is_dir():
         existing_files = list(ref_dir.glob("*.png")) + list(ref_dir.glob("*.jpg"))
         new_byte_entries = 0
@@ -172,15 +182,35 @@ _SAA_MIN_LOCAL_REFS = int(os.getenv("CHAR_RESEARCH_MIN_LOCAL_REFS", "5"))
 def _persist_saa_thumbnail(danbooru_tag: str) -> Optional[Path]:
     """Save the SAA WAI thumbnail for ``danbooru_tag`` into character_refs/.
 
+    The thumbnails in wai_character_thumbs.json are stored as
+    base64(gzip(WEBP)).  This function decompresses and converts
+    to PNG so the file is readable by every downstream image handler.
+
     Returns the path on success, None when no thumbnail or already saved.
     Never raises.
     """
+    import gzip
+
     if not danbooru_tag:
         return None
-    ref_dir = _REF_DIR / danbooru_tag
+    ref_dir = _REF_DIR / _safe_dir(danbooru_tag)
     target = ref_dir / "saa_thumb.png"
+
+    # Migration: delete any previously-saved broken file that still contains
+    # gzip magic bytes (written by the old code that skipped decompression).
     if target.exists():
-        return target
+        try:
+            if target.read_bytes()[:2] == b"\x1f\x8b":
+                target.unlink()
+                logger.info(
+                    "[CharResearch] Removed stale gzip saa_thumb.png for %s",
+                    danbooru_tag,
+                )
+            else:
+                return target
+        except Exception:
+            return target
+
     try:
         from .saa_character_db import get_character_thumbnail
     except Exception:
@@ -194,8 +224,33 @@ def _persist_saa_thumbnail(danbooru_tag: str) -> Optional[Path]:
             return None
         if "," in b64 and b64.startswith("data:"):
             b64 = b64.split(",", 1)[1]
+
+        raw = base64.b64decode(b64)
+
+        # Thumbnails are gzip-compressed WEBP — decompress first.
+        if raw[:2] == b"\x1f\x8b":
+            raw = gzip.decompress(raw)
+
+        # Convert WEBP (or any format Pillow understands) → PNG so the
+        # downstream glob("*.png") pattern picks it up correctly.
+        try:
+            from PIL import Image  # type: ignore[import-not-found]
+            import io as _io
+
+            img = Image.open(_io.BytesIO(raw))
+            buf = _io.BytesIO()
+            img.save(buf, format="PNG")
+            raw = buf.getvalue()
+        except Exception as _pil_err:
+            logger.debug(
+                "[CharResearch] PIL WEBP→PNG conversion failed for %s: %s — "
+                "saving raw bytes (may not open as PNG)",
+                danbooru_tag,
+                _pil_err,
+            )
+
         ref_dir.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(base64.b64decode(b64))
+        target.write_bytes(raw)
         logger.info(
             "[CharResearch] Persisted SAA thumbnail for %s -> %s",
             danbooru_tag,
@@ -222,7 +277,7 @@ def _collect_local_refs(
     if not danbooru_tag:
         return []
     out: list[str] = []
-    ref_dir = _REF_DIR / danbooru_tag
+    ref_dir = _REF_DIR / _safe_dir(danbooru_tag)
     saa_path = _persist_saa_thumbnail(danbooru_tag) if include_saa else None
     seen: set[str] = set()
     if saa_path and saa_path.exists():
@@ -306,7 +361,8 @@ class CharacterResearchResult:
 
     def build_positive_tags(self) -> list[str]:
         """Build ordered tag list: character > identity > layers."""
-        tags: list[str] = [self.danbooru_tag, self.series_tag]
+        # Skip empty or placeholder series_tag (e.g. "" or "unknown")
+        tags: list[str] = [t for t in [self.danbooru_tag, self.series_tag] if t and t != "unknown"]
         for layer in [
             self.eyes,
             self.hair,
@@ -1172,7 +1228,7 @@ def _download_reference_images(
     """
     import httpx
 
-    ref_dir = _REF_DIR / danbooru_tag
+    ref_dir = _REF_DIR / _safe_dir(danbooru_tag)
     ref_dir.mkdir(parents=True, exist_ok=True)
 
     registry = _load_seen_registry(danbooru_tag)
@@ -1567,7 +1623,7 @@ def _analyze_reference_image(
 
 def _load_cached_research(danbooru_tag: str) -> Optional[CharacterResearchResult]:
     """Load cached research if still valid."""
-    cache_file = _RESEARCH_DIR / danbooru_tag / "research.json"
+    cache_file = _RESEARCH_DIR / _safe_dir(danbooru_tag) / "research.json"
     if not cache_file.exists():
         return None
 
@@ -1611,7 +1667,7 @@ def _load_cached_research(danbooru_tag: str) -> Optional[CharacterResearchResult
 
 def _save_research_cache(result: CharacterResearchResult) -> None:
     """Save research to cache."""
-    cache_dir = _RESEARCH_DIR / result.danbooru_tag
+    cache_dir = _RESEARCH_DIR / _safe_dir(result.danbooru_tag)
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_file = cache_dir / "research.json"
     try:

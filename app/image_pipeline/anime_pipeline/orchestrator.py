@@ -23,6 +23,7 @@ import logging
 import os
 import random
 import re
+import threading
 import time
 from pathlib import Path
 from typing import Any, Generator, Optional
@@ -2088,9 +2089,35 @@ class AnimePipelineOrchestrator:
             },
         )
 
-        try:
-            agent.execute(job)
-        except Exception as e:
+        # Run agent in a background thread so we can yield heartbeat events
+        # while it blocks on ComfyUI sampling (30+ steps = ~30 s of silence).
+        _exc_holder: list[BaseException] = []
+        _done_evt = threading.Event()
+
+        def _run_agent() -> None:
+            try:
+                agent.execute(job)
+            except Exception as _e:
+                _exc_holder.append(_e)
+            finally:
+                _done_evt.set()
+
+        _agent_thread = threading.Thread(target=_run_agent, daemon=True)
+        _t_start = time.monotonic()
+        _agent_thread.start()
+
+        while not _done_evt.wait(timeout=1.5):
+            yield self._event(
+                "stage_heartbeat",
+                {
+                    "stage": stage_name,
+                    "elapsed_s": round(time.monotonic() - _t_start, 1),
+                },
+            )
+
+        _agent_thread.join()
+        if _exc_holder:
+            e = _exc_holder[0]
             logger.error("[AnimePipeline] Stage %s failed: %s", stage_name, e)
             yield self._event(
                 "stage_error",
@@ -2099,7 +2126,7 @@ class AnimePipelineOrchestrator:
                     "error": str(e),
                 },
             )
-            raise
+            raise e
 
         # Agent may fail silently by setting job.status = FAILED instead of raising
         if job.status == AnimePipelineStatus.FAILED:

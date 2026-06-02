@@ -60,3 +60,11 @@ test_cases:
   - {<<: *adult, id: ADULT-EDIT-006, category: edit_adult, fixture_case: ADULT-EDIT-006}
   - {<<: *adult, id: ADULT-EDIT-007, category: edit_adult, fixture_case: ADULT-EDIT-007}
   - {<<: *adult, id: ADULT-EDIT-008, category: edit_adult, fixture_case: ADULT-EDIT-008}
+  - {<<: *adult, id: ADULT-MT-001, category: multi_turn_edit_adult, fixture_case: ADULT-MT-001}
+  - {<<: *adult, id: ADULT-MT-002, category: multi_turn_edit_adult, fixture_case: ADULT-MT-002}
+  - {<<: *adult, id: ADULT-MT-003, category: multi_turn_edit_adult, fixture_case: ADULT-MT-003}
+  - {<<: *adult, id: ADULT-MT-004, category: multi_turn_edit_adult, fixture_case: ADULT-MT-004}
+  - {<<: *adult, id: ADULT-MT-005, category: multi_turn_edit_adult, fixture_case: ADULT-MT-005}
+  - {<<: *adult, id: ADULT-MT-006, category: multi_turn_edit_adult, fixture_case: ADULT-MT-006}
+  - {<<: *adult, id: ADULT-MT-007, category: multi_turn_edit_adult, fixture_case: ADULT-MT-007}
+  - {<<: *adult, id: ADULT-MT-008, category: multi_turn_edit_adult, fixture_case: ADULT-MT-008}

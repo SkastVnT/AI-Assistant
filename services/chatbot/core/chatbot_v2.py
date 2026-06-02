@@ -101,7 +101,19 @@ class ModelRegistry:
                 fallback_model="openai",
             )
 
-        # Grok
+        # DeepSeek R1 (Reasoner via DeepSeek Direct API)
+        if DEEPSEEK_API_KEY:
+            self._configs["deepseek-reasoner"] = ModelConfig(
+                name="deepseek-reasoner",
+                provider=ModelProvider.DEEPSEEK,
+                api_key=DEEPSEEK_API_KEY,
+                base_url="https://api.deepseek.com/v1",
+                model_id="deepseek-reasoner",
+                max_tokens=4000,
+                max_tokens_deep=8000,
+                supports_streaming=True,
+                fallback_model="r1-free",
+            )
         if GROK_API_KEY:
             self._configs["grok"] = ModelConfig(
                 name="grok",
@@ -237,6 +249,34 @@ class ModelRegistry:
                 fallback_model="gemini",
             )
 
+        # Owl Alpha via OpenRouter (Paid)
+        if OPENROUTER_API_KEY:
+            self._configs["owl-alpha"] = ModelConfig(
+                name="owl-alpha",
+                provider=ModelProvider.OPENROUTER,
+                api_key=OPENROUTER_API_KEY,
+                base_url="https://openrouter.ai/api/v1",
+                model_id="openrouter/owl-alpha",
+                max_tokens=4000,
+                max_tokens_deep=8000,
+                supports_streaming=True,
+                fallback_model="deepseek",
+            )
+
+        # NVIDIA Nemotron 3 Super 120B via OpenRouter (FREE)
+        if OPENROUTER_API_KEY:
+            self._configs["nemotron-super"] = ModelConfig(
+                name="nemotron-super",
+                provider=ModelProvider.OPENROUTER,
+                api_key=OPENROUTER_API_KEY,
+                base_url="https://openrouter.ai/api/v1",
+                model_id="nvidia/nemotron-3-super-120b-a12b:free",
+                max_tokens=4000,
+                max_tokens_deep=8000,
+                supports_streaming=True,
+                fallback_model="deepseek",
+            )
+
         # Gemini via Google AI (FREE tier)
         if GEMINI_API_KEYS:
             self._configs["gemini"] = ModelConfig(
@@ -244,7 +284,7 @@ class ModelRegistry:
                 provider=ModelProvider.GEMINI,
                 api_key=GEMINI_API_KEYS[0],
                 base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-                model_id="gemini-2.0-flash",
+                model_id="gemini-2.5-flash",
                 max_tokens=2000,
                 max_tokens_deep=4000,
                 supports_streaming=True,

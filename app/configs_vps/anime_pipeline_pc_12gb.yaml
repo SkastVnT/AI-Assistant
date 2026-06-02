@@ -8,8 +8,9 @@ deployment:
 capabilities:
   flux2_klein: true
   qwen_image_edit: false
-  controlnet: false
-  yolo_detailer: true
+  controlnet: true
+  ipadapter: true
+  yolo_detailer: false
   pre_upscale_v2: false
 models:
   composition:
@@ -30,8 +31,47 @@ models:
     cfg: 5.0
     denoise_strength: 0.18
 structure_lock:
-  max_simultaneous_layers: 0
-  layers: []
+  max_simultaneous_layers: 1
+  layers:
+    - type: openpose
+      preprocessor: DWPreprocessor
+      controlnet_model: xinsir-controlnet-union-sdxl-1.0.safetensors
+      union_control_type: openpose
+      strength: 0.80
+      priority: 0
+      optional: true
+      enabled: true
+    - type: lineart_anime
+      preprocessor: AnimeLineArtPreprocessor
+      controlnet_model: xinsir-controlnet-union-sdxl-1.0.safetensors
+      union_control_type: canny/lineart/anime_lineart/mlsd
+      strength: 0.72
+      priority: 1
+      optional: true
+      enabled: true
+    - type: depth
+      preprocessor: DepthAnythingV2Preprocessor
+      controlnet_model: xinsir-controlnet-union-sdxl-1.0.safetensors
+      union_control_type: depth
+      strength: 0.50
+      priority: 2
+      optional: true
+      enabled: true
+    - type: canny
+      preprocessor: CannyEdgePreprocessor
+      controlnet_model: xinsir-controlnet-union-sdxl-1.0.safetensors
+      union_control_type: canny/lineart/anime_lineart/mlsd
+      strength: 0.35
+      priority: 3
+      optional: true
+      enabled: true
+ipadapter:
+  enabled: true
+  preset: PLUS FACE (portraits)
+  weight: 0.8
+  start_at: 0.0
+  end_at: 1.0
+  weight_type: standard
 detection_inpaint:
   enabled: false
 pipeline:

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -52,7 +54,7 @@ def test_laptop_external_validator_requires_sfw_opt_in():
         )
 
 
-def test_adult_only_laptop_requires_explicit_verified_adult_opt_in():
+def test_adult_only_laptop_is_disabled_even_with_request_attestation():
     from image_pipeline.anime_pipeline.runtime_policy import (
         PolicyViolation,
         RuntimePolicy,
@@ -62,9 +64,10 @@ def test_adult_only_laptop_requires_explicit_verified_adult_opt_in():
         RuntimePolicy.from_profile("laptop_6gb").validate_request(
             content_mode="adult_only", adult_verified=False
         )
-    RuntimePolicy.from_profile("laptop_6gb").validate_request(
-        content_mode="adult_only", adult_verified=True
-    )
+    with pytest.raises(PolicyViolation, match="disabled on laptop_6gb"):
+        RuntimePolicy.from_profile("laptop_6gb").validate_request(
+            content_mode="adult_only", adult_verified=True
+        )
 
 
 def test_pc_worker_default_requires_operator_assertion(monkeypatch):
@@ -81,6 +84,22 @@ def test_pc_worker_default_requires_operator_assertion(monkeypatch):
     policy = RuntimePolicy.from_profile("pc_12gb")
     assert policy.default_content_mode.value == "adult_only"
     policy.validate_request(content_mode="adult_only", adult_verified=False)
+
+
+def test_rtx5070_uses_pc_worker_default_policy(monkeypatch):
+    from image_pipeline.anime_pipeline.runtime_policy import (
+        PolicyViolation,
+        RuntimePolicy,
+    )
+
+    monkeypatch.delenv("ANIME_PIPELINE_ASSERT_VERIFIED_ADULT_WORKER", raising=False)
+    with pytest.raises(PolicyViolation):
+        RuntimePolicy.from_profile("rtx5070").validate_request(content_mode="sfw")
+
+    monkeypatch.setenv("ANIME_PIPELINE_ASSERT_VERIFIED_ADULT_WORKER", "1")
+    policy = RuntimePolicy.from_profile("rtx5070")
+    assert policy.default_content_mode.value == "adult_only"
+    policy.validate_request(content_mode="adult_only")
 
 
 def test_adult_subject_guard_rejects_age_ambiguous_context():
@@ -124,7 +143,26 @@ def test_profile_loader_uses_real_wai_v170_checkpoint():
         config = load_config()
     assert config.deployment_profile == "pc_12gb"
     assert config.composition_model.checkpoint == "waiIllustriousSDXL_v170.safetensors"
-    assert not any(layer.enabled for layer in config.structure_layers)
+    assert config.capabilities["controlnet"] is True
+    assert config.capabilities["ipadapter"] is True
+    assert config.ipadapter.enabled is True
+    assert any(
+        layer.enabled and layer.union_control_type
+        for layer in config.structure_layers
+    )
+
+
+def test_vps_profile_enables_bounded_tier1_detection_only():
+    from image_pipeline.anime_pipeline.config import load_config
+
+    with patch.dict("os.environ", {"ANIME_PIPELINE_PROFILE": "vps_96gb"}):
+        config = load_config()
+    assert config.detection_inpaint_enabled is True
+    assert config.detection_inpaint_max_passes == 5
+    assert config.detection_inpaint_max_regions_per_pass == 4
+    assert {
+        layer["region_type"] for layer in config.detection_inpaint_layers
+    } == {"face", "full_eyes", "eyes", "mouth", "hand"}
 
 
 def test_preflight_blocks_missing_required_checkpoint(tmp_path):
@@ -244,6 +282,100 @@ def test_native_qwen_editor_submits_comfy_workflow(tmp_path):
     assert response.provider == "comfyui-native"
 
 
+def test_local_dispatcher_runs_qwen_multi_turn_sequentially():
+    from image_pipeline.anime_pipeline.config import AnimePipelineConfig
+    from image_pipeline.anime_pipeline.local_dispatcher import LocalAnimeTaskDispatcher
+    from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+    from image_pipeline.semantic_editor.qwen_client import EditResponse
+
+    class FakeEditor:
+        def __init__(self):
+            self.sources = []
+
+        def edit(self, *, source_image_b64, **kwargs):
+            self.sources.append(source_image_b64)
+            return EditResponse(
+                success=True,
+                image_b64=f"turn-{len(self.sources)}",
+                provider="comfyui-native",
+                model="qwen-test",
+            )
+
+    editor = FakeEditor()
+    job = AnimePipelineJob(
+        user_prompt="apply edits",
+        task_type="multi_turn_edit",
+        source_image_b64="source",
+        edit_turns=["add glasses", "change scarf"],
+    )
+    LocalAnimeTaskDispatcher(
+        AnimePipelineConfig(capabilities={"qwen_image_edit": True}),
+        editor=editor,
+    ).run(job)
+
+    assert editor.sources == ["source", "turn-1"]
+    assert job.final_image_b64 == "turn-2"
+    assert [item.stage for item in job.intermediates] == [
+        "semantic_edit_turn_1",
+        "semantic_edit_turn_2",
+        "multi_turn_edit",
+    ]
+    assert (
+        job.metadata["route_provenance"]["executor"]
+        == "native_qwen_image_edit_sequential"
+    )
+
+
+def test_native_flux_composer_submits_local_workflow(tmp_path):
+    from image_pipeline.anime_pipeline.comfy_client import ComfyJobResult
+    from image_pipeline.anime_pipeline.config import AnimePipelineConfig
+    from image_pipeline.multi_reference.native_comfy_composer import (
+        NativeComfyMultiRefComposer,
+    )
+
+    template = tmp_path / "flux_native.json"
+    template.write_text(
+        json.dumps(
+            {
+                "1": {
+                    "class_type": "LoadImageFromBase64",
+                    "inputs": {"base64_image": "{{reference_0_b64}}"},
+                },
+                "2": {
+                    "class_type": "CLIPTextEncode",
+                    "inputs": {"text": "{{prompt}}"},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class FakeClient:
+        base_url = "http://127.0.0.1:8188"
+
+        def submit_workflow(self, workflow, job_id="", pass_name=""):
+            assert workflow["1"]["inputs"]["base64_image"] == "face-b64"
+            assert workflow["2"]["inputs"]["text"] == "combine references"
+            assert pass_name == "multi_ref"
+            return ComfyJobResult(success=True, images_b64=["combined-b64"])
+
+    config = AnimePipelineConfig(
+        native_providers={
+            "flux2_klein": {
+                "workflow_template": str(template),
+                "model": "flux-test",
+            }
+        }
+    )
+    response = NativeComfyMultiRefComposer(config, client=FakeClient()).compose(
+        prompt="combine references",
+        reference_images_b64=["face-b64"],
+    )
+    assert response.success is True
+    assert response.image_b64 == "combined-b64"
+    assert response.model == "flux-test"
+
+
 def test_legacy_semantic_editor_has_no_cloud_fallback_by_default():
     from image_pipeline.semantic_editor.editor import SemanticEditor
 
@@ -281,6 +413,128 @@ def test_live_benchmark_requires_real_pipeline_and_scorer(tmp_path):
         asyncio.run(runner.run_suite())
 
 
+def test_benchmark_scores_with_source_references_and_case_dimensions(tmp_path, monkeypatch):
+    from image_pipeline.evaluator import experiment_log
+    from image_pipeline.evaluator.benchmark_runner import (
+        BenchmarkExecution,
+        BenchmarkRunner,
+    )
+    from image_pipeline.job_schema import EvalResult
+
+    suite = tmp_path / "suite.yaml"
+    suite.write_text(
+        "test_cases:\n"
+        "  - id: EDIT-001\n"
+        "    category: semantic_edit\n"
+        "    instruction: add glasses\n"
+        "    dimensions: [semantic_edit]\n"
+        "    setup:\n"
+        "      mode: semantic_edit\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "output.png"
+    source = tmp_path / "source.png"
+    reference = tmp_path / "reference.png"
+    for path in (output, source, reference):
+        path.write_bytes(b"png")
+
+    class FakePipeline:
+        def __init__(self):
+            self.prepare_calls = 0
+
+        def prepare_suite(self, cases, *, parity=False, run_id=""):
+            self.prepare_calls += 1
+
+        async def __call__(self, job):
+            return BenchmarkExecution(
+                output_path=output,
+                source_image_path=source,
+                reference_paths=[reference],
+            )
+
+    class FakeScorer:
+        def __init__(self):
+            self.kwargs = {}
+
+        async def score(self, job, output_path, **kwargs):
+            self.kwargs = kwargs
+            result = EvalResult(scores={"semantic_edit": 1.0}, evaluated=["semantic_edit"])
+            result.evaluate()
+            return result
+
+    monkeypatch.setattr(experiment_log, "_BENCHMARK_DIR", tmp_path / "records")
+    pipeline = FakePipeline()
+    scorer = FakeScorer()
+    asyncio.run(
+        BenchmarkRunner(suite, scorer=scorer, pipeline_fn=pipeline).run_suite()
+    )
+
+    assert pipeline.prepare_calls == 1
+    assert scorer.kwargs["source_image_path"] == source
+    assert scorer.kwargs["reference_paths"] == [reference]
+    assert scorer.kwargs["force_dimensions"] == ["semantic_edit"]
+
+
+def test_benchmark_case_conversion_preserves_multi_turn_sequence():
+    from image_pipeline.evaluator.benchmark_runner import BenchmarkRunner
+
+    job = BenchmarkRunner._case_to_job(
+        {
+            "instruction": "apply edits",
+            "setup": {"mode": "multi_turn_edit"},
+            "turns": [
+                {"instruction": "add glasses"},
+                {"instruction": "change scarf"},
+            ],
+        }
+    )
+    assert job.user_instruction == "apply edits"
+    assert job.edit_turns == ["add glasses", "change scarf"]
+
+
+def test_benchmark_adapter_lists_all_missing_fixtures(tmp_path, monkeypatch):
+    from image_pipeline.evaluator import anime_benchmark_adapter
+    from image_pipeline.evaluator.anime_benchmark_adapter import AnimeBenchmarkAdapter
+
+    monkeypatch.setattr(
+        anime_benchmark_adapter,
+        "run_preflight",
+        lambda *args, **kwargs: SimpleNamespace(
+            readiness="ready",
+            endpoint_health={"comfyui": True},
+        ),
+    )
+    adapter = AnimeBenchmarkAdapter(artifact_root=tmp_path)
+    with pytest.raises(RuntimeError) as exc_info:
+        adapter.prepare_suite(
+            [
+                {
+                    "setup": {
+                        "source_image": "fixtures/missing-source.png",
+                        "references": [{"image": "fixtures/missing-ref.png"}],
+                    }
+                }
+            ]
+        )
+    message = str(exc_info.value)
+    assert "missing-source.png" in message
+    assert "missing-ref.png" in message
+
+
+def test_experiment_log_execution_error_fails_quality_gate(tmp_path):
+    from image_pipeline.evaluator.experiment_log import ExperimentLog
+    from image_pipeline.job_schema import EvalResult, ImageJob
+
+    result = EvalResult(scores={"instruction_adherence": 1.0}, evaluated=["instruction_adherence"])
+    result.evaluate()
+    log = ExperimentLog(output_dir=tmp_path)
+    log.record_case("T-001", ImageJob(user_instruction="test"), result)
+    log.record_execution_error("T-002", "executor failed")
+    summary = log.summarize()
+    assert summary.execution_errors == ["T-002:executor failed"]
+    assert summary.local_quality_gate_passed is False
+
+
 def test_anime_benchmark_suite_contains_48_sfw_cases():
     suite_path = APP_ROOT / "configs_vps" / "anime_benchmark_suite.yaml"
     suite = yaml.safe_load(suite_path.read_text(encoding="utf-8"))
@@ -288,7 +542,7 @@ def test_anime_benchmark_suite_contains_48_sfw_cases():
     assert len(suite["test_cases"]) == 48
 
 
-def test_service_request_contract_enforces_laptop_adult_verification():
+def test_service_request_contract_disables_laptop_adult_content():
     from core.anime_pipeline_service import validate_request
 
     with patch.dict("os.environ", {"ANIME_PIPELINE_PROFILE": "laptop_6gb"}):
@@ -296,7 +550,7 @@ def test_service_request_contract_enforces_laptop_adult_verification():
             {"prompt": "original adult character portrait", "content_mode": "adult_only"}
         )
         assert request is None
-        assert "requires explicit verification" in str(error)
+        assert "disabled on laptop_6gb" in str(error)
 
         request, error = validate_request(
             {
@@ -306,10 +560,8 @@ def test_service_request_contract_enforces_laptop_adult_verification():
                 "deployment_profile": "laptop_6gb",
             }
         )
-        assert error is None
-        assert request is not None
-        assert request.content_mode == "adult_only"
-        assert request.adult_attestation_source == "request"
+        assert request is None
+        assert "disabled on laptop_6gb" in str(error)
 
 
 def test_service_request_contract_defaults_asserted_pc_worker_to_adult_only():
@@ -343,6 +595,52 @@ def test_service_request_contract_allows_laptop_sfw_validator_opt_in():
     assert error is None
     assert request is not None
     assert request.validator_mode == "external_sfw_opt_in"
+
+
+def test_service_request_contract_accepts_typed_references_and_turns():
+    from core.anime_pipeline_service import build_job, validate_request
+
+    with patch.dict("os.environ", {"ANIME_PIPELINE_PROFILE": "laptop_6gb"}):
+        request, error = validate_request(
+            {
+                "prompt": "add glasses, then change the scarf",
+                "task_type": "multi_turn_edit",
+                "source_image": "source-b64",
+                "references": [{"role": "face", "image_b64": "face-b64"}],
+                "turns": ["add glasses", {"instruction": "change the scarf"}],
+            }
+        )
+    assert error is None
+    assert request is not None
+    job = build_job(request)
+    assert job.task_type == "multi_turn_edit"
+    assert job.source_image_b64 == "source-b64"
+    assert job.references[0].role == "face"
+    assert job.edit_turns == ["add glasses", "change the scarf"]
+
+
+def test_identity_plan_enables_ipadapter_only_for_identity_task():
+    from image_pipeline.anime_pipeline.agents.layer_planner import LayerPlannerAgent
+    from image_pipeline.anime_pipeline.config import AnimePipelineConfig, IPAdapterConfig
+    from image_pipeline.anime_pipeline.schemas import AnimePipelineJob, PipelineReference
+
+    config = AnimePipelineConfig(ipadapter=IPAdapterConfig(enabled=True))
+    identity_job = AnimePipelineJob(
+        user_prompt="portrait",
+        task_type="identity",
+        references=[PipelineReference(role="face", image_b64="face-b64")],
+    )
+    t2i_job = AnimePipelineJob(
+        user_prompt="portrait",
+        task_type="t2i",
+        references=[PipelineReference(role="face", image_b64="face-b64")],
+    )
+
+    identity_plan = LayerPlannerAgent(config).build_plan(identity_job)
+    t2i_plan = LayerPlannerAgent(config).build_plan(t2i_job)
+
+    assert identity_plan.composition_pass.ipadapter_image_b64 == "face-b64"
+    assert t2i_plan.composition_pass.ipadapter_image_b64 == ""
 
 
 def test_service_build_job_applies_local_character_pack():
@@ -458,12 +756,59 @@ def test_preflight_blocks_pc_worker_without_operator_assertion(monkeypatch):
     assert any("ANIME_PIPELINE_ASSERT_VERIFIED_ADULT_WORKER=1" in error for error in report.errors)
 
 
-def test_adult_benchmark_suite_contains_48_local_fixture_cases():
+def test_parity_preflight_checks_comfyui_node_contract(tmp_path, monkeypatch):
+    from image_pipeline.anime_pipeline import preflight
+    from image_pipeline.anime_pipeline.config import AnimePipelineConfig, ModelConfig
+
+    checkpoint = tmp_path / "ComfyUI" / "models" / "checkpoints" / "test.safetensors"
+    checkpoint.parent.mkdir(parents=True)
+    checkpoint.write_bytes(b"x")
+    digest = hashlib.sha256(b"x").hexdigest()
+    manifest = tmp_path / "assets.yaml"
+    manifest.write_text(
+        "assets:\n"
+        "  - id: checkpoint\n"
+        "    profiles: [laptop_6gb]\n"
+        "    destination: ComfyUI/models/checkpoints/test.safetensors\n"
+        "    source_url: https://example.invalid/test\n"
+        "    license: operator-verified\n"
+        f"    sha256: {digest}\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(preflight, "_PROVISIONING_MANIFEST", manifest)
+    monkeypatch.setattr(preflight, "_probe", lambda *args, **kwargs: True)
+    monkeypatch.setattr(
+        preflight,
+        "_probe_json",
+        lambda *args, **kwargs: {"SetUnionControlNetType": {}},
+    )
+    model = ModelConfig(checkpoint="test.safetensors")
+    config = AnimePipelineConfig(
+        capabilities={"controlnet": True, "ipadapter": True},
+        composition_model=model,
+        beauty_model=model,
+        final_model=model,
+    )
+
+    report = preflight.run_preflight(
+        config,
+        comfyui_dir=tmp_path / "ComfyUI",
+        probe_remote=True,
+        parity=True,
+    )
+
+    assert report.readiness == "blocked"
+    assert report.node_contract["SetUnionControlNetType"] is True
+    assert report.node_contract["IPAdapter"] is False
+    assert any("missing required node classes" in error for error in report.errors)
+
+
+def test_adult_benchmark_suite_contains_56_local_fixture_cases():
     suite_path = APP_ROOT / "configs_vps" / "anime_benchmark_suite_adult_only.yaml"
     suite = yaml.safe_load(suite_path.read_text(encoding="utf-8"))
     assert suite["content_mode"] == "adult_only"
     assert suite["requires_adult_verified"] is True
-    assert len(suite["test_cases"]) == 48
+    assert len(suite["test_cases"]) == 56
 
 
 def test_adult_benchmark_requires_explicit_verification():

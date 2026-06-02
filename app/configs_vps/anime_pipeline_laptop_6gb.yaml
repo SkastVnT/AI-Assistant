@@ -4,11 +4,12 @@ deployment:
   allowed_internal_origins:
     - http://127.0.0.1:8188
     - http://127.0.0.1:8080
-  adult_content_policy: request_opt_in
+  adult_content_policy: sfw_only
 capabilities:
   flux2_klein: false
   qwen_image_edit: false
   controlnet: false
+  ipadapter: false
   yolo_detailer: false
   pre_upscale_v2: false
 models:

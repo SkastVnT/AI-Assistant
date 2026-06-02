@@ -36,10 +36,21 @@ def main() -> int:
         action="store_true",
         help="Exercise suite wiring only; never use dry-run results for parity claims",
     )
+    parser.add_argument(
+        "--artifact-root",
+        default=None,
+        help="Private fixture/output root for adult-only evidence runs",
+    )
+    parser.add_argument(
+        "--parity",
+        action="store_true",
+        help="Require parity preflight checks; incompatible with --dry-run",
+    )
     args = parser.parse_args()
     runner = build_local_anime_benchmark_runner(
         suite=args.suite,
         adult_verified=args.adult_verified,
+        artifact_root=args.artifact_root,
     )
     asyncio.run(
         runner.run_suite(
@@ -48,6 +59,7 @@ def main() -> int:
             categories=args.categories,
             dry_run=args.dry_run,
             adult_verified=args.adult_verified,
+            parity=args.parity,
         )
     )
     return 0

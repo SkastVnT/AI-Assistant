@@ -236,6 +236,7 @@ class WorkflowBuilder:
 
         # Optional LoRA chain on top of base checkpoint
         model_out, clip_base = self._attach_loras(w, pc.lora_models, ckpt, ckpt)
+        model_out = self._attach_ipadapter(w, pc, model_out)
 
         # CLIP skip (anime checkpoints commonly use clip_skip=2)
         clip_out = clip_base
@@ -339,6 +340,7 @@ class WorkflowBuilder:
 
         # Optional LoRA chain on top of base checkpoint
         model_out, clip_base = self._attach_loras(w, pc.lora_models, ckpt, ckpt)
+        model_out = self._attach_ipadapter(w, pc, model_out)
 
         load_img = self._nid()
         w[load_img] = {
@@ -462,12 +464,17 @@ class WorkflowBuilder:
             "LineArtPreprocessor",
             "CannyEdgePreprocessor",
             "DepthAnythingV2Preprocessor",
+            "DWPreprocessor",
         ):
             proc_inputs["resolution"] = 1024
 
         if layer_config.preprocessor == "CannyEdgePreprocessor":
             proc_inputs["low_threshold"] = 100
             proc_inputs["high_threshold"] = 200
+        elif layer_config.preprocessor == "DWPreprocessor":
+            proc_inputs["detect_hand"] = "enable"
+            proc_inputs["detect_body"] = "enable"
+            proc_inputs["detect_face"] = "enable"
 
         w[proc] = {
             "class_type": layer_config.preprocessor,
@@ -517,6 +524,7 @@ class WorkflowBuilder:
 
         # Optional LoRA chain on top of base checkpoint
         model_out, clip_base = self._attach_loras(w, pc.lora_models, ckpt, ckpt)
+        model_out = self._attach_ipadapter(w, pc, model_out)
 
         load_img = self._nid()
         w[load_img] = {
@@ -636,6 +644,7 @@ class WorkflowBuilder:
 
         # Optional LoRA chain on top of base checkpoint
         model_out, clip_base = self._attach_loras(w, pc.lora_models, ckpt, ckpt)
+        model_out = self._attach_ipadapter(w, pc, model_out)
 
         load_img = self._nid()
         w[load_img] = {
@@ -761,6 +770,7 @@ class WorkflowBuilder:
 
         # Optional LoRA chain on top of base checkpoint
         model_out, clip_base = self._attach_loras(w, pc.lora_models, ckpt, ckpt)
+        model_out = self._attach_ipadapter(w, pc, model_out)
 
         clip_pos = self._nid()
         w[clip_pos] = {
@@ -837,6 +847,7 @@ class WorkflowBuilder:
 
         # Optional LoRA chain on top of base checkpoint
         model_out, clip_base = self._attach_loras(w, pc.lora_models, ckpt, ckpt)
+        model_out = self._attach_ipadapter(w, pc, model_out)
 
         load_img = self._nid()
         w[load_img] = {
@@ -1314,6 +1325,7 @@ class WorkflowBuilder:
 
         # 2. LoRA chain (region-specific LoRAs, e.g. eye LoRAs for eye detail)
         model_out, clip_base = self._attach_loras(w, pc.lora_models, ckpt, ckpt)
+        model_out = self._attach_ipadapter(w, pc, model_out)
 
         # 3. Load source image
         load_img = self._nid()
@@ -1476,6 +1488,7 @@ class WorkflowBuilder:
             "inputs": {"ckpt_name": pc.checkpoint},
         }
         model_out, clip_base = self._attach_loras(w, pc.lora_models, ckpt, ckpt)
+        model_out = self._attach_ipadapter(w, pc, model_out)
 
         # 2. Load source image
         load_img = self._nid()
@@ -1608,6 +1621,44 @@ class WorkflowBuilder:
 
     # ── ControlNet wiring ─────────────────────────────────────────────
 
+    def _attach_ipadapter(
+        self,
+        w: dict[str, Any],
+        pc: PassConfig,
+        model_id: str,
+    ) -> str:
+        """Patch a model with IPAdapter Plus Face when the pass requests it."""
+        if not pc.ipadapter_image_b64:
+            return model_id
+
+        image = self._nid()
+        w[image] = {
+            "class_type": "LoadImageFromBase64",
+            "inputs": {"base64_image": pc.ipadapter_image_b64},
+        }
+        loader = self._nid()
+        w[loader] = {
+            "class_type": "IPAdapterUnifiedLoader",
+            "inputs": {
+                "model": [model_id, 0],
+                "preset": pc.ipadapter_preset,
+            },
+        }
+        apply = self._nid()
+        w[apply] = {
+            "class_type": "IPAdapter",
+            "inputs": {
+                "model": [loader, 0],
+                "ipadapter": [loader, 1],
+                "image": [image, 0],
+                "weight": pc.ipadapter_weight,
+                "start_at": pc.ipadapter_start_at,
+                "end_at": pc.ipadapter_end_at,
+                "weight_type": pc.ipadapter_weight_type,
+            },
+        }
+        return apply
+
     def _attach_loras(
         self,
         w: dict,
@@ -1688,6 +1739,18 @@ class WorkflowBuilder:
                 "inputs": {"control_net_name": ctrl.controlnet_model},
             }
 
+            control_net_out = cn_loader
+            if ctrl.union_control_type:
+                union_type = self._nid()
+                w[union_type] = {
+                    "class_type": "SetUnionControlNetType",
+                    "inputs": {
+                        "control_net": [cn_loader, 0],
+                        "type": ctrl.union_control_type,
+                    },
+                }
+                control_net_out = union_type
+
             # Apply
             cn_apply = self._nid()
             w[cn_apply] = {
@@ -1695,7 +1758,7 @@ class WorkflowBuilder:
                 "inputs": {
                     "positive": [current_pos, 0],
                     "negative": [current_neg, 0],
-                    "control_net": [cn_loader, 0],
+                    "control_net": [control_net_out, 0],
                     "image": [ctrl_img, 0],
                     "strength": ctrl.strength,
                     "start_percent": ctrl.start_percent,

@@ -66,6 +66,11 @@ _INTENT_DIMENSIONS: dict[str, list[str]] = {
         EvalDimension.MULTI_TURN_STABILITY,
         EvalDimension.IDENTITY_CONSISTENCY,
     ],
+    "multi_turn_edit": [
+        EvalDimension.INSTRUCTION_ADHERENCE,
+        EvalDimension.MULTI_TURN_STABILITY,
+        EvalDimension.IDENTITY_CONSISTENCY,
+    ],
     "inpaint": [
         EvalDimension.INSTRUCTION_ADHERENCE,
         EvalDimension.SEMANTIC_EDIT,

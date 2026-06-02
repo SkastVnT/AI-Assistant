@@ -38,6 +38,10 @@ vram:
 deployment:
   profile: rtx5070
   max_concurrent: 1
+  allowed_internal_origins:
+    - http://127.0.0.1:8188
+    - http://127.0.0.1:8080
+  adult_content_policy: worker_default
 
 # ── Model Strategy ──────────────────────────────────────────────────
 # Same WAI-illustrious-SDXL stack as production for consistent test results.

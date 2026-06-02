@@ -152,6 +152,7 @@ class ContextWindowManager:
         "bloomvn": 4000,
         "step-3.5-flash": 128000,
         "gemini-2.0-flash": 1000000,
+        "gemini-2.5-flash": 1000000,
         "default": 8000,
     }
 
@@ -661,6 +662,7 @@ DEFAULT_FALLBACK_CHAIN = {
     "grok": ["deepseek", "step-flash", "openai"],
     "openai": ["deepseek", "grok", "step-flash"],
     "deepseek": ["step-flash", "openai", "grok"],
+    "deepseek-reasoner": ["r1-free", "deepseek", "openai"],
     "qwen": ["deepseek", "step-flash", "openai"],
     "bloomvn": ["qwen", "deepseek", "step-flash"],
     "step-flash": ["deepseek", "grok", "openai"],
@@ -670,5 +672,7 @@ DEFAULT_FALLBACK_CHAIN = {
     "hermes3": ["deepseek", "step-flash", "openai"],
     "ling26": ["hermes3", "deepseek", "step-flash", "openai"],
     "lyria": ["gemini", "openai", "deepseek"],
+    "owl-alpha": ["deepseek", "step-flash", "openai"],
+    "nemotron-super": ["deepseek", "step-flash", "openai"],
     "gemini": ["grok", "deepseek", "step-flash"],
 }

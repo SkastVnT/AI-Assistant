@@ -107,7 +107,12 @@ class StructureLockAgent:
             return job
 
         # Resolve which layers to extract (enabled, sorted by priority)
-        layers = self._resolve_layers()
+        planned_types = {
+            control.layer_type
+            for pass_config in (job.layer_plan.passes if job.layer_plan else [])
+            for control in pass_config.control_inputs
+        }
+        layers = self._resolve_layers(planned_types or None)
         if not layers:
             logger.info("[StructureLock] No enabled layers, skipping")
             job.mark_stage("structure_lock", 0.0)
@@ -132,6 +137,7 @@ class StructureLockAgent:
                         image_b64=layer_b64,
                         preprocessor=lc.preprocessor,
                         controlnet_model=lc.controlnet_model,
+                        union_control_type=lc.union_control_type,
                         strength=lc.strength,
                         start_percent=lc.start_percent,
                         end_percent=lc.end_percent,
@@ -208,9 +214,16 @@ class StructureLockAgent:
 
     # ── Internals ─────────────────────────────────────────────────────
 
-    def _resolve_layers(self) -> list[StructureLayerConfig]:
+    def _resolve_layers(
+        self,
+        planned_types: set[str] | None = None,
+    ) -> list[StructureLayerConfig]:
         """Get enabled layers from config, sorted by priority, respecting max_simultaneous."""
-        layers = [lc for lc in self._config.structure_layers if lc.enabled]
+        layers = [
+            lc
+            for lc in self._config.structure_layers
+            if lc.enabled and (planned_types is None or lc.layer_type in planned_types)
+        ]
         layers.sort(key=lambda lc: lc.priority)
 
         max_layers = self._config.max_simultaneous_layers

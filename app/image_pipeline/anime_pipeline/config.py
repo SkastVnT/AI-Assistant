@@ -245,12 +245,23 @@ class StructureLayerConfig:
     layer_type: str = "lineart_anime"
     preprocessor: str = "AnimeLineArtPreprocessor"
     controlnet_model: str = ""
+    union_control_type: str = ""
     strength: float = 0.8
     start_percent: float = 0.0
     end_percent: float = 0.8
     priority: int = 1
     optional: bool = True  # skip gracefully if preprocessor node not installed
     enabled: bool = True
+
+
+@dataclass
+class IPAdapterConfig:
+    enabled: bool = False
+    preset: str = "PLUS FACE (portraits)"
+    weight: float = 0.8
+    start_at: float = 0.0
+    end_at: float = 1.0
+    weight_type: str = "standard"
 
 
 @dataclass
@@ -261,7 +272,7 @@ class AnimePipelineConfig:
     deployment_profile: str = "laptop_6gb"
     max_concurrent: int = 1
     allowed_internal_origins: list[str] = field(default_factory=list)
-    adult_content_policy: str = "request_opt_in"
+    adult_content_policy: str = "sfw_only"
     capabilities: dict[str, bool] = field(default_factory=dict)
     native_providers: dict[str, dict[str, Any]] = field(default_factory=dict)
     benchmark_version: str = "anime-local-v1"
@@ -300,6 +311,7 @@ class AnimePipelineConfig:
     # Structure lock
     structure_layers: list[StructureLayerConfig] = field(default_factory=list)
     max_simultaneous_layers: int = 2
+    ipadapter: IPAdapterConfig = field(default_factory=IPAdapterConfig)
 
     # Detection inpaint (ADetailer-style).
     # Default OFF: the user explicitly asked that every layer be a fully
@@ -308,6 +320,9 @@ class AnimePipelineConfig:
     # setting ``detection_inpaint.enabled: true`` in pipeline.yaml.
     detection_inpaint_enabled: bool = False
     detection_inpaint_layers: list[dict[str, Any]] = field(default_factory=list)
+    detection_inpaint_max_passes: int = 5
+    detection_inpaint_max_regions_per_pass: int = 4
+    detection_inpaint_time_budget_ms: int = 180000
 
     # New pipeline order (v2):
     #   composition → upscale 2× → structure_lock → YOLO → beauty
@@ -598,6 +613,7 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
                 layer_type=layer.get("type", "lineart_anime"),
                 preprocessor=layer.get("preprocessor", ""),
                 controlnet_model=layer.get("controlnet_model", ""),
+                union_control_type=layer.get("union_control_type", ""),
                 strength=float(layer.get("strength", 0.8)),
                 start_percent=float(layer.get("start_percent", 0.0)),
                 end_percent=float(layer.get("end_percent", 0.8)),
@@ -610,12 +626,41 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
         sl.get("max_simultaneous", sl.get("max_simultaneous_layers", 2))
     )
 
+    ipadapter = raw.get("ipadapter", {})
+    if isinstance(ipadapter, dict):
+        cfg.ipadapter = IPAdapterConfig(
+            enabled=bool(ipadapter.get("enabled", cfg.ipadapter.enabled)),
+            preset=str(ipadapter.get("preset", cfg.ipadapter.preset)),
+            weight=float(ipadapter.get("weight", cfg.ipadapter.weight)),
+            start_at=float(ipadapter.get("start_at", cfg.ipadapter.start_at)),
+            end_at=float(ipadapter.get("end_at", cfg.ipadapter.end_at)),
+            weight_type=str(
+                ipadapter.get("weight_type", cfg.ipadapter.weight_type)
+            ),
+        )
+
     # Detection inpaint (ADetailer-style). Default OFF unless the YAML
     # explicitly enables it OR the env override is set. The env override
     # is honored last so an operator can flip the stage on without
     # rewriting pipeline.yaml.
     det = raw.get("detection_inpaint", {})
     cfg.detection_inpaint_enabled = bool(det.get("enabled", False))
+    cfg.detection_inpaint_max_passes = max(
+        0, int(det.get("max_passes", cfg.detection_inpaint_max_passes))
+    )
+    cfg.detection_inpaint_max_regions_per_pass = max(
+        1,
+        int(
+            det.get(
+                "max_regions_per_pass",
+                cfg.detection_inpaint_max_regions_per_pass,
+            )
+        ),
+    )
+    cfg.detection_inpaint_time_budget_ms = max(
+        0,
+        int(det.get("time_budget_ms", cfg.detection_inpaint_time_budget_ms)),
+    )
     env_override = os.getenv("ANIME_PIPELINE_DETECTION_INPAINT", "").strip().lower()
     if env_override in ("1", "true", "yes", "on"):
         cfg.detection_inpaint_enabled = True

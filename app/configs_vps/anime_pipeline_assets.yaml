@@ -94,16 +94,72 @@ assets:
     license: operator-verified
     sha256: ""
     required_for_capability: pre_upscale_v2
-  - id: yolo_detailer_face
+  - id: xinsir_controlnet_union_sdxl
     profiles: [pc_12gb, vps_96gb]
-    destination: ComfyUI/models/ultralytics/bbox/face_yolov8n.pt
+    destination: ComfyUI/models/controlnet/xinsir-controlnet-union-sdxl-1.0.safetensors
+    source_url: https://huggingface.co/xinsir/controlnet-union-sdxl-1.0
+    license: Apache-2.0
+    sha256: ""
+    required_for_capability: controlnet
+  - id: dwpose_bbox_detector
+    profiles: [pc_12gb, vps_96gb]
+    destination: services/edit-image/ComfyUI/custom_nodes/comfyui_controlnet_aux/ckpts/yzd-v/DWPose/yolox_l.onnx
+    source_url: https://huggingface.co/yzd-v/DWPose
+    license: operator-verified
+    sha256: ""
+    required_for_capability: controlnet
+  - id: dwpose_pose_estimator
+    profiles: [pc_12gb, vps_96gb]
+    destination: services/edit-image/ComfyUI/custom_nodes/comfyui_controlnet_aux/ckpts/yzd-v/DWPose/dw-ll_ucoco_384_bs5.torchscript.pt
+    source_url: https://huggingface.co/yzd-v/DWPose
+    license: operator-verified
+    sha256: ""
+    required_for_capability: controlnet
+  - id: ipadapter_plus_face_sdxl_vit_h
+    profiles: [pc_12gb, vps_96gb]
+    destination: ComfyUI/models/ipadapter/ip-adapter-plus-face_sdxl_vit-h.safetensors
+    source_url: https://huggingface.co/h94/IP-Adapter
+    license: Apache-2.0
+    sha256: ""
+    required_for_capability: ipadapter
+  - id: clip_vision_vit_h
+    profiles: [pc_12gb, vps_96gb]
+    destination: ComfyUI/models/clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors
+    source_url: https://huggingface.co/h94/IP-Adapter
+    license: Apache-2.0
+    sha256: ""
+    required_for_capability: ipadapter
+  - id: yolo_detailer_face
+    profiles: [vps_96gb]
+    destination: ComfyUI/models/ultralytics/segm/adetailerAnimeGirlFace_segment.zip
+    source_url: ""
+    license: operator-verified
+    sha256: ""
+    required_for_capability: yolo_detailer
+  - id: yolo_detailer_full_eyes
+    profiles: [vps_96gb]
+    destination: ComfyUI/models/ultralytics/bbox/fullEyesDetection_v10.zip
+    source_url: ""
+    license: operator-verified
+    sha256: ""
+    required_for_capability: yolo_detailer
+  - id: yolo_detailer_eyes
+    profiles: [vps_96gb]
+    destination: ComfyUI/models/ultralytics/bbox/eyesDetection_v10.zip
+    source_url: ""
+    license: operator-verified
+    sha256: ""
+    required_for_capability: yolo_detailer
+  - id: yolo_detailer_mouth
+    profiles: [vps_96gb]
+    destination: ComfyUI/models/ultralytics/segm/adetailer2dMouth_v10.pt
     source_url: ""
     license: operator-verified
     sha256: ""
     required_for_capability: yolo_detailer
   - id: yolo_detailer_hands
-    profiles: [pc_12gb, vps_96gb]
-    destination: ComfyUI/models/ultralytics/bbox/hand_yolov8n.pt
+    profiles: [vps_96gb]
+    destination: ComfyUI/models/ultralytics/segm/handDetailer_v2V9c.zip
     source_url: ""
     license: operator-verified
     sha256: ""

@@ -21,6 +21,8 @@ import asyncio
 import logging
 import os
 import sys
+import inspect
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
@@ -48,6 +50,18 @@ _CONFIGS_DIR = CONFIGS_DIR
 _BENCHMARK_YAML = _CONFIGS_DIR / "anime_benchmark_suite.yaml"
 
 
+@dataclass
+class BenchmarkExecution:
+    """Artifacts and provenance returned by one live pipeline execution."""
+
+    output_path: Path
+    run_metadata: Any = None
+    source_image_path: Path | None = None
+    reference_paths: list[Path] = field(default_factory=list)
+    turn_artifacts: list[Path] = field(default_factory=list)
+    route_provenance: dict[str, Any] = field(default_factory=dict)
+
+
 class BenchmarkRunner:
     """
     Executes benchmark test cases and records results.
@@ -61,6 +75,7 @@ class BenchmarkRunner:
         benchmark_path: str | Path | None = None,
         scorer: Scorer | None = None,
         pipeline_fn: Any = None,  # async (ImageJob) -> (output_path, RunMetadata)
+        artifact_root: str | Path | None = None,
     ):
         self._benchmark_path = Path(benchmark_path or _BENCHMARK_YAML)
         self._benchmark_cfg = load_benchmark_config(self._benchmark_path)
@@ -71,6 +86,7 @@ class BenchmarkRunner:
         self._test_cases = self._load_test_cases()
         self._scorer = scorer
         self._pipeline_fn = pipeline_fn
+        self._artifact_root = Path(artifact_root) if artifact_root else None
 
         logger.info(
             "BenchmarkRunner: %d test cases loaded",
@@ -88,6 +104,7 @@ class BenchmarkRunner:
         categories: list[str] | None = None,
         dry_run: bool = False,
         adult_verified: bool = False,
+        parity: bool = False,
     ) -> RunSummary:
         """
         Run the full benchmark suite or a filtered subset.
@@ -108,8 +125,11 @@ class BenchmarkRunner:
             )
         if self.requires_adult_verified and not adult_verified:
             raise RuntimeError("adult_only benchmark requires --adult-verified")
+        if parity and dry_run:
+            raise RuntimeError("Parity benchmark cannot run with --dry-run")
         experiment = ExperimentLog(
             run_id=run_id,
+            output_dir=self._artifact_root,
             benchmark_cfg_path=self._benchmark_path,
         )
 
@@ -117,6 +137,16 @@ class BenchmarkRunner:
         cases = self._filter_cases(case_ids, categories)
         if self.requires_adult_verified and not dry_run:
             cases = self._overlay_adult_fixture_pack(cases)
+        if not dry_run and self._pipeline_fn and hasattr(
+            self._pipeline_fn, "prepare_suite"
+        ):
+            prepared = self._pipeline_fn.prepare_suite(
+                cases,
+                parity=parity,
+                run_id=experiment.run_id,
+            )
+            if inspect.isawaitable(prepared):
+                await prepared
         logger.info(
             "Running %d/%d test cases (run_id=%s, dry_run=%s)",
             len(cases),
@@ -142,8 +172,22 @@ class BenchmarkRunner:
                     output_path = ""
                     run_meta = None
                 elif self._pipeline_fn and self._scorer:
-                    output_path, run_meta = await self._pipeline_fn(job)
-                    eval_result = await self._scorer.score(job, output_path)
+                    execution = await self._pipeline_fn(job)
+                    if not isinstance(execution, BenchmarkExecution):
+                        output_path, run_meta = execution
+                        execution = BenchmarkExecution(
+                            output_path=Path(output_path),
+                            run_metadata=run_meta,
+                        )
+                    output_path = execution.output_path
+                    run_meta = execution.run_metadata
+                    eval_result = await self._scorer.score(
+                        job,
+                        output_path,
+                        source_image_path=execution.source_image_path,
+                        reference_paths=execution.reference_paths,
+                        force_dimensions=case.get("dimensions"),
+                    )
                 else:
                     raise RuntimeError("Live benchmark wiring disappeared during run")
 
@@ -155,6 +199,9 @@ class BenchmarkRunner:
                     category=case.get("category", ""),
                     difficulty=case.get("difficulty", ""),
                     output_image_path=str(output_path),
+                    intermediate_images=[
+                        str(path) for path in execution.turn_artifacts
+                    ],
                 )
 
             except Exception as e:
@@ -175,6 +222,8 @@ class BenchmarkRunner:
                     category=case.get("category", ""),
                     difficulty=case.get("difficulty", ""),
                 )
+                if not dry_run:
+                    experiment.record_execution_error(case_id, str(e))
 
         # Save results
         output_dir = experiment.save()
@@ -202,7 +251,9 @@ class BenchmarkRunner:
         if not manifest:
             raise RuntimeError("adult_only suite has no fixture_pack_manifest")
         manifest_path = Path(manifest)
-        if not manifest_path.is_absolute():
+        if self._artifact_root:
+            manifest_path = self._artifact_root / manifest_path.name
+        elif not manifest_path.is_absolute():
             manifest_path = CONFIGS_DIR.parents[1] / manifest_path
         if not manifest_path.is_file():
             raise RuntimeError(f"Missing local adult fixture manifest: {manifest_path}")
@@ -242,16 +293,18 @@ class BenchmarkRunner:
         """Convert a benchmark test case dict into an ImageJob."""
         setup = case.get("setup", {})
 
-        # Handle multi-turn: use the last instruction
         instruction = case.get("instruction", "")
         turns = case.get("turns")
-        if turns and isinstance(turns, list):
-            instruction = turns[-1].get("instruction", instruction)
 
         job = ImageJob(
             user_instruction=instruction,
             intent=setup.get("mode", "t2i"),
             language=setup.get("language", "en"),
+            edit_turns=[
+                str(turn.get("instruction", "")).strip()
+                for turn in (turns or [])
+                if isinstance(turn, dict) and str(turn.get("instruction", "")).strip()
+            ],
         )
 
         # Source image for edit modes
@@ -391,6 +444,8 @@ def main():
         action="store_true",
         help="Generate stub scores without calling models",
     )
+    parser.add_argument("--artifact-root", default=None)
+    parser.add_argument("--parity", action="store_true")
     parser.add_argument(
         "--verbose",
         "-v",
@@ -409,7 +464,8 @@ def main():
         benchmark_path=resolve_suite_path(
             args.suite,
             os.getenv("ANIME_PIPELINE_PROFILE", "laptop_6gb"),
-        )
+        ),
+        artifact_root=args.artifact_root,
     )
 
     summary = asyncio.run(
@@ -419,6 +475,7 @@ def main():
             categories=args.categories,
             dry_run=args.dry_run,
             adult_verified=args.adult_verified,
+            parity=args.parity,
         )
     )
 

@@ -630,6 +630,7 @@ class ImageJob:
     # ── Source image (for edit/followup) ─────────────────────────────
     source_image_b64: Optional[str] = None
     source_image_url: Optional[str] = None
+    edit_turns: list[str] = field(default_factory=list)
 
     # ── Model selection ──────────────────────────────────────────────
     preferred_models: list[str] = field(default_factory=list)
@@ -729,6 +730,7 @@ class ImageJob:
             "user_instruction": self.user_instruction,
             "language": self.language,
             "intent": self.intent,
+            "edit_turns": list(self.edit_turns),
             "must_keep": self.must_keep,
             "may_change": self.may_change,
             "forbidden_changes": self.forbidden_changes,

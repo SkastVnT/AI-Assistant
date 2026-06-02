@@ -193,6 +193,17 @@ def check_availability(*, probe_remote: bool = False) -> AvailabilityResult:
 
 _VALID_QUALITY = {"auto", "fast", "quality"}
 _VALID_PRESETS = {"anime_quality", "anime_speed", "anime_balanced"}
+_VALID_TASK_TYPES = {
+    "t2i",
+    "identity",
+    "multi_ref",
+    "semantic_edit",
+    "multi_turn_edit",
+    "pose",
+    "anatomy",
+    "complex_background",
+}
+_VALID_REFERENCE_ROLES = {"face", "full", "pose", "style"}
 # Prompt cap kept only as a safety net against pathological inputs; real
 # anime prompts can easily exceed 3-4 KB once layered tags + scene + LoRA
 # trigger words are concatenated. Set well above realistic usage.
@@ -201,11 +212,21 @@ _MAX_REFS = 4
 
 
 @dataclass
+class PipelineReferenceInput:
+    role: str = "full"
+    image_b64: str = ""
+
+
+@dataclass
 class PipelineRequest:
     """Validated request parameters for a pipeline run."""
 
     prompt: str = ""
     reference_images_b64: list[str] = field(default_factory=list)
+    references: list[PipelineReferenceInput] = field(default_factory=list)
+    source_image_b64: str = ""
+    task_type: str = "t2i"
+    turns: list[str] = field(default_factory=list)
     preset: str = "anime_quality"
     quality_mode: str = "quality"
     model_base: str = ""
@@ -241,11 +262,49 @@ def validate_request(data: dict) -> tuple[PipelineRequest | None, str | None]:
     if len(prompt) > _MAX_PROMPT:
         return None, f"prompt too long (max {_MAX_PROMPT} chars)"
 
-    refs = data.get("reference_images", []) or []
-    if not isinstance(refs, list):
-        refs = [refs]
-    if len(refs) > _MAX_REFS:
+    legacy_refs = data.get("reference_images", []) or []
+    if not isinstance(legacy_refs, list):
+        legacy_refs = [legacy_refs]
+    typed_refs: list[PipelineReferenceInput] = []
+    raw_typed_refs = data.get("references", []) or []
+    if not isinstance(raw_typed_refs, list):
+        return None, "references must be a list"
+    for item in raw_typed_refs:
+        if not isinstance(item, dict):
+            return None, "references entries must be objects"
+        role = str(item.get("role", "full"))
+        if role not in _VALID_REFERENCE_ROLES:
+            return None, f"Unknown reference role: {role}"
+        image_b64 = str(item.get("image_b64", "") or "")
+        if image_b64:
+            typed_refs.append(PipelineReferenceInput(role=role, image_b64=image_b64))
+    typed_refs.extend(
+        PipelineReferenceInput(role="full", image_b64=str(image_b64))
+        for image_b64 in legacy_refs
+        if image_b64
+    )
+    if len(typed_refs) > _MAX_REFS:
         return None, f"Too many reference images (max {_MAX_REFS})"
+    refs = [reference.image_b64 for reference in typed_refs]
+
+    task_type = str(data.get("task_type", "t2i") or "t2i")
+    if task_type not in _VALID_TASK_TYPES:
+        return None, f"Unknown task_type: {task_type}"
+    source_image_b64 = str(
+        data.get("source_image") or data.get("source_image_b64") or ""
+    )
+    raw_turns = data.get("turns", []) or []
+    if not isinstance(raw_turns, list):
+        return None, "turns must be a list"
+    turns = [
+        str(item.get("instruction", "") if isinstance(item, dict) else item).strip()
+        for item in raw_turns
+    ]
+    turns = [turn for turn in turns if turn]
+    if task_type in {"semantic_edit", "multi_turn_edit"} and not source_image_b64:
+        return None, f"{task_type} requires source_image"
+    if task_type == "multi_turn_edit" and not turns:
+        return None, "multi_turn_edit requires at least one turn"
 
     preset = data.get("preset", "anime_quality")
     if preset not in _VALID_PRESETS:
@@ -322,6 +381,10 @@ def validate_request(data: dict) -> tuple[PipelineRequest | None, str | None]:
     req = PipelineRequest(
         prompt=prompt,
         reference_images_b64=refs,
+        references=typed_refs,
+        source_image_b64=source_image_b64,
+        task_type=task_type,
+        turns=turns,
         preset=preset,
         quality_mode=quality,
         model_base=data.get("model_base", ""),
@@ -350,7 +413,7 @@ def validate_request(data: dict) -> tuple[PipelineRequest | None, str | None]:
 
 def build_job(req: PipelineRequest) -> Any:
     """Create an AnimePipelineJob from validated request params."""
-    from image_pipeline.anime_pipeline import AnimePipelineJob
+    from image_pipeline.anime_pipeline import AnimePipelineJob, PipelineReference
     from image_pipeline.anime_pipeline.character_pack import get_character_pack
 
     pack = get_character_pack(req.character_key) if req.character_key else None
@@ -363,6 +426,13 @@ def build_job(req: PipelineRequest) -> Any:
     job = AnimePipelineJob(
         user_prompt=prompt,
         reference_images_b64=req.reference_images_b64,
+        references=[
+            PipelineReference(role=reference.role, image_b64=reference.image_b64)
+            for reference in req.references
+        ],
+        source_image_b64=req.source_image_b64 or None,
+        task_type=req.task_type,
+        edit_turns=list(req.turns),
         preset=req.preset,
         quality_hint=req.quality_mode,
         session_id=req.session_id,
@@ -582,7 +652,7 @@ def stream_pipeline(req: PipelineRequest) -> Generator[str, None, None]:
         ap_error        — recoverable or fatal error
         ap_done         — stream complete sentinel
     """
-    from image_pipeline.anime_pipeline import AnimePipelineOrchestrator
+    from image_pipeline.anime_pipeline import LocalAnimeTaskDispatcher
 
     job = build_job(req)
 
@@ -601,7 +671,7 @@ def stream_pipeline(req: PipelineRequest) -> Generator[str, None, None]:
     # Construct orchestrator after the first yield — takes ~2 s on cold
     # import because it loads YAML config and instantiates all agents.
     try:
-        orchestrator = AnimePipelineOrchestrator()
+        orchestrator = LocalAnimeTaskDispatcher()
     except Exception as _orch_exc:
         logger.error(
             "[AnimePipelineService] Orchestrator init failed for job=%s: %s",
@@ -925,6 +995,18 @@ def _run_pipeline_inner(
                         ),
                         "character_name": edata.get("character_name") or "",
                         "tag_count": len(edata.get("anime_tags", []) or []),
+                    },
+                )
+
+            elif etype == "anime_pipeline_stage_heartbeat":
+                # Emitted every ~1.5 s while agent.execute() blocks on
+                # ComfyUI sampling. Lets the frontend show elapsed time
+                # ("Composition Pass · 12.3s") instead of freezing.
+                yield _sse_line(
+                    "ap_stage_heartbeat",
+                    {
+                        "stage": edata.get("stage", ""),
+                        "elapsed_s": edata.get("elapsed_s", 0.0),
                     },
                 )
 

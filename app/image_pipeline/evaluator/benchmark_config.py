@@ -31,7 +31,9 @@ def load_benchmark_config(path: str | Path) -> dict[str, Any]:
 def resolve_suite_path(suite: str, profile: str) -> Path:
     selected = (suite or "auto").strip().lower()
     if selected == "auto":
-        selected = "adult_only" if profile in {"pc_12gb", "vps_96gb"} else "sfw"
+        selected = (
+            "adult_only" if profile in {"pc_12gb", "vps_96gb", "rtx5070"} else "sfw"
+        )
     if selected == "sfw":
         return SFW_SUITE_PATH
     if selected == "adult_only":

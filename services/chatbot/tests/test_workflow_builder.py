@@ -309,6 +309,17 @@ class TestStructureLockLayer:
         saves = [n for n in wf.values() if n["class_type"] == "SaveImage"]
         assert "depth" in saves[0]["inputs"]["filename_prefix"]
 
+    def test_dwpose_has_detection_switches(self, builder):
+        lc = StructureLayerConfig(
+            layer_type="openpose",
+            preprocessor="DWPreprocessor",
+        )
+        wf = builder.build_structure_lock_layer("b64img", lc)
+        proc = [n for n in wf.values() if n["class_type"] == "DWPreprocessor"][0]
+        assert proc["inputs"]["detect_hand"] == "enable"
+        assert proc["inputs"]["detect_body"] == "enable"
+        assert proc["inputs"]["detect_face"] == "enable"
+
 
 # ═══════════════════════════════════════════════════════════════════
 # Upscale variants
@@ -425,6 +436,55 @@ class TestControlNetAttachment:
         wf = builder.build_beauty(pc, "source", SEED)
         cn = [n for n in wf.values() if n["class_type"] == "ControlNetApplyAdvanced"]
         assert len(cn) == 0
+
+    def test_union_controlnet_type_is_inserted_before_apply(self, builder):
+        pc = PassConfig(
+            pass_name="beauty",
+            checkpoint="test.safetensors",
+            positive_prompt="test",
+            negative_prompt="bad",
+            control_inputs=[
+                ControlInput(
+                    layer_type="openpose",
+                    controlnet_model="xinsir-union.safetensors",
+                    union_control_type="openpose",
+                    image_b64="pose-b64",
+                )
+            ],
+        )
+        wf = builder.build_beauty(pc, "source", SEED)
+        union_id, union = next(
+            (node_id, node)
+            for node_id, node in wf.items()
+            if node["class_type"] == "SetUnionControlNetType"
+        )
+        apply = next(
+            node for node in wf.values() if node["class_type"] == "ControlNetApplyAdvanced"
+        )
+        assert union["inputs"]["type"] == "openpose"
+        assert apply["inputs"]["control_net"] == [union_id, 0]
+
+
+class TestIPAdapterAttachment:
+    def test_identity_adapter_patches_model_before_sampler(self, builder, composition_pc):
+        composition_pc.ipadapter_image_b64 = "face-b64"
+        workflow = builder.build_composition(composition_pc, SEED)
+        loader = next(
+            node
+            for node in workflow.values()
+            if node["class_type"] == "IPAdapterUnifiedLoader"
+        )
+        apply_id, apply = next(
+            (node_id, node)
+            for node_id, node in workflow.items()
+            if node["class_type"] == "IPAdapter"
+        )
+        sampler = next(
+            node for node in workflow.values() if node["class_type"] == "KSampler"
+        )
+        assert loader["inputs"]["preset"] == "PLUS FACE (portraits)"
+        assert apply["inputs"]["weight"] == 0.8
+        assert sampler["inputs"]["model"] == [apply_id, 0]
 
 
 # ═══════════════════════════════════════════════════════════════════

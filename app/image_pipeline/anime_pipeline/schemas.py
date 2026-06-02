@@ -70,6 +70,7 @@ class StructureLayerType(str, enum.Enum):
     LINEART = "lineart"
     DEPTH = "depth"
     CANNY = "canny"
+    OPENPOSE = "openpose"
 
 
 class CritiqueDimension(str, enum.Enum):
@@ -155,11 +156,23 @@ class VisionAnalysis:
 
 
 @dataclass
+class PipelineReference:
+    """Typed image reference supplied by API or benchmark callers."""
+
+    role: str = "full"  # face | full | pose | style
+    image_b64: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"role": self.role, "has_image": bool(self.image_b64)}
+
+
+@dataclass
 class ControlInput:
     """A single ControlNet input for a rendering pass."""
 
-    layer_type: str = ""  # lineart_anime | depth | canny
+    layer_type: str = ""  # lineart_anime | depth | canny | openpose
     controlnet_model: str = ""
+    union_control_type: str = ""
     strength: float = 0.8
     start_percent: float = 0.0
     end_percent: float = 0.8
@@ -170,6 +183,7 @@ class ControlInput:
         return {
             "layer_type": self.layer_type,
             "controlnet_model": self.controlnet_model,
+            "union_control_type": self.union_control_type,
             "strength": self.strength,
             "start_percent": self.start_percent,
             "end_percent": self.end_percent,
@@ -208,6 +222,12 @@ class PassConfig:
     expected_output: str = ""  # human-readable note
     source_image_b64: str = ""  # for img2img passes
     lora_models: list[dict[str, Any]] = field(default_factory=list)
+    ipadapter_image_b64: str = ""
+    ipadapter_preset: str = "PLUS FACE (portraits)"
+    ipadapter_weight: float = 0.8
+    ipadapter_start_at: float = 0.0
+    ipadapter_end_at: float = 1.0
+    ipadapter_weight_type: str = "standard"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -226,6 +246,9 @@ class PassConfig:
             "prompt_strategy": self.prompt_strategy,
             "expected_output": self.expected_output,
             "lora_models": self.lora_models,
+            "has_ipadapter_image": bool(self.ipadapter_image_b64),
+            "ipadapter_preset": self.ipadapter_preset,
+            "ipadapter_weight": self.ipadapter_weight,
         }
 
 
@@ -593,6 +616,7 @@ class StructureLayer:
     image_b64: str = ""
     preprocessor: str = ""
     controlnet_model: str = ""
+    union_control_type: str = ""
     strength: float = 0.8
     start_percent: float = 0.0
     end_percent: float = 0.8
@@ -640,8 +664,11 @@ class AnimePipelineJob:
     user_prompt: str = ""
     language: str = "en"
     reference_images_b64: list[str] = field(default_factory=list)
+    references: list[PipelineReference] = field(default_factory=list)
     reference_images_url: list[str] = field(default_factory=list)
     source_image_b64: Optional[str] = None  # For img2img / edit mode
+    task_type: str = "t2i"
+    edit_turns: list[str] = field(default_factory=list)
     style_hint: str = "anime"
     quality_hint: str = "quality"
     orientation_hint: str = ""  # auto-detected if empty
@@ -737,6 +764,9 @@ class AnimePipelineJob:
             "adult_attestation_source": self.adult_attestation_source,
             "network_policy": self.network_policy,
             "benchmark_version": self.benchmark_version,
+            "task_type": self.task_type,
+            "references": [reference.to_dict() for reference in self.references],
+            "edit_turns": list(self.edit_turns),
             "character_name": self.character_name,
             "series_name": self.series_name,
             "character_tag": self.character_tag,

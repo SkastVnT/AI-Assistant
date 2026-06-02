@@ -726,6 +726,15 @@ export class AnimePipeline {
                 // _inlineSetCurrent updates both the reasoning body text
                 // and the ChatGPT-style headline pill (.ap-inline-label).
                 this._inlineSetCurrent(uid, data.label || data.stage);
+                // Track stage label so heartbeats can append elapsed time.
+                bubble.dataset.apCurrentStageLabel = data.label || data.stage;
+                break;
+            }
+            case 'ap_stage_heartbeat': {
+                // Emitted every ~1.5 s while the backend blocks on ComfyUI
+                // sampling. Shows elapsed time so the pill feels alive.
+                const stageLabel = bubble.dataset.apCurrentStageLabel || data.stage || '';
+                this._inlineSetCurrent(uid, `${stageLabel} · ${data.elapsed_s}s`);
                 break;
             }
             case 'ap_stage_done': {

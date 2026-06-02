@@ -306,11 +306,12 @@ class LayerPlannerAgent:
             positive = ", ".join(anchor_parts) + ", " + positive
 
         # ── Structure layers ──────────────────────────────────────
-        structure_types = self._select_structure_layers()
+        structure_types = self._select_structure_layers(job)
         control_inputs = self._build_control_inputs(
             structure_types,
             preset,
         )
+        identity_adapter = self._identity_ipadapter_kwargs(job)
 
         # ── Pass 1: composition ───────────────────────────────────
         comp_cfg = self._config.composition_model
@@ -348,6 +349,7 @@ class LayerPlannerAgent:
                 "Structurally sound draft with correct pose and composition"
             ),
             lora_models=self._config.default_loras,
+            **identity_adapter,
         )
         plan.passes.append(composition_pass)
 
@@ -406,6 +408,7 @@ class LayerPlannerAgent:
                     "Cleaned silhouette, simplified background, stable face block-in"
                 ),
                 lora_models=self._config.default_loras,
+                **identity_adapter,
             )
             plan.passes.append(cleanup_pass)
 
@@ -449,6 +452,7 @@ class LayerPlannerAgent:
                 "Final anime polish: eyes, hair, costume shading, clean linework"
             ),
             lora_models=self._config.default_loras,
+            **identity_adapter,
         )
         plan.passes.append(beauty_pass)
 
@@ -731,9 +735,27 @@ class LayerPlannerAgent:
 
     # ── Structure layers ──────────────────────────────────────────────
 
-    def _select_structure_layers(self) -> list[str]:
+    def _select_structure_layers(self, job: AnimePipelineJob | None = None) -> list[str]:
+        typed_refs = getattr(job, "references", []) if job else []
+        wants_pose = bool(
+            job
+            and (
+                getattr(job, "task_type", "") == "pose"
+                or any(getattr(ref, "role", "") == "pose" for ref in typed_refs)
+            )
+        )
+        available = [
+            layer
+            for layer in self._config.structure_layers
+            if layer.enabled
+            and (
+                layer.layer_type != "lineart_anime"
+                if wants_pose
+                else layer.layer_type != "openpose"
+            )
+        ]
         available = sorted(
-            self._config.structure_layers,
+            available,
             key=lambda x: x.priority,
         )
         selected = []
@@ -745,7 +767,32 @@ class LayerPlannerAgent:
                 or len(selected) < self._config.max_simultaneous_layers
             ):
                 selected.append(layer.layer_type)
-        return selected or ["lineart_anime", "depth"]
+        return selected
+
+    def _identity_ipadapter_kwargs(self, job: AnimePipelineJob) -> dict[str, object]:
+        if not self._config.ipadapter.enabled or job.task_type != "identity":
+            return {}
+        reference = next(
+            (
+                ref.image_b64
+                for ref in job.references
+                if ref.image_b64 and ref.role in {"face", "full"}
+            ),
+            "",
+        )
+        if not reference and job.reference_images_b64:
+            reference = job.reference_images_b64[0]
+        if not reference:
+            return {}
+        adapter = self._config.ipadapter
+        return {
+            "ipadapter_image_b64": reference,
+            "ipadapter_preset": adapter.preset,
+            "ipadapter_weight": adapter.weight,
+            "ipadapter_start_at": adapter.start_at,
+            "ipadapter_end_at": adapter.end_at,
+            "ipadapter_weight_type": adapter.weight_type,
+        }
 
     def _build_control_inputs(
         self,
@@ -769,6 +816,7 @@ class LayerPlannerAgent:
                         ControlInput(
                             layer_type=lt,
                             controlnet_model=cfg.controlnet_model,
+                            union_control_type=cfg.union_control_type,
                             strength=min(1.0, cfg.strength * scale),
                             start_percent=cfg.start_percent,
                             end_percent=cfg.end_percent,

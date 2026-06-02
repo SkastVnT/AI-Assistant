@@ -65,10 +65,10 @@ window.ThinkingPanel = (function() {
             el.dataset.tid = step.tid || '_default';
             if (isDone && step.text.trim()) {
                 var tid = step.tid || '_default';
-                var tidMatch = tid.match(/^r(\d+)_t(\d+)$/);
+                var tidMatch = tid.match(/^p(\d+)_t(\d+)$/);
                 var label = tidMatch
-                    ? ('🔍 Direction ' + (parseInt(tidMatch[2]) + 1) + ' (round ' + (parseInt(tidMatch[1]) + 1) + ')')
-                    : '🔍 Reasoning';
+                    ? ('🔍 Agent ' + (parseInt(tidMatch[2]) + 1) + ' · Phase ' + (parseInt(tidMatch[1]) + 1))
+                    : (tid === 'synthesis' ? '✨ Synthesis' : '🔍 Reasoning');
                 el.innerHTML = '<div class="tsp-reasoning__header"><span class="tsp-reasoning__label">' + label + '</span><span class="tsp-reasoning__toggle">▶</span></div><div class="tsp-reasoning__body"></div>';
                 var body = el.querySelector('.tsp-reasoning__body');
                 if (typeof marked !== 'undefined') {

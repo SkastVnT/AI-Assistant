@@ -12,6 +12,7 @@ class DeploymentProfile(str, Enum):
     LAPTOP_6GB = "laptop_6gb"
     PC_12GB = "pc_12gb"
     VPS_96GB = "vps_96gb"
+    RTX5070 = "rtx5070"
 
 
 class ContentMode(str, Enum):
@@ -20,6 +21,7 @@ class ContentMode(str, Enum):
 
 
 class AdultContentPolicy(str, Enum):
+    SFW_ONLY = "sfw_only"
     REQUEST_OPT_IN = "request_opt_in"
     WORKER_DEFAULT = "worker_default"
 
@@ -77,7 +79,7 @@ def _adult_policy(
     if isinstance(value, AdultContentPolicy):
         return value
     default = (
-        AdultContentPolicy.REQUEST_OPT_IN
+        AdultContentPolicy.SFW_ONLY
         if profile is DeploymentProfile.LAPTOP_6GB
         else AdultContentPolicy.WORKER_DEFAULT
     )
@@ -108,7 +110,7 @@ class RuntimePolicy:
     allow_external_sfw_validation: bool = False
     allow_web_research: bool = False
     allow_runtime_downloads: bool = False
-    adult_content_policy: AdultContentPolicy = AdultContentPolicy.REQUEST_OPT_IN
+    adult_content_policy: AdultContentPolicy = AdultContentPolicy.SFW_ONLY
     verified_adult_worker_asserted: bool = False
 
     @classmethod
@@ -184,6 +186,10 @@ class RuntimePolicy:
         self.assert_worker_ready()
 
         if content is ContentMode.ADULT_ONLY:
+            if self.adult_content_policy is AdultContentPolicy.SFW_ONLY:
+                raise PolicyViolation(
+                    f"adult_only content is disabled on {self.profile.value}"
+                )
             if validator is not ValidatorMode.LOCAL:
                 raise PolicyViolation("adult_only content requires local validation")
             if (

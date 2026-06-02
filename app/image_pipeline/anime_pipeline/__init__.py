@@ -35,6 +35,7 @@ from .schemas import (
     LayerPassConfig,  # backward compat alias
     LayerPlan,
     PassConfig,
+    PipelineReference,
     RefineAction,
     RefineActionType,
     RefineDecision,
@@ -67,6 +68,7 @@ from .vram_manager import (
     submit_with_oom_retry,
 )
 from .orchestrator import AnimePipelineOrchestrator
+from .local_dispatcher import LocalAnimeTaskDispatcher
 
 __all__ = [
     # Schemas
@@ -80,6 +82,7 @@ __all__ = [
     "LayerPassConfig",
     "LayerPlan",
     "PassConfig",
+    "PipelineReference",
     "RefineAction",
     "RefineActionType",
     "RefineDecision",
@@ -122,4 +125,5 @@ __all__ = [
     "submit_with_oom_retry",
     # Orchestrator
     "AnimePipelineOrchestrator",
+    "LocalAnimeTaskDispatcher",
 ]

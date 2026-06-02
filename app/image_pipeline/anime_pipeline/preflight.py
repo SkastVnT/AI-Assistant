@@ -18,6 +18,18 @@ from .config import AnimePipelineConfig, load_config
 from .runtime_policy import RuntimePolicy
 
 _PROVISIONING_MANIFEST = CONFIGS_DIR / "anime_pipeline_assets.yaml"
+_CAPABILITY_NODE_CONTRACTS: dict[str, frozenset[str]] = {
+    "controlnet": frozenset(
+        {
+            "SetUnionControlNetType",
+            "DWPreprocessor",
+            "AnimeLineArtPreprocessor",
+            "DepthAnythingV2Preprocessor",
+            "CannyEdgePreprocessor",
+        }
+    ),
+    "ipadapter": frozenset({"IPAdapterUnifiedLoader", "IPAdapter"}),
+}
 
 
 @dataclass
@@ -54,10 +66,12 @@ class AssetCheck:
 class PreflightReport:
     profile: str
     runtime_policy: dict[str, object]
+    parity: bool = False
     checks: list[AssetCheck] = field(default_factory=list)
     capabilities: dict[str, str] = field(default_factory=dict)
     active_models: list[str] = field(default_factory=list)
     endpoint_health: dict[str, bool] = field(default_factory=dict)
+    node_contract: dict[str, bool] = field(default_factory=dict)
     errors: list[str] = field(default_factory=list)
 
     @property
@@ -68,6 +82,8 @@ class PreflightReport:
     def readiness(self) -> str:
         if self.errors or any(c.required and not c.ready for c in self.checks):
             return "blocked"
+        if self.parity and any(not ok for ok in self.endpoint_health.values()):
+            return "blocked"
         if self.missing_assets or any(not ok for ok in self.endpoint_health.values()):
             return "degraded"
         return "ready"
@@ -75,12 +91,17 @@ class PreflightReport:
     def to_dict(self) -> dict[str, Any]:
         return {
             "profile": self.profile,
+            "parity": self.parity,
             "runtime_policy": self.runtime_policy,
             "readiness": self.readiness,
             "capabilities": self.capabilities,
             "missing_assets": self.missing_assets,
             "active_models": self.active_models,
             "endpoint_health": self.endpoint_health,
+            "node_contract": self.node_contract,
+            "missing_nodes": [
+                node for node, ready in self.node_contract.items() if not ready
+            ],
             "errors": self.errors,
             "checks": [check.to_dict() for check in self.checks],
         }
@@ -154,11 +175,40 @@ def _probe(url: str, path: str, timeout: float = 2.0) -> bool:
         return False
 
 
+def _probe_json(url: str, path: str, timeout: float = 2.0) -> dict[str, Any] | None:
+    import httpx
+
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            response = client.get(f"{url.rstrip('/')}/{path.lstrip('/')}")
+            if response.status_code != 200:
+                return None
+            payload = response.json()
+            return payload if isinstance(payload, dict) else None
+    except Exception:
+        return None
+
+
+def _workflow_node_types(path: Path) -> set[str]:
+    try:
+        workflow = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return set()
+    if not isinstance(workflow, dict) or _contains_stub_workflow(workflow):
+        return set()
+    return {
+        str(node.get("class_type", ""))
+        for node in workflow.values()
+        if isinstance(node, dict) and node.get("class_type")
+    }
+
+
 def run_preflight(
     config: AnimePipelineConfig | None = None,
     *,
     comfyui_dir: str | Path | None = None,
     probe_remote: bool = False,
+    parity: bool = False,
 ) -> PreflightReport:
     cfg = config or load_config()
     comfy_root = Path(comfyui_dir or COMFYUI_DIR)
@@ -166,23 +216,44 @@ def run_preflight(
     report = PreflightReport(
         profile=cfg.deployment_profile,
         runtime_policy=policy.to_dict(),
+        parity=parity,
     )
     try:
         policy.assert_worker_ready()
     except Exception as exc:
         report.errors.append(str(exc))
 
+    manifest_assets = _manifest_assets(cfg.deployment_profile)
+    checkpoint_manifests = {
+        Path(str(item.get("destination", ""))).name: item
+        for item in manifest_assets
+        if item.get("destination")
+    }
     checkpoints: list[str] = []
     for model in (cfg.composition_model, cfg.beauty_model, cfg.final_model):
         if model.checkpoint and model.checkpoint not in checkpoints:
             checkpoints.append(model.checkpoint)
     for checkpoint in checkpoints:
+        checkpoint_manifest = checkpoint_manifests.get(checkpoint, {})
         _check_path(
             report,
             f"checkpoint:{checkpoint}",
             comfy_root / "models" / "checkpoints" / checkpoint,
             required=True,
+            expected_sha256=str(checkpoint_manifest.get("sha256", "")),
+            checksum_required=parity,
+            detail="Active checkpoint",
         )
+        if parity:
+            if not checkpoint_manifest:
+                report.errors.append(
+                    f"Parity manifest has no active checkpoint entry for {checkpoint}"
+                )
+            for key in ("sha256", "source_url", "license"):
+                if not str(checkpoint_manifest.get(key, "")).strip():
+                    report.errors.append(
+                        f"Parity manifest requires {key} for active checkpoint {checkpoint}"
+                    )
     report.active_models.extend(checkpoints)
 
     for layer in cfg.structure_layers:
@@ -200,7 +271,8 @@ def run_preflight(
         )
 
     manifest_checks: list[tuple[dict[str, Any], AssetCheck]] = []
-    for item in _manifest_assets(cfg.deployment_profile):
+    native_workflow_nodes: set[str] = set()
+    for item in manifest_assets:
         destination = str(item.get("destination", ""))
         if not destination or destination.endswith(
             "waiIllustriousSDXL_v170.safetensors"
@@ -227,9 +299,17 @@ def run_preflight(
                 if _contains_stub_workflow(raw):
                     check.checksum_ok = False
                     check.detail = "Replace operator-export workflow stub"
+                else:
+                    native_workflow_nodes.update(_workflow_node_types(path))
             except Exception as exc:
                 check.checksum_ok = False
                 check.detail = f"Invalid workflow JSON: {exc}"
+        if parity and required:
+            for key in ("sha256", "source_url", "license"):
+                if not str(item.get(key, "")).strip():
+                    report.errors.append(
+                        f"Parity manifest requires {key} for {item.get('id', destination)}"
+                    )
 
     if (
         cfg.deployment_profile == "vps_96gb"
@@ -257,14 +337,33 @@ def run_preflight(
             "ready" if related and all(check.ready for check in related) else "blocked"
         )
 
+    if parity and not probe_remote:
+        report.errors.append("Parity preflight requires remote endpoint probes")
+
     if probe_remote:
         comfy_url = cfg.comfyui_url or "http://127.0.0.1:8188"
         try:
             policy.assert_url(comfy_url, purpose="comfyui_health")
             report.endpoint_health["comfyui"] = _probe(comfy_url, "/system_stats")
-            report.endpoint_health["comfyui_object_info"] = _probe(
-                comfy_url, "/object_info"
-            )
+            object_info = _probe_json(comfy_url, "/object_info")
+            report.endpoint_health["comfyui_object_info"] = object_info is not None
+            if parity and object_info is not None:
+                required_nodes = set(native_workflow_nodes)
+                for capability, contract in _CAPABILITY_NODE_CONTRACTS.items():
+                    if cfg.capabilities.get(capability, False):
+                        required_nodes.update(contract)
+                for node in sorted(required_nodes):
+                    report.node_contract[node] = node in object_info
+                missing_nodes = [
+                    node for node, ready in report.node_contract.items() if not ready
+                ]
+                if missing_nodes:
+                    report.errors.append(
+                        "ComfyUI is missing required node classes: "
+                        + ", ".join(missing_nodes)
+                    )
+            elif parity:
+                report.errors.append("ComfyUI /object_info is required for parity")
         except Exception as exc:
             report.endpoint_health["comfyui"] = False
             report.errors.append(str(exc))
@@ -309,9 +408,14 @@ def _contains_stub_workflow(value: Any) -> bool:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--remote", action="store_true", help="Probe local HTTP workers")
+    parser.add_argument(
+        "--parity",
+        action="store_true",
+        help="Require checksums, provenance, endpoints, and ComfyUI node contracts",
+    )
     parser.add_argument("--json", action="store_true", help="Print JSON output")
     args = parser.parse_args()
-    report = run_preflight(probe_remote=args.remote)
+    report = run_preflight(probe_remote=args.remote or args.parity, parity=args.parity)
     if args.json:
         print(json.dumps(report.to_dict(), indent=2))
     else:

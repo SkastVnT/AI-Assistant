@@ -122,6 +122,7 @@ class RunSummary:
     critical_failures: list[str] = field(default_factory=list)
     total_cost_usd: float = 0.0
     total_latency_ms: float = 0.0
+    execution_errors: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
@@ -160,6 +161,7 @@ class ExperimentLog:
         self._stack_version = stack_version or self._detect_git_sha()
         self._output_dir = Path(output_dir or _BENCHMARK_DIR) / self._run_id
         self._records: list[CaseRecord] = []
+        self._execution_errors: list[str] = []
 
         # Load pass/fail rules from benchmark config
         cfg = load_benchmark_config(Path(benchmark_cfg_path or _BENCHMARK_YAML))
@@ -253,6 +255,10 @@ class ExperimentLog:
         )
         return record
 
+    def record_execution_error(self, case_id: str, error: str) -> None:
+        """Mark infrastructure or executor failures so the suite fails closed."""
+        self._execution_errors.append(f"{case_id}:{error[:500]}")
+
     # ───────────────────────────────────────────────────────────────
     # Summarization
     # ───────────────────────────────────────────────────────────────
@@ -271,6 +277,7 @@ class ExperimentLog:
             timestamp=datetime.now(timezone.utc).isoformat(),
             stack_version=self._stack_version,
             total_cases=len(self._records),
+            execution_errors=list(self._execution_errors),
         )
 
         if not self._records:
@@ -336,6 +343,7 @@ class ExperimentLog:
         summary.local_quality_gate_passed = (
             summary.overall_pass_rate >= self._quality_gate_threshold
             and len(summary.critical_failures) == 0
+            and len(summary.execution_errors) == 0
         )
 
         # Costs & latency
