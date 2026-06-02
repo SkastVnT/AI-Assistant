@@ -93,7 +93,7 @@ httpx-sse==0.4.3
 huggingface_hub==1.7.1
 hyperframe==6.1.0
 HyperPyYAML==1.2.3
-idna==3.11
+idna==3.15
 ImageIO==2.37.3
 imgaug==0.4.0
 itsdangerous==2.2.0
@@ -142,7 +142,7 @@ pandas==3.0.1
 pdf2docx==0.5.8
 pdfminer.six==20251230
 pdfplumber==0.11.9
-pillow==12.1.1
+pillow==12.2.0
 platformdirs==4.9.4
 pooch==1.9.0
 premailer==3.10.0
@@ -178,9 +178,9 @@ python-dateutil==2.9.0.post0
 python-docx==1.2.0
 python-dotenv==1.2.2
 python-engineio==4.13.1
-python-multipart==0.0.22
+python-multipart==0.0.27
 python-socketio==5.16.1
-pytorch-lightning==2.6.1
+pytorch-lightning==2.6.5
 pytorch-metric-learning==2.9.0
 pytz==2026.1.post1
 pywin32==311
@@ -238,7 +238,7 @@ typing_extensions==4.15.0
 typing-inspection==0.4.2
 tzdata==2025.3
 uritemplate==4.2.0
-urllib3==2.6.3
+urllib3==2.7.0
 uvicorn==0.42.0
 visualdl==2.5.3
 watchdog==6.0.0
