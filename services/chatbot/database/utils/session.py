@@ -87,7 +87,7 @@ class DatabaseSession:
         try:
             self._client.admin.command("ping")
             return True
-        except:
+        except Exception:
             return False
 
     def get_database(self, db_name: str = None) -> Database | None:

@@ -907,11 +907,11 @@ class ComfyUIProvider(BaseImageProvider):
                     if lora_name in self._available_loras:
                         matched = lora_name
                     else:
-                        for l in self._available_loras:
-                            if l.endswith("/" + lora_name) or l.endswith(
+                        for lora in self._available_loras:
+                            if lora.endswith("/" + lora_name) or lora.endswith(
                                 "\\" + lora_name
                             ):
-                                matched = l
+                                matched = lora
                                 break
                     if matched:
                         found.append((matched, strength))
@@ -926,20 +926,20 @@ class ComfyUIProvider(BaseImageProvider):
             for lora_name, strength in cat:
                 # Check both plain name and subfolder paths
                 if lora_name in self._available_loras or any(
-                    l.endswith(lora_name)
-                    or l.endswith("/" + lora_name)
-                    or l.endswith("\\" + lora_name)
-                    for l in self._available_loras
+                    lora.endswith(lora_name)
+                    or lora.endswith("/" + lora_name)
+                    or lora.endswith("\\" + lora_name)
+                    for lora in self._available_loras
                 ):
                     # Use the matched name as ComfyUI sees it
                     matched = lora_name
-                    for l in self._available_loras:
+                    for lora in self._available_loras:
                         if (
-                            l == lora_name
-                            or l.endswith("/" + lora_name)
-                            or l.endswith("\\" + lora_name)
+                            lora == lora_name
+                            or lora.endswith("/" + lora_name)
+                            or lora.endswith("\\" + lora_name)
                         ):
-                            matched = l
+                            matched = lora
                             break
                     found.append((matched, strength))
                     break  # one per category
@@ -1028,7 +1028,7 @@ class ComfyUIProvider(BaseImageProvider):
                     f"cfg={profile['cfg']}, sampler={profile['sampler']}, "
                     f"clip_skip={profile.get('clip_skip', 1)}, "
                     f"vae={'ext' if vae else 'built-in'}, "
-                    f"loras={[l[0] for l in loras]}, "
+                    f"loras={[lora[0] for lora in loras]}, "
                     f"hires={'latent→' + str(upscale_to) if upscale_to else 'none'}"
                 )
 
@@ -1090,7 +1090,7 @@ class ComfyUIProvider(BaseImageProvider):
             images_b64 = self._wait_for_images(prompt_id)
             latency = (time.time() - t0) * 1000
 
-            lora_names = [l.name for l in req.lora_models] if req.lora_models else []
+            lora_names = [lora.name for lora in req.lora_models] if req.lora_models else []
             model_desc = f"comfyui/{checkpoint}"
             if lora_names:
                 model_desc += "+" + "+".join(lora_names)
@@ -1114,9 +1114,9 @@ class ComfyUIProvider(BaseImageProvider):
                         f"{upscale_to[0]}x{upscale_to[1]}" if upscale_to else None
                     ),
                     "loras": (
-                        [{"name": l.name, "weight": l.weight} for l in req.lora_models]
+                        [{"name": lora.name, "weight": lora.weight} for lora in req.lora_models]
                         if req.lora_models
-                        else [l[0] for l in loras]
+                        else [lora[0] for lora in loras]
                     ),
                     **(
                         {"saa_character": saa_meta["saa_character"]}

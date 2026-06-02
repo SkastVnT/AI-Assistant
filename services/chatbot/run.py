@@ -130,7 +130,7 @@ def _spawn_background_process(
     logs_dir = project_root / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
     log_path = logs_dir / log_name
-    log_handle = open(log_path, "ab")
+    log_handle = open(log_path, "ab")  # noqa: SIM115  # must stay open for Popen
 
     try:
         child = subprocess.Popen(

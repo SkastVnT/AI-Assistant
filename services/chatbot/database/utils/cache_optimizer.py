@@ -117,13 +117,11 @@ class RedisPipeline:
 
             # Parse get results
             parsed = []
-            op_idx = 0
-            for result in results:
+            for op_idx, result in enumerate(results):
                 if self._operations[op_idx][0] == "get" and result:
                     parsed.append(json.loads(result))
                 else:
                     parsed.append(result)
-                op_idx += 1
 
             self._operations.clear()
             return parsed
@@ -254,7 +252,7 @@ class CacheInvalidator:
         for key in keys_to_delete:
             try:
                 self.cache.delete(key)
-            except:
+            except Exception:
                 pass
 
 

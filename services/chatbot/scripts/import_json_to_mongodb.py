@@ -184,11 +184,10 @@ def validate_record(record, collection, index):
                 )
 
     # Role enum check for messages
-    if collection == "messages" and "role" in record:
-        if record["role"] not in VALID_ROLES:
-            errors.append(
-                f"field 'role': must be one of {VALID_ROLES}, got '{record['role']}'"
-            )
+    if collection == "messages" and "role" in record and record["role"] not in VALID_ROLES:
+        errors.append(
+            f"field 'role': must be one of {VALID_ROLES}, got '{record['role']}'"
+        )
 
     # Assign UUID _id if missing
     if "_id" not in record:

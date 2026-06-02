@@ -345,7 +345,7 @@ def chat_stream():
                     if key in data:
                         try:
                             data[key] = json.loads(data[key])
-                        except:
+                        except Exception:
                             data[key] = []
         else:
             # GET request
@@ -555,8 +555,9 @@ def chat_stream():
         rag_citations = None
         if rag_collection_ids:
             try:
-                from core.rag_runner import run_rag_coro
                 from src.rag.service.orchestrator import RAGOrchestrator
+
+                from core.rag_runner import run_rag_coro
 
                 _rag_result = run_rag_coro(
                     RAGOrchestrator().retrieve_for_chat(

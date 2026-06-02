@@ -13,7 +13,8 @@ from __future__ import annotations
 
 import asyncio
 import threading
-from typing import Any, Coroutine, TypeVar
+from collections.abc import Coroutine
+from typing import Any, TypeVar
 
 _T = TypeVar("_T")
 

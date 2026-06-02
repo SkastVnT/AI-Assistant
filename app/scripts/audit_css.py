@@ -83,8 +83,8 @@ print(f"\n[DUPLICATES] Selectors defined multiple times in app.css ({len(dups)})
 for sel, count in sorted(dups, key=lambda x: x[0]):
     lines_found = [
         i + 1
-        for i, l in enumerate(appcss.splitlines())
-        if re.match(r"\s*" + re.escape(sel) + r"\s*\{", l)
+        for i, line_text in enumerate(appcss.splitlines())
+        if re.match(r"\s*" + re.escape(sel) + r"\s*\{", line_text)
     ]
     print(f"  {sel}: {count}x at lines {lines_found}")
 

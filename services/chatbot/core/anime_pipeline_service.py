@@ -20,7 +20,6 @@ import threading as _threading
 import time
 from collections.abc import Generator
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
 try:
@@ -97,10 +96,7 @@ def pipeline_enabled() -> bool:
     Explicitly disabled: IMAGE_PIPELINE_V2=false/0/no/off
     """
     val = os.getenv(_PIPELINE_FLAG, "").lower().strip()
-    if val in ("1", "true", "yes", "on"):
-        return True
-    # Disabled by default when not explicitly enabled
-    return False
+    return val in ("1", "true", "yes", "on")
 
 
 def comfyui_url() -> str:

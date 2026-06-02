@@ -375,8 +375,7 @@ def _score(rec: dict[str, Any], is_duplicate: bool) -> tuple[int, dict]:
     bd: dict[str, int] = {}
     if rec["decoded"]:
         bd["valid"] = 30
-    if rec["width"] and rec["height"]:
-        if rec["width"] * rec["height"] >= _GOOD_RESOLUTION_PIXELS:
+    if rec["width"] and rec["height"] and rec["width"] * rec["height"] >= _GOOD_RESOLUTION_PIXELS:
             bd["resolution"] = 20
     size = rec["size_bytes"]
     if _GOOD_FILE_BYTES_MIN <= size <= _GOOD_FILE_BYTES_MAX:

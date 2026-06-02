@@ -99,10 +99,7 @@ class TestLocalModelLoader:
         mock_cuda.return_value = False
 
         try:
-            from src.utils.local_model_loader import model_loader
-
-            # Device should be CPU when CUDA not available
-            assert True
+            from src.utils.local_model_loader import model_loader  # noqa: F401
         except ImportError:
             pytest.skip("Model loader not available")
 

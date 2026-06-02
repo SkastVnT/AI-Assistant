@@ -477,7 +477,7 @@ class MemoryDB:
             db.chatbot_memory.create_index(
                 [("question", "text"), ("answer", "text"), ("context", "text")]
             )
-        except:
+        except Exception:
             pass
 
         memories = (

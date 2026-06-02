@@ -179,7 +179,7 @@ class ConnectionPool:
             if pooled_conn:
                 try:
                     self._pool.put_nowait(pooled_conn)
-                except:
+                except Exception:
                     self._close_connection(pooled_conn)
 
             self._semaphore.release()

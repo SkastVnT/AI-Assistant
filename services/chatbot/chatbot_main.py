@@ -21,8 +21,10 @@ Structure:
 
 import base64
 import importlib.util
+import io
 import json
 import logging
+import mimetypes
 import os
 import shutil
 import sys
@@ -32,6 +34,7 @@ from pathlib import Path
 
 import openai
 import requests
+from PIL import Image
 from src.utils.mcp_integration import get_mcp_client, inject_code_context
 
 from core.extensions import (
@@ -136,7 +139,6 @@ UserSettingsDB = mongodb_helpers_module.UserSettingsDB
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
-logger = logging.getLogger(__name__)
 
 
 def sanitize_for_log(value: str) -> str:
@@ -166,7 +168,7 @@ sys.path.insert(0, str(CHATBOT_DIR))
 
 # Import OCR integration
 try:
-    from src.ocr_integration import extract_file_content, ocr_client
+    from src.ocr_integration import extract_file_content
 
     OCR_AVAILABLE = True
     logger.info("✅ OCR Integration loaded")
@@ -308,7 +310,9 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 gemini_client = None
 try:
     if GEMINI_API_KEY:
-        gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+        from google import genai as _genai
+
+        gemini_client = _genai.Client(api_key=GEMINI_API_KEY)
         logger.info("✅ Gemini API initialized")
 except Exception as e:
     logger.warning(f"⚠️ Gemini API init failed: {e}")
@@ -2082,13 +2086,13 @@ def chat():
             # Parse agent config
             try:
                 agent_config = json.loads(data.get("agent_config", "null"))
-            except:
+            except Exception:
                 agent_config = None
 
             # Safe JSON parsing with error handling
             try:
                 tools = json.loads(data.get("tools", "[]")) if data.get("tools") else []
-            except:
+            except Exception:
                 tools = []
 
             try:
@@ -2098,7 +2102,7 @@ def chat():
                     if history_str and history_str != "null"
                     else None
                 )
-            except:
+            except Exception:
                 history = None
 
             try:
@@ -2107,7 +2111,7 @@ def chat():
                     if data.get("memory_ids")
                     else []
                 )
-            except:
+            except Exception:
                 memory_ids = []
 
             try:
@@ -2116,8 +2120,10 @@ def chat():
                     if data.get("mcp_selected_files")
                     else []
                 )
-            except:
+            except Exception:
                 mcp_selected_files = []
+
+            images = []  # FormData path does not carry base64 image attachments
 
             # Handle uploaded files
             files = request.files.getlist("files")
@@ -2209,6 +2215,7 @@ def chat():
             mcp_selected_files = data.get(
                 "mcp_selected_files", []
             )  # MCP selected files
+            images = data.get("images", [])  # Base64 image attachments
 
         # Handle user_id from request (for mobile/web tracking)
         if data.get("user_id"):
@@ -3662,7 +3669,7 @@ def sd_loras():
                     if name != "None"
                 ]
                 return jsonify({"loras": loras})
-        except:
+        except Exception:
             pass
 
         # Fallback: scan local directory
@@ -3718,7 +3725,7 @@ def sd_vaes():
                     if name != "None"
                 ]
                 return jsonify({"vaes": vaes})
-        except:
+        except Exception:
             pass
 
         # Fallback: scan local directory
@@ -5886,7 +5893,7 @@ def delete_memory(memory_id):
                         with open(mjson, encoding="utf-8") as f:
                             m = json.load(f)
                             all_memories.append(f"{m.get('id')} ({mf.name})")
-                    except:
+                    except Exception:
                         pass
         logger.info(f"[DELETE] Available memory IDs: {all_memories}")
 
@@ -6838,7 +6845,7 @@ def mcp_upload_file():
         ):
             try:
                 extracted_content = content.decode("utf-8")[:10000]
-            except:
+            except Exception:
                 extracted_content = content.decode("latin-1")[:10000]
 
         else:
@@ -7507,7 +7514,7 @@ def list_providers():
                         "available": getattr(p, "available", True),
                     }
                 )
-        except:
+        except Exception:
             pass
 
         return jsonify(

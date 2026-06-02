@@ -397,21 +397,16 @@ def recommend_model():
 
         # Task matching
         strengths = [s.lower() for s in info.get("strengths", [])]
-        if "code" in task or "programming" in task or "debug" in task:
-            if "code" in strengths:
-                score += 25
-        if "creative" in task or "write" in task or "story" in task:
-            if "creative" in strengths:
-                score += 25
-        if "reason" in task or "math" in task or "logic" in task:
-            if "reasoning" in strengths:
-                score += 25
-        if "vietnamese" in task or "tiáº¿ng viá»‡t" in task:
-            if "vietnamese" in strengths:
-                score += 30
-        if "chinese" in task or "tiáº¿ng trung" in task:
-            if "chinese" in strengths:
-                score += 30
+        if ("code" in task or "programming" in task or "debug" in task) and "code" in strengths:
+            score += 25
+        if ("creative" in task or "write" in task or "story" in task) and "creative" in strengths:
+            score += 25
+        if ("reason" in task or "math" in task or "logic" in task) and "reasoning" in strengths:
+            score += 25
+        if ("vietnamese" in task or "tiếng việt" in task) and "vietnamese" in strengths:
+            score += 30
+        if ("chinese" in task or "tiếng trung" in task) and "chinese" in strengths:
+            score += 30
 
         # Context window bonus for long tasks
         if "long" in task or "document" in task:

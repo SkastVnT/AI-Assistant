@@ -39,7 +39,7 @@ except ImportError:
     exit(1)
 
 # Import memory system
-from database import get_memory_manager
+from database import get_memory_manager  # noqa: E402
 
 # Khá»Ÿi táº¡o MCP server
 mcp = FastMCP("AI-Assistant-V2-Memory")
@@ -991,9 +991,9 @@ def analyze_python_file(file_path: str) -> dict[str, Any]:
         "stats": {
             "total_lines": len(lines),
             "code_lines": sum(
-                1 for l in lines if l.strip() and not l.strip().startswith("#")
+                1 for ln in lines if ln.strip() and not ln.strip().startswith("#")
             ),
-            "comment_lines": sum(1 for l in lines if l.strip().startswith("#")),
+            "comment_lines": sum(1 for ln in lines if ln.strip().startswith("#")),
             "function_count": len(functions),
             "class_count": len(classes),
             "import_count": len(imports),

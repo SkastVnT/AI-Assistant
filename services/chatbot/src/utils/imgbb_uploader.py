@@ -200,7 +200,7 @@ class ImgBBUploader:
 
             response = requests.get(delete_url, timeout=10)
             return response.status_code == 200
-        except:
+        except Exception:
             return False
 
 

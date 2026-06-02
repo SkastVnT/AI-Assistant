@@ -60,7 +60,7 @@ class StableDiffusionClient:
                 if response.status_code == 200:
                     print("[SD Client] ComfyUI detected and running", flush=True)
                     return True
-            except:
+            except Exception:
                 pass
 
             # Fallback to A1111 endpoint
@@ -71,7 +71,7 @@ class StableDiffusionClient:
                 if response.status_code == 200:
                     print("[SD Client] A1111 WebUI detected and running", flush=True)
                     return True
-            except:
+            except Exception:
                 pass
 
             print("[SD Client] No SD backend detected", flush=True)
@@ -103,7 +103,7 @@ class StableDiffusionClient:
                     )
                     if isinstance(models, list):
                         return [{"title": m, "model_name": m} for m in models]
-            except:
+            except Exception:
                 pass
 
             # Fallback to A1111
@@ -418,7 +418,7 @@ class StableDiffusionClient:
             response = requests.post(f"{self.api_url}/sdapi/v1/interrupt", timeout=5)
             response.raise_for_status()
             return True
-        except:
+        except Exception:
             return False
 
     def base64_to_image(self, base64_string: str) -> Image.Image:

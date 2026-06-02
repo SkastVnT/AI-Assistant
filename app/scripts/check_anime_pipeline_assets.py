@@ -11,7 +11,6 @@ if str(APP_ROOT) not in sys.path:
 
 from image_pipeline.anime_pipeline.preflight import main
 
-
 if __name__ == "__main__":
     raise SystemExit(main())
 

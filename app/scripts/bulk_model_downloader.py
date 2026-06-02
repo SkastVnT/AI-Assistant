@@ -1232,8 +1232,7 @@ def _download_hf_yolo(entry: dict, dry_run: bool = False) -> dict:
             siblings = api_resp.json().get("siblings", []) or []
             for sib in siblings:
                 fname = sib.get("rfilename") or ""
-                if fname.lower().endswith((".pt", ".onnx", ".pth", ".safetensors")):
-                    if fname not in candidates:
+                if fname.lower().endswith((".pt", ".onnx", ".pth", ".safetensors")) and fname not in candidates:
                         candidates.append(fname)
     except Exception as e:
         print(f"  ⚠ HF API probe failed: {e}")

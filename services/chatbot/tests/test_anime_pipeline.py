@@ -5987,7 +5987,7 @@ class TestRefineLoopAgent:
             return job
 
         MockCritique.return_value.execute.side_effect = mock_critique
-        MockBeauty.return_value  # not called
+        _ = MockBeauty.return_value  # not called
 
         config = _make_refine_config()
         agent = RefineLoopAgent(config)
@@ -7251,7 +7251,7 @@ class TestManifestToJson:
         s = manifest_to_json(job, indent=4)
         # 4-space indent means lines start with "    "
         lines = s.split("\n")
-        indented = [l for l in lines if l.startswith("    ")]
+        indented = [ln for ln in lines if ln.startswith("    ")]
         assert len(indented) > 0
 
     def test_debug_mode_forwarded(self):

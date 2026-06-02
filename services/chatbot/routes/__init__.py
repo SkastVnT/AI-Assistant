@@ -20,8 +20,6 @@ import logging
 import sys
 from pathlib import Path
 
-from flask import Blueprint
-
 # Setup path
 CHATBOT_DIR = Path(__file__).parent.parent.resolve()
 if str(CHATBOT_DIR) not in sys.path:

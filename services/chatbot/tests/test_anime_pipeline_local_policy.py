@@ -125,8 +125,7 @@ def test_comfy_upload_failure_is_fail_fast():
             "inputs": {"base64_image": "abc"},
         }
     }
-    with patch.object(client, "upload_image_b64", side_effect=RuntimeError("upload failed")):
-        with pytest.raises(RuntimeError):
+    with patch.object(client, "upload_image_b64", side_effect=RuntimeError("upload failed")), pytest.raises(RuntimeError):
             client._preprocess_workflow(workflow)
 
 
@@ -302,8 +301,9 @@ def test_service_request_contract_allows_laptop_sfw_validator_opt_in():
 
 
 def test_service_build_job_applies_local_character_pack():
-    from core.anime_pipeline_service import PipelineRequest, build_job
     from image_pipeline.anime_pipeline.character_pack import CharacterPack
+
+    from core.anime_pipeline_service import PipelineRequest, build_job
 
     pack = CharacterPack(
         key="original_adult",

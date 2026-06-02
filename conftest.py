@@ -4,7 +4,6 @@ belong to other service stacks or require unavailable dependencies.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 # Directories (relative to repo root) that pytest must never enter.
