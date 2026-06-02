@@ -96,7 +96,7 @@ numba==0.64.0
 numpy==1.26.4
 omegaconf==2.3.0
 open-clip-torch==3.3.0
-opencv-python==4.11.0.86
+opencv-python==4.8.1.78
 packaging==26.0
 pandas==3.0.1
 peft==0.18.1

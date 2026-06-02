@@ -2,7 +2,7 @@
 # Stable Diffusion, upscaling, image manipulation
 
 Pillow>=12.2.0
-opencv-python<=4.13.0.90
+opencv-python<=4.13.0.92
 scikit-image>=0.19.3
 einops>=0.4.0
 lpips>=0.1.4
