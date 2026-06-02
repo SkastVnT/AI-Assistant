@@ -7,11 +7,11 @@ torchvision
 torchaudio
 numpy>=1.25.0
 einops
-transformers>=4.50.3
+transformers>=5.9.0
 tokenizers>=0.13.3
 sentencepiece
 safetensors>=0.4.2
-aiohttp>=3.11.8
+aiohttp>=3.13.4
 yarl>=1.18.0
 pyyaml
 Pillow

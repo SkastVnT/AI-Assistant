@@ -19,7 +19,7 @@ mcp[cli]>=1.0.0
 # xformers==0.0.23.post1
 
 # Testing & Dev
-pytest>=7.4.0
+pytest>=9.0.3
 pytest-cov>=4.0.0
 pytest-mock>=3.10.0
 black>=23.0.0
