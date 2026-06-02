@@ -19,6 +19,11 @@ class ContentMode(str, Enum):
     ADULT_ONLY = "adult_only"
 
 
+class AdultContentPolicy(str, Enum):
+    REQUEST_OPT_IN = "request_opt_in"
+    WORKER_DEFAULT = "worker_default"
+
+
 class ValidatorMode(str, Enum):
     LOCAL = "local"
     EXTERNAL_SFW_OPT_IN = "external_sfw_opt_in"
@@ -65,6 +70,27 @@ def _validator(value: str | ValidatorMode | None) -> ValidatorMode:
         raise PolicyViolation(f"Unknown validator mode: {value}") from exc
 
 
+def _adult_policy(
+    value: str | AdultContentPolicy | None,
+    profile: DeploymentProfile,
+) -> AdultContentPolicy:
+    if isinstance(value, AdultContentPolicy):
+        return value
+    default = (
+        AdultContentPolicy.REQUEST_OPT_IN
+        if profile is DeploymentProfile.LAPTOP_6GB
+        else AdultContentPolicy.WORKER_DEFAULT
+    )
+    try:
+        return AdultContentPolicy(str(value or default.value))
+    except ValueError as exc:
+        raise PolicyViolation(f"Unknown adult content policy: {value}") from exc
+
+
+def _env_flag(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _origin_host(origin: str) -> str:
     parsed = urlsplit(origin if "://" in origin else f"http://{origin}")
     return (parsed.hostname or "").lower()
@@ -82,6 +108,8 @@ class RuntimePolicy:
     allow_external_sfw_validation: bool = False
     allow_web_research: bool = False
     allow_runtime_downloads: bool = False
+    adult_content_policy: AdultContentPolicy = AdultContentPolicy.REQUEST_OPT_IN
+    verified_adult_worker_asserted: bool = False
 
     @classmethod
     def from_profile(
@@ -89,6 +117,7 @@ class RuntimePolicy:
         profile: str | DeploymentProfile,
         *,
         internal_origins: list[str] | tuple[str, ...] | None = None,
+        adult_content_policy: str | AdultContentPolicy | None = None,
     ) -> "RuntimePolicy":
         selected = _profile(profile)
         configured_hosts = {
@@ -103,6 +132,10 @@ class RuntimePolicy:
             profile=selected,
             internal_hosts=frozenset(_LOOPBACK_HOSTS | configured_hosts | env_hosts),
             allow_external_sfw_validation=selected is DeploymentProfile.LAPTOP_6GB,
+            adult_content_policy=_adult_policy(adult_content_policy, selected),
+            verified_adult_worker_asserted=_env_flag(
+                "ANIME_PIPELINE_ASSERT_VERIFIED_ADULT_WORKER"
+            ),
         )
 
     @classmethod
@@ -116,11 +149,28 @@ class RuntimePolicy:
         return cls.from_profile(
             getattr(config, "deployment_profile", DeploymentProfile.LAPTOP_6GB.value),
             internal_origins=list(getattr(config, "allowed_internal_origins", []) or []),
+            adult_content_policy=getattr(config, "adult_content_policy", None),
         )
 
     @property
     def offline_only(self) -> bool:
         return self.profile is not DeploymentProfile.LAPTOP_6GB
+
+    @property
+    def default_content_mode(self) -> ContentMode:
+        if self.adult_content_policy is AdultContentPolicy.WORKER_DEFAULT:
+            return ContentMode.ADULT_ONLY
+        return ContentMode.SFW
+
+    def assert_worker_ready(self) -> None:
+        if (
+            self.adult_content_policy is AdultContentPolicy.WORKER_DEFAULT
+            and not self.verified_adult_worker_asserted
+        ):
+            raise PolicyViolation(
+                "worker_default requires "
+                "ANIME_PIPELINE_ASSERT_VERIFIED_ADULT_WORKER=1"
+            )
 
     def validate_request(
         self,
@@ -131,16 +181,18 @@ class RuntimePolicy:
     ) -> None:
         content = _mode(content_mode)
         validator = _validator(validator_mode)
+        self.assert_worker_ready()
 
         if content is ContentMode.ADULT_ONLY:
-            if self.profile is DeploymentProfile.LAPTOP_6GB:
-                raise PolicyViolation("adult_only is disabled on laptop_6gb")
-            if not adult_verified:
+            if validator is not ValidatorMode.LOCAL:
+                raise PolicyViolation("adult_only content requires local validation")
+            if (
+                self.adult_content_policy is AdultContentPolicy.REQUEST_OPT_IN
+                and not adult_verified
+            ):
                 raise PolicyViolation(
                     "adult_only requires explicit verification that every subject is an adult"
                 )
-            if validator is ValidatorMode.EXTERNAL_SFW_OPT_IN:
-                raise PolicyViolation("adult_only content must never use an external validator")
 
         if validator is ValidatorMode.EXTERNAL_SFW_OPT_IN:
             if not self.allow_external_sfw_validation:
@@ -213,5 +265,7 @@ class RuntimePolicy:
             "allow_external_sfw_validation": self.allow_external_sfw_validation,
             "allow_web_research": self.allow_web_research,
             "allow_runtime_downloads": self.allow_runtime_downloads,
+            "adult_content_policy": self.adult_content_policy.value,
+            "verified_adult_worker_asserted": self.verified_adult_worker_asserted,
             "internal_hosts": sorted(self.internal_hosts),
         }

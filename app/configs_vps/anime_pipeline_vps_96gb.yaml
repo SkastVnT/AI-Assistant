@@ -4,7 +4,7 @@ deployment:
   allowed_internal_origins:
     - http://127.0.0.1:8188
     - http://127.0.0.1:8080
-  adult_only_enabled: true
+  adult_content_policy: worker_default
 capabilities:
   flux2_klein: true
   qwen_image_edit: true
@@ -51,8 +51,7 @@ council:
 native_providers:
   flux2_klein:
     workflow_template: comfy_workflows/flux2_klein_9b.json
-    model: FLUX.2-klein-9B-fp8
+    model: flux-2-klein-9b-fp8.safetensors
   qwen_image_edit:
     workflow_template: comfy_workflows/qwen_image_edit_2511.json
-    model: Qwen-Image-Edit-2511
-
+    model: qwen_image_edit_2511_bf16.safetensors

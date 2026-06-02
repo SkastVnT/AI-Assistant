@@ -261,7 +261,7 @@ class AnimePipelineConfig:
     deployment_profile: str = "laptop_6gb"
     max_concurrent: int = 1
     allowed_internal_origins: list[str] = field(default_factory=list)
-    adult_only_enabled: bool = False
+    adult_content_policy: str = "request_opt_in"
     capabilities: dict[str, bool] = field(default_factory=dict)
     native_providers: dict[str, dict[str, Any]] = field(default_factory=dict)
     benchmark_version: str = "anime-local-v1"
@@ -469,8 +469,8 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
         origins = deployment.get("allowed_internal_origins", [])
         if isinstance(origins, list):
             cfg.allowed_internal_origins = [str(v) for v in origins if v]
-        cfg.adult_only_enabled = bool(
-            deployment.get("adult_only_enabled", cfg.adult_only_enabled)
+        cfg.adult_content_policy = str(
+            deployment.get("adult_content_policy", cfg.adult_content_policy)
         )
 
     capabilities = raw.get("capabilities", {})
@@ -728,6 +728,10 @@ def _apply_env(cfg: AnimePipelineConfig) -> None:
     profile = os.getenv("ANIME_PIPELINE_PROFILE")
     if profile:
         cfg.deployment_profile = profile
+
+    adult_policy = os.getenv("ANIME_PIPELINE_ADULT_CONTENT_POLICY")
+    if adult_policy:
+        cfg.adult_content_policy = adult_policy
 
     # VRAM profile override (highest priority)
     vram_env = os.getenv("ANIME_PIPELINE_VRAM_PROFILE")

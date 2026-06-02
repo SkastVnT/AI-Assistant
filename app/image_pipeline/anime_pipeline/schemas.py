@@ -651,6 +651,7 @@ class AnimePipelineJob:
     content_mode: str = "sfw"
     validator_mode: str = "local"
     adult_verified: bool = False
+    adult_attestation_source: str = ""
     network_policy: dict[str, Any] = field(default_factory=dict)
     benchmark_version: str = "anime-local-v1"
 
@@ -693,6 +694,7 @@ class AnimePipelineJob:
     final_image_b64: Optional[str] = None
     final_image_url: Optional[str] = None
     final_image_path: Optional[str] = None
+    manifest_path: Optional[str] = None
     # Spec §7 canonical filename: <session>_<feature>_<char>_<series>_<ts>.<ext>
     final_image_spec_path: Optional[str] = None
     # Secondary output: populated when re-plan attempt 1 also produced a usable image.
@@ -732,6 +734,7 @@ class AnimePipelineJob:
             "content_mode": self.content_mode,
             "validator_mode": self.validator_mode,
             "adult_verified": self.adult_verified,
+            "adult_attestation_source": self.adult_attestation_source,
             "network_policy": self.network_policy,
             "benchmark_version": self.benchmark_version,
             "character_name": self.character_name,
@@ -757,6 +760,8 @@ class AnimePipelineJob:
             "critic_provenance": self.metadata.get("critic_provenance", []),
             "has_final_image": self.final_image_b64 is not None,
             "final_image_url": self.final_image_url,
+            "final_image_path": self.final_image_path,
+            "manifest_path": self.manifest_path,
             "error": self.error,
         }
 

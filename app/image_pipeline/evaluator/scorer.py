@@ -32,6 +32,7 @@ from image_pipeline.job_schema import (
 )
 from image_pipeline.paths import CONFIGS_DIR
 from image_pipeline.anime_pipeline.runtime_policy import RuntimePolicy
+from image_pipeline.evaluator.benchmark_config import load_benchmark_config
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +161,7 @@ class Scorer:
         runtime_policy: RuntimePolicy | None = None,
     ):
         self._pipeline_cfg = self._load_yaml(Path(pipeline_cfg_path or _PIPELINE_YAML))
-        self._benchmark_cfg = self._load_yaml(
+        self._benchmark_cfg = load_benchmark_config(
             Path(benchmark_cfg_path or _BENCHMARK_YAML)
         )
 

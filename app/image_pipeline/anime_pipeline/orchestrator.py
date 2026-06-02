@@ -231,6 +231,7 @@ class AnimePipelineOrchestrator:
             validator_mode=job.validator_mode,
             adult_verified=job.adult_verified,
         )
+        self._assert_adult_subject_allowed(job)
 
         yield self._event(
             "pipeline_start",
@@ -764,6 +765,7 @@ class AnimePipelineOrchestrator:
         self._beauty._used_seeds = self._used_seeds
 
         for round_num in range(max_rounds + 1):
+            self._assert_adult_subject_allowed(job)
             is_refine = round_num > 0
             stage_label = (
                 f"beauty_pass{'_refine_' + str(round_num) if is_refine else ''}"
@@ -1230,6 +1232,7 @@ class AnimePipelineOrchestrator:
           - No regions detected
           - Detection is disabled in config
         """
+        self._assert_adult_subject_allowed(job)
         if not self._detection_inpaint.is_available():
             logger.info(
                 "[AnimePipeline] Detection inpaint skipped — dependencies not available"
@@ -2132,6 +2135,18 @@ class AnimePipelineOrchestrator:
             )
         except Exception as e:
             logger.warning("[AnimePipeline] Failed to save intermediates: %s", e)
+
+    @staticmethod
+    def _assert_adult_subject_allowed(job: AnimePipelineJob) -> None:
+        if job.content_mode != "adult_only":
+            return
+        from .adult_subject_guard import assert_adult_subject_allowed
+
+        assert_adult_subject_allowed(
+            job.user_prompt,
+            adult_verified=job.adult_verified,
+            attestation_source=job.adult_attestation_source,
+        )
 
     # ── 4-Agents council integration ────────────────────────────────
 

@@ -229,6 +229,7 @@ class PipelineRequest:
     content_mode: str = "sfw"
     validator_mode: str = "local"
     adult_verified: bool = False
+    adult_attestation_source: str = ""
     character_key: str = ""
 
 
@@ -259,9 +260,16 @@ def validate_request(data: dict) -> tuple[PipelineRequest | None, str | None]:
             character_is_adult_verified,
         )
         from image_pipeline.anime_pipeline.config import load_config
-        from image_pipeline.anime_pipeline.runtime_policy import RuntimePolicy
+        from image_pipeline.anime_pipeline.adult_subject_guard import (
+            assert_adult_subject_allowed,
+        )
+        from image_pipeline.anime_pipeline.runtime_policy import (
+            AdultContentPolicy,
+            RuntimePolicy,
+        )
 
         config = load_config()
+        policy = RuntimePolicy.from_config(config)
         deployment_profile = str(
             data.get("deployment_profile") or config.deployment_profile
         )
@@ -270,19 +278,44 @@ def validate_request(data: dict) -> tuple[PipelineRequest | None, str | None]:
                 None,
                 f"deployment_profile must match this worker ({config.deployment_profile})",
             )
-        content_mode = str(data.get("content_mode", "sfw"))
+        content_mode = str(
+            data.get("content_mode") or policy.default_content_mode.value
+        )
         validator_mode = str(data.get("validator_mode", "local"))
         character_key = str(data.get("character_key", "") or "")
-        adult_verified = bool(data.get("adult_verified", False))
-        if content_mode == "adult_only" and character_key:
-            adult_verified = adult_verified and character_is_adult_verified(
-                character_key
-            )
-        RuntimePolicy.from_config(config).validate_request(
+        request_adult_verified = bool(data.get("adult_verified", False))
+        adult_verified = request_adult_verified
+        adult_attestation_source = "request" if request_adult_verified else ""
+        if content_mode == "adult_only":
+            if character_key:
+                pack_verified = character_is_adult_verified(character_key)
+                if not pack_verified:
+                    return None, "adult_only character pack is not adult_verified"
+                adult_verified = pack_verified and (
+                    request_adult_verified
+                    or policy.adult_content_policy
+                    is AdultContentPolicy.WORKER_DEFAULT
+                )
+                adult_attestation_source = (
+                    "character_pack" if adult_verified else ""
+                )
+            elif (
+                policy.adult_content_policy is AdultContentPolicy.WORKER_DEFAULT
+                and policy.verified_adult_worker_asserted
+            ):
+                adult_verified = True
+                adult_attestation_source = "worker"
+        policy.validate_request(
             content_mode=content_mode,
             validator_mode=validator_mode,
             adult_verified=adult_verified,
         )
+        if content_mode == "adult_only":
+            assert_adult_subject_allowed(
+                prompt,
+                adult_verified=adult_verified,
+                attestation_source=adult_attestation_source,
+            )
     except ValueError as exc:
         return None, str(exc)
 
@@ -306,6 +339,7 @@ def validate_request(data: dict) -> tuple[PipelineRequest | None, str | None]:
         content_mode=content_mode,
         validator_mode=validator_mode,
         adult_verified=adult_verified,
+        adult_attestation_source=adult_attestation_source,
         character_key=character_key,
     )
     return req, None
@@ -339,6 +373,7 @@ def build_job(req: PipelineRequest) -> Any:
         content_mode=req.content_mode,
         validator_mode=req.validator_mode,
         adult_verified=req.adult_verified,
+        adult_attestation_source=req.adult_attestation_source,
     )
     from image_pipeline.anime_pipeline.runtime_policy import RuntimePolicy
 
@@ -353,6 +388,8 @@ def build_job(req: PipelineRequest) -> Any:
         }
         job.metadata["model_checksums"] = dict(pack.checksums)
         job.metadata["loras"] = [dict(lora) for lora in pack.loras]
+    if req.adult_attestation_source:
+        job.metadata["adult_attestation_source"] = req.adult_attestation_source
     return job
 
 

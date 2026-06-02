@@ -19,12 +19,17 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import Any, Optional
 
 import yaml
 
+from image_pipeline.evaluator.benchmark_config import (
+    load_benchmark_config,
+    resolve_suite_path,
+)
 from image_pipeline.evaluator.experiment_log import ExperimentLog, RunSummary
 from image_pipeline.evaluator.scorer import Scorer
 from image_pipeline.job_schema import (
@@ -58,6 +63,11 @@ class BenchmarkRunner:
         pipeline_fn: Any = None,  # async (ImageJob) -> (output_path, RunMetadata)
     ):
         self._benchmark_path = Path(benchmark_path or _BENCHMARK_YAML)
+        self._benchmark_cfg = load_benchmark_config(self._benchmark_path)
+        self.content_mode = str(self._benchmark_cfg.get("content_mode", "sfw"))
+        self.requires_adult_verified = bool(
+            self._benchmark_cfg.get("requires_adult_verified", False)
+        )
         self._test_cases = self._load_test_cases()
         self._scorer = scorer
         self._pipeline_fn = pipeline_fn
@@ -77,6 +87,7 @@ class BenchmarkRunner:
         case_ids: list[str] | None = None,
         categories: list[str] | None = None,
         dry_run: bool = False,
+        adult_verified: bool = False,
     ) -> RunSummary:
         """
         Run the full benchmark suite or a filtered subset.
@@ -95,10 +106,17 @@ class BenchmarkRunner:
                 "Live benchmark requires both a real pipeline_fn and a scorer; "
                 "use --dry-run only for wiring checks"
             )
-        experiment = ExperimentLog(run_id=run_id)
+        if self.requires_adult_verified and not adult_verified:
+            raise RuntimeError("adult_only benchmark requires --adult-verified")
+        experiment = ExperimentLog(
+            run_id=run_id,
+            benchmark_cfg_path=self._benchmark_path,
+        )
 
         # Filter cases
         cases = self._filter_cases(case_ids, categories)
+        if self.requires_adult_verified and not dry_run:
+            cases = self._overlay_adult_fixture_pack(cases)
         logger.info(
             "Running %d/%d test cases (run_id=%s, dry_run=%s)",
             len(cases),
@@ -175,9 +193,33 @@ class BenchmarkRunner:
         if not self._benchmark_path.exists():
             logger.warning("Benchmark file not found: %s", self._benchmark_path)
             return []
-        with open(self._benchmark_path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f) or {}
-        return data.get("test_cases", [])
+        return self._benchmark_cfg.get("test_cases", [])
+
+    def _overlay_adult_fixture_pack(
+        self, cases: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        manifest = str(self._benchmark_cfg.get("fixture_pack_manifest", ""))
+        if not manifest:
+            raise RuntimeError("adult_only suite has no fixture_pack_manifest")
+        manifest_path = Path(manifest)
+        if not manifest_path.is_absolute():
+            manifest_path = CONFIGS_DIR.parents[1] / manifest_path
+        if not manifest_path.is_file():
+            raise RuntimeError(f"Missing local adult fixture manifest: {manifest_path}")
+        pack = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
+        if pack.get("adult_verified") is not True:
+            raise RuntimeError("Adult fixture pack is not adult_verified")
+        overlays = pack.get("cases", {})
+        merged_cases: list[dict[str, Any]] = []
+        for case in cases:
+            fixture_id = case.get("fixture_case")
+            overlay = overlays.get(fixture_id, {}) if isinstance(overlays, dict) else {}
+            if not isinstance(overlay, dict) or overlay.get("adult_verified") is not True:
+                raise RuntimeError(f"Missing verified adult fixture case: {fixture_id}")
+            merged = {**case, **overlay}
+            merged["setup"] = {**case.get("setup", {}), **overlay.get("setup", {})}
+            merged_cases.append(merged)
+        return merged_cases
 
     def _filter_cases(
         self,
@@ -308,8 +350,8 @@ class BenchmarkRunner:
         if summary.critical_failures:
             print(f"\n  CRITICAL FAILURES: {', '.join(summary.critical_failures)}")
 
-        nano_label = "YES" if summary.nano_banana_qualified else "NO"
-        print(f"\n  Nano Banana-like qualified: {nano_label}")
+        gate_label = "YES" if summary.local_quality_gate_passed else "NO"
+        print(f"\n  Local quality gate passed: {gate_label}")
         print("=" * 70 + "\n")
 
 
@@ -321,6 +363,17 @@ def main():
         description="Run image pipeline benchmark suite",
     )
     parser.add_argument("--run-id", default=None, help="Run identifier")
+    parser.add_argument(
+        "--suite",
+        choices=("auto", "sfw", "adult_only"),
+        default="auto",
+        help="Select the LOCAL benchmark suite",
+    )
+    parser.add_argument(
+        "--adult-verified",
+        action="store_true",
+        help="Confirm that the local adult fixture pack contains verified adults",
+    )
     parser.add_argument(
         "--cases",
         nargs="*",
@@ -352,7 +405,12 @@ def main():
         format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
     )
 
-    runner = BenchmarkRunner()
+    runner = BenchmarkRunner(
+        benchmark_path=resolve_suite_path(
+            args.suite,
+            os.getenv("ANIME_PIPELINE_PROFILE", "laptop_6gb"),
+        )
+    )
 
     summary = asyncio.run(
         runner.run_suite(
@@ -360,10 +418,11 @@ def main():
             case_ids=args.cases,
             categories=args.categories,
             dry_run=args.dry_run,
+            adult_verified=args.adult_verified,
         )
     )
 
-    sys.exit(0 if summary.nano_banana_qualified else 1)
+    sys.exit(0 if summary.local_quality_gate_passed else 1)
 
 
 if __name__ == "__main__":

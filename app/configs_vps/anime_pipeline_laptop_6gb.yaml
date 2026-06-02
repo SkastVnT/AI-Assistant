@@ -4,7 +4,7 @@ deployment:
   allowed_internal_origins:
     - http://127.0.0.1:8188
     - http://127.0.0.1:8080
-  adult_only_enabled: false
+  adult_content_policy: request_opt_in
 capabilities:
   flux2_klein: false
   qwen_image_edit: false

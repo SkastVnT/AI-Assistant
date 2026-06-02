@@ -125,7 +125,7 @@ CHARACTER_SELECT_TIMEOUT = int(os.getenv("CHARACTER_SELECT_TIMEOUT", "5"))
 # ComfyUI output dir — watched by /api/local-image-gen/recent so the chatbot can
 # surface images that SAA (or any other ComfyUI client) just generated.
 # Defaults to repo-local ``ComfyUI/output``. ComfyUI stays at repo root in this
-# cleanup pass because a duplicate app/ComfyUI tree already exists.
+# cleanup pass while the primary ComfyUI runtime remains at repository root.
 _DEFAULT_COMFY_OUTPUT = (COMFYUI_DIR / "output").resolve()
 COMFYUI_OUTPUT_DIR = os.getenv("COMFYUI_OUTPUT_DIR", str(_DEFAULT_COMFY_OUTPUT))
 

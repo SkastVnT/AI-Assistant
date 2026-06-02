@@ -26,6 +26,7 @@ from typing import Any, Optional
 
 import yaml
 
+from image_pipeline.evaluator.benchmark_config import load_benchmark_config
 from image_pipeline.job_schema import EvalResult, ImageJob, RunMetadata
 from image_pipeline.paths import CONFIGS_DIR, STORAGE_DIR
 
@@ -117,14 +118,21 @@ class RunSummary:
     overall_pass_rate: float = 0.0
     overall_avg_score: float = 0.0
     categories: dict[str, CategorySummary] = field(default_factory=dict)
-    nano_banana_qualified: bool = False  # meets §13 threshold
+    local_quality_gate_passed: bool = False
     critical_failures: list[str] = field(default_factory=list)
     total_cost_usd: float = 0.0
     total_latency_ms: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
+        d["nano_banana_qualified"] = self.local_quality_gate_passed
         return d
+
+    @property
+    def nano_banana_qualified(self) -> bool:
+        """Deprecated compatibility alias for older benchmark consumers."""
+
+        return self.local_quality_gate_passed
 
 
 # ── Experiment log ────────────────────────────────────────────────
@@ -154,10 +162,12 @@ class ExperimentLog:
         self._records: list[CaseRecord] = []
 
         # Load pass/fail rules from benchmark config
-        cfg = self._load_yaml(Path(benchmark_cfg_path or _BENCHMARK_YAML))
+        cfg = load_benchmark_config(Path(benchmark_cfg_path or _BENCHMARK_YAML))
         pf = cfg.get("pass_fail", {})
         self._category_pass_rate: float = float(pf.get("category_pass_rate", 0.70))
-        self._nano_threshold: float = float(pf.get("nano_banana_threshold", 0.80))
+        self._quality_gate_threshold: float = float(
+            pf.get("local_quality_gate_threshold", 0.80)
+        )
         self._critical_dims: list[str] = pf.get("critical_dimensions", [])
         self._non_blocking_dims: list[str] = pf.get("non_blocking_dimensions", [])
         self._min_cases_per_cat: int = int(pf.get("min_cases_per_category", 2))
@@ -322,9 +332,9 @@ class ExperimentLog:
                     if entry not in summary.critical_failures:
                         summary.critical_failures.append(entry)
 
-        # Nano Banana-like qualification
-        summary.nano_banana_qualified = (
-            summary.overall_pass_rate >= self._nano_threshold
+        # Local qualification only. Comparator parity is a separate manual review.
+        summary.local_quality_gate_passed = (
+            summary.overall_pass_rate >= self._quality_gate_threshold
             and len(summary.critical_failures) == 0
         )
 
@@ -418,8 +428,14 @@ class ExperimentLog:
             "pass_rate_b": summary_b.get("overall_pass_rate", 0),
             "avg_score_a": summary_a.get("overall_avg_score", 0),
             "avg_score_b": summary_b.get("overall_avg_score", 0),
-            "nano_a": summary_a.get("nano_banana_qualified", False),
-            "nano_b": summary_b.get("nano_banana_qualified", False),
+            "local_quality_gate_a": summary_a.get(
+                "local_quality_gate_passed",
+                summary_a.get("nano_banana_qualified", False),
+            ),
+            "local_quality_gate_b": summary_b.get(
+                "local_quality_gate_passed",
+                summary_b.get("nano_banana_qualified", False),
+            ),
             "cases": case_deltas,
         }
 

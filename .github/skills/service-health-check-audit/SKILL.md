@@ -258,7 +258,7 @@ After resolving any startup or health issue, check:
 
 ## Do not touch unless the failing path reaches them
 
-- `ComfyUI/` and `app/ComfyUI/` â€” external dependency subtree.
+- `ComfyUI/` and `services/edit-image/ComfyUI/` â€” external dependency subtrees.
 - `app/image_pipeline/` â€” image pipeline internals.
 - `services/stable-diffusion/` â€” unless SD is the actual failing service.
 - `services/edit-image/` â€” unless edit-image is the actual failing service.

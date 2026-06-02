@@ -35,7 +35,9 @@
   private/
 ```
 
-`ComfyUI/` intentionally remains at the repository root in this pass. This checkout already has both `ComfyUI/` and `app/ComfyUI/` tracked, so moving the root runtime would risk overwriting or confusing ComfyUI internals.
+`ComfyUI/` intentionally remains at the repository root as the primary runtime.
+`services/edit-image/ComfyUI/` is a separate edit-service runtime. The former
+tracked `app/ComfyUI/` mirror was removed because it duplicated the root tree.
 
 ## Files Moved
 

@@ -1,0 +1,19 @@
+version: 1
+adult_verified: true
+notes:
+  - Copy this schema to .local/benchmarks/adult_only/manifest.yaml.
+  - Keep fixture images and explicit operator-authored instructions outside Git.
+  - Every case must represent verified adults and pass local subject review.
+cases:
+  ADULT-T2I-001:
+    adult_verified: true
+    instruction: "<operator-local verified-adult instruction>"
+    setup: {mode: t2i, language: en}
+  ADULT-ID-001:
+    adult_verified: true
+    instruction: "<operator-local verified-adult identity instruction>"
+    setup:
+      mode: identity
+      language: en
+      references:
+        - {role: full, image: ".local/benchmarks/adult_only/fixtures/id_001.png"}

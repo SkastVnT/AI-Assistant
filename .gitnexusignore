@@ -28,7 +28,6 @@ storage/
 logs/
 app/local_data/
 app/logs/
-app/ComfyUI/
 
 # ============================================================
 # Node.js artifacts

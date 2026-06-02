@@ -22,18 +22,32 @@ def main() -> int:
     parser.add_argument("--cases", nargs="*", default=None)
     parser.add_argument("--categories", nargs="*", default=None)
     parser.add_argument(
+        "--suite",
+        choices=("auto", "sfw", "adult_only"),
+        default="auto",
+    )
+    parser.add_argument(
+        "--adult-verified",
+        action="store_true",
+        help="Confirm that the local adult fixture pack contains verified adults",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Exercise suite wiring only; never use dry-run results for parity claims",
     )
     args = parser.parse_args()
-    runner = build_local_anime_benchmark_runner()
+    runner = build_local_anime_benchmark_runner(
+        suite=args.suite,
+        adult_verified=args.adult_verified,
+    )
     asyncio.run(
         runner.run_suite(
             run_id=args.run_id,
             case_ids=args.cases,
             categories=args.categories,
             dry_run=args.dry_run,
+            adult_verified=args.adult_verified,
         )
     )
     return 0
@@ -41,4 +55,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

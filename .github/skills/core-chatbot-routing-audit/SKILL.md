@@ -190,7 +190,7 @@ When detected â†’ auto-injects `google_search_tool()` results into context.
 
 - `services/stable-diffusion/` â€” SDXL stack.
 - `services/edit-image/` â€” ComfyUI-based editing.
-- `ComfyUI/` and `app/ComfyUI/` â€” External dependency.
+- `ComfyUI/` and `services/edit-image/ComfyUI/` â€” External dependencies.
 - `app/image_pipeline/` â€” Image pipeline internals.
 - `services/shared_env.py` â€” Only if env loading logic needs changing.
 - `app/config/.env*` â€” Only to add new variable placeholders.

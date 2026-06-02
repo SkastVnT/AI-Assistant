@@ -461,6 +461,7 @@ def generate_pipeline():
             progress_pct=100.0,
             final_image_path=getattr(job, "final_image_spec_path", None)
             or getattr(job, "final_image_path", None),
+            manifest_path=getattr(job, "manifest_path", None),
         )
         return jsonify(result)
 

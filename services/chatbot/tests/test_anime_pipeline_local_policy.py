@@ -52,22 +52,48 @@ def test_laptop_external_validator_requires_sfw_opt_in():
         )
 
 
-def test_adult_only_requires_verified_adults_and_non_laptop_profile():
+def test_adult_only_laptop_requires_explicit_verified_adult_opt_in():
     from image_pipeline.anime_pipeline.runtime_policy import (
         PolicyViolation,
         RuntimePolicy,
     )
 
     with pytest.raises(PolicyViolation):
-        RuntimePolicy.from_profile("pc_12gb").validate_request(
+        RuntimePolicy.from_profile("laptop_6gb").validate_request(
             content_mode="adult_only", adult_verified=False
         )
-    RuntimePolicy.from_profile("pc_12gb").validate_request(
+    RuntimePolicy.from_profile("laptop_6gb").validate_request(
         content_mode="adult_only", adult_verified=True
     )
+
+
+def test_pc_worker_default_requires_operator_assertion(monkeypatch):
+    from image_pipeline.anime_pipeline.runtime_policy import (
+        PolicyViolation,
+        RuntimePolicy,
+    )
+
+    monkeypatch.delenv("ANIME_PIPELINE_ASSERT_VERIFIED_ADULT_WORKER", raising=False)
     with pytest.raises(PolicyViolation):
-        RuntimePolicy.from_profile("laptop_6gb").validate_request(
-            content_mode="adult_only", adult_verified=True
+        RuntimePolicy.from_profile("pc_12gb").validate_request(content_mode="sfw")
+
+    monkeypatch.setenv("ANIME_PIPELINE_ASSERT_VERIFIED_ADULT_WORKER", "1")
+    policy = RuntimePolicy.from_profile("pc_12gb")
+    assert policy.default_content_mode.value == "adult_only"
+    policy.validate_request(content_mode="adult_only", adult_verified=False)
+
+
+def test_adult_subject_guard_rejects_age_ambiguous_context():
+    from image_pipeline.anime_pipeline.adult_subject_guard import (
+        assert_adult_subject_allowed,
+    )
+    from image_pipeline.anime_pipeline.runtime_policy import PolicyViolation
+
+    with pytest.raises(PolicyViolation, match="age-ambiguous"):
+        assert_adult_subject_allowed(
+            "age-ambiguous subject portrait",
+            adult_verified=True,
+            attestation_source="request",
         )
 
 
@@ -262,10 +288,10 @@ def test_anime_benchmark_suite_contains_48_sfw_cases():
     assert len(suite["test_cases"]) == 48
 
 
-def test_service_request_contract_enforces_profile_and_adult_verification():
+def test_service_request_contract_enforces_laptop_adult_verification():
     from core.anime_pipeline_service import validate_request
 
-    with patch.dict("os.environ", {"ANIME_PIPELINE_PROFILE": "pc_12gb"}):
+    with patch.dict("os.environ", {"ANIME_PIPELINE_PROFILE": "laptop_6gb"}):
         request, error = validate_request(
             {"prompt": "original adult character portrait", "content_mode": "adult_only"}
         )
@@ -277,12 +303,31 @@ def test_service_request_contract_enforces_profile_and_adult_verification():
                 "prompt": "original adult character portrait",
                 "content_mode": "adult_only",
                 "adult_verified": True,
-                "deployment_profile": "pc_12gb",
+                "deployment_profile": "laptop_6gb",
             }
         )
         assert error is None
         assert request is not None
         assert request.content_mode == "adult_only"
+        assert request.adult_attestation_source == "request"
+
+
+def test_service_request_contract_defaults_asserted_pc_worker_to_adult_only():
+    from core.anime_pipeline_service import validate_request
+
+    with patch.dict(
+        "os.environ",
+        {
+            "ANIME_PIPELINE_PROFILE": "pc_12gb",
+            "ANIME_PIPELINE_ASSERT_VERIFIED_ADULT_WORKER": "1",
+        },
+    ):
+        request, error = validate_request({"prompt": "verified adult portrait"})
+    assert error is None
+    assert request is not None
+    assert request.content_mode == "adult_only"
+    assert request.adult_verified is True
+    assert request.adult_attestation_source == "worker"
 
 
 def test_service_request_contract_allows_laptop_sfw_validator_opt_in():
@@ -338,3 +383,93 @@ def test_local_only_scorer_has_no_cloud_fallback():
     )
     assert len(scorer._judge_chain) == 1
     assert scorer._judge_chain[0].provider == "local"
+
+
+def test_result_store_writes_job_local_and_canonical_manifests(tmp_path):
+    from image_pipeline.anime_pipeline.result_store import ResultStore
+    from image_pipeline.anime_pipeline.schemas import AnimePipelineJob
+
+    intermediate = tmp_path / "intermediate"
+    metadata = tmp_path / "metadata"
+    job = AnimePipelineJob(user_prompt="portrait")
+    local_path = Path(
+        ResultStore(base_dir=intermediate, metadata_dir=metadata).save_manifest(job)
+    )
+    canonical_path = metadata / f"{job.job_id}.json"
+
+    assert local_path == intermediate / job.job_id / "output_manifest.json"
+    assert local_path.is_file()
+    assert canonical_path.is_file()
+    assert job.manifest_path == str(canonical_path)
+    assert json.loads(canonical_path.read_text(encoding="utf-8"))["manifest_path"] == str(
+        canonical_path
+    )
+
+
+def test_native_workflow_provider_rejects_operator_stub(tmp_path):
+    from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+
+    template = tmp_path / "stub.json"
+    template.write_text(
+        json.dumps({"1": {"class_type": "STUB_OPERATOR_MUST_EXPORT", "inputs": {}}}),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="still a stub"):
+        WorkflowBuilder().build_native("flux2_klein", {"workflow_template": str(template)}, {})
+
+
+def test_preflight_blocks_required_native_workflow_stub(tmp_path, monkeypatch):
+    from image_pipeline.anime_pipeline import preflight
+    from image_pipeline.anime_pipeline.config import AnimePipelineConfig
+
+    stub = tmp_path / "stub.json"
+    stub.write_text(
+        json.dumps({"1": {"class_type": "STUB_OPERATOR_MUST_EXPORT", "inputs": {}}}),
+        encoding="utf-8",
+    )
+    manifest = tmp_path / "assets.yaml"
+    manifest.write_text(
+        "assets:\n"
+        "  - id: flux2_klein_workflow\n"
+        "    profiles: [laptop_6gb]\n"
+        f"    destination: {stub.as_posix()}\n"
+        "    sha256: placeholder\n"
+        "    required_for_capability: flux2_klein\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(preflight, "_PROVISIONING_MANIFEST", manifest)
+    report = preflight.run_preflight(
+        AnimePipelineConfig(capabilities={"flux2_klein": True}),
+        comfyui_dir=tmp_path / "ComfyUI",
+    )
+    assert report.readiness == "blocked"
+    assert report.capabilities["flux2_klein"] == "blocked"
+    assert any(check.detail == "Replace operator-export workflow stub" for check in report.checks)
+
+
+def test_preflight_blocks_pc_worker_without_operator_assertion(monkeypatch):
+    from image_pipeline.anime_pipeline.config import load_config
+    from image_pipeline.anime_pipeline.preflight import run_preflight
+
+    monkeypatch.setenv("ANIME_PIPELINE_PROFILE", "pc_12gb")
+    monkeypatch.delenv("ANIME_PIPELINE_ASSERT_VERIFIED_ADULT_WORKER", raising=False)
+    report = run_preflight(load_config())
+    assert report.readiness == "blocked"
+    assert any("ANIME_PIPELINE_ASSERT_VERIFIED_ADULT_WORKER=1" in error for error in report.errors)
+
+
+def test_adult_benchmark_suite_contains_48_local_fixture_cases():
+    suite_path = APP_ROOT / "configs_vps" / "anime_benchmark_suite_adult_only.yaml"
+    suite = yaml.safe_load(suite_path.read_text(encoding="utf-8"))
+    assert suite["content_mode"] == "adult_only"
+    assert suite["requires_adult_verified"] is True
+    assert len(suite["test_cases"]) == 48
+
+
+def test_adult_benchmark_requires_explicit_verification():
+    from image_pipeline.evaluator.benchmark_runner import BenchmarkRunner
+
+    suite_path = APP_ROOT / "configs_vps" / "anime_benchmark_suite_adult_only.yaml"
+    runner = BenchmarkRunner(benchmark_path=suite_path)
+    with pytest.raises(RuntimeError, match="adult_only benchmark requires"):
+        asyncio.run(runner.run_suite(dry_run=True))

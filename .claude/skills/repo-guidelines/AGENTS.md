@@ -204,7 +204,6 @@ app/storage/character_db/   Local character registry JSON (editable seed data)
 
 ```
 ComfyUI/                    External dependency subtree — do not modify
-app/ComfyUI/                ComfyUI within app context
 app/image_pipeline/         Image pipeline internals
 services/stable-diffusion/  SDXL stack
 services/edit-image/        ComfyUI-based image editing

@@ -32,11 +32,19 @@ jobs:
       run: |
         python -m compileall -q \
           -x '(^|[\\/])(venv|\.venv|__pycache__|site-packages|ComfyUI|private|node_modules)([\\/]|$)' \
-          services app/src app/image_pipeline app/scripts
+          services app/src app/image_pipeline app/rag app/scripts
+
+    - name: Validate runtime topology and core-only Compose
+      run: |
+        test -z "$(git ls-files 'app/ComfyUI/**')"
+        grep -q 'IMAGE_PIPELINE_V2: "false"' docker-compose.yml
+        grep -q 'AUTO_START_IMAGE_SERVICES: "0"' docker-compose.yml
+        grep -q 'AUTO_START_COMFYUI: "0"' docker-compose.yml
+        grep -q 'AUTO_START_STABLE_DIFFUSION: "0"' docker-compose.yml
 
     - name: Run Flake8 (critical errors only)
       run: |
-        flake8 services/ app/src/ app/image_pipeline/ app/scripts/ \
+        flake8 services/ app/src/ app/image_pipeline/ app/rag/ app/scripts/ \
           --jobs=1 \
           --count --select=E9,F63,F7 --show-source --statistics \
           --exclude=__pycache__,*.pyc,.git

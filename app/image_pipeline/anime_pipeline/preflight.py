@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -26,11 +27,16 @@ class AssetCheck:
     required: bool
     exists: bool
     checksum_ok: bool | None = None
+    checksum_required: bool = False
     detail: str = ""
 
     @property
     def ready(self) -> bool:
-        return self.exists and self.checksum_ok is not False
+        return (
+            self.exists
+            and self.checksum_ok is not False
+            and not (self.checksum_required and self.checksum_ok is None)
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -39,6 +45,7 @@ class AssetCheck:
             "required": self.required,
             "exists": self.exists,
             "checksum_ok": self.checksum_ok,
+            "checksum_required": self.checksum_required,
             "detail": self.detail,
         }
 
@@ -116,6 +123,7 @@ def _check_path(
     *,
     required: bool,
     expected_sha256: str = "",
+    checksum_required: bool = False,
     detail: str = "",
 ) -> AssetCheck:
     exists = path.is_file()
@@ -128,6 +136,7 @@ def _check_path(
         required=required,
         exists=exists,
         checksum_ok=checksum_ok,
+        checksum_required=checksum_required,
         detail=detail,
     )
     report.checks.append(check)
@@ -158,6 +167,10 @@ def run_preflight(
         profile=cfg.deployment_profile,
         runtime_policy=policy.to_dict(),
     )
+    try:
+        policy.assert_worker_ready()
+    except Exception as exc:
+        report.errors.append(str(exc))
 
     checkpoints: list[str] = []
     for model in (cfg.composition_model, cfg.beauty_model, cfg.final_model):
@@ -186,6 +199,7 @@ def run_preflight(
             detail="Enabled structure layer",
         )
 
+    manifest_checks: list[tuple[dict[str, Any], AssetCheck]] = []
     for item in _manifest_assets(cfg.deployment_profile):
         destination = str(item.get("destination", ""))
         if not destination or destination.endswith(
@@ -195,13 +209,39 @@ def run_preflight(
         path = Path(destination)
         if not path.is_absolute():
             path = comfy_root.parent / path
-        _check_path(
+        capability = str(item.get("required_for_capability", ""))
+        required = bool(capability and cfg.capabilities.get(capability, False))
+        check = _check_path(
             report,
             str(item.get("id", destination)),
             path,
-            required=False,
+            required=required,
             expected_sha256=str(item.get("sha256", "")),
+            checksum_required=required,
             detail="Provision manually; runtime downloads are disabled",
+        )
+        manifest_checks.append((item, check))
+        if required and path.suffix.lower() == ".json" and check.exists:
+            try:
+                raw = json.loads(path.read_text(encoding="utf-8"))
+                if _contains_stub_workflow(raw):
+                    check.checksum_ok = False
+                    check.detail = "Replace operator-export workflow stub"
+            except Exception as exc:
+                check.checksum_ok = False
+                check.detail = f"Invalid workflow JSON: {exc}"
+
+    if (
+        cfg.deployment_profile == "vps_96gb"
+        and cfg.capabilities.get("flux2_klein", False)
+        and os.getenv("ANIME_PIPELINE_ACCEPT_FLUX2_KLEIN_9B_NONCOMMERCIAL", "")
+        .strip()
+        .lower()
+        not in {"1", "true", "yes", "on"}
+    ):
+        report.errors.append(
+            "vps_96gb FLUX.2 Klein 9B requires "
+            "ANIME_PIPELINE_ACCEPT_FLUX2_KLEIN_9B_NONCOMMERCIAL=1"
         )
 
     for capability, enabled in cfg.capabilities.items():
@@ -210,13 +250,11 @@ def run_preflight(
             continue
         related = [
             check
-            for check in report.checks
-            if capability in check.asset_id
-            or (capability == "flux2_klein" and "flux2_klein" in check.asset_id)
-            or (capability == "qwen_image_edit" and "qwen_image_edit" in check.asset_id)
+            for item, check in manifest_checks
+            if item.get("required_for_capability") == capability
         ]
         report.capabilities[capability] = (
-            "ready" if related and all(check.ready for check in related) else "degraded"
+            "ready" if related and all(check.ready for check in related) else "blocked"
         )
 
     if probe_remote:
@@ -253,6 +291,19 @@ def run_preflight(
                 report.endpoint_health["local_vlm"] = False
 
     return report
+
+
+def _contains_stub_workflow(value: Any) -> bool:
+    if isinstance(value, dict):
+        if value.get("class_type") == "STUB_OPERATOR_MUST_EXPORT":
+            return True
+        meta = value.get("_meta")
+        if isinstance(meta, dict) and meta.get("stub") is True:
+            return True
+        return any(_contains_stub_workflow(item) for item in value.values())
+    if isinstance(value, list):
+        return any(_contains_stub_workflow(item) for item in value)
+    return False
 
 
 def main() -> int:

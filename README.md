@@ -25,7 +25,7 @@ AI-Assistant is a local-first AI workspace that combines a Python chatbot servic
 
 ## Quick Start
 
-### Chatbot
+### Chatbot (Windows)
 
 ```powershell
 python -m venv venv-core
@@ -35,6 +35,32 @@ copy app\config\.env.example app\config\.env
 copy services\chatbot\.env.example services\chatbot\.env
 python services\chatbot\run.py
 ```
+
+### Chatbot (Linux / VPS)
+
+> `requirements-core.txt` is a Windows lock file — **do not use it on Linux**. Use the cross-platform profile instead.
+
+```bash
+python3 -m venv venv-core
+source venv-core/bin/activate
+pip install --upgrade pip setuptools wheel
+pip install -r app/requirements/profile_core_services.txt
+cp app/config/.env.example app/config/.env
+cp services/chatbot/.env.example services/chatbot/.env
+python services/chatbot/run.py
+```
+
+> **Chatbot-only (lighter install):** skip the audio and document chunks by installing only the required subset:
+>
+> ```bash
+> cd app/requirements
+> pip install -r requirements_chunk_1_core.txt \
+>             -r requirements_chunk_2_web.txt \
+>             -r requirements_chunk_3_database.txt \
+>             -r requirements_chunk_4_ai_apis.txt
+> pip install "mcp[cli]>=1.0.0" "Pillow>=10.3.0"
+> cd ../..
+> ```
 
 Open `http://127.0.0.1:5000`.
 

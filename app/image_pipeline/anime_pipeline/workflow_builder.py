@@ -56,7 +56,6 @@ def _normalize_upscale_model_name(name: str) -> str:
         candidates_roots = [
             _os.environ.get("COMFYUI_DIR"),
             COMFYUI_DIR,
-            APP_ROOT / "ComfyUI",
         ]
         for root in candidates_roots:
             if not root:
@@ -131,6 +130,10 @@ class WorkflowBuilder:
         workflow = self._replace_native_tokens(workflow, values)
         if not isinstance(workflow, dict) or not workflow:
             raise ValueError(f"Native workflow template is empty: {path}")
+        if self._contains_stub_workflow(workflow):
+            raise ValueError(f"Native workflow template is still a stub: {path}")
+        if self._contains_native_token(workflow):
+            raise ValueError(f"Native workflow template has unresolved tokens: {path}")
         for node_id, node in workflow.items():
             if not isinstance(node, dict) or not node.get("class_type"):
                 raise ValueError(
@@ -152,6 +155,27 @@ class WorkflowBuilder:
                 return replacement
             value = value.replace(token, str(replacement))
         return value
+
+    @classmethod
+    def _contains_native_token(cls, value: Any) -> bool:
+        if isinstance(value, dict):
+            return any(cls._contains_native_token(v) for v in value.values())
+        if isinstance(value, list):
+            return any(cls._contains_native_token(v) for v in value)
+        return isinstance(value, str) and "{{" in value and "}}" in value
+
+    @classmethod
+    def _contains_stub_workflow(cls, value: Any) -> bool:
+        if isinstance(value, dict):
+            if value.get("class_type") == "STUB_OPERATOR_MUST_EXPORT":
+                return True
+            meta = value.get("_meta")
+            if isinstance(meta, dict) and meta.get("stub") is True:
+                return True
+            return any(cls._contains_stub_workflow(v) for v in value.values())
+        if isinstance(value, list):
+            return any(cls._contains_stub_workflow(v) for v in value)
+        return False
 
     # ── Composition pass ─────────────────────────────────────────────
 

@@ -5,7 +5,6 @@ exclude = [
     "venv-core",
     "venv-image",
     "ComfyUI",
-    "app/ComfyUI",
     "services/edit-image/ComfyUI",
     "services/stable-diffusion/repositories",
     "character_select_stand_alone_app-main",
