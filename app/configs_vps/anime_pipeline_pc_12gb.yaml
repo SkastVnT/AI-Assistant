@@ -6,7 +6,7 @@ deployment:
     - http://127.0.0.1:8080
   adult_content_policy: worker_default
 capabilities:
-  flux2_klein: true
+  flux2_klein: false
   qwen_image_edit: false
   controlnet: true
   ipadapter: true
@@ -86,7 +86,3 @@ local_vlm:
 council:
   enabled: true
   max_rounds: 1
-native_providers:
-  flux2_klein:
-    workflow_template: comfy_workflows/flux2_klein_4b.json
-    model: flux-2-klein-4b-fp8.safetensors

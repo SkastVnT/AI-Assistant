@@ -315,13 +315,13 @@ def validate_request(data: dict) -> tuple[PipelineRequest | None, str | None]:
         quality = "quality"
 
     try:
+        from image_pipeline.anime_pipeline.adult_subject_guard import (
+            assert_adult_subject_allowed,
+        )
         from image_pipeline.anime_pipeline.character_pack import (
             character_is_adult_verified,
         )
         from image_pipeline.anime_pipeline.config import load_config
-        from image_pipeline.anime_pipeline.adult_subject_guard import (
-            assert_adult_subject_allowed,
-        )
         from image_pipeline.anime_pipeline.runtime_policy import (
             AdultContentPolicy,
             RuntimePolicy,

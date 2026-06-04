@@ -166,6 +166,7 @@ class BenchmarkRunner:
 
             try:
                 job = self._case_to_job(case)
+                execution = BenchmarkExecution(output_path=Path(""))
 
                 if dry_run:
                     eval_result = self._stub_eval(job, case)
@@ -420,7 +421,7 @@ def main():
         "--suite",
         choices=("auto", "sfw", "adult_only"),
         default="auto",
-        help="Select the LOCAL benchmark suite",
+        help="Select the LOCAL benchmark suite; auto resolves to sfw",
     )
     parser.add_argument(
         "--adult-verified",

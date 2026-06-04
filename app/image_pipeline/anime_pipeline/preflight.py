@@ -282,6 +282,8 @@ def run_preflight(
         if not path.is_absolute():
             path = comfy_root.parent / path
         capability = str(item.get("required_for_capability", ""))
+        if capability and not cfg.capabilities.get(capability, False):
+            continue
         required = bool(capability and cfg.capabilities.get(capability, False))
         check = _check_path(
             report,
@@ -326,7 +328,7 @@ def run_preflight(
 
     for capability, enabled in cfg.capabilities.items():
         if not enabled:
-            report.capabilities[capability] = "blocked"
+            report.capabilities[capability] = "disabled"
             continue
         related = [
             check

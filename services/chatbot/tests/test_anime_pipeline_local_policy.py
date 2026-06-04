@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -145,6 +146,9 @@ def test_profile_loader_uses_real_wai_v170_checkpoint():
     assert config.composition_model.checkpoint == "waiIllustriousSDXL_v170.safetensors"
     assert config.capabilities["controlnet"] is True
     assert config.capabilities["ipadapter"] is True
+    assert config.capabilities["flux2_klein"] is False
+    assert config.capabilities["qwen_image_edit"] is False
+    assert config.native_providers == {}
     assert config.ipadapter.enabled is True
     assert any(
         layer.enabled and layer.union_control_type
@@ -158,6 +162,9 @@ def test_vps_profile_enables_bounded_tier1_detection_only():
     with patch.dict("os.environ", {"ANIME_PIPELINE_PROFILE": "vps_96gb"}):
         config = load_config()
     assert config.detection_inpaint_enabled is True
+    assert config.capabilities["flux2_klein"] is True
+    assert config.capabilities["qwen_image_edit"] is True
+    assert config.capabilities["pre_upscale_v2"] is True
     assert config.detection_inpaint_max_passes == 5
     assert config.detection_inpaint_max_regions_per_pass == 4
     assert {
@@ -492,6 +499,28 @@ def test_benchmark_case_conversion_preserves_multi_turn_sequence():
     assert job.edit_turns == ["add glasses", "change scarf"]
 
 
+def test_benchmark_dry_run_records_stub_without_execution_error(tmp_path):
+    from image_pipeline.evaluator import experiment_log
+    from image_pipeline.evaluator.benchmark_runner import BenchmarkRunner
+
+    suite = tmp_path / "suite.yaml"
+    suite.write_text(
+        "test_cases:\n"
+        "  - id: T-001\n"
+        "    category: smoke\n"
+        "    difficulty: easy\n"
+        "    instruction: test\n"
+        "    dimensions: [instruction_adherence]\n",
+        encoding="utf-8",
+    )
+
+    with patch.object(experiment_log, "_BENCHMARK_DIR", tmp_path / "records"):
+        summary = asyncio.run(BenchmarkRunner(suite).run_suite(dry_run=True))
+
+    assert summary.total_cases == 1
+    assert summary.execution_errors == []
+
+
 def test_benchmark_adapter_lists_all_missing_fixtures(tmp_path, monkeypatch):
     from image_pipeline.evaluator import anime_benchmark_adapter
     from image_pipeline.evaluator.anime_benchmark_adapter import AnimeBenchmarkAdapter
@@ -533,6 +562,190 @@ def test_experiment_log_execution_error_fails_quality_gate(tmp_path):
     summary = log.summarize()
     assert summary.execution_errors == ["T-002:executor failed"]
     assert summary.local_quality_gate_passed is False
+
+
+def test_benchmark_auto_suite_resolves_to_sfw_for_quality_profiles():
+    from image_pipeline.evaluator.benchmark_config import resolve_suite_path
+
+    assert resolve_suite_path("auto", "pc_12gb").name == "anime_benchmark_suite.yaml"
+    assert resolve_suite_path("auto", "rtx5070").name == "anime_benchmark_suite.yaml"
+    assert resolve_suite_path("auto", "vps_96gb").name == "anime_benchmark_suite.yaml"
+
+
+def test_run_benchmark_env_selects_profile_and_forces_sfw_policy(monkeypatch):
+    from scripts import run_anime_benchmark
+
+    monkeypatch.setenv("ANIME_PIPELINE_CONFIG", "app/configs_vps/custom.yaml")
+    monkeypatch.setenv("ANIME_PIPELINE_ADULT_CONTENT_POLICY", "worker_default")
+
+    selected_suite = run_anime_benchmark._configure_benchmark_env("pc_12gb", "auto")
+
+    assert selected_suite == "sfw"
+    assert "ANIME_PIPELINE_CONFIG" not in os.environ
+    assert os.environ["ANIME_PIPELINE_PROFILE"] == "pc_12gb"
+    assert os.environ["ANIME_PIPELINE_ADULT_CONTENT_POLICY"] == "sfw_only"
+
+
+def test_evidence_summary_strips_private_prompts_paths_and_reasoning(tmp_path):
+    from scripts import anime_benchmark_evidence
+
+    artifact_root = tmp_path / "private"
+    run_dir = artifact_root / "run-001"
+    report_root = tmp_path / "public"
+    run_dir.mkdir(parents=True)
+    (run_dir / "summary.json").write_text(
+        json.dumps(
+            {
+                "run_id": "run-001",
+                "stack_version": "abc123",
+                "execution_errors": ["private/path/error"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "CASE-001.json").write_text(
+        json.dumps(
+            {
+                "case_id": "CASE-001",
+                "category": "identity",
+                "instruction": "private prompt",
+                "scores": {"identity_consistency": 0.9},
+                "thresholds": {"identity_consistency": 0.7},
+                "overall_score": 0.9,
+                "case_passed": True,
+                "judge_model": "local-vlm",
+                "judge_reasoning": {"identity_consistency": "private reasoning"},
+                "output_image_path": "private/output.png",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    anime_benchmark_evidence.summarize(
+        SimpleNamespace(
+            artifact_root=str(artifact_root),
+            run_id="run-001",
+            report_root=str(report_root),
+        )
+    )
+
+    public_summary = json.loads(
+        (report_root / "run-001" / "summary.json").read_text(encoding="utf-8")
+    )
+    public_cases = json.loads(
+        (report_root / "run-001" / "case_scores.json").read_text(encoding="utf-8")
+    )
+    assert public_summary["execution_error_count"] == 1
+    assert "execution_errors" not in public_summary
+    assert public_summary["comparator_review_complete"] is False
+    assert public_summary["parity_evidence_complete"] is False
+    assert "instruction" not in public_cases[0]
+    assert "judge_reasoning" not in public_cases[0]
+    assert "output_image_path" not in public_cases[0]
+
+
+def test_evidence_alias_import_and_summary_reports_review_coverage(tmp_path):
+    from scripts import anime_benchmark_evidence
+
+    artifact_root = tmp_path / "private"
+    run_dir = artifact_root / "run-001"
+    report_root = tmp_path / "public"
+    capture_dirs = {
+        "chatgpt_pro": tmp_path / "chatgpt",
+        "gemini_nano_banana": tmp_path / "nano_banana_2",
+        "nano_banana_pro": tmp_path / "nano_banana_pro",
+    }
+    run_dir.mkdir(parents=True)
+    for capture_dir in capture_dirs.values():
+        capture_dir.mkdir()
+        (capture_dir / "CASE-001.png").write_bytes(b"comparator")
+    output = run_dir / "CASE-001.local.png"
+    output.write_bytes(b"local")
+    (run_dir / "summary.json").write_text(
+        json.dumps(
+            {
+                "run_id": "run-001",
+                "stack_version": "abc123",
+                "local_quality_gate_passed": True,
+                "nano_banana_qualified": True,
+                "execution_errors": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "CASE-001.json").write_text(
+        json.dumps(
+            {
+                "case_id": "CASE-001",
+                "category": "identity",
+                "difficulty": "medium",
+                "scores": {"identity_consistency": 0.9},
+                "thresholds": {"identity_consistency": 0.7},
+                "overall_score": 0.9,
+                "case_passed": True,
+                "judge_model": "local-vlm",
+                "output_image_path": str(output),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    for provider, capture_dir in capture_dirs.items():
+        anime_benchmark_evidence.import_comparator(
+            SimpleNamespace(
+                artifact_root=str(artifact_root),
+                run_id="run-001",
+                provider=provider,
+                capture_dir=str(capture_dir),
+            )
+        )
+    assert (run_dir / "comparators" / "chatgpt_images" / "CASE-001.png").is_file()
+    assert (run_dir / "comparators" / "nano_banana_2" / "CASE-001.png").is_file()
+    assert (run_dir / "comparators" / "nano_banana_pro" / "CASE-001.png").is_file()
+
+    anime_benchmark_evidence.build_review(
+        SimpleNamespace(artifact_root=str(artifact_root), run_id="run-001", seed=7)
+    )
+    (run_dir / "comparator_verdicts.json").write_text(
+        json.dumps(
+            [
+                {
+                    "case_id": "CASE-001",
+                    "provider": "chatgpt_pro",
+                    "verdict": "local_preferred",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    anime_benchmark_evidence.summarize(
+        SimpleNamespace(
+            artifact_root=str(artifact_root),
+            run_id="run-001",
+            report_root=str(report_root),
+        )
+    )
+
+    public_summary = json.loads(
+        (report_root / "run-001" / "summary.json").read_text(encoding="utf-8")
+    )
+    comparator = json.loads(
+        (report_root / "run-001" / "comparator_verdict.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    coverage = json.loads(
+        (report_root / "run-001" / "comparator_coverage.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert "nano_banana_qualified" not in public_summary
+    assert public_summary["comparator_review_complete"] is True
+    assert public_summary["parity_evidence_complete"] is True
+    assert comparator == {"chatgpt_images": {"local_preferred": 1}}
+    assert coverage["review_packet_complete"] is True
+    assert coverage["comparator_captures_complete"] is True
+    assert coverage["verdict_complete"] is True
 
 
 def test_anime_benchmark_suite_contains_48_sfw_cases():
@@ -621,8 +834,14 @@ def test_service_request_contract_accepts_typed_references_and_turns():
 
 def test_identity_plan_enables_ipadapter_only_for_identity_task():
     from image_pipeline.anime_pipeline.agents.layer_planner import LayerPlannerAgent
-    from image_pipeline.anime_pipeline.config import AnimePipelineConfig, IPAdapterConfig
-    from image_pipeline.anime_pipeline.schemas import AnimePipelineJob, PipelineReference
+    from image_pipeline.anime_pipeline.config import (
+        AnimePipelineConfig,
+        IPAdapterConfig,
+    )
+    from image_pipeline.anime_pipeline.schemas import (
+        AnimePipelineJob,
+        PipelineReference,
+    )
 
     config = AnimePipelineConfig(ipadapter=IPAdapterConfig(enabled=True))
     identity_job = AnimePipelineJob(
@@ -753,6 +972,7 @@ def test_preflight_blocks_pc_worker_without_operator_assertion(monkeypatch):
     monkeypatch.delenv("ANIME_PIPELINE_ASSERT_VERIFIED_ADULT_WORKER", raising=False)
     report = run_preflight(load_config())
     assert report.readiness == "blocked"
+    assert report.capabilities["flux2_klein"] == "disabled"
     assert any("ANIME_PIPELINE_ASSERT_VERIFIED_ADULT_WORKER=1" in error for error in report.errors)
 
 

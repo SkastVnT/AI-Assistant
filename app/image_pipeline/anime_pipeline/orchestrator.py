@@ -1,7 +1,7 @@
 """
 image_pipeline.anime_pipeline.orchestrator — Multi-pass anime pipeline controller.
 
-Chains 7 agents sequentially, handles the critique→refine loop,
+Runs the current multi-stage anime pipeline, handles the critique→refine loop,
 streams SSE events per stage, and manages error recovery.
 
 Usage:
@@ -151,9 +151,9 @@ def _parse_lora_tags(prompt: str) -> tuple[str, list[dict[str, Any]]]:
 
 class AnimePipelineOrchestrator:
     """
-    7-stage anime multi-pass pipeline orchestrator.
+    Anime multi-pass pipeline orchestrator.
 
-    Stages:
+    Core stages:
         1. vision_analysis    — Analyze input/references
         2. layer_planning     — Build structured LayerPlan
         3. composition_pass   — Generate draft via ComfyUI
@@ -163,6 +163,8 @@ class AnimePipelineOrchestrator:
         7. critique           — Vision-based quality scoring
         8. upscale            — RealESRGAN final upscale
 
+    Optional character research, LoRA verification, re-plan, final ranking,
+    and manifest stages run around this core path depending on task/profile.
     If critique fails, stages 5-7 repeat up to max_refine_rounds times.
     """
 
