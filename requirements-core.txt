@@ -216,7 +216,7 @@ speechbrain==1.0.3
 SQLAlchemy==2.0.48
 sqlparse==0.5.5
 sse-starlette==3.3.2
-starlette==0.52.1
+starlette==1.0.1
 stringzilla==4.6.0
 sympy==1.14.0
 tabulate==0.10.0

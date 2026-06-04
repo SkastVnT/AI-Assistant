@@ -138,7 +138,7 @@ simple-websocket==1.1.0
 six==1.17.0
 spandrel==0.4.2
 SQLAlchemy==2.0.48
-starlette==0.52.1
+starlette==1.0.1
 sympy==1.14.0
 tensorboard-data-server==0.7.2
 threadpoolctl==3.6.0
