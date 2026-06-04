@@ -7,9 +7,9 @@ assets:
   - id: wai_illustrious_sdxl_v170
     profiles: [laptop_6gb, pc_12gb, vps_96gb, rtx5070]
     destination: ComfyUI/models/checkpoints/waiIllustriousSDXL_v170.safetensors
-    source_url: ""
+    source_url: "https://civitai.com/models/827184"
     license: operator-verified
-    sha256: ""
+    sha256: "f116b0c78ff441467b0cdc8f1936e1ed18ea31e9997c7b132b1b8db533f0bd04"
   - id: flux2_klein_4b_fp8
     profiles: [pc_12gb]
     destination: ComfyUI/models/diffusion_models/flux-2-klein-4b-fp8.safetensors
