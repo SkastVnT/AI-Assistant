@@ -390,7 +390,7 @@ SQLAlchemy==2.0.45
 sqlparse==0.5.4
 sse-starlette==3.0.4
 stack-data==0.6.3
-starlette==0.50.0
+starlette==1.0.1
 stringzilla==4.5.1
 svg.path==7.0
 sympy==1.14.0

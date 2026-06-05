@@ -12,4 +12,4 @@ uvicorn>=0.20.0
 python-multipart>=0.0.27
 watchdog>=2.0.0
 aiofiles>=23.0.0
-starlette>=0.27.0
+starlette>=1.0.1
