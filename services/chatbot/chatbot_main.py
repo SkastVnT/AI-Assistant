@@ -3725,8 +3725,10 @@ def sd_vaes():
                     if name != "None"
                 ]
                 return jsonify({"vaes": vaes})
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(
+                f"[SD VAEs] Failed to get VAEs from ComfyUI API ({sd_api_url}); using local fallback. Error: {str(e)}"
+            )
 
         # Fallback: scan local directory
         vae_dir = Path("/workspace/AI-Assistant/ComfyUI/models/vae")
