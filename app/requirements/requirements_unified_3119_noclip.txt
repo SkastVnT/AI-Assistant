@@ -7,7 +7,7 @@ addict==2.4.0
 aenum==3.1.16
 aiofiles==24.1.0
 aiohappyeyeballs==2.6.1
-aiohttp==3.13.4
+aiohttp==3.14.0
 aiosignal==1.4.0
 albucore==0.0.24
 albumentations==2.0.8
@@ -59,7 +59,7 @@ comfyui-workflow-templates-media-video==0.3.57
 contourpy==1.3.2
 controlnet_aux==0.0.10
 coverage==7.13.0
-cryptography==46.0.6
+cryptography==46.0.7
 cssselect==1.3.0
 cssutils==2.11.1
 ctranslate2==4.6.2
@@ -68,7 +68,7 @@ Cython==3.2.3
 datasets==4.4.1
 decorator==5.2.1
 deprecation==2.1.0
-diffusers==0.36.0
+diffusers==0.38.0
 dill==0.4.0
 distro==1.9.0
 dnspython==2.8.0
@@ -102,7 +102,7 @@ fsspec==2025.10.0
 ftfy==6.3.1
 future==1.0.0
 fvcore
-gdown==5.2.0
+gdown==5.2.2
 gfpgan==1.3.8
 gitdb==4.0.12
 GitPython==3.1.45
@@ -130,7 +130,7 @@ httpx-sse==0.4.3
 huggingface-hub==0.36.0
 humanfriendly==10.0
 HyperPyYAML==1.2.2
-idna==3.11
+idna==3.15
 ImageIO==2.37.2
 imgaug==0.4.0
 importlib_metadata==8.7.0
@@ -162,7 +162,7 @@ llvmlite==0.46.0
 lmdb==1.7.5
 loguru==0.7.3
 lpips==0.1.4
-lxml==6.0.2
+lxml==6.1.0
 lz4==4.4.5
 Mako==1.3.10
 Markdown==3.10
@@ -184,7 +184,7 @@ mypy==1.19.1
 mypy_extensions==1.1.0
 narwhals==2.14.0
 networkx==3.4.2
-notebook>=6.4.0
+notebook>=7.5.6
 numba==0.63.1
 numpy==1.26.4
 omegaconf==2.3.0
@@ -193,8 +193,8 @@ onnxruntime==1.23.2
 onnxruntime-gpu==1.23.2
 open_clip_torch==3.2.0
 openai==2.13.0
-opencv-contrib-python==4.8.1.78
-opencv-python==4.8.1.78
+opencv-contrib-python==4.13.0.92
+opencv-python==4.13.0.92
 opencv-python-headless==4.11.0.86
 openpyxl==3.1.5
 opentelemetry-api==1.39.1
@@ -218,7 +218,7 @@ pdfminer.six==20251230
 pdfplumber==0.11.9
 peft==0.18.0
 piexif==1.1.3
-pillow==12.1.1
+pillow==12.2.0
 pixeloe
 platformdirs==4.5.1
 pluggy==1.6.0
@@ -228,7 +228,7 @@ prettytable==3.17.0
 primePy==1.3
 propcache==0.4.1
 proto-plus==1.27.0
-protobuf==5.29.6
+protobuf==7.35.0
 psutil==7.1.3
 pyannote.audio==3.1.1
 pyannote.core==5.0.0
@@ -252,7 +252,7 @@ pyflakes==3.4.0
 PyGithub
 Pygments==2.19.2
 PyJWT==2.10.1
-pymongo==4.15.5
+pymongo==4.17.0
 PyMuPDF==1.23.8
 PyMuPDFb==1.23.7
 pyparsing==3.2.5
@@ -260,7 +260,7 @@ PyPDF2==3.0.1
 pypdfium2==5.5.0
 pyreadline3==3.5.4
 PySocks==1.7.1
-pytest==9.0.2
+pytest==9.0.3
 pytest-aiohttp
 pytest-asyncio
 pytest-base-url~=2.0
@@ -271,12 +271,12 @@ pytest-timeout>=2.2.0
 pytest-xdist>=3.5.0
 python-dateutil==2.9.0.post0
 python-docx==1.2.0
-python-dotenv==1.2.1
+python-dotenv==1.2.2
 python-engineio==4.12.3
-python-multipart==0.0.22
+python-multipart==0.0.27
 python-socketio==5.15.1
 pytokens==0.3.0
-pytorch-lightning==2.6.0
+pytorch-lightning==2.6.1
 pytorch-metric-learning==2.9.0
 pytz==2025.2
 PyWavelets==1.8.0
@@ -289,7 +289,7 @@ redis==7.1.0
 referencing==0.37.0
 regex==2025.11.3
 rembg
-requests==2.32.5
+requests==2.33.0
 requests-mock>=1.11.0
 resize-right==0.0.2
 responses>=0.24.0
@@ -327,7 +327,7 @@ speechbrain==1.0.3
 SQLAlchemy==2.0.45
 sqlparse==0.5.4
 sse-starlette==3.0.4
-starlette==0.50.0
+starlette==1.0.1
 stringzilla==4.5.1
 sympy==1.14.0
 tabulate==0.9.0
@@ -356,7 +356,7 @@ torchsde==0.2.6
 torchvision==0.16.2+cu118
 tqdm==4.67.1
 trampoline==0.1.2
-transformers==4.53.0
+transformers==5.0.0rc3
 transparent-background
 trimesh[easy]
 typer==0.20.0
@@ -365,7 +365,7 @@ typing_extensions==4.15.0
 typing-inspection==0.4.2
 tzdata==2025.3
 uritemplate==4.2.0
-urllib3==2.6.3
+urllib3==2.7.0
 uv
 uvicorn==0.38.0
 visualdl==2.5.3

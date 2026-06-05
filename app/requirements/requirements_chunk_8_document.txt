@@ -10,8 +10,8 @@ albumentations>=1.3.0
 
 # Pin opencv to patched versions (CVE-2023-4863 / PYSEC-2023-181 / PYSEC-2023-183)
 # paddleocr 2.9.1+ imposes no upper bound on opencv.
-opencv-python>=4.8.1.78
-opencv-contrib-python>=4.8.1.78
+opencv-python>=4.13.0.92
+opencv-contrib-python>=4.13.0.92
 
 # markitdown: universal file-to-markdown converter (pptx, epub, html, zip, audio, youtube)
 # Used by ocr_integration.py as fallback for unsupported formats
