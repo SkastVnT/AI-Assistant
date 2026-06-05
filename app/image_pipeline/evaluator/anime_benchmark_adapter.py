@@ -25,8 +25,6 @@ from image_pipeline.evaluator.scorer import Scorer
 from image_pipeline.job_schema import ImageJob, RunMetadata
 from image_pipeline.paths import CONFIGS_DIR, STORAGE_DIR
 
-_SUITE = CONFIGS_DIR / "anime_benchmark_suite.yaml"
-
 
 def _local_path(value: str, artifact_root: Path | None = None) -> Path:
     parsed = urlsplit(value)
