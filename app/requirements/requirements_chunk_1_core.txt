@@ -2,7 +2,7 @@
 # These are foundational packages needed by all services
 
 setuptools<81.0.0
-numpy>=1.20.0,<2.0.0
+numpy>=1.20.0
 pyyaml>=6.0.0
 python-dotenv>=1.2.2
 requests>=2.33.0

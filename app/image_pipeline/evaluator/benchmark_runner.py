@@ -166,7 +166,7 @@ class BenchmarkRunner:
 
             try:
                 job = self._case_to_job(case)
-                execution = BenchmarkExecution(output_path=Path(""))
+                turn_artifacts: list[Path] = []
 
                 if dry_run:
                     eval_result = self._stub_eval(job, case)
@@ -182,6 +182,7 @@ class BenchmarkRunner:
                         )
                     output_path = execution.output_path
                     run_meta = execution.run_metadata
+                    turn_artifacts = execution.turn_artifacts
                     eval_result = await self._scorer.score(
                         job,
                         output_path,
@@ -200,9 +201,7 @@ class BenchmarkRunner:
                     category=case.get("category", ""),
                     difficulty=case.get("difficulty", ""),
                     output_image_path=str(output_path),
-                    intermediate_images=[
-                        str(path) for path in execution.turn_artifacts
-                    ],
+                    intermediate_images=[str(path) for path in turn_artifacts],
                 )
 
             except Exception as e:
