@@ -3669,8 +3669,8 @@ def sd_loras():
                     if name != "None"
                 ]
                 return jsonify({"loras": loras})
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"[SD LoRAs] ComfyUI API unavailable, using local fallback: {str(e)}")
 
         # Fallback: scan local directory
         lora_dir = Path("/workspace/AI-Assistant/ComfyUI/models/loras")
