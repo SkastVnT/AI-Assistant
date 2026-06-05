@@ -285,7 +285,7 @@ pyannote.database==5.1.0
 pyannote.metrics==3.2.1
 pyannote.pipeline==3.0.1
 pyannoteai-sdk==0.3.0
-pyarrow==22.0.0
+pyarrow==23.0.1
 pyasn1==0.6.3
 pyasn1_modules==0.4.2
 pyclipper==1.4.0
