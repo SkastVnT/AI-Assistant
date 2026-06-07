@@ -18,18 +18,48 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import ipaddress
 import json
 import logging
 import os
 import re
+import socket
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import urlsplit
 
 from image_pipeline.paths import STORAGE_DIR
 
 logger = logging.getLogger(__name__)
+
+
+# ── URL safety guard (SSRF mitigation) ───────────────────────────────
+
+def _is_safe_external_url(url: str) -> bool:
+    """Return True only when ``url`` is a public HTTP/HTTPS URL.
+
+    Blocks schemes other than http/https, non-routable hostnames, and
+    IP addresses that resolve to loopback, private, link-local, or
+    otherwise reserved ranges so the download helpers cannot be abused
+    as a server-side request forgery (SSRF) vector.
+    """
+    try:
+        parsed = urlsplit(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        hostname = parsed.hostname or ""
+        if not hostname:
+            return False
+        # Resolve the hostname to an IP and check whether it is public.
+        ip = ipaddress.ip_address(socket.gethostbyname(hostname))
+        if ip.is_loopback or ip.is_private or ip.is_link_local or ip.is_reserved:
+            return False
+        return True
+    except Exception:
+        return False
+
 
 # ── Storage paths ────────────────────────────────────────────────────
 
@@ -1269,6 +1299,11 @@ def _download_reference_images(
         if w and h and (w < 300 or h < 300):
             continue
         if any(url.lower().endswith(ext) for ext in [".gif", ".webp", ".svg", ".ico"]):
+            continue
+
+        # SSRF guard: only fetch publicly routable HTTP/HTTPS URLs.
+        if not _is_safe_external_url(url):
+            logger.debug("[CharResearch] Skipping non-public URL: %s", url[:80])
             continue
 
         try:

@@ -213,8 +213,12 @@ class Flux2Composer:
                     model=model,
                 )
 
-            # Poll for result
+            # Poll for result — validate that the polling URL, when provided,
+            # originates from the same BFL API base to prevent open-redirect
+            # or SSRF if the API response ever contains an unexpected URL.
             polling_url = submit_data.get("polling_url")
+            if polling_url and not polling_url.startswith(self._base_url):
+                polling_url = None  # Fall back to constructed URL
             result_data = self._poll(task_id, polling_url)
 
             image_url = result_data.get("result", {}).get("sample", "")
