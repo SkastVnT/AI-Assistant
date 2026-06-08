@@ -10,7 +10,7 @@ flask-cors==6.0.2  # Updated from 4.0.0 - Security fix (5 vulnerabilities patche
 python-dotenv==1.2.2
 
 # ============= FASTAPI (async mode) =============
-fastapi>=0.115.0
+fastapi>=0.136.3
 uvicorn[standard]>=0.30.0
 python-multipart>=0.0.9  # Required for UploadFile
 pydantic>=2.0.0
