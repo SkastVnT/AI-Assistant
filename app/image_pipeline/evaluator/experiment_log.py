@@ -26,13 +26,14 @@ from typing import Any, Optional
 
 import yaml
 
+from image_pipeline.evaluator.benchmark_config import load_benchmark_config
 from image_pipeline.job_schema import EvalResult, ImageJob, RunMetadata
 from image_pipeline.paths import CONFIGS_DIR, STORAGE_DIR
 
 logger = logging.getLogger(__name__)
 
 _CONFIGS_DIR = CONFIGS_DIR
-_BENCHMARK_YAML = _CONFIGS_DIR / "benchmark_suite.yaml"
+_BENCHMARK_YAML = _CONFIGS_DIR / "anime_benchmark_suite.yaml"
 _STORAGE_DIR = STORAGE_DIR
 _BENCHMARK_DIR = _STORAGE_DIR / "metadata" / "benchmark"
 
@@ -117,14 +118,22 @@ class RunSummary:
     overall_pass_rate: float = 0.0
     overall_avg_score: float = 0.0
     categories: dict[str, CategorySummary] = field(default_factory=dict)
-    nano_banana_qualified: bool = False  # meets §13 threshold
+    local_quality_gate_passed: bool = False
     critical_failures: list[str] = field(default_factory=list)
     total_cost_usd: float = 0.0
     total_latency_ms: float = 0.0
+    execution_errors: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
+        d["nano_banana_qualified"] = self.local_quality_gate_passed
         return d
+
+    @property
+    def nano_banana_qualified(self) -> bool:
+        """Deprecated compatibility alias for older benchmark consumers."""
+
+        return self.local_quality_gate_passed
 
 
 # ── Experiment log ────────────────────────────────────────────────
@@ -152,12 +161,15 @@ class ExperimentLog:
         self._stack_version = stack_version or self._detect_git_sha()
         self._output_dir = Path(output_dir or _BENCHMARK_DIR) / self._run_id
         self._records: list[CaseRecord] = []
+        self._execution_errors: list[str] = []
 
         # Load pass/fail rules from benchmark config
-        cfg = self._load_yaml(Path(benchmark_cfg_path or _BENCHMARK_YAML))
+        cfg = load_benchmark_config(Path(benchmark_cfg_path or _BENCHMARK_YAML))
         pf = cfg.get("pass_fail", {})
         self._category_pass_rate: float = float(pf.get("category_pass_rate", 0.70))
-        self._nano_threshold: float = float(pf.get("nano_banana_threshold", 0.80))
+        self._quality_gate_threshold: float = float(
+            pf.get("local_quality_gate_threshold", 0.80)
+        )
         self._critical_dims: list[str] = pf.get("critical_dimensions", [])
         self._non_blocking_dims: list[str] = pf.get("non_blocking_dimensions", [])
         self._min_cases_per_cat: int = int(pf.get("min_cases_per_category", 2))
@@ -243,6 +255,10 @@ class ExperimentLog:
         )
         return record
 
+    def record_execution_error(self, case_id: str, error: str) -> None:
+        """Mark infrastructure or executor failures so the suite fails closed."""
+        self._execution_errors.append(f"{case_id}:{error[:500]}")
+
     # ───────────────────────────────────────────────────────────────
     # Summarization
     # ───────────────────────────────────────────────────────────────
@@ -251,7 +267,7 @@ class ExperimentLog:
         """
         Produce a suite-level summary from all recorded cases.
 
-        Applies pass/fail rules from benchmark_suite.yaml:
+        Applies pass/fail rules from anime_benchmark_suite.yaml:
             - Per-category pass rate must be ≥ category_pass_rate
             - "Nano Banana-like" requires overall ≥ nano_banana_threshold
             - Critical dimension failures are flagged
@@ -261,6 +277,7 @@ class ExperimentLog:
             timestamp=datetime.now(timezone.utc).isoformat(),
             stack_version=self._stack_version,
             total_cases=len(self._records),
+            execution_errors=list(self._execution_errors),
         )
 
         if not self._records:
@@ -322,10 +339,11 @@ class ExperimentLog:
                     if entry not in summary.critical_failures:
                         summary.critical_failures.append(entry)
 
-        # Nano Banana-like qualification
-        summary.nano_banana_qualified = (
-            summary.overall_pass_rate >= self._nano_threshold
+        # Local qualification only. Comparator parity is a separate manual review.
+        summary.local_quality_gate_passed = (
+            summary.overall_pass_rate >= self._quality_gate_threshold
             and len(summary.critical_failures) == 0
+            and len(summary.execution_errors) == 0
         )
 
         # Costs & latency
@@ -418,8 +436,14 @@ class ExperimentLog:
             "pass_rate_b": summary_b.get("overall_pass_rate", 0),
             "avg_score_a": summary_a.get("overall_avg_score", 0),
             "avg_score_b": summary_b.get("overall_avg_score", 0),
-            "nano_a": summary_a.get("nano_banana_qualified", False),
-            "nano_b": summary_b.get("nano_banana_qualified", False),
+            "local_quality_gate_a": summary_a.get(
+                "local_quality_gate_passed",
+                summary_a.get("nano_banana_qualified", False),
+            ),
+            "local_quality_gate_b": summary_b.get(
+                "local_quality_gate_passed",
+                summary_b.get("nano_banana_qualified", False),
+            ),
             "cases": case_deltas,
         }
 

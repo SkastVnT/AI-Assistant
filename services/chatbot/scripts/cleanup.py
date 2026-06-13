@@ -139,7 +139,7 @@ class CleanupManager:
         self.results["space_freed_mb"] += freed / (1024 * 1024)
         return removed
 
-    def optimize_database(self) -> Dict:
+    def optimize_database(self) -> dict:
         """Run database optimization tasks"""
         try:
             from config.mongodb_helpers import get_mongo_client
@@ -165,7 +165,7 @@ class CleanupManager:
                         "count": db[coll_name].count_documents({}),
                         "indexes": len(list(db[coll_name].list_indexes())),
                     }
-                except:
+                except Exception:
                     stats[coll_name] = {"error": "Could not get stats"}
 
             logger.info(f"Database stats: {stats}")
@@ -175,7 +175,7 @@ class CleanupManager:
             logger.warning(f"Database modules not available: {e}")
             return {"status": "skipped", "error": str(e)}
 
-    def run_all(self, include_db: bool = True) -> Dict:
+    def run_all(self, include_db: bool = True) -> dict:
         """Run all cleanup tasks"""
         logger.info("=" * 50)
         logger.info("Starting Chatbot Cleanup")

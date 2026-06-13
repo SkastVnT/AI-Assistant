@@ -162,7 +162,7 @@ def chat():
             # Safe JSON parsing
             try:
                 tools = json.loads(data.get("tools", "[]")) if data.get("tools") else []
-            except:
+            except Exception:
                 tools = []
 
             try:
@@ -172,7 +172,7 @@ def chat():
                     if history_str and history_str != "null"
                     else None
                 )
-            except:
+            except Exception:
                 history = None
 
             try:
@@ -181,7 +181,7 @@ def chat():
                     if data.get("memory_ids")
                     else []
                 )
-            except:
+            except Exception:
                 memory_ids = []
 
             try:
@@ -190,7 +190,7 @@ def chat():
                     if data.get("mcp_selected_files")
                     else []
                 )
-            except:
+            except Exception:
                 mcp_selected_files = []
 
             # Handle uploaded files
@@ -770,6 +770,8 @@ def extract_file_text():
         {"success": False, "text": "", "error": "Could not extract text from file"}
     )
 
+
+def _handle_image_generation_tool(chatbot, message, model):
     """Handle AI-powered image generation tool"""
     import json
     import re

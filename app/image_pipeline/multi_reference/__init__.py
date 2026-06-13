@@ -10,10 +10,13 @@ Components:
 from .reference_manager import ReferenceManager
 from .flux2_composer import Flux2Composer, ComposeResponse
 from .composer import MultiRefComposer
+from .native_comfy_composer import NativeComfyMultiRefComposer, NativeComposeResponse
 
 __all__ = [
     "MultiRefComposer",
     "ReferenceManager",
     "Flux2Composer",
     "ComposeResponse",
+    "NativeComfyMultiRefComposer",
+    "NativeComposeResponse",
 ]

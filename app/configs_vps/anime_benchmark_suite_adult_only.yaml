@@ -1,0 +1,70 @@
+version: anime-local-adult-v1
+content_mode: adult_only
+requires_adult_verified: true
+fixture_pack_manifest: .local/benchmarks/adult_only/manifest.yaml
+comparator_capture:
+  mode: manual_offline_import
+blind_review:
+  randomize_labels: true
+  combine_human_and_local_vlm: true
+defaults: &adult
+  difficulty: medium
+  dimensions: [instruction_adherence, identity_consistency, anatomy, detail_handling]
+  setup: {mode: t2i, language: en}
+test_cases:
+  - {<<: *adult, id: ADULT-T2I-001, category: t2i_adult, fixture_case: ADULT-T2I-001}
+  - {<<: *adult, id: ADULT-T2I-002, category: t2i_adult, fixture_case: ADULT-T2I-002}
+  - {<<: *adult, id: ADULT-T2I-003, category: t2i_adult, fixture_case: ADULT-T2I-003}
+  - {<<: *adult, id: ADULT-T2I-004, category: t2i_adult, fixture_case: ADULT-T2I-004}
+  - {<<: *adult, id: ADULT-T2I-005, category: t2i_adult, fixture_case: ADULT-T2I-005}
+  - {<<: *adult, id: ADULT-T2I-006, category: t2i_adult, fixture_case: ADULT-T2I-006}
+  - {<<: *adult, id: ADULT-T2I-007, category: t2i_adult, fixture_case: ADULT-T2I-007}
+  - {<<: *adult, id: ADULT-T2I-008, category: t2i_adult, fixture_case: ADULT-T2I-008}
+  - {<<: *adult, id: ADULT-ID-001, category: identity_adult, fixture_case: ADULT-ID-001}
+  - {<<: *adult, id: ADULT-ID-002, category: identity_adult, fixture_case: ADULT-ID-002}
+  - {<<: *adult, id: ADULT-ID-003, category: identity_adult, fixture_case: ADULT-ID-003}
+  - {<<: *adult, id: ADULT-ID-004, category: identity_adult, fixture_case: ADULT-ID-004}
+  - {<<: *adult, id: ADULT-ID-005, category: identity_adult, fixture_case: ADULT-ID-005}
+  - {<<: *adult, id: ADULT-ID-006, category: identity_adult, fixture_case: ADULT-ID-006}
+  - {<<: *adult, id: ADULT-ID-007, category: identity_adult, fixture_case: ADULT-ID-007}
+  - {<<: *adult, id: ADULT-ID-008, category: identity_adult, fixture_case: ADULT-ID-008}
+  - {<<: *adult, id: ADULT-AN-001, category: anatomy_adult, fixture_case: ADULT-AN-001}
+  - {<<: *adult, id: ADULT-AN-002, category: anatomy_adult, fixture_case: ADULT-AN-002}
+  - {<<: *adult, id: ADULT-AN-003, category: anatomy_adult, fixture_case: ADULT-AN-003}
+  - {<<: *adult, id: ADULT-AN-004, category: anatomy_adult, fixture_case: ADULT-AN-004}
+  - {<<: *adult, id: ADULT-AN-005, category: anatomy_adult, fixture_case: ADULT-AN-005}
+  - {<<: *adult, id: ADULT-AN-006, category: anatomy_adult, fixture_case: ADULT-AN-006}
+  - {<<: *adult, id: ADULT-AN-007, category: anatomy_adult, fixture_case: ADULT-AN-007}
+  - {<<: *adult, id: ADULT-AN-008, category: anatomy_adult, fixture_case: ADULT-AN-008}
+  - {<<: *adult, id: ADULT-POSE-001, category: pose_adult, fixture_case: ADULT-POSE-001}
+  - {<<: *adult, id: ADULT-POSE-002, category: pose_adult, fixture_case: ADULT-POSE-002}
+  - {<<: *adult, id: ADULT-POSE-003, category: pose_adult, fixture_case: ADULT-POSE-003}
+  - {<<: *adult, id: ADULT-POSE-004, category: pose_adult, fixture_case: ADULT-POSE-004}
+  - {<<: *adult, id: ADULT-POSE-005, category: pose_adult, fixture_case: ADULT-POSE-005}
+  - {<<: *adult, id: ADULT-POSE-006, category: pose_adult, fixture_case: ADULT-POSE-006}
+  - {<<: *adult, id: ADULT-POSE-007, category: pose_adult, fixture_case: ADULT-POSE-007}
+  - {<<: *adult, id: ADULT-POSE-008, category: pose_adult, fixture_case: ADULT-POSE-008}
+  - {<<: *adult, id: ADULT-MR-001, category: multi_ref_adult, fixture_case: ADULT-MR-001}
+  - {<<: *adult, id: ADULT-MR-002, category: multi_ref_adult, fixture_case: ADULT-MR-002}
+  - {<<: *adult, id: ADULT-MR-003, category: multi_ref_adult, fixture_case: ADULT-MR-003}
+  - {<<: *adult, id: ADULT-MR-004, category: multi_ref_adult, fixture_case: ADULT-MR-004}
+  - {<<: *adult, id: ADULT-MR-005, category: multi_ref_adult, fixture_case: ADULT-MR-005}
+  - {<<: *adult, id: ADULT-MR-006, category: multi_ref_adult, fixture_case: ADULT-MR-006}
+  - {<<: *adult, id: ADULT-MR-007, category: multi_ref_adult, fixture_case: ADULT-MR-007}
+  - {<<: *adult, id: ADULT-MR-008, category: multi_ref_adult, fixture_case: ADULT-MR-008}
+  - {<<: *adult, id: ADULT-EDIT-001, category: edit_adult, fixture_case: ADULT-EDIT-001}
+  - {<<: *adult, id: ADULT-EDIT-002, category: edit_adult, fixture_case: ADULT-EDIT-002}
+  - {<<: *adult, id: ADULT-EDIT-003, category: edit_adult, fixture_case: ADULT-EDIT-003}
+  - {<<: *adult, id: ADULT-EDIT-004, category: edit_adult, fixture_case: ADULT-EDIT-004}
+  - {<<: *adult, id: ADULT-EDIT-005, category: edit_adult, fixture_case: ADULT-EDIT-005}
+  - {<<: *adult, id: ADULT-EDIT-006, category: edit_adult, fixture_case: ADULT-EDIT-006}
+  - {<<: *adult, id: ADULT-EDIT-007, category: edit_adult, fixture_case: ADULT-EDIT-007}
+  - {<<: *adult, id: ADULT-EDIT-008, category: edit_adult, fixture_case: ADULT-EDIT-008}
+  - {<<: *adult, id: ADULT-MT-001, category: multi_turn_edit_adult, fixture_case: ADULT-MT-001}
+  - {<<: *adult, id: ADULT-MT-002, category: multi_turn_edit_adult, fixture_case: ADULT-MT-002}
+  - {<<: *adult, id: ADULT-MT-003, category: multi_turn_edit_adult, fixture_case: ADULT-MT-003}
+  - {<<: *adult, id: ADULT-MT-004, category: multi_turn_edit_adult, fixture_case: ADULT-MT-004}
+  - {<<: *adult, id: ADULT-MT-005, category: multi_turn_edit_adult, fixture_case: ADULT-MT-005}
+  - {<<: *adult, id: ADULT-MT-006, category: multi_turn_edit_adult, fixture_case: ADULT-MT-006}
+  - {<<: *adult, id: ADULT-MT-007, category: multi_turn_edit_adult, fixture_case: ADULT-MT-007}
+  - {<<: *adult, id: ADULT-MT-008, category: multi_turn_edit_adult, fixture_case: ADULT-MT-008}

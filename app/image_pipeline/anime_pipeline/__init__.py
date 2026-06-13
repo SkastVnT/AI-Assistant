@@ -1,14 +1,15 @@
 """
 image_pipeline.anime_pipeline — Multi-pass anime image generation pipeline.
 
-Implements a 7-stage layered workflow:
+Implements the current multi-stage layered workflow:
     1. Vision Analyst   — analyze input/reference images with vision AI
     2. Layer Planner    — create structured layer plan from analysis
     3. Composition Pass — generate controllable draft via ComfyUI
     4. Structure Lock   — extract lineart/depth/canny control layers
     5. Beauty Pass      — final redraw with best anime checkpoint + ControlNet
-    6. Critique         — vision-based quality scoring
-    7. Upscale          — RealESRGAN final upscale
+    6. Detection Inpaint — optional YOLO detail repair
+    7. Critique         — vision-based quality scoring
+    8. Upscale          — RealESRGAN final upscale
 
 Gated by IMAGE_PIPELINE_V2=true feature flag.
 Optimized for 12 GB VRAM systems using SDXL anime checkpoints.
@@ -35,6 +36,7 @@ from .schemas import (
     LayerPassConfig,  # backward compat alias
     LayerPlan,
     PassConfig,
+    PipelineReference,
     RefineAction,
     RefineActionType,
     RefineDecision,
@@ -67,6 +69,7 @@ from .vram_manager import (
     submit_with_oom_retry,
 )
 from .orchestrator import AnimePipelineOrchestrator
+from .local_dispatcher import LocalAnimeTaskDispatcher
 
 __all__ = [
     # Schemas
@@ -80,6 +83,7 @@ __all__ = [
     "LayerPassConfig",
     "LayerPlan",
     "PassConfig",
+    "PipelineReference",
     "RefineAction",
     "RefineActionType",
     "RefineDecision",
@@ -122,4 +126,5 @@ __all__ = [
     "submit_with_oom_retry",
     # Orchestrator
     "AnimePipelineOrchestrator",
+    "LocalAnimeTaskDispatcher",
 ]

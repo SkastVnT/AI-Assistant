@@ -99,10 +99,7 @@ class TestLocalModelLoader:
         mock_cuda.return_value = False
 
         try:
-            from src.utils.local_model_loader import model_loader
-
-            # Device should be CPU when CUDA not available
-            assert True
+            from src.utils.local_model_loader import model_loader  # noqa: F401
         except ImportError:
             pytest.skip("Model loader not available")
 
@@ -127,7 +124,7 @@ class TestPromptEngineering:
             assert isinstance(prompt, str)
             assert len(prompt) > 10
             # Should contain meaningful content
-            assert any(word in prompt.lower() for word in ["you", "báº¡n", "assistant"])
+            assert any(word in prompt.lower() for word in ["you", "bạn", "assistant"])
 
 
 class TestModelSelection:

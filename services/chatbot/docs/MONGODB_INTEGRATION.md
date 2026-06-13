@@ -260,7 +260,7 @@ Expected output:
 
 ```bash
 # Start server
-python app.py
+python services/chatbot/run.py
 
 # In another terminal
 curl http://localhost:5000/api/conversations

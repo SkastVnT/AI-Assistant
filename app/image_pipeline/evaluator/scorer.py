@@ -31,14 +31,16 @@ from image_pipeline.job_schema import (
     ImageJob,
 )
 from image_pipeline.paths import CONFIGS_DIR
+from image_pipeline.anime_pipeline.runtime_policy import RuntimePolicy
+from image_pipeline.evaluator.benchmark_config import load_benchmark_config
 
 logger = logging.getLogger(__name__)
 
 # ── Config paths ──────────────────────────────────────────────────
 
 _CONFIGS_DIR = CONFIGS_DIR
-_PIPELINE_YAML = _CONFIGS_DIR / "pipeline.yaml"
-_BENCHMARK_YAML = _CONFIGS_DIR / "benchmark_suite.yaml"
+_PIPELINE_YAML = _CONFIGS_DIR / "anime_pipeline.yaml"
+_BENCHMARK_YAML = _CONFIGS_DIR / "anime_benchmark_suite.yaml"
 
 
 # ── Dimension → applicable intent mapping ─────────────────────────
@@ -60,6 +62,11 @@ _INTENT_DIMENSIONS: dict[str, list[str]] = {
         EvalDimension.IDENTITY_CONSISTENCY,
     ],
     "multi_turn": [
+        EvalDimension.INSTRUCTION_ADHERENCE,
+        EvalDimension.MULTI_TURN_STABILITY,
+        EvalDimension.IDENTITY_CONSISTENCY,
+    ],
+    "multi_turn_edit": [
         EvalDimension.INSTRUCTION_ADHERENCE,
         EvalDimension.MULTI_TURN_STABILITY,
         EvalDimension.IDENTITY_CONSISTENCY,
@@ -132,6 +139,7 @@ class JudgeConfig:
     name: str
     provider: str  # "vps" | "openai"
     endpoint: str  # URL or model identifier
+    model: str = ""
     max_tokens: int = 1024
     temperature: float = 0.1
 
@@ -143,17 +151,22 @@ class Scorer:
     """
     LLM-as-judge that scores pipeline outputs across 8 dimensions.
 
-    Loads thresholds and rubrics from configs/pipeline.yaml and
-    configs/benchmark_suite.yaml at initialization.
+    Loads thresholds and rubrics from configs/anime_pipeline.yaml and
+    configs/anime_benchmark_suite.yaml at initialization.
     """
 
     def __init__(
         self,
         pipeline_cfg_path: str | Path | None = None,
         benchmark_cfg_path: str | Path | None = None,
+        *,
+        local_only: bool = False,
+        local_vlm_url: str = "",
+        local_vlm_model: str = "",
+        runtime_policy: RuntimePolicy | None = None,
     ):
         self._pipeline_cfg = self._load_yaml(Path(pipeline_cfg_path or _PIPELINE_YAML))
-        self._benchmark_cfg = self._load_yaml(
+        self._benchmark_cfg = load_benchmark_config(
             Path(benchmark_cfg_path or _BENCHMARK_YAML)
         )
 
@@ -165,10 +178,27 @@ class Scorer:
             self._thresholds[dim_name] = float(dim_cfg.get("threshold", 0.7))
             self._weights[dim_name] = float(dim_cfg.get("weight", 1.0))
 
-        # Build judge chain from config
-        self._judge_chain: list[JudgeConfig] = []
-        for model_name in eval_cfg.get("judge_models", []):
-            self._judge_chain.append(self._make_judge_config(model_name))
+        self._runtime_policy = runtime_policy
+        # Build judge chain from config. Anime LOCAL benchmarks use exactly one
+        # loopback multimodal worker and never fall back to a cloud judge.
+        if local_only:
+            endpoint = (
+                local_vlm_url
+                or "http://127.0.0.1:8080/v1"
+            ).rstrip("/") + "/chat/completions"
+            self._judge_chain = [
+                JudgeConfig(
+                    name=local_vlm_model or "local-vlm",
+                    provider="local",
+                    endpoint=endpoint,
+                    model=local_vlm_model or "local-vlm",
+                )
+            ]
+            self._runtime_policy = runtime_policy or RuntimePolicy.from_env()
+        else:
+            self._judge_chain = []
+            for model_name in eval_cfg.get("judge_models", []):
+                self._judge_chain.append(self._make_judge_config(model_name))
 
         # Scoring rubric summaries for judge prompt
         self._rubric = self._benchmark_cfg.get("scoring_rubric", {})
@@ -430,8 +460,61 @@ class Scorer:
             return await self._call_vps_judge(judge, prompt, images)
         elif judge.provider == "openai":
             return await self._call_openai_judge(judge, prompt, images)
+        elif judge.provider == "local":
+            return await self._call_local_judge(judge, prompt, images)
         else:
             raise ValueError(f"Unknown judge provider: {judge.provider}")
+
+    async def _call_local_judge(
+        self,
+        judge: JudgeConfig,
+        prompt: str,
+        images: list[dict[str, str]],
+    ) -> str:
+        """Call a loopback OpenAI-compatible multimodal worker."""
+        if self._runtime_policy is None:
+            raise RuntimeError("Local scorer requires a runtime policy")
+        self._runtime_policy.assert_url(judge.endpoint, purpose="local_benchmark_judge")
+
+        content: list[dict[str, Any]] = []
+        for img in images:
+            content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{img['b64']}",
+                        "detail": "high",
+                    },
+                }
+            )
+            content.append({"type": "text", "text": f"[{img['role']} image above]"})
+        content.append({"type": "text", "text": prompt})
+
+        import aiohttp
+        import os
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                judge.endpoint,
+                headers={
+                    "Authorization": "Bearer "
+                    + os.getenv("ANIME_PIPELINE_LOCAL_VLM_API_KEY", "local")
+                },
+                json={
+                    "model": judge.model or judge.name,
+                    "messages": [
+                        {"role": "system", "content": _JUDGE_SYSTEM_PROMPT},
+                        {"role": "user", "content": content},
+                    ],
+                    "max_tokens": judge.max_tokens,
+                    "temperature": judge.temperature,
+                    "response_format": {"type": "json_object"},
+                },
+                timeout=aiohttp.ClientTimeout(total=60),
+            ) as response:
+                response.raise_for_status()
+                data = await response.json()
+                return data["choices"][0]["message"]["content"]
 
     async def _call_vps_judge(
         self,

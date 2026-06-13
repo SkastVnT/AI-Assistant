@@ -1,0 +1,116 @@
+deployment:
+  profile: vps_96gb
+  max_concurrent: 1
+  allowed_internal_origins:
+    - http://127.0.0.1:8188
+    - http://127.0.0.1:8080
+  adult_content_policy: worker_default
+capabilities:
+  flux2_klein: true
+  qwen_image_edit: true
+  controlnet: true
+  ipadapter: true
+  yolo_detailer: true
+  pre_upscale_v2: true
+  multi_reference: true
+models:
+  composition:
+    checkpoint: waiIllustriousSDXL_v170.safetensors
+    model_type: sdxl
+    steps: 32
+    cfg: 5.0
+  beauty:
+    checkpoint: waiIllustriousSDXL_v170.safetensors
+    model_type: sdxl
+    steps: 28
+    cfg: 5.0
+    denoise_strength: 0.25
+  final:
+    checkpoint: waiIllustriousSDXL_v170.safetensors
+    model_type: sdxl
+    steps: 26
+    cfg: 5.0
+    denoise_strength: 0.18
+structure_lock:
+  max_simultaneous_layers: 2
+  layers:
+    - type: openpose
+      preprocessor: DWPreprocessor
+      controlnet_model: xinsir-controlnet-union-sdxl-1.0.safetensors
+      union_control_type: openpose
+      strength: 0.80
+      priority: 0
+      optional: false
+      enabled: true
+    - type: lineart_anime
+      preprocessor: AnimeLineArtPreprocessor
+      controlnet_model: xinsir-controlnet-union-sdxl-1.0.safetensors
+      union_control_type: canny/lineart/anime_lineart/mlsd
+      strength: 0.72
+      priority: 1
+      optional: false
+      enabled: true
+    - type: depth
+      preprocessor: DepthAnythingV2Preprocessor
+      controlnet_model: xinsir-controlnet-union-sdxl-1.0.safetensors
+      union_control_type: depth
+      strength: 0.50
+      priority: 2
+      optional: true
+      enabled: true
+    - type: canny
+      preprocessor: CannyEdgePreprocessor
+      controlnet_model: xinsir-controlnet-union-sdxl-1.0.safetensors
+      union_control_type: canny/lineart/anime_lineart/mlsd
+      strength: 0.35
+      priority: 3
+      optional: true
+      enabled: true
+ipadapter:
+  enabled: true
+  preset: PLUS FACE (portraits)
+  weight: 0.8
+  start_at: 0.0
+  end_at: 1.0
+  weight_type: standard
+detection_inpaint:
+  enabled: true
+  max_passes: 5
+  max_regions_per_pass: 4
+  time_budget_ms: 180000
+  layers:
+    - region_type: face
+      model_path: segm/adetailerAnimeGirlFace_segment.zip
+      enabled: true
+    - region_type: full_eyes
+      model_path: bbox/fullEyesDetection_v10.zip
+      enabled: true
+    - region_type: eyes
+      model_path: bbox/eyesDetection_v10.zip
+      enabled: true
+    - region_type: mouth
+      model_path: segm/adetailer2dMouth_v10.pt
+      enabled: true
+    - region_type: hand
+      model_path: segm/handDetailer_v2V9c.zip
+      enabled: true
+pipeline:
+  v2_upscale_first: true
+  unload_between_passes: true
+vision:
+  model_priority: [local-vlm]
+local_vlm:
+  url: http://127.0.0.1:8080/v1
+  model: Qwen3-VL-32B-Instruct-GGUF
+  fallback_model: Qwen2.5-VL-32B-Instruct-GGUF
+  required: true
+council:
+  enabled: true
+  max_rounds: 2
+native_providers:
+  flux2_klein:
+    workflow_template: comfy_workflows/flux2_klein_9b.json
+    model: flux-2-klein-9b-fp8.safetensors
+  qwen_image_edit:
+    workflow_template: comfy_workflows/qwen_image_edit_2511.json
+    model: qwen_image_edit_2511_bf16.safetensors

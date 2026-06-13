@@ -21,6 +21,7 @@ from ..schemas import (
     CritiqueResult,
     CritiqueDimension,
 )
+from ..runtime_policy import RuntimePolicy
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +95,9 @@ class CritiqueAgent:
 
     def __init__(self, config: AnimePipelineConfig):
         self._config = config
+        self._policy = RuntimePolicy.from_config(config)
+        self._active_content_mode = "sfw"
+        self._active_validator_mode = "local"
         self._detected_character: Optional[str] = None
         self._research_critique_context: Optional[str] = None
 
@@ -108,6 +112,8 @@ class CritiqueAgent:
     def execute(self, job: AnimePipelineJob) -> AnimePipelineJob:
         """Score the current pipeline output."""
         job.status = AnimePipelineStatus.CRITIQUING
+        self._active_content_mode = job.content_mode
+        self._active_validator_mode = job.validator_mode
         t0 = time.time()
 
         # Build identity context for character-aware critique
@@ -131,13 +137,8 @@ class CritiqueAgent:
             logger.warning("[Critique] No output image to critique")
             job.critique_results.append(
                 CritiqueResult(
-                    anatomy_score=5,
-                    face_score=5,
-                    hands_score=5,
-                    composition_score=5,
-                    color_score=5,
-                    style_score=5,
-                    background_score=5,
+                    unscored=True,
+                    scoring_error="No output image to critique",
                     model_used="skipped",
                 )
             )
@@ -155,6 +156,19 @@ class CritiqueAgent:
 
         result = None
         for model_name in self._config.vision_model_priority:
+            purpose = (
+                "local_critique"
+                if model_name.lower().startswith("local")
+                else "external_validation"
+            )
+            if not self._policy.allows_provider(
+                model_name,
+                purpose=purpose,
+                content_mode=job.content_mode,
+                validator_mode=job.validator_mode,
+            ):
+                logger.debug("[Critique] Provider blocked by runtime policy: %s", model_name)
+                continue
             if model_name.lower().startswith("gemini") and _gp_all_exhausted():
                 logger.debug(
                     "[Critique] Skipping %s (Gemini key pool exhausted)", model_name
@@ -169,7 +183,11 @@ class CritiqueAgent:
                     reference_images=reference_images,
                 )
                 if result:
-                    result.model_used = model_name
+                    result.model_used = (
+                        self._config.local_vlm_model
+                        if model_name.lower().startswith("local")
+                        else model_name
+                    )
                     break
             except Exception as e:
                 # Redact ?key=... from URLs so leaked Gemini/OpenAI keys do
@@ -184,16 +202,12 @@ class CritiqueAgent:
                 logger.warning("[Critique] %s failed: %s", model_name, safe_msg)
 
         if not result:
-            logger.warning("[Critique] All models failed, auto-passing")
+            logger.warning("[Critique] All permitted models failed; result is unscored")
             result = CritiqueResult(
-                anatomy_score=5,
-                face_score=5,
-                hands_score=5,
-                composition_score=5,
-                color_score=5,
-                style_score=5,
-                background_score=5,
-                model_used="auto_pass",
+                retry_recommendation=True,
+                unscored=True,
+                scoring_error="All permitted critic models failed",
+                model_used="unscored",
             )
 
         latency = (time.time() - t0) * 1000
@@ -230,6 +244,17 @@ class CritiqueAgent:
         reference_images: Optional[list[str]] = None,
     ) -> Optional[CritiqueResult]:
         """Run critique using a vision model."""
+        if model_name.startswith("local"):
+            return self._critique_openai(
+                self._config.local_vlm_model or model_name,
+                user_prompt,
+                image_b64,
+                identity_context,
+                reference_images,
+                base_url=f"{self._config.local_vlm_url.rstrip('/')}/chat/completions",
+                api_key=os.getenv("ANIME_PIPELINE_LOCAL_VLM_API_KEY", "local"),
+                purpose="local_critique",
+            )
         if model_name.startswith("gemini"):
             return self._critique_gemini(
                 model_name, user_prompt, image_b64, identity_context, reference_images
@@ -315,6 +340,12 @@ class CritiqueAgent:
             f"https://generativelanguage.googleapis.com/v1beta/models/"
             f"{api_model}:generateContent"
         )
+        self._policy.assert_url(
+            url,
+            purpose="external_validation",
+            content_mode=self._active_content_mode,
+            validator_mode=self._active_validator_mode,
+        )
 
         with httpx.Client(timeout=30) as client:
             try:
@@ -363,11 +394,21 @@ class CritiqueAgent:
         image_b64: str,
         identity_context: str = "",
         reference_images: Optional[list[str]] = None,
+        *,
+        base_url: str = "https://api.openai.com/v1/chat/completions",
+        api_key: Optional[str] = None,
+        purpose: str = "external_validation",
     ) -> Optional[CritiqueResult]:
         """Critique using OpenAI vision."""
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise RuntimeError("No OPENAI_API_KEY")
+        self._policy.assert_url(
+            base_url,
+            purpose=purpose,
+            content_mode=self._active_content_mode,
+            validator_mode=self._active_validator_mode,
+        )
 
         import httpx
 
@@ -428,7 +469,7 @@ class CritiqueAgent:
 
         with httpx.Client(timeout=30) as client:
             resp = client.post(
-                "https://api.openai.com/v1/chat/completions",
+                base_url,
                 json={
                     "model": model_name,
                     "messages": [

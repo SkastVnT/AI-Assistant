@@ -262,13 +262,13 @@ class ImageGenerationRouter:
         elif lora_models:
             resolved_loras = [
                 LoraSpec(
-                    name=l.get("name", ""),
-                    weight=float(l.get("weight", 0.8)),
-                    clip_weight=float(l.get("clip_weight", l.get("weight", 0.8))),
-                    trigger_words=l.get("trigger_words", []),
+                    name=lora.get("name", ""),
+                    weight=float(lora.get("weight", 0.8)),
+                    clip_weight=float(lora.get("clip_weight", lora.get("weight", 0.8))),
+                    trigger_words=lora.get("trigger_words", []),
                 )
-                for l in lora_models
-                if l.get("name")
+                for lora in lora_models
+                if lora.get("name")
             ]
 
         # 0b. Auto-detect characters → pick ComfyUI with character LoRA only
@@ -298,7 +298,7 @@ class ImageGenerationRouter:
                 logger.info(
                     f"[ImageRouter] Auto-detected characters: "
                     f"{[c.display_name for c in detection.characters]} → "
-                    f"LoRAs: {[l.name for l in resolved_loras]}, "
+                    f"LoRAs: {[lora.name for lora in resolved_loras]}, "
                     f"traits: {detection.trait_tags}"
                 )
                 # Inject canonical trait tags as enhancer context so appearance
@@ -316,7 +316,7 @@ class ImageGenerationRouter:
             try:
                 from .lora_resolver import resolve_loras_from_text
 
-                already = {l.name for l in resolved_loras}
+                already = {lora.name for lora in resolved_loras}
                 extras = resolve_loras_from_text(
                     prompt,
                     exclude_keys=detected_char_keys,
@@ -441,7 +441,7 @@ class ImageGenerationRouter:
                         result.metadata["auto_detected_characters"] = [
                             c.display_name for c in detection.characters
                         ]
-                        result.metadata["auto_loras"] = [l.name for l in resolved_loras]
+                        result.metadata["auto_loras"] = [lora.name for lora in resolved_loras]
                     if resolved_model:
                         result.metadata["requested_model"] = resolved_model
                     return result
@@ -582,13 +582,13 @@ class ImageGenerationRouter:
         elif lora_models:
             resolved_loras = [
                 LoraSpec(
-                    name=l.get("name", ""),
-                    weight=float(l.get("weight", 0.8)),
-                    clip_weight=float(l.get("clip_weight", l.get("weight", 0.8))),
-                    trigger_words=l.get("trigger_words", []),
+                    name=lora.get("name", ""),
+                    weight=float(lora.get("weight", 0.8)),
+                    clip_weight=float(lora.get("clip_weight", lora.get("weight", 0.8))),
+                    trigger_words=lora.get("trigger_words", []),
                 )
-                for l in lora_models
-                if l.get("name")
+                for lora in lora_models
+                if lora.get("name")
             ]
 
         if resolved_loras and not provider_name:
@@ -663,10 +663,8 @@ class ImageGenerationRouter:
 
         # 6. Try providers with fallback (streaming status)
         last_error = ""
-        attempt = 0
-        for prov_config in providers:
+        for attempt, prov_config in enumerate(providers, start=1):
             prov = prov_config.provider
-            attempt += 1
             yield {
                 "event": "provider_try",
                 "data": {
@@ -839,8 +837,7 @@ class ImageGenerationRouter:
     def _estimate_model_cost(self, model_key: str) -> float | None:
         """Estimate lowest available cost for a model across configured providers."""
         costs: list[float] = []
-        if "fal" in self._providers and self._providers["fal"].provider.is_available:
-            if model_key in FAL_COST:
+        if "fal" in self._providers and self._providers["fal"].provider.is_available and model_key in FAL_COST:
                 costs.append(FAL_COST[model_key])
         if (
             "replicate" in self._providers
@@ -977,7 +974,6 @@ class ImageGenerationRouter:
         """
         try:
             from config.model_presets import (
-                get_lora_by_key,
                 get_workflow_preset,
                 resolve_loras_for_preset,
             )
@@ -997,13 +993,13 @@ class ImageGenerationRouter:
         # LoRAs: override > preset defaults
         lora_specs: list[LoraSpec] = []
         if lora_override:
-            for l in lora_override:
+            for lora in lora_override:
                 lora_specs.append(
                     LoraSpec(
-                        name=l.get("name", ""),
-                        weight=float(l.get("weight", 0.8)),
-                        clip_weight=float(l.get("clip_weight", l.get("weight", 0.8))),
-                        trigger_words=l.get("trigger_words", []),
+                        name=lora.get("name", ""),
+                        weight=float(lora.get("weight", 0.8)),
+                        clip_weight=float(lora.get("clip_weight", lora.get("weight", 0.8))),
+                        trigger_words=lora.get("trigger_words", []),
                     )
                 )
         else:
@@ -1085,7 +1081,7 @@ class ImageGenerationRouter:
             "[ImageRouter] Preset '%s': ckpt=%s, loras=%s, settings=%s",
             safe_preset_id,
             safe_ckpt,
-            [l.name for l in lora_specs],
+            [lora.name for lora in lora_specs],
             list(settings.keys()),
         )
         return ckpt, lora_specs, settings

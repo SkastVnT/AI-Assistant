@@ -409,6 +409,24 @@ class ReasoningService:
                 logger.warning(
                     "[Reasoning] Model '%s' failed, trying next: %s", model_name, e
                 )
+
+        # All dedicated AIService models unavailable or failed — try the main
+        # ChatbotAgent as an emergency fallback (it uses whatever API keys are
+        # actually configured in the environment, e.g. Gemini).
+        if last_error is None:
+            try:
+                from core.chatbot_v2 import ChatbotAgent
+
+                _fb = ChatbotAgent()
+                resp = _fb.chat(message=prompt, context=context, deep_thinking=deep_thinking)
+                text = resp.get("response", "")
+                if token_callback and text:
+                    token_callback(text)
+                return {"text": text, "tokens": 0}
+            except Exception as _fb_err:
+                logger.warning("[Reasoning] ChatbotAgent fallback failed: %s", _fb_err)
+                last_error = _fb_err
+
         raise RuntimeError(
             f"All models in '{chain_key}' chain failed. Last: {last_error}"
         )
@@ -847,7 +865,7 @@ class ReasoningService:
                 return f"[Synthesized] Answer from {member_count} council members"
         except Exception as e:
             logger.error(f"[Reasoning] Synthesis failed: {e}")
-            return f"Lỗi tổng hợp: {e}"
+            raise
 
     # ── Main entry point ─────────────────────────────────────────────────
 

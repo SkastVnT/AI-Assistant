@@ -1,0 +1,3 @@
+ai_assistant_custom_nodes:
+  base_path: ../../services/edit-image/ComfyUI
+  custom_nodes: custom_nodes

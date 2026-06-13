@@ -65,7 +65,7 @@ class AdvancedImageGenerator:
         try:
             response = requests.get(f"{self.sd_api_url}/sdapi/v1/sd-models", timeout=5)
             return response.status_code == 200
-        except:
+        except Exception:
             return False
 
     def _load_available_features(self):

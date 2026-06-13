@@ -135,12 +135,13 @@ except Exception as e:
 # ImgBB uploader
 CLOUD_UPLOAD_ENABLED = False
 try:
-    from src.utils.imgbb_uploader import ImgBBUploader, upload_to_imgbb
+    import src.utils.imgbb_uploader as _imgbb_mod  # noqa: F401
 
+    del _imgbb_mod
     CLOUD_UPLOAD_ENABLED = True
-    logger.info("âœ… ImgBB uploader loaded")
+    logger.info("✅ ImgBB uploader loaded")
 except ImportError as e:
-    logger.warning(f"âš ï¸ ImgBB uploader not available: {e}")
+    logger.warning(f"⚠️ ImgBB uploader not available: {e}")
 
 
 # Local models

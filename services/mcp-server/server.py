@@ -34,7 +34,7 @@ LOCAL_DATA_DIR = BASE_DIR / "local_data"
 RESOURCES_DIR = BASE_DIR / "resources"
 LOGS_DIR = RESOURCES_DIR / "logs"
 
-import importlib.util as _ilu
+import importlib.util as _ilu  # noqa: E402
 
 _guard_path = Path(__file__).parent / "tools" / "guard.py"
 _guard_spec = _ilu.spec_from_file_location("mcp_tools_guard", _guard_path)
@@ -142,8 +142,7 @@ def search_files(
         dirs[:] = [d for d in dirs if not is_blocked_workspace_path(root_path / d)]
 
         for file in files:
-            if any(ext == "*" or file.endswith(ext) for ext in exts):
-                if query.lower() in file.lower():
+            if any(ext == "*" or file.endswith(ext) for ext in exts) and query.lower() in file.lower():
                     full_path = root_path / file
                     if is_blocked_workspace_path(full_path):
                         continue

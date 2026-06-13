@@ -23,6 +23,7 @@ returns an empty result and the rest of the pipeline keeps working.
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import logging
 import random
@@ -230,11 +231,17 @@ def _to_match(entry: tuple[str, str], score: float) -> WaiCharacterMatch:
 
 
 def get_character_thumbnail(tag: str) -> Optional[str]:
-    """Return the base64 data URL for a WAI character thumbnail, if any."""
+    """Return the base64 data URL for a WAI character thumbnail, if any.
+
+    The thumbnail JSON keys are MD5 hashes of the space-form character tag
+    (e.g. md5("hatsune miku")). Accepts both underscore- and space-form tags.
+    """
     _load_wai()
     if not _thumbs:
         return None
-    return _thumbs.get(tag) or _thumbs.get(tag.replace("_", " "))
+    space_form = tag.replace("_", " ")
+    key = hashlib.md5(space_form.encode()).hexdigest()
+    return _thumbs.get(key)
 
 
 # ── Tag autocomplete ─────────────────────────────────────────────────

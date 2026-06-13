@@ -1,6 +1,6 @@
 ﻿# 8 GB VRAM â€” Laptop Demo Setup
 
-**Purpose:** Run the same 7-stage anime pipeline flow on an 8 GB VRAM laptop for workflow prototyping. Not a production-quality run â€” quality trade-offs are intentional.
+**Purpose:** Run the same core anime pipeline flow on an 8 GB VRAM laptop for workflow prototyping. Not a production-quality run — quality trade-offs are intentional.
 
 **Constraint:** `app/configs_vps/anime_pipeline.yaml` and `app/configs_vps/models.yaml` are the official 12 GB PC configs and must not be modified.
 
@@ -123,7 +123,8 @@ Use when no WAI fp8 download is available. Lacks anime tuning â€” output qu
 
 ## Pipeline stages exercised
 
-All 7 stages run identically â€” the checkpoint name is just a string:
+The same high-level flow is exercised; quality-only stages such as structure lock
+or detail repair may be disabled by the low-VRAM profile:
 
 ```
 1. capability_router.classify()    â†’ determines if image-gen is needed

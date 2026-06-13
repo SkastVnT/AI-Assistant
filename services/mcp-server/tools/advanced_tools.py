@@ -330,9 +330,9 @@ def analyze_python_file(file_path: str) -> dict[str, Any]:
         lines = source.split("\n")
         total_lines = len(lines)
         code_lines = len(
-            [l for l in lines if l.strip() and not l.strip().startswith("#")]
+            [ln for ln in lines if ln.strip() and not ln.strip().startswith("#")]
         )
-        comment_lines = len([l for l in lines if l.strip().startswith("#")])
+        comment_lines = len([ln for ln in lines if ln.strip().startswith("#")])
 
         return {
             "file": file_path,
@@ -388,7 +388,7 @@ def find_todos_in_code(
                                     "full_line": line.strip(),
                                 }
                             )
-            except:
+            except Exception:
                 continue
 
         return {"directory": directory, "total_todos": len(todos), "todos": todos}
@@ -541,7 +541,7 @@ def count_lines_in_project(extensions: list[str] = None) -> dict[str, Any]:
                         else:
                             ext_stats["code"] += 1
 
-                except:
+                except Exception:
                     continue
 
             stats["by_extension"][ext] = ext_stats

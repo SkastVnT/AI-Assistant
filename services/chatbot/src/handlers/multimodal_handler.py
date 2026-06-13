@@ -174,7 +174,7 @@ Tráº£ vá» JSON format:
             import json
 
             result = json.loads(response.text)
-        except:
+        except Exception:
             # Fallback if not JSON
             result = {
                 "analysis": response.text,

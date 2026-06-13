@@ -28,7 +28,7 @@ def resolve_shared_env_file(source_file: str | None = None) -> Path | None:
     start = Path(source_file).resolve() if source_file else Path.cwd().resolve()
     root = _find_project_root(start)
 
-    env_name = os.getenv("env", "dev")
+    env_name = os.getenv("env", "dev")  # noqa: SIM112  # intentionally lowercase env var
     env_dir = root / "app" / "config"
 
     preferred = env_dir / f".env_{env_name}"

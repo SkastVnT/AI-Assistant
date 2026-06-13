@@ -52,8 +52,7 @@ ChatBot/models/
 ### Bước 3: Khởi động ChatBot
 
 ```powershell
-cd i:\AI-Assistant\ChatBot
-python app.py
+python services/chatbot/run.py
 ```
 
 ### Bước 4: Sử dụng
@@ -257,7 +256,7 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 
 - [ ] Cài dependencies: `torch`, `transformers`, `accelerate`
 - [ ] Kiểm tra models đã tải: `models/` folder
-- [ ] Khởi động ChatBot: `python app.py`
+- [ ] Khởi động ChatBot: `python services/chatbot/run.py`
 - [ ] Chọn local model trong dropdown
 - [ ] Test chat với từng model
 - [ ] Verify VRAM usage (Task Manager → GPU)

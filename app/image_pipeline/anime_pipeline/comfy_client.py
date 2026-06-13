@@ -177,8 +177,8 @@ class ComfyClient:
           2. Replaces the node with a ``LoadImage`` node referencing the
              uploaded filename.
 
-        Nodes that fail to upload are left unchanged so ComfyUI surfaces
-        the error rather than silently skipping the pass.
+        Upload failures stop submission immediately so ComfyUI never receives
+        a graph containing the non-standard placeholder node.
         """
         needs_upload = [
             nid
@@ -205,12 +205,9 @@ class ComfyClient:
                     filename,
                 )
             except Exception as e:
-                logger.warning(
-                    "[ComfyClient] Failed to upload image for node %s: %s — "
-                    "leaving node unchanged",
-                    nid,
-                    e,
-                )
+                raise RuntimeError(
+                    f"[ComfyClient] Failed to upload image for node {nid}: {e}"
+                ) from e
 
         if len(needs_upload) > 0:
             logger.info(

@@ -81,10 +81,9 @@ def _mock_council_result(
 
 class TestFeatureFlag:
     def test_default_is_disabled(self):
-        with patch.dict(os.environ, {}, clear=False):
-            # The module-level constant is already evaluated, so test the function
-            # by patching the constant
-            with patch("core.agentic.entrypoint.AGENTIC_V1_ENABLED", False):
+        with patch.dict(os.environ, {}, clear=False), patch(
+            "core.agentic.entrypoint.AGENTIC_V1_ENABLED", False
+        ):
                 assert is_council_enabled() is False
 
     def test_enabled_when_true(self):

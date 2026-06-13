@@ -12,9 +12,11 @@ Components:
 from .qwen_client import QwenClient
 from .fallback_editors import FallbackChain, KontextEditor, StepEditEditor
 from .editor import SemanticEditor
+from .native_comfy_editor import NativeComfySemanticEditor
 
 __all__ = [
     "SemanticEditor",
+    "NativeComfySemanticEditor",
     "QwenClient",
     "FallbackChain",
     "KontextEditor",

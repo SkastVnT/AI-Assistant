@@ -77,13 +77,15 @@ class MongoDBClient:
                 print("âš ï¸ MongoDB URI not configured, running without database")
                 return False
             try:
+                is_atlas = uri.startswith("mongodb+srv://")
                 connect_kwargs = {
-                    "server_api": ServerApi("1"),
                     "serverSelectionTimeoutMS": 5000,
                     "connectTimeoutMS": 5000,
-                    "tls": True,
-                    "tlsAllowInvalidCertificates": MONGODB_TLS_ALLOW_INVALID_CERTIFICATES,
                 }
+                if is_atlas:
+                    connect_kwargs["server_api"] = ServerApi("1")
+                    connect_kwargs["tls"] = True
+                    connect_kwargs["tlsAllowInvalidCertificates"] = MONGODB_TLS_ALLOW_INVALID_CERTIFICATES
 
                 if MONGODB_X509_ENABLED and MONGODB_X509_CERT_PATH:
                     cert_path = Path(MONGODB_X509_CERT_PATH)

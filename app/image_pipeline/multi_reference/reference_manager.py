@@ -15,12 +15,15 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import ipaddress
 import logging
 import os
+import socket
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -34,6 +37,30 @@ logger = logging.getLogger(__name__)
 _CACHE_DIR = STORAGE_DIR / "references"
 _DOWNLOAD_TIMEOUT = 30.0
 _MAX_IMAGE_SIZE = 20 * 1024 * 1024  # 20 MB — BFL limit
+
+
+# ── URL safety guard (SSRF mitigation) ───────────────────────────────
+
+def _is_safe_external_url(url: str) -> bool:
+    """Return True only when ``url`` is a public HTTP/HTTPS URL.
+
+    Blocks schemes other than http/https and IP addresses that resolve to
+    loopback, private, link-local, or otherwise reserved ranges to prevent
+    server-side request forgery (SSRF).
+    """
+    try:
+        parsed = urlsplit(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        hostname = parsed.hostname or ""
+        if not hostname:
+            return False
+        ip = ipaddress.ip_address(socket.gethostbyname(hostname))
+        if ip.is_loopback or ip.is_private or ip.is_link_local or ip.is_reserved:
+            return False
+        return True
+    except Exception:
+        return False
 
 
 # ── Data types ───────────────────────────────────────────────────────
@@ -212,19 +239,26 @@ class ReferenceManager:
     def _load_cached(self, path: str) -> Optional[str]:
         """Load image from cache and return base64."""
         try:
-            data = Path(path).read_bytes()
+            target = Path(path).resolve()
+            # Path-traversal guard: cached files must live inside the cache dir.
+            target.relative_to(self._cache_dir.resolve())
+            data = target.read_bytes()
             if len(data) > _MAX_IMAGE_SIZE:
                 logger.warning(
                     "[RefManager] Cached file too large: %s (%d bytes)", path, len(data)
                 )
                 return None
             return base64.b64encode(data).decode("ascii")
-        except Exception as e:
+        except (ValueError, OSError) as e:
             logger.warning("[RefManager] Failed to read cache %s: %s", path, e)
             return None
 
     def _download_and_cache(self, url: str) -> Optional[str]:
         """Download image from URL, cache locally, return base64."""
+        # SSRF guard: only fetch publicly routable HTTP/HTTPS URLs.
+        if not _is_safe_external_url(url):
+            logger.warning("[RefManager] Refused to fetch non-public URL: %s", url[:80])
+            return None
         try:
             if self._http is None:
                 self._http = httpx.Client(timeout=_DOWNLOAD_TIMEOUT)

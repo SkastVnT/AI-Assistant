@@ -1,0 +1,17 @@
+{
+  "1": {
+    "class_type": "STUB_OPERATOR_MUST_EXPORT",
+    "_meta": {
+      "title": "STUB: export from ComfyUI after loading Qwen-Image-Edit-2511",
+      "stub": true,
+      "source_docs": "https://docs.comfy.org/tutorials/image/qwen/qwen-image-edit-2511",
+      "destination": "app/configs_vps/comfy_workflows/qwen_image_edit_2511.json"
+    },
+    "inputs": {
+      "instruction": "{{instruction}}",
+      "prompt": "{{prompt}}",
+      "source_image_b64": "{{source_image_b64}}",
+      "seed": "{{seed}}"
+    }
+  }
+}

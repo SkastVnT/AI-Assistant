@@ -311,6 +311,7 @@ def generate(data: dict):
     saved_images: list[dict] = []
     successes = [r for r in results if r and r.success]
     fails = [r for r in results if r and not r.success]
+    attempt_count = 1  # max attempt across all sub-calls
     for fr in fails:
         if fr.error:
             errors.append(fr.error)
@@ -319,7 +320,6 @@ def generate(data: dict):
     used_model = ""
     used_provider = "nano_banana"
     total_cost = 0.0
-    attempt_count = 1  # max attempt across all sub-calls
 
     for res in successes:
         used_model = res.model or used_model

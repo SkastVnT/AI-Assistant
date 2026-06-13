@@ -118,6 +118,21 @@ class RAGOrchestrator:
                 doc_ids=(collection_ids if collection_ids != ["default"] else None),
             )
 
+            # ── Image retrieval (CLIP multimodal, fail-soft) ──────────
+            image_hits = await self._retrieve_images(
+                strategy=strategy,
+                tenant_id=tenant_id,
+                query=safe_query,
+                top_k=safe_top_k,
+                doc_ids=(collection_ids if collection_ids != ["default"] else None),
+            )
+            if image_hits:
+                hits = sorted(
+                    [*hits, *image_hits],
+                    key=lambda h: h.score,
+                    reverse=True,
+                )
+
             # ── Post-retrieval pipeline ───────────────────────────────
             sanitised = self._sanitize_hits(hits)
             capped = self._cap_context(sanitised)
@@ -170,6 +185,35 @@ class RAGOrchestrator:
 
             self._strategy = RetrievalService()
         return self._strategy
+
+    @staticmethod
+    async def _retrieve_images(
+        *,
+        strategy: RetrievalStrategy,
+        tenant_id: str,
+        query: str,
+        top_k: int,
+        doc_ids: list[str] | None,
+    ) -> list[RetrievalHit]:
+        """Fetch CLIP image hits when image RAG is enabled (fail-soft)."""
+        from core.rag_settings import get_rag_settings
+
+        if not get_rag_settings().image_enabled:
+            return []
+        retrieve_images = getattr(strategy, "retrieve_images", None)
+        if retrieve_images is None:
+            return []
+        try:
+            return await retrieve_images(
+                tenant_id=tenant_id,
+                query=query,
+                top_k=top_k,
+                doc_ids=doc_ids,
+            )
+        except Exception as exc:  # noqa: BLE001 - image retrieval is best-effort
+            logger.warning("[RAG] image retrieval failed: %s", exc)
+            return []
+
 
     @staticmethod
     def _build_context_and_citations(

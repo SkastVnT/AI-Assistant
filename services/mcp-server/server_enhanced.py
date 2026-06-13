@@ -173,11 +173,9 @@ def validate_path(func):
     def wrapper(*args, **kwargs):
         # Check cho path parameter
         path = kwargs.get("file_path") or kwargs.get("dir_path")
-        if path:
-            # Security: Prevent path traversal
-            if ".." in path or path.startswith("/"):
-                logger.error(f"Invalid path detected: {path}")
-                return {"error": "Invalid path: Path traversal not allowed"}
+        if path and (".." in path or path.startswith("/")):
+            logger.error(f"Invalid path detected: {path}")
+            return {"error": "Invalid path: Path traversal not allowed"}
         return func(*args, **kwargs)
 
     return wrapper
@@ -355,8 +353,7 @@ def search_files(
             ]
 
             for file in files:
-                if any(ext == "*" or file.endswith(ext) for ext in exts):
-                    if query.lower() in file.lower():
+                if any(ext == "*" or file.endswith(ext) for ext in exts) and query.lower() in file.lower():
                         full_path = os.path.join(root, file)
                         rel_path = os.path.relpath(full_path, BASE_DIR)
                         results.append(
@@ -584,7 +581,7 @@ def search_logs(
             try:
                 with open(log_file, encoding="utf-8") as f:
                     lines = f.readlines()
-            except:
+            except Exception:
                 continue
 
             recent_lines = lines[-last_n_lines:] if len(lines) > last_n_lines else lines

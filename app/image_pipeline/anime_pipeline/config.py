@@ -22,11 +22,17 @@ logger = logging.getLogger(__name__)
 
 _THIS_DIR = Path(__file__).resolve().parent
 _APP_ROOT = _THIS_DIR.parent.parent
-_CONFIG_PATH = CONFIGS_DIR / "anime_pipeline.yaml"
+_CONFIG_PATH = CONFIGS_DIR / "anime_pipeline_laptop_6gb.yaml"
+_PROFILE_CONFIGS = {
+    "laptop_6gb": CONFIGS_DIR / "anime_pipeline_laptop_6gb.yaml",
+    "pc_12gb": CONFIGS_DIR / "anime_pipeline_pc_12gb.yaml",
+    "vps_96gb": CONFIGS_DIR / "anime_pipeline_vps_96gb.yaml",
+    "rtx5070": CONFIGS_DIR / "anime_pipeline_rtx5070.yaml",
+}
 
 
 def _get_config_path() -> Path:
-    """Return config YAML path, honoring ANIME_PIPELINE_CONFIG env var override."""
+    """Return config YAML path, honoring explicit config and profile overrides."""
     env_path = os.getenv("ANIME_PIPELINE_CONFIG")
     if env_path:
         p = Path(env_path)
@@ -37,6 +43,9 @@ def _get_config_path() -> Path:
         if p.parts and p.parts[0] in {"configs", "configs_vps"}:
             return CONFIGS_DIR.joinpath(*p.parts[1:])
         return _APP_ROOT / p
+    profile_path = _PROFILE_CONFIGS.get(os.getenv("ANIME_PIPELINE_PROFILE", ""))
+    if profile_path:
+        return profile_path
     return _CONFIG_PATH
 
 
@@ -236,6 +245,7 @@ class StructureLayerConfig:
     layer_type: str = "lineart_anime"
     preprocessor: str = "AnimeLineArtPreprocessor"
     controlnet_model: str = ""
+    union_control_type: str = ""
     strength: float = 0.8
     start_percent: float = 0.0
     end_percent: float = 0.8
@@ -245,8 +255,37 @@ class StructureLayerConfig:
 
 
 @dataclass
+class IPAdapterConfig:
+    enabled: bool = False
+    preset: str = "PLUS FACE (portraits)"
+    weight: float = 0.8
+    start_at: float = 0.0
+    end_at: float = 1.0
+    weight_type: str = "standard"
+
+
+@dataclass
 class AnimePipelineConfig:
     """Parsed config from anime_pipeline.yaml with env-var overrides."""
+
+    # Standalone deployment and outbound policy.
+    deployment_profile: str = "laptop_6gb"
+    max_concurrent: int = 1
+    allowed_internal_origins: list[str] = field(default_factory=list)
+    adult_content_policy: str = "sfw_only"
+    capabilities: dict[str, bool] = field(default_factory=dict)
+    native_providers: dict[str, dict[str, Any]] = field(default_factory=dict)
+    benchmark_version: str = "anime-local-v1"
+
+    # Local OpenAI-compatible multimodal worker.
+    local_vlm_url: str = "http://127.0.0.1:8080/v1"
+    local_vlm_model: str = ""
+    local_vlm_fallback_model: str = ""
+    local_vlm_required: bool = False
+
+    # Typed image council budget. The local worker is used when enabled.
+    council_enabled: bool = False
+    council_max_rounds: int = 0
 
     # VRAM profile
     vram_profile: VRAMProfile = VRAMProfile.AUTO
@@ -260,7 +299,7 @@ class AnimePipelineConfig:
     default_loras: list[dict[str, Any]] = field(default_factory=list)
     upscale_model: str = "RealESRGAN_x4plus_anime_6B"
     upscale_fallback_model: str = "RealESRGAN_x4plus"
-    upscale_factor: int = 2
+    upscale_factor: float = 2.0
     upscale_tile_size: int = 512
     upscale_denoise: float = 0.2
 
@@ -272,6 +311,7 @@ class AnimePipelineConfig:
     # Structure lock
     structure_layers: list[StructureLayerConfig] = field(default_factory=list)
     max_simultaneous_layers: int = 2
+    ipadapter: IPAdapterConfig = field(default_factory=IPAdapterConfig)
 
     # Detection inpaint (ADetailer-style).
     # Default OFF: the user explicitly asked that every layer be a fully
@@ -280,6 +320,9 @@ class AnimePipelineConfig:
     # setting ``detection_inpaint.enabled: true`` in pipeline.yaml.
     detection_inpaint_enabled: bool = False
     detection_inpaint_layers: list[dict[str, Any]] = field(default_factory=list)
+    detection_inpaint_max_passes: int = 5
+    detection_inpaint_max_regions_per_pass: int = 4
+    detection_inpaint_time_budget_ms: int = 180000
 
     # New pipeline order (v2):
     #   composition → upscale 2× → structure_lock → YOLO → beauty
@@ -370,7 +413,6 @@ class AnimePipelineConfig:
         "masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest, highly detailed, vivid colors"
     )
     negative_base: str = (
-        "embedding:easynegative, "
         "lowres, bad anatomy, bad hands, text, error, missing fingers, "
         "extra digit, fewer digits, cropped, worst quality, low quality, "
         "normal quality, jpeg artifacts, signature, watermark, username, blurry, "
@@ -401,8 +443,9 @@ def load_config() -> AnimePipelineConfig:
     cfg.vram = resolve_vram_profile(cfg.vram_profile)
 
     logger.info(
-        "[AnimePipeline] Config loaded: composition=%s, beauty=%s, threshold=%.2f, "
-        "vram_profile=%s (max_res=%d, step_cap=%d, cpu_vae=%s)",
+        "[AnimePipeline] Config loaded: profile=%s, composition=%s, beauty=%s, "
+        "threshold=%.2f, vram_profile=%s (max_res=%d, step_cap=%d, cpu_vae=%s)",
+        cfg.deployment_profile,
         cfg.composition_model.checkpoint,
         cfg.beauty_model.checkpoint,
         cfg.quality_threshold,
@@ -430,6 +473,31 @@ def _read_yaml() -> dict[str, Any]:
 def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
     """Apply YAML values to config."""
 
+    deployment = raw.get("deployment", {})
+    if isinstance(deployment, dict):
+        cfg.deployment_profile = str(
+            deployment.get("profile", cfg.deployment_profile)
+        )
+        cfg.max_concurrent = max(
+            1, int(deployment.get("max_concurrent", cfg.max_concurrent))
+        )
+        origins = deployment.get("allowed_internal_origins", [])
+        if isinstance(origins, list):
+            cfg.allowed_internal_origins = [str(v) for v in origins if v]
+        cfg.adult_content_policy = str(
+            deployment.get("adult_content_policy", cfg.adult_content_policy)
+        )
+
+    capabilities = raw.get("capabilities", {})
+    if isinstance(capabilities, dict):
+        cfg.capabilities = {str(k): bool(v) for k, v in capabilities.items()}
+
+    native_providers = raw.get("native_providers", {})
+    if isinstance(native_providers, dict):
+        cfg.native_providers = {
+            str(k): v for k, v in native_providers.items() if isinstance(v, dict)
+        }
+
     # VRAM profile
     vram_raw = raw.get("vram", {})
     if vram_raw:
@@ -444,8 +512,8 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
     # Composition model
     comp = models.get("composition", {})
     cfg.composition_model = ModelConfig(
-        checkpoint=comp.get("checkpoint", "waiIllustriousSDXL_v160.safetensors"),
-        model_type=comp.get("type", "sdxl"),
+        checkpoint=comp.get("checkpoint", "waiIllustriousSDXL_v170.safetensors"),
+        model_type=comp.get("type", comp.get("model_type", "sdxl")),
         sampler=comp.get("sampler", "dpmpp_2m_sde"),
         scheduler=comp.get("scheduler", "karras"),
         steps=int(comp.get("steps", 30)),
@@ -457,8 +525,8 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
     # Beauty model
     beauty = models.get("beauty", {})
     cfg.beauty_model = ModelConfig(
-        checkpoint=beauty.get("checkpoint", "waiIllustriousSDXL_v160.safetensors"),
-        model_type=beauty.get("type", "sdxl"),
+        checkpoint=beauty.get("checkpoint", "waiIllustriousSDXL_v170.safetensors"),
+        model_type=beauty.get("type", beauty.get("model_type", "sdxl")),
         sampler=beauty.get("sampler", "dpmpp_2m_sde"),
         scheduler=beauty.get("scheduler", "karras"),
         steps=int(beauty.get("steps", 25)),
@@ -473,7 +541,7 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
     if final_raw:
         cfg.final_model = ModelConfig(
             checkpoint=final_raw.get("checkpoint", cfg.beauty_model.checkpoint),
-            model_type=final_raw.get("type", "sdxl"),
+            model_type=final_raw.get("type", final_raw.get("model_type", "sdxl")),
             sampler=final_raw.get("sampler", cfg.beauty_model.sampler),
             scheduler=final_raw.get("scheduler", cfg.beauty_model.scheduler),
             steps=int(final_raw.get("steps", cfg.beauty_model.steps)),
@@ -511,7 +579,7 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
     cfg.upscale_fallback_model = upscale.get(
         "fallback_model", cfg.upscale_fallback_model
     )
-    cfg.upscale_factor = int(upscale.get("scale_factor", cfg.upscale_factor))
+    cfg.upscale_factor = float(upscale.get("scale_factor", cfg.upscale_factor))
 
     # Optional LoRA stack (applied on composition/cleanup/beauty passes)
     loras = models.get("loras", {})
@@ -521,15 +589,19 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
 
     # Resolutions
     res = raw.get("resolutions", {})
-    p = res.get("portrait", {})
-    if p:
-        cfg.portrait_res = (int(p.get("width", 832)), int(p.get("height", 1216)))
-    l_ = res.get("landscape", {})
-    if l_:
-        cfg.landscape_res = (int(l_.get("width", 1216)), int(l_.get("height", 832)))
-    s = res.get("square", {})
-    if s:
-        cfg.square_res = (int(s.get("width", 1024)), int(s.get("height", 1024)))
+    def _resolution(value: Any, default: tuple[int, int]) -> tuple[int, int]:
+        if isinstance(value, (list, tuple)) and len(value) == 2:
+            return (int(value[0]), int(value[1]))
+        if isinstance(value, dict) and value:
+            return (
+                int(value.get("width", default[0])),
+                int(value.get("height", default[1])),
+            )
+        return default
+
+    cfg.portrait_res = _resolution(res.get("portrait"), cfg.portrait_res)
+    cfg.landscape_res = _resolution(res.get("landscape"), cfg.landscape_res)
+    cfg.square_res = _resolution(res.get("square"), cfg.square_res)
 
     # Structure lock
     sl = raw.get("structure_lock", {})
@@ -541,6 +613,7 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
                 layer_type=layer.get("type", "lineart_anime"),
                 preprocessor=layer.get("preprocessor", ""),
                 controlnet_model=layer.get("controlnet_model", ""),
+                union_control_type=layer.get("union_control_type", ""),
                 strength=float(layer.get("strength", 0.8)),
                 start_percent=float(layer.get("start_percent", 0.0)),
                 end_percent=float(layer.get("end_percent", 0.8)),
@@ -549,7 +622,22 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
                 enabled=bool(layer.get("enabled", True)),
             )
         )
-    cfg.max_simultaneous_layers = int(sl.get("max_simultaneous", 2))
+    cfg.max_simultaneous_layers = int(
+        sl.get("max_simultaneous", sl.get("max_simultaneous_layers", 2))
+    )
+
+    ipadapter = raw.get("ipadapter", {})
+    if isinstance(ipadapter, dict):
+        cfg.ipadapter = IPAdapterConfig(
+            enabled=bool(ipadapter.get("enabled", cfg.ipadapter.enabled)),
+            preset=str(ipadapter.get("preset", cfg.ipadapter.preset)),
+            weight=float(ipadapter.get("weight", cfg.ipadapter.weight)),
+            start_at=float(ipadapter.get("start_at", cfg.ipadapter.start_at)),
+            end_at=float(ipadapter.get("end_at", cfg.ipadapter.end_at)),
+            weight_type=str(
+                ipadapter.get("weight_type", cfg.ipadapter.weight_type)
+            ),
+        )
 
     # Detection inpaint (ADetailer-style). Default OFF unless the YAML
     # explicitly enables it OR the env override is set. The env override
@@ -557,6 +645,22 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
     # rewriting pipeline.yaml.
     det = raw.get("detection_inpaint", {})
     cfg.detection_inpaint_enabled = bool(det.get("enabled", False))
+    cfg.detection_inpaint_max_passes = max(
+        0, int(det.get("max_passes", cfg.detection_inpaint_max_passes))
+    )
+    cfg.detection_inpaint_max_regions_per_pass = max(
+        1,
+        int(
+            det.get(
+                "max_regions_per_pass",
+                cfg.detection_inpaint_max_regions_per_pass,
+            )
+        ),
+    )
+    cfg.detection_inpaint_time_budget_ms = max(
+        0,
+        int(det.get("time_budget_ms", cfg.detection_inpaint_time_budget_ms)),
+    )
     env_override = os.getenv("ANIME_PIPELINE_DETECTION_INPAINT", "").strip().lower()
     if env_override in ("1", "true", "yes", "on"):
         cfg.detection_inpaint_enabled = True
@@ -586,6 +690,24 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
     cfg.vision_model_priority = vision.get("model_priority", cfg.vision_model_priority)
     cfg.vision_max_tokens = int(vision.get("max_tokens", 500))
     cfg.vision_temperature = float(vision.get("temperature", 0.2))
+
+    local_vlm = raw.get("local_vlm", {})
+    if isinstance(local_vlm, dict):
+        cfg.local_vlm_url = str(local_vlm.get("url", cfg.local_vlm_url)).rstrip("/")
+        cfg.local_vlm_model = str(local_vlm.get("model", cfg.local_vlm_model))
+        cfg.local_vlm_fallback_model = str(
+            local_vlm.get("fallback_model", cfg.local_vlm_fallback_model)
+        )
+        cfg.local_vlm_required = bool(
+            local_vlm.get("required", cfg.local_vlm_required)
+        )
+
+    council = raw.get("council", {})
+    if isinstance(council, dict):
+        cfg.council_enabled = bool(council.get("enabled", cfg.council_enabled))
+        cfg.council_max_rounds = max(
+            0, int(council.get("max_rounds", cfg.council_max_rounds))
+        )
 
     # Critique
     critique = raw.get("critique", {})
@@ -648,6 +770,14 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
 
 def _apply_env(cfg: AnimePipelineConfig) -> None:
     """Apply environment variable overrides."""
+    profile = os.getenv("ANIME_PIPELINE_PROFILE")
+    if profile:
+        cfg.deployment_profile = profile
+
+    adult_policy = os.getenv("ANIME_PIPELINE_ADULT_CONTENT_POLICY")
+    if adult_policy:
+        cfg.adult_content_policy = adult_policy
+
     # VRAM profile override (highest priority)
     vram_env = os.getenv("ANIME_PIPELINE_VRAM_PROFILE")
     if vram_env:
@@ -693,6 +823,14 @@ def _apply_env(cfg: AnimePipelineConfig) -> None:
     url = os.getenv("ANIME_PIPELINE_COMFYUI_URL") or os.getenv("COMFYUI_URL")
     if url:
         cfg.comfyui_url = url
+
+    vlm_url = os.getenv("ANIME_PIPELINE_LOCAL_VLM_URL")
+    if vlm_url:
+        cfg.local_vlm_url = vlm_url.rstrip("/")
+
+    vlm_model = os.getenv("ANIME_PIPELINE_LOCAL_VLM_MODEL")
+    if vlm_model:
+        cfg.local_vlm_model = vlm_model
 
     # Per-layer control overrides: ANIME_PIPELINE_CONTROL_{TYPE}_ENABLED / _STRENGTH
     for lc in cfg.structure_layers:

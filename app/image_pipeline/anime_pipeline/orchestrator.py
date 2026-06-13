@@ -1,7 +1,7 @@
 """
 image_pipeline.anime_pipeline.orchestrator — Multi-pass anime pipeline controller.
 
-Chains 7 agents sequentially, handles the critique→refine loop,
+Runs the current multi-stage anime pipeline, handles the critique→refine loop,
 streams SSE events per stage, and manages error recovery.
 
 Usage:
@@ -23,6 +23,7 @@ import logging
 import os
 import random
 import re
+import threading
 import time
 from pathlib import Path
 from typing import Any, Generator, Optional
@@ -57,6 +58,8 @@ from .lora_manager import (
     get_cached_character_lora,
     lora_file_exists,
 )
+from .runtime_policy import RuntimePolicy
+from .preflight import configured_asset_checksums
 
 logger = logging.getLogger(__name__)
 
@@ -148,9 +151,9 @@ def _parse_lora_tags(prompt: str) -> tuple[str, list[dict[str, Any]]]:
 
 class AnimePipelineOrchestrator:
     """
-    7-stage anime multi-pass pipeline orchestrator.
+    Anime multi-pass pipeline orchestrator.
 
-    Stages:
+    Core stages:
         1. vision_analysis    — Analyze input/references
         2. layer_planning     — Build structured LayerPlan
         3. composition_pass   — Generate draft via ComfyUI
@@ -160,11 +163,21 @@ class AnimePipelineOrchestrator:
         7. critique           — Vision-based quality scoring
         8. upscale            — RealESRGAN final upscale
 
+    Optional character research, LoRA verification, re-plan, final ranking,
+    and manifest stages run around this core path depending on task/profile.
     If critique fails, stages 5-7 repeat up to max_refine_rounds times.
     """
 
     def __init__(self, config: Optional[AnimePipelineConfig] = None):
         self._config = config or load_config()
+        self._runtime_policy = RuntimePolicy.from_config(self._config)
+        self._runtime_policy.assert_url(
+            self._config.comfyui_url
+            or os.getenv("ANIME_PIPELINE_COMFYUI_URL")
+            or os.getenv("COMFYUI_URL")
+            or "http://127.0.0.1:8188",
+            purpose="comfyui",
+        )
         self._vision = VisionAnalystAgent(self._config)
         self._planner = LayerPlannerAgent(self._config)
         self._composition = CompositionPassAgent(self._config)
@@ -210,6 +223,18 @@ class AnimePipelineOrchestrator:
         # threading t0 through every call.
         self._cancelled = False
         self._run_t0 = t0
+        job.deployment_profile = self._config.deployment_profile
+        job.network_policy = self._runtime_policy.to_dict()
+        job.benchmark_version = self._config.benchmark_version
+        job.metadata.setdefault("model_checksums", {}).update(
+            configured_asset_checksums(self._config.deployment_profile)
+        )
+        self._runtime_policy.validate_request(
+            content_mode=job.content_mode,
+            validator_mode=job.validator_mode,
+            adult_verified=job.adult_verified,
+        )
+        self._assert_adult_subject_allowed(job)
 
         yield self._event(
             "pipeline_start",
@@ -743,6 +768,7 @@ class AnimePipelineOrchestrator:
         self._beauty._used_seeds = self._used_seeds
 
         for round_num in range(max_rounds + 1):
+            self._assert_adult_subject_allowed(job)
             is_refine = round_num > 0
             stage_label = (
                 f"beauty_pass{'_refine_' + str(round_num) if is_refine else ''}"
@@ -1209,6 +1235,7 @@ class AnimePipelineOrchestrator:
           - No regions detected
           - Detection is disabled in config
         """
+        self._assert_adult_subject_allowed(job)
         if not self._detection_inpaint.is_available():
             logger.info(
                 "[AnimePipeline] Detection inpaint skipped — dependencies not available"
@@ -1377,7 +1404,9 @@ class AnimePipelineOrchestrator:
                 requested_eye_state=requested_state,
                 do_shadow=True,
                 do_highlight=True,
-                do_classify=True,
+                # Quality scoring is handled by the policy-aware local critic.
+                # The legacy painter classifier calls cloud APIs directly.
+                do_classify=False,
             )
         except Exception as e:
             logger.warning("[AnimePipeline] Layer painter crashed (non-fatal): %s", e)
@@ -1579,6 +1608,7 @@ class AnimePipelineOrchestrator:
             result = research_character(
                 job.user_prompt,
                 user_reference_images=job.reference_images_b64 or None,
+                allow_network=self._runtime_policy.allow_web_research,
             )
             self._research = result
 
@@ -1833,6 +1863,7 @@ class AnimePipelineOrchestrator:
                 base_checkpoint=base_checkpoint,
                 reference_images=research.reference_images_b64
                 or job.reference_images_b64,
+                allow_network=self._runtime_policy.allow_runtime_downloads,
             )
             self._verified_lora = lora_result
             latency = (time.time() - t0) * 1000
@@ -1930,6 +1961,12 @@ class AnimePipelineOrchestrator:
             "strength_clip": 0.85,
             "enabled": True,
         }
+        job.metadata.setdefault("loras", []).append(
+            {
+                "name": lora_name,
+                "trigger_words": list(self._verified_lora.trigger_words),
+            }
+        )
 
         for pass_cfg in job.layer_plan.passes:
             existing = pass_cfg.lora_models or []
@@ -2054,9 +2091,35 @@ class AnimePipelineOrchestrator:
             },
         )
 
-        try:
-            agent.execute(job)
-        except Exception as e:
+        # Run agent in a background thread so we can yield heartbeat events
+        # while it blocks on ComfyUI sampling (30+ steps = ~30 s of silence).
+        _exc_holder: list[BaseException] = []
+        _done_evt = threading.Event()
+
+        def _run_agent() -> None:
+            try:
+                agent.execute(job)
+            except Exception as _e:
+                _exc_holder.append(_e)
+            finally:
+                _done_evt.set()
+
+        _agent_thread = threading.Thread(target=_run_agent, daemon=True)
+        _t_start = time.monotonic()
+        _agent_thread.start()
+
+        while not _done_evt.wait(timeout=1.5):
+            yield self._event(
+                "stage_heartbeat",
+                {
+                    "stage": stage_name,
+                    "elapsed_s": round(time.monotonic() - _t_start, 1),
+                },
+            )
+
+        _agent_thread.join()
+        if _exc_holder:
+            e = _exc_holder[0]
             logger.error("[AnimePipeline] Stage %s failed: %s", stage_name, e)
             yield self._event(
                 "stage_error",
@@ -2065,7 +2128,7 @@ class AnimePipelineOrchestrator:
                     "error": str(e),
                 },
             )
-            raise
+            raise e
 
         # Agent may fail silently by setting job.status = FAILED instead of raising
         if job.status == AnimePipelineStatus.FAILED:
@@ -2102,6 +2165,18 @@ class AnimePipelineOrchestrator:
         except Exception as e:
             logger.warning("[AnimePipeline] Failed to save intermediates: %s", e)
 
+    @staticmethod
+    def _assert_adult_subject_allowed(job: AnimePipelineJob) -> None:
+        if job.content_mode != "adult_only":
+            return
+        from .adult_subject_guard import assert_adult_subject_allowed
+
+        assert_adult_subject_allowed(
+            job.user_prompt,
+            adult_verified=job.adult_verified,
+            attestation_source=job.adult_attestation_source,
+        )
+
     # ── 4-Agents council integration ────────────────────────────────
 
     def _run_council_reasoning(
@@ -2126,8 +2201,6 @@ class AnimePipelineOrchestrator:
 
         t0 = time.time()
         try:
-            import asyncio
-
             # Build council prompt from pipeline context
             va = job.vision_analysis
             va_summary = ""
@@ -2219,8 +2292,22 @@ class AnimePipelineOrchestrator:
                 },
             )
 
-    @staticmethod
     def _invoke_council_sync(
+        self, prompt: str, language: str = "en"
+    ) -> dict[str, Any] | None:
+        """Invoke the typed local-only image council."""
+        try:
+            from .image_council import LocalImageCouncil
+
+            return LocalImageCouncil(self._config, self._runtime_policy).run(
+                prompt, language
+            )
+        except Exception as e:
+            logger.warning("[AnimePipeline] Local image council failed: %s", e)
+            return None
+
+    @staticmethod
+    def _invoke_legacy_council_sync(
         prompt: str, language: str = "en"
     ) -> dict[str, Any] | None:
         """Invoke the 4-agent council synchronously.

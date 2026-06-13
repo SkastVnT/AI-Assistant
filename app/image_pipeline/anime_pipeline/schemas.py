@@ -70,6 +70,7 @@ class StructureLayerType(str, enum.Enum):
     LINEART = "lineart"
     DEPTH = "depth"
     CANNY = "canny"
+    OPENPOSE = "openpose"
 
 
 class CritiqueDimension(str, enum.Enum):
@@ -155,11 +156,23 @@ class VisionAnalysis:
 
 
 @dataclass
+class PipelineReference:
+    """Typed image reference supplied by API or benchmark callers."""
+
+    role: str = "full"  # face | full | pose | style
+    image_b64: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"role": self.role, "has_image": bool(self.image_b64)}
+
+
+@dataclass
 class ControlInput:
     """A single ControlNet input for a rendering pass."""
 
-    layer_type: str = ""  # lineart_anime | depth | canny
+    layer_type: str = ""  # lineart_anime | depth | canny | openpose
     controlnet_model: str = ""
+    union_control_type: str = ""
     strength: float = 0.8
     start_percent: float = 0.0
     end_percent: float = 0.8
@@ -170,6 +183,7 @@ class ControlInput:
         return {
             "layer_type": self.layer_type,
             "controlnet_model": self.controlnet_model,
+            "union_control_type": self.union_control_type,
             "strength": self.strength,
             "start_percent": self.start_percent,
             "end_percent": self.end_percent,
@@ -208,6 +222,12 @@ class PassConfig:
     expected_output: str = ""  # human-readable note
     source_image_b64: str = ""  # for img2img passes
     lora_models: list[dict[str, Any]] = field(default_factory=list)
+    ipadapter_image_b64: str = ""
+    ipadapter_preset: str = "PLUS FACE (portraits)"
+    ipadapter_weight: float = 0.8
+    ipadapter_start_at: float = 0.0
+    ipadapter_end_at: float = 1.0
+    ipadapter_weight_type: str = "standard"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -226,6 +246,9 @@ class PassConfig:
             "prompt_strategy": self.prompt_strategy,
             "expected_output": self.expected_output,
             "lora_models": self.lora_models,
+            "has_ipadapter_image": bool(self.ipadapter_image_b64),
+            "ipadapter_preset": self.ipadapter_preset,
+            "ipadapter_weight": self.ipadapter_weight,
         }
 
 
@@ -423,6 +446,8 @@ class CritiqueReport:
     retry_recommendation: bool = False
     prompt_patch: list[str] = field(default_factory=list)
     control_patch: dict[str, float] = field(default_factory=dict)
+    unscored: bool = False
+    scoring_error: str = ""
 
     # ── Numeric scores (0-10) ─ 10 dimensions ───────────────────
     anatomy_score: int = 0
@@ -481,7 +506,7 @@ class CritiqueReport:
         Strict mode: no dimension is allowed to be below 8/10.
         Dimensions scored 0 are considered 'not evaluated' and skipped.
         """
-        if self.retry_recommendation:
+        if self.unscored or self.retry_recommendation:
             return False
         if self.overall_score < 8.0:
             return False
@@ -552,6 +577,8 @@ class CritiqueReport:
             "retry_recommendation": self.retry_recommendation,
             "prompt_patch": self.prompt_patch,
             "control_patch": self.control_patch,
+            "unscored": self.unscored,
+            "scoring_error": self.scoring_error,
             "anatomy_score": self.anatomy_score,
             "face_score": self.face_score,
             "eye_consistency_score": self.eye_consistency_score,
@@ -589,6 +616,7 @@ class StructureLayer:
     image_b64: str = ""
     preprocessor: str = ""
     controlnet_model: str = ""
+    union_control_type: str = ""
     strength: float = 0.8
     start_percent: float = 0.0
     end_percent: float = 0.8
@@ -636,13 +664,23 @@ class AnimePipelineJob:
     user_prompt: str = ""
     language: str = "en"
     reference_images_b64: list[str] = field(default_factory=list)
+    references: list[PipelineReference] = field(default_factory=list)
     reference_images_url: list[str] = field(default_factory=list)
     source_image_b64: Optional[str] = None  # For img2img / edit mode
+    task_type: str = "t2i"
+    edit_turns: list[str] = field(default_factory=list)
     style_hint: str = "anime"
     quality_hint: str = "quality"
     orientation_hint: str = ""  # auto-detected if empty
     preset: str = "anime_quality"
     user_loras: list[dict[str, Any]] = field(default_factory=list)
+    deployment_profile: str = "laptop_6gb"
+    content_mode: str = "sfw"
+    validator_mode: str = "local"
+    adult_verified: bool = False
+    adult_attestation_source: str = ""
+    network_policy: dict[str, Any] = field(default_factory=dict)
+    benchmark_version: str = "anime-local-v1"
 
     # ── Character identity (populated by character_parser) ────────────
     # See image_pipeline.anime_pipeline.character_parser.ParsedIdentity.
@@ -683,6 +721,7 @@ class AnimePipelineJob:
     final_image_b64: Optional[str] = None
     final_image_url: Optional[str] = None
     final_image_path: Optional[str] = None
+    manifest_path: Optional[str] = None
     # Spec §7 canonical filename: <session>_<feature>_<char>_<series>_<ts>.<ext>
     final_image_spec_path: Optional[str] = None
     # Secondary output: populated when re-plan attempt 1 also produced a usable image.
@@ -718,6 +757,16 @@ class AnimePipelineJob:
             "style_hint": self.style_hint,
             "quality_hint": self.quality_hint,
             "preset": self.preset,
+            "deployment_profile": self.deployment_profile,
+            "content_mode": self.content_mode,
+            "validator_mode": self.validator_mode,
+            "adult_verified": self.adult_verified,
+            "adult_attestation_source": self.adult_attestation_source,
+            "network_policy": self.network_policy,
+            "benchmark_version": self.benchmark_version,
+            "task_type": self.task_type,
+            "references": [reference.to_dict() for reference in self.references],
+            "edit_turns": list(self.edit_turns),
             "character_name": self.character_name,
             "series_name": self.series_name,
             "character_tag": self.character_tag,
@@ -735,8 +784,14 @@ class AnimePipelineJob:
             "total_latency_ms": self.total_latency_ms,
             "refine_rounds": self.refine_rounds,
             "models_used": self.models_used,
+            "model_checksums": self.metadata.get("model_checksums", {}),
+            "loras": self.metadata.get("loras", []),
+            "pass_lineage": self.metadata.get("pass_lineage", []),
+            "critic_provenance": self.metadata.get("critic_provenance", []),
             "has_final_image": self.final_image_b64 is not None,
             "final_image_url": self.final_image_url,
+            "final_image_path": self.final_image_path,
+            "manifest_path": self.manifest_path,
             "error": self.error,
         }
 
@@ -757,6 +812,13 @@ class AnimePipelineJob:
         model = metadata.get("model") or metadata.get("checkpoint")
         if model and model not in self.models_used:
             self.models_used.append(model)
+        self.metadata.setdefault("pass_lineage", []).append(
+            {
+                "stage": stage,
+                "model": model or "",
+                "seed": metadata.get("seed"),
+            }
+        )
 
     def latest_render_image(self) -> Optional[str]:
         """Return the most recent *renderable* intermediate image_b64.

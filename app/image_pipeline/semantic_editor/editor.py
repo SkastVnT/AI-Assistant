@@ -42,6 +42,7 @@ from image_pipeline.semantic_editor.qwen_client import (
 from image_pipeline.semantic_editor.fallback_editors import (
     FallbackChain,
 )
+from image_pipeline.anime_pipeline.runtime_policy import RuntimePolicy
 
 logger = logging.getLogger(__name__)
 
@@ -80,19 +81,30 @@ class SemanticEditor:
         fal_api_key: Optional[str] = None,
         stepfun_api_key: Optional[str] = None,
         prefer_vps: bool = True,
+        runtime_policy: RuntimePolicy | None = None,
+        allow_cloud_fallbacks: bool = False,
     ):
+        resolved_vps_url = vps_base_url or os.environ.get(
+            "VPS_BASE_URL", "http://localhost:8000"
+        )
+        if runtime_policy:
+            runtime_policy.assert_url(resolved_vps_url, purpose="legacy_qwen_editor")
+
         # Primary: Qwen on VPS
         self._qwen = QwenClient(
-            base_url=vps_base_url
-            or os.environ.get("VPS_BASE_URL", "http://localhost:8000"),
+            base_url=resolved_vps_url,
             api_key=vps_api_key or os.environ.get("VPS_API_KEY", "EMPTY"),
         )
 
         # Fallback chain: Kontext → Step1X-Edit → Nano-Banana
-        self._fallback = FallbackChain(
-            fal_api_key=fal_api_key or os.environ.get("FAL_API_KEY", ""),
-            stepfun_api_key=stepfun_api_key or os.environ.get("STEPFUN_API_KEY", ""),
-        )
+        self._allow_cloud_fallbacks = allow_cloud_fallbacks and runtime_policy is None
+        self._fallback = None
+        if self._allow_cloud_fallbacks:
+            self._fallback = FallbackChain(
+                fal_api_key=fal_api_key or os.environ.get("FAL_API_KEY", ""),
+                stepfun_api_key=stepfun_api_key
+                or os.environ.get("STEPFUN_API_KEY", ""),
+            )
 
         self._prefer_vps = prefer_vps
         self._vps_available: Optional[bool] = None  # Cached health state
@@ -133,11 +145,17 @@ class SemanticEditor:
         try:
             resp = await self._try_primary(job, instruction, source_b64, is_edit)
             if not resp or not resp.success:
-                logger.info(
-                    "[SemanticEditor] Primary failed (%s), trying fallback chain",
-                    resp.error if resp else "unreachable",
-                )
-                resp = self._try_fallback(job, instruction, source_b64, is_edit)
+                if self._allow_cloud_fallbacks:
+                    logger.info(
+                        "[SemanticEditor] Primary failed (%s), trying fallback chain",
+                        resp.error if resp else "unreachable",
+                    )
+                    resp = self._try_fallback(job, instruction, source_b64, is_edit)
+                else:
+                    resp = resp or EditResponse(
+                        success=False,
+                        error="Local semantic editor unavailable; cloud fallback disabled",
+                    )
 
         except Exception as e:
             logger.error("[SemanticEditor] Unexpected error: %s", e, exc_info=True)
@@ -258,6 +276,8 @@ class SemanticEditor:
         is_edit: bool,
     ) -> EditResponse:
         """Delegate to the FallbackChain (synchronous API calls)."""
+        if self._fallback is None:
+            return EditResponse(success=False, error="Cloud fallback disabled")
         params = job.generation_params
         resp, attempts = self._fallback.edit(
             instruction=instruction,

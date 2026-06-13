@@ -54,6 +54,10 @@ _DOWNLOAD_MANIFEST_PATH = _DOWNLOAD_MANIFEST_DIR / "download_manifest.json"
 _DOWNLOAD_MANIFEST_LOCK = __import__("threading").Lock()
 
 
+class _LoRATestInfraError(RuntimeError):
+    """Raised when local LoRA smoke-test infrastructure is unavailable."""
+
+
 def _append_download_manifest(entry: dict[str, Any]) -> None:
     """Append a single event row to ./LORA/download_manifest.json.
 
@@ -1092,6 +1096,7 @@ def find_and_verify_character_lora(
     base_checkpoint: str = "",
     reference_images: Optional[list[str]] = None,
     force_refresh: bool = False,
+    allow_network: bool = False,
 ) -> LoRAVerificationResult:
     """Main entry point: search, download, test, and verify a character LoRA.
 
@@ -1104,6 +1109,7 @@ def find_and_verify_character_lora(
         base_checkpoint: Checkpoint model to use for test generation
         reference_images: Base64 reference images for comparison
         force_refresh: Skip cache, re-search and re-verify
+        allow_network: Explicit provisioning-only opt-in for CivitAI access
 
     Returns:
         LoRAVerificationResult with accepted=True and lora_filename if a
@@ -1171,6 +1177,17 @@ def find_and_verify_character_lora(
         except Exception as exc:  # noqa: BLE001
             logger.debug("[LoRAMgr] cache save (local hit) failed: %s", exc)
         return result
+
+    if not allow_network:
+        return LoRAVerificationResult(
+            accepted=False,
+            vision_score=0.0,
+            test_image_b64=None,
+            lora_filename="",
+            lora_path=None,
+            rejection_reason="Offline policy: no matching local registry LoRA",
+            latency_ms=(time.time() - t0) * 1000,
+        )
 
     logger.info(
         "[LoRAMgr] Searching CivitAI for %s (%s) LoRAs...", display_name, series_name

@@ -33,7 +33,7 @@ pymupdf>=1.24.0
 
 # ============= AI APIs =============
 openai>=2.29.0  # Videos API (Sora 2) requires >=2.29
-google-genai>=2.6.0
+google-genai>=1.56.0
 
 # ============= IMAGE PROCESSING =============
 Pillow>=10.0.0
@@ -41,7 +41,7 @@ requests>=2.33.1
 
 # ============= PHASE 2: ADVANCED FEATURES =============
 # Semantic search and embeddings
-sentence-transformers>=5.5.1
+sentence-transformers>=3.0.0
 
 # Scientific computing
 scipy>=1.11.0
@@ -51,11 +51,11 @@ scikit-learn>=1.8.0
 # PyTorch (CUDA 11.8) - Install from https://pytorch.org/get-started/locally/
 numpy<3.0.0  # Required for PyTorch compatibility
 torch>=2.0.0
-torchaudio>=2.11.0
+torchaudio>=2.0.0
 transformers>=4.37.0
 accelerate>=1.13.0
 sentencepiece>=0.1.99
-protobuf>=7.34.1
+protobuf>=5.29.0
 
 # Quantization (for efficient local models - Windows requires Visual C++)
 bitsandbytes>=0.41.0; sys_platform != 'win32'
@@ -74,8 +74,8 @@ pyyaml>=6.0.3
 aiofiles>=25.1.0
 
 # ============= GOOGLE CLOUD / DRIVE =============
-google-auth>=2.53.0
+google-auth>=2.40.0
 google-auth-httplib2>=0.4.0
 google-auth-oauthlib>=1.4.0
 google-api-python-client>=2.108.0
-firebase-admin>=7.4.0
+firebase-admin>=7.0.0

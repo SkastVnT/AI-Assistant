@@ -19,6 +19,8 @@
             'r1-free': 'DeepSeek R1 (Free)',
             'hermes3': 'Hermes 3 405B',
             'lyria': 'Lyria 3 Pro',
+            'nemotron-super': 'Nemotron 3 Super 120B',
+            'owl-alpha': 'Owl Alpha',
             'stepfun': 'StepFun Direct'
         };
 

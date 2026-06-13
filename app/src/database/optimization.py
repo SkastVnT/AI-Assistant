@@ -203,7 +203,7 @@ class DatabaseOptimizer:
         # Get index stats if available
         try:
             stats = self.db.command("indexStats", collection_name)
-        except:
+        except Exception:
             stats = None
 
         return {
