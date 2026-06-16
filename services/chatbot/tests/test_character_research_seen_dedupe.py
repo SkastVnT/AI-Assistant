@@ -33,6 +33,8 @@ def tmp_storage(tmp_path, monkeypatch):
     monkeypatch.setattr(cr, "_RESEARCH_DIR", research_dir)
     # Disable opt-in to old behaviour
     monkeypatch.delenv("CHAR_RESEARCH_REUSE_REFS", raising=False)
+    # Bypass SSRF DNS check — test hostnames (*.example) don't resolve in CI
+    monkeypatch.setattr(cr, "_is_safe_external_url", lambda url: True)
     return storage
 
 
