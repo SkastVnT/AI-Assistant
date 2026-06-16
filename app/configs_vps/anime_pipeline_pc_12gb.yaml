@@ -1,0 +1,88 @@
+deployment:
+  profile: pc_12gb
+  max_concurrent: 1
+  allowed_internal_origins:
+    - http://127.0.0.1:8188
+    - http://127.0.0.1:8080
+  adult_content_policy: worker_default
+capabilities:
+  flux2_klein: false
+  qwen_image_edit: false
+  controlnet: true
+  ipadapter: true
+  yolo_detailer: false
+  pre_upscale_v2: false
+models:
+  composition:
+    checkpoint: waiIllustriousSDXL_v170.safetensors
+    model_type: sdxl
+    steps: 28
+    cfg: 5.0
+  beauty:
+    checkpoint: waiIllustriousSDXL_v170.safetensors
+    model_type: sdxl
+    steps: 24
+    cfg: 5.0
+    denoise_strength: 0.25
+  final:
+    checkpoint: waiIllustriousSDXL_v170.safetensors
+    model_type: sdxl
+    steps: 22
+    cfg: 5.0
+    denoise_strength: 0.18
+structure_lock:
+  max_simultaneous_layers: 1
+  layers:
+    - type: openpose
+      preprocessor: DWPreprocessor
+      controlnet_model: xinsir-controlnet-union-sdxl-1.0.safetensors
+      union_control_type: openpose
+      strength: 0.80
+      priority: 0
+      optional: true
+      enabled: true
+    - type: lineart_anime
+      preprocessor: AnimeLineArtPreprocessor
+      controlnet_model: xinsir-controlnet-union-sdxl-1.0.safetensors
+      union_control_type: canny/lineart/anime_lineart/mlsd
+      strength: 0.72
+      priority: 1
+      optional: true
+      enabled: true
+    - type: depth
+      preprocessor: DepthAnythingV2Preprocessor
+      controlnet_model: xinsir-controlnet-union-sdxl-1.0.safetensors
+      union_control_type: depth
+      strength: 0.50
+      priority: 2
+      optional: true
+      enabled: true
+    - type: canny
+      preprocessor: CannyEdgePreprocessor
+      controlnet_model: xinsir-controlnet-union-sdxl-1.0.safetensors
+      union_control_type: canny/lineart/anime_lineart/mlsd
+      strength: 0.35
+      priority: 3
+      optional: true
+      enabled: true
+ipadapter:
+  enabled: true
+  preset: PLUS FACE (portraits)
+  weight: 0.8
+  start_at: 0.0
+  end_at: 1.0
+  weight_type: standard
+detection_inpaint:
+  enabled: false
+pipeline:
+  v2_upscale_first: false
+  unload_between_passes: true
+vision:
+  model_priority: [local-vlm]
+local_vlm:
+  url: http://127.0.0.1:8080/v1
+  model: Qwen2.5-VL-7B-Instruct-GGUF
+  required: true
+council:
+  enabled: true
+  max_rounds: 1

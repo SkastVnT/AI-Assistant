@@ -36,7 +36,7 @@ app\scripts\start-mcp.bat
 
 ```bash
 cd services/chatbot
-python app.py
+python run.py
 
 # Hoặc
 start_chatbot.bat

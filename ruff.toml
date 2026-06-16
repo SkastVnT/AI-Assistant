@@ -5,7 +5,6 @@ exclude = [
     "venv-core",
     "venv-image",
     "ComfyUI",
-    "app/ComfyUI",
     "services/edit-image/ComfyUI",
     "services/stable-diffusion/repositories",
     "character_select_stand_alone_app-main",
@@ -29,7 +28,13 @@ ignore = [
 ]
 
 [lint.per-file-ignores]
-"services/chatbot/tests/**" = ["S101"]  # Allow assert in tests
+"services/chatbot/tests/**" = ["S101", "E402", "F821"]  # Allow assert in tests; E402 from sys.path.insert pattern; F821 from lazy imports in return annotations
+"services/chatbot/routes/**" = ["E402"]  # Intentional sys.path.insert before imports
+"services/chatbot/scripts/**" = ["E402"]  # Intentional sys.path.insert before imports
+"app/scripts/**" = ["E402"]  # Intentional sys.path.insert before imports
+"services/chatbot/src/utils/performance_integration.py" = ["F821"]  # Prototype snippet file with intentionally unbound refs
+"services/chatbot/app/services/image_orchestrator/prompt_builder.py" = ["F821"]  # TYPE_CHECKING pattern; has type: ignore
+"services/chatbot/app/services/image_orchestrator/provider_router.py" = ["F821"]  # TYPE_CHECKING pattern; has type: ignore
 "**/migrations/**" = ["ALL"]
 
 [lint.isort]

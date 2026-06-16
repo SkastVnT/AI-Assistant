@@ -51,6 +51,10 @@ services:
       MONGODB_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-changeme}@mongodb:27017/ai_assistant?authSource=admin
       MONGODB_DB_NAME: ai_assistant
       FLASK_PORT: "5000"
+      IMAGE_PIPELINE_V2: "false"
+      AUTO_START_IMAGE_SERVICES: "0"
+      AUTO_START_COMFYUI: "0"
+      AUTO_START_STABLE_DIFFUSION: "0"
     depends_on:
       mongodb:
         condition: service_healthy

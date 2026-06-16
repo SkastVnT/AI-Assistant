@@ -13,6 +13,15 @@ Feature flag: `IMAGE_PIPELINE_V2=true`.
 
 The anime pipeline is a **multi-pass image generation system** that produces high-quality anime artwork through ComfyUI. It follows an agent-based architecture where each stage is a standalone agent that reads from and writes to a shared `AnimePipelineJob` dataclass.
 
+Canonical core stage order:
+
+```text
+vision_analysis -> layer_planning -> composition_pass -> structure_lock
+  -> beauty_pass -> detection_inpaint -> critique -> upscale
+```
+
+Optional character research, LoRA verification, re-plan, final ranking, and manifest storage run around this core path depending on task and deployment profile. The orchestrator is the source of truth when docs and diagrams drift.
+
 ```
 ┌────────────────────────────────────────────────────────────────┐
 │                    AnimePipelineOrchestrator                    │
@@ -39,10 +48,11 @@ The anime pipeline is a **multi-pass image generation system** that produces hig
 | 3 | Composition Pass | `CompositionPassAgent` | ComfyUI `POST /prompt` | Generate initial draft (txt2img or img2img) |
 | 4 | Structure Lock | `StructureLockAgent` | ComfyUI preprocessors | Extract lineart/depth/canny control layers |
 | 5 | Beauty Pass | `BeautyPassAgent` | ComfyUI img2img+ControlNet | Detail-focused redraw with structure control |
-| 6 | Critique | `CritiqueAgent` | Gemini / GPT-4o vision | Score result per dimension, suggest fixes |
-| 7 | Upscale | `UpscaleAgent` | ComfyUI RealESRGAN | Final 2x upscale |
+| 6 | Detection Inpaint | `DetectionInpaintAgent` | ComfyUI + YOLO detailer | Optional face/eye/hand/detail repair before judging |
+| 7 | Critique | `CritiqueAgent` | Local VLM / configured vision worker | Score result per dimension, suggest fixes |
+| 8 | Upscale | `UpscaleAgent` | ComfyUI RealESRGAN | Final upscale |
 
-Stages 5-6 form a **critique loop**: if the critique score is below threshold, the beauty pass re-runs with patched parameters (up to `max_refine_rounds` times).
+Stages 5-7 form a **critique loop**: if the critique score is below threshold, the beauty pass and optional detection repair re-run with patched parameters (up to `max_refine_rounds` times).
 
 ---
 
@@ -69,9 +79,9 @@ app/image_pipeline/anime_pipeline/
 │   ├── structure_lock.py    # Stage 4: StructureLockAgent
 │   ├── beauty_pass.py       # Stage 5: BeautyPassAgent
 │   ├── critique.py          # Stage 6: CritiqueAgent
-│   ├── detection_inpaint.py # Per-region ADetailer-style inpaint
+│   ├── detection_inpaint.py # Stage 6: Per-region ADetailer-style inpaint
 │   ├── detection_detail.py  # YOLO detection (used by detection_inpaint)
-│   ├── upscale.py           # Stage 7: UpscaleAgent (live)
+│   ├── upscale.py           # Stage 8: UpscaleAgent (live)
 │   ├── final_ranker.py      # Rank candidate images (live)
 │   ├── output_manifest.py   # Build output manifest JSON (live)
 │   │
@@ -232,7 +242,7 @@ event: anime_pipeline_pipeline_start
 data: {"job_id": "abc123", "stages": [...]}
 
 event: anime_pipeline_stage_start
-data: {"stage": "composition_pass", "stage_num": 3, "total_stages": 7}
+data: {"stage": "composition_pass", "stage_num": 3, "total_stages": 9}
 
 event: anime_pipeline_stage_complete
 data: {"stage": "composition_pass", "latency_ms": 2100}
@@ -248,6 +258,8 @@ data: {"job_id": "abc123", "error": "GPU OOM", "has_fallback_image": true}
 ```
 
 All events are prefixed with `anime_pipeline_`.
+
+`total_stages` is informational and may vary by profile, task type, and v2 path.
 
 ---
 
@@ -296,6 +308,47 @@ Or run all anime pipeline tests:
 
 ```bash
 ..\..\venv-core\Scripts\python.exe -m pytest tests/test_planner_agent.py tests/test_critique_refine_ranker.py tests/test_workflow_builder.py tests/test_comfyui_integration.py tests/test_e2e_dry_run.py tests/test_anime_pipeline.py tests/test_anime_pipeline_integration.py -v
+```
+
+---
+
+## Benchmark and Parity Evidence
+
+Use `app/scripts/run_anime_benchmark.py` as the live LOCAL benchmark entry point.
+The public parity target is SFW by default; `adult_only` is a separate local-only
+suite and must be selected explicitly.
+
+Profiles:
+
+| Profile | Purpose |
+|---|---|
+| `laptop_6gb` | Demo and smoke checks only; reduced resolution and disabled structure/detail capabilities |
+| `pc_12gb` | Default local quality benchmark profile; WAI SDXL, SDXL union ControlNet, IP-Adapter, local VLM, council |
+| `rtx5070` | Owner local iteration profile; use for parity only after preflight passes |
+| `vps_96gb` | Parity-candidate profile; adds Tier-1 YOLO detailer, pre-upscale v2, FLUX/Qwen native paths |
+
+SFW parity sequence:
+
+```bash
+python app/scripts/run_anime_benchmark.py --profile pc_12gb --suite sfw --dry-run --run-id smoke-sfw
+python app/scripts/run_anime_benchmark.py --profile pc_12gb --suite sfw --parity --run-id sfw-parity-001 --artifact-root .local/benchmarks/sfw
+python app/scripts/anime_benchmark_evidence.py import-comparator --artifact-root .local/benchmarks/sfw --run-id sfw-parity-001 --provider chatgpt_images --capture-dir <chatgpt-captures>
+python app/scripts/anime_benchmark_evidence.py import-comparator --artifact-root .local/benchmarks/sfw --run-id sfw-parity-001 --provider nano_banana_2 --capture-dir <nano-banana-2-captures>
+python app/scripts/anime_benchmark_evidence.py import-comparator --artifact-root .local/benchmarks/sfw --run-id sfw-parity-001 --provider nano_banana_pro --capture-dir <nano-banana-pro-captures>
+python app/scripts/anime_benchmark_evidence.py build-review --artifact-root .local/benchmarks/sfw --run-id sfw-parity-001 --seed 20260604
+python app/scripts/anime_benchmark_evidence.py summarize --artifact-root .local/benchmarks/sfw --run-id sfw-parity-001
+```
+
+`local_quality_gate_passed` is a local qualification gate only. ChatGPT/Gemini
+parity is not proven until the local run, comparator captures, blind-review
+packet, comparator verdicts, and sanitized report are all present. Public reports
+are written under `app/docs/benchmark-reports/<run_id>/`; raw images, prompts,
+judge reasoning, and private paths stay under the artifact root.
+
+Adult-only benchmark runs:
+
+```bash
+python app/scripts/run_anime_benchmark.py --profile vps_96gb --suite adult_only --adult-verified --parity --run-id adult-local-001 --artifact-root .local/benchmarks/adult_only
 ```
 
 ---

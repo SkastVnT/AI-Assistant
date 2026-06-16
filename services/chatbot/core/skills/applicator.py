@@ -127,13 +127,12 @@ def apply_skill_overrides(
         model = skill_overrides.model
 
     # ── Thinking mode override ────────────────────────────────────────
-    if skill_overrides.thinking_mode:
-        if user_chose_skill or not user_set_thinking:
-            thinking_mode = skill_overrides.thinking_mode
-            if thinking_mode in ("thinking", "deep", "multi-thinking"):
-                deep_thinking = True
-            elif thinking_mode in ("instant", "auto"):
-                deep_thinking = False
+    if skill_overrides.thinking_mode and (user_chose_skill or not user_set_thinking):
+        thinking_mode = skill_overrides.thinking_mode
+        if thinking_mode in ("thinking", "deep", "multi-thinking"):
+            deep_thinking = True
+        elif thinking_mode in ("instant", "auto"):
+            deep_thinking = False
 
     # ── System prompt composition (append, not replace) ───────────────
     if skill_overrides.prompt_injection:

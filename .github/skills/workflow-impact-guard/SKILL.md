@@ -76,7 +76,7 @@ Six workflows exist under `.github/workflows/`. Each has different triggers, sco
 | Language | Python |
 | Scanned paths | `services/`, `app/src/` |
 | Excluded | `tests/`, `__pycache__/`, `venv*/` |
-| Pre-step | Deletes `ComfyUI/`, `app/ComfyUI/`, `private/`, `venv*/` before analysis |
+| Pre-step | Deletes `ComfyUI/`, `private/`, `venv*/` before analysis |
 
 **What breaks this:** Introducing code patterns CodeQL flags as security vulnerabilities (SQL injection, path traversal, SSRF, etc.). CodeQL runs `security-and-quality` queries — a new finding may block merge if GitHub branch protection requires clean CodeQL.
 

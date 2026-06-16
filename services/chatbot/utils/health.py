@@ -95,9 +95,7 @@ class HealthChecker:
         # Check cache
         cache_result = self._check_cache()
         results["cache"] = cache_result
-        if cache_result["status"] != HealthStatus.HEALTHY:
-            # Cache is optional, so mark as degraded not unhealthy
-            if overall_status == HealthStatus.HEALTHY:
+        if cache_result["status"] != HealthStatus.HEALTHY and overall_status == HealthStatus.HEALTHY:
                 overall_status = HealthStatus.DEGRADED
 
         return {
@@ -127,8 +125,7 @@ class HealthChecker:
             results[name] = self._run_check(name, check_func)
             if results[name]["status"] == HealthStatus.UNHEALTHY:
                 overall_status = HealthStatus.UNHEALTHY
-            elif results[name]["status"] == HealthStatus.DEGRADED:
-                if overall_status == HealthStatus.HEALTHY:
+            elif results[name]["status"] == HealthStatus.DEGRADED and overall_status == HealthStatus.HEALTHY:
                     overall_status = HealthStatus.DEGRADED
 
         # Add standard checks
@@ -138,8 +135,7 @@ class HealthChecker:
         # Determine overall status
         if results["database"]["status"] == HealthStatus.UNHEALTHY:
             overall_status = HealthStatus.UNHEALTHY
-        elif results["cache"]["status"] != HealthStatus.HEALTHY:
-            if overall_status == HealthStatus.HEALTHY:
+        elif results["cache"]["status"] != HealthStatus.HEALTHY and overall_status == HealthStatus.HEALTHY:
                 overall_status = HealthStatus.DEGRADED
 
         result = {
@@ -232,7 +228,7 @@ class HealthChecker:
             if os.path.exists(version_file):
                 with open(version_file) as f:
                     return f.read().strip()
-        except:
+        except Exception:
             pass
         return "2.2.0"  # Default version
 

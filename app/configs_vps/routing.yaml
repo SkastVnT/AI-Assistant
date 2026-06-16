@@ -103,6 +103,65 @@ task_routes:
 #
 # When the user requests a specific quality mode, override the primary model.
 
+# Standalone LOCAL deployments use this table whenever RuntimePolicy is active.
+# There are intentionally no API or cross-device fallbacks.
+offline_task_routes:
+  t2i:
+    primary: comfyui-wai-v170
+    fallbacks: []
+    location: local
+    notes: "Canonical local anime render."
+  semantic_edit:
+    primary: comfyui-qwen-image-edit-2511
+    fallbacks: []
+    location: local
+    notes: "Native ComfyUI Qwen Image Edit workflow; VPS profile only."
+  multi_turn_edit:
+    primary: comfyui-qwen-image-edit-2511
+    fallbacks: []
+    location: local
+    notes: "Native ComfyUI Qwen Image Edit workflow with local lineage."
+  inpaint:
+    primary: comfyui-wai-v170
+    fallbacks: []
+    location: local
+    notes: "Local SDXL inpaint graph."
+  multi_ref:
+    primary: comfyui-qwen-image-edit-2511
+    fallbacks: []
+    location: local
+    notes: "Native local multi-reference edit; blocked until provisioned."
+  face_swap:
+    primary: comfyui-ipadapter
+    fallbacks: []
+    location: local
+    notes: "Local IP-Adapter only."
+  style_transfer:
+    primary: comfyui-ipadapter
+    fallbacks: []
+    location: local
+    notes: "Local IP-Adapter only."
+  upscale:
+    primary: comfyui-esrgan-anime
+    fallbacks: []
+    location: local
+    notes: "Local ESRGAN anime upscale."
+  remove_object:
+    primary: comfyui-qwen-image-edit-2511
+    fallbacks: []
+    location: local
+    notes: "Native local semantic removal."
+  detail_fix:
+    primary: comfyui-adetailer
+    fallbacks: []
+    location: local
+    notes: "Local YOLO detailer when provisioned."
+  preview:
+    primary: comfyui-wai-v170
+    fallbacks: []
+    location: local
+    notes: "Laptop-safe local preview."
+
 quality_overrides:
   fast:
     t2i: flux2-klein-4b

@@ -45,7 +45,7 @@ def load_tracking():
         try:
             with open(SAMPLE_TRACKING_FILE) as f:
                 return json.load(f)
-        except:
+        except Exception:
             pass
     return {"last_mongodb_sample": None, "last_firebase_sample": None}
 
@@ -64,7 +64,7 @@ def should_sample(last_sample_time):
     try:
         last_time = datetime.fromisoformat(last_sample_time)
         return datetime.now() - last_time > timedelta(hours=23)
-    except:
+    except Exception:
         return True
 
 

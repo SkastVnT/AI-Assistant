@@ -1,0 +1,25 @@
+version: anime-local-policy-v1
+scoring_rubric:
+  instruction_adherence:
+    description: "Does the output match the requested local benchmark instruction?"
+    weight: 1.0
+    threshold: 0.70
+  identity_consistency:
+    description: "Is the verified-adult subject identity preserved correctly?"
+    weight: 1.2
+    threshold: 0.80
+  anatomy:
+    description: "Is the generated anatomy coherent for the requested composition?"
+    weight: 1.0
+    threshold: 0.70
+  detail_handling:
+    description: "Are fine details rendered correctly?"
+    weight: 0.9
+    threshold: 0.70
+pass_fail:
+  case_pass_rule: all_dimensions_pass
+  category_pass_rate: 0.70
+  local_quality_gate_threshold: 0.80
+  critical_dimensions: [instruction_adherence, identity_consistency]
+  non_blocking_dimensions: []
+  min_cases_per_category: 2

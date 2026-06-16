@@ -306,6 +306,12 @@ class CompositionPassAgent:
             expected_output=comp.expected_output,
             source_image_b64=comp.source_image_b64,
             lora_models=comp.lora_models,
+            ipadapter_image_b64=comp.ipadapter_image_b64,
+            ipadapter_preset=comp.ipadapter_preset,
+            ipadapter_weight=comp.ipadapter_weight,
+            ipadapter_start_at=comp.ipadapter_start_at,
+            ipadapter_end_at=comp.ipadapter_end_at,
+            ipadapter_weight_type=comp.ipadapter_weight_type,
         )
 
     @staticmethod

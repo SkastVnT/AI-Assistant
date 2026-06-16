@@ -256,3 +256,119 @@ class RetrievalService:
                 )
             )
         return hits
+
+    # ------------------------------------------------------------------
+    # Image retrieval (CLIP multimodal)
+    # ------------------------------------------------------------------
+
+    async def retrieve_images(
+        self,
+        *,
+        tenant_id: str,
+        query: str,
+        top_k: int | None = None,
+        doc_ids: list[str] | None = None,
+        min_score: float | None = None,
+    ) -> list[RetrievalHit]:
+        """Search ``rag_image_chunks`` with a CLIP text-embedded query.
+
+        Returns ``RetrievalHit`` objects whose ``content`` is the image
+        caption and whose ``metadata_json`` carries ``object_path`` and
+        ``source="image"``. Returns ``[]`` when image RAG is disabled or
+        the CLIP sidecar is unreachable (fail-soft).
+        """
+        from core import clip_adapter
+
+        if not clip_adapter.is_enabled():
+            return []
+
+        effective_k = top_k or self._default_top_k
+        threshold = min_score if min_score is not None else self._min_score
+
+        policies = get_rag_policies()
+        effective_k = cap_top_k(effective_k, policies=policies)
+        query = enforce_query_length(query, policies=policies)
+
+        try:
+            query_vector = clip_adapter.embed_query(query)
+        except clip_adapter.ClipUnavailableError as exc:
+            logger.warning("[RAG] image retrieval skipped: %s", exc)
+            return []
+
+        return await self._image_vector_search(
+            tenant_id=tenant_id,
+            query_vector=query_vector,
+            top_k=effective_k,
+            doc_ids=doc_ids,
+            threshold=threshold,
+        )
+
+    async def _image_vector_search(
+        self,
+        *,
+        tenant_id: str,
+        query_vector: list[float],
+        top_k: int,
+        doc_ids: list[str] | None,
+        threshold: float,
+    ) -> list[RetrievalHit]:
+        """Cosine-distance query against ``rag_image_chunks``."""
+        session_factory = get_session_factory()
+        vec_literal = f"[{','.join(str(v) for v in query_vector)}]"
+
+        async with session_factory() as session:
+            sql = text(
+                """
+                SELECT
+                    ic.id           AS chunk_id,
+                    ic.document_id  AS document_id,
+                    d.title         AS title,
+                    ic.caption      AS caption,
+                    ic.object_path  AS object_path,
+                    1 - (ic.embedding <=> :vec) AS score,
+                    ic.metadata_json AS metadata_json
+                FROM rag_image_chunks ic
+                JOIN rag_documents d ON d.id = ic.document_id
+                WHERE ic.tenant_id = :tenant
+                  AND ic.embedding IS NOT NULL
+                  AND 1 - (ic.embedding <=> :vec) >= :threshold
+                  {doc_filter}
+                ORDER BY ic.embedding <=> :vec
+                LIMIT :topk
+            """.replace(
+                    "{doc_filter}",
+                    "AND ic.document_id = ANY(:doc_ids)" if doc_ids else "",
+                )
+            )
+
+            params: dict = {
+                "vec": vec_literal,
+                "tenant": tenant_id,
+                "threshold": threshold,
+                "topk": top_k,
+            }
+            if doc_ids:
+                params["doc_ids"] = [
+                    uuid.UUID(d) if isinstance(d, str) else d for d in doc_ids
+                ]
+
+            result = await session.execute(sql, params)
+            rows = result.mappings().all()
+
+        hits: list[RetrievalHit] = []
+        for row in rows:
+            metadata = dict(row["metadata_json"] or {})
+            metadata["source"] = "image"
+            metadata["object_path"] = row["object_path"]
+            hits.append(
+                RetrievalHit(
+                    chunk_id=str(row["chunk_id"]),
+                    document_id=str(row["document_id"]),
+                    title=row["title"],
+                    content=row["caption"] or row["title"] or "",
+                    score=float(row["score"]),
+                    metadata_json=metadata,
+                )
+            )
+        return hits
+

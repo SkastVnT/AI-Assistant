@@ -176,7 +176,7 @@ class AsyncQwenChat:
                                 )
                                 if content:
                                     yield content
-                            except:
+                            except Exception:
                                 pass
 
 
@@ -210,8 +210,9 @@ class AsyncBloomVNChat:
         async def _call():
             conversation = self._build_conversation(messages)
 
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
+            async with (
+                aiohttp.ClientSession() as session,
+                session.post(
                     "https://api-inference.huggingface.co/models/BlossomsAI/BloomVN-8B-chat",
                     headers={"Authorization": f"Bearer {self.config.api_key}"},
                     json={
@@ -223,7 +224,8 @@ class AsyncBloomVNChat:
                         },
                     },
                     timeout=aiohttp.ClientTimeout(total=self.config.timeout),
-                ) as response:
+                ) as response,
+            ):
                     if response.status == 200:
                         result = await response.json()
                         if isinstance(result, list) and len(result) > 0:

@@ -3212,10 +3212,12 @@ class TestStructureLockConfigYaml:
         from image_pipeline.anime_pipeline.config import load_config
 
         config = load_config()
-        # lineart_anime and depth should be enabled, canny disabled (from YAML)
+        # SD1.5 ControlNet inventory is visible but disabled for the SDXL base.
         layer_map = {lc.layer_type: lc for lc in config.structure_layers}
         if "lineart_anime" in layer_map:
-            assert layer_map["lineart_anime"].enabled is True
+            assert layer_map["lineart_anime"].enabled is False
+        if "depth" in layer_map:
+            assert layer_map["depth"].enabled is False
         if "canny" in layer_map:
             assert layer_map["canny"].enabled is False
 
@@ -3247,7 +3249,7 @@ class TestStructureLockConfigYaml:
         from image_pipeline.anime_pipeline.config import load_config
 
         config = load_config()
-        assert config.max_simultaneous_layers == 2
+        assert config.max_simultaneous_layers == 0
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -5985,7 +5987,7 @@ class TestRefineLoopAgent:
             return job
 
         MockCritique.return_value.execute.side_effect = mock_critique
-        MockBeauty.return_value  # not called
+        _ = MockBeauty.return_value  # not called
 
         config = _make_refine_config()
         agent = RefineLoopAgent(config)
@@ -7249,7 +7251,7 @@ class TestManifestToJson:
         s = manifest_to_json(job, indent=4)
         # 4-space indent means lines start with "    "
         lines = s.split("\n")
-        indented = [l for l in lines if l.startswith("    ")]
+        indented = [ln for ln in lines if ln.startswith("    ")]
         assert len(indented) > 0
 
     def test_debug_mode_forwarded(self):

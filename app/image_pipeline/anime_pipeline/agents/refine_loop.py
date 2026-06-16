@@ -333,6 +333,7 @@ def patch_plan_from_critique(
                 ControlInput(
                     layer_type=ci.layer_type,
                     controlnet_model=ci.controlnet_model,
+                    union_control_type=ci.union_control_type,
                     strength=max(0.1, min(1.0, ci.strength + delta)),
                     start_percent=ci.start_percent,
                     end_percent=ci.end_percent,
@@ -381,6 +382,7 @@ def patch_plan_from_critique(
                 new_controls[i] = ControlInput(
                     layer_type=ci.layer_type,
                     controlnet_model=ci.controlnet_model,
+                    union_control_type=ci.union_control_type,
                     strength=max(0.1, min(1.0, ci.strength + delta)),
                     start_percent=ci.start_percent,
                     end_percent=ci.end_percent,
@@ -407,6 +409,12 @@ def patch_plan_from_critique(
         expected_output=pc.expected_output,
         source_image_b64=pc.source_image_b64,
         lora_models=pc.lora_models,
+        ipadapter_image_b64=pc.ipadapter_image_b64,
+        ipadapter_preset=pc.ipadapter_preset,
+        ipadapter_weight=pc.ipadapter_weight,
+        ipadapter_start_at=pc.ipadapter_start_at,
+        ipadapter_end_at=pc.ipadapter_end_at,
+        ipadapter_weight_type=pc.ipadapter_weight_type,
     )
 
 

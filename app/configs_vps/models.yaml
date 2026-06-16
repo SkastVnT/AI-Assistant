@@ -18,6 +18,63 @@
 
 models:
 
+  # Standalone LOCAL providers. RuntimePolicy routes only to these entries.
+
+  comfyui-wai-v170:
+    provider: comfyui
+    endpoint: "waiIllustriousSDXL_v170.safetensors"
+    location: local
+    vram_gb: 6
+    cost_usd: 0.0
+    tier: local
+    capabilities: [t2i, i2i, inpaint, preview]
+    max_refs: 1
+    notes: "Canonical anime checkpoint for all standalone tiers."
+
+  comfyui-flux2-klein-4b:
+    provider: comfyui-native
+    endpoint: "flux2_klein_4b"
+    location: local
+    vram_gb: 12
+    cost_usd: 0.0
+    tier: local
+    capabilities: [t2i, i2i]
+    max_refs: 1
+    notes: "PC sequential native ComfyUI workflow; manually provisioned."
+
+  comfyui-flux2-klein-9b:
+    provider: comfyui-native
+    endpoint: "flux2_klein_9b"
+    location: local
+    vram_gb: 24
+    cost_usd: 0.0
+    tier: ultra
+    capabilities: [t2i, i2i, multi_ref]
+    max_refs: 4
+    notes: "VPS native ComfyUI workflow; manually provisioned."
+
+  comfyui-qwen-image-edit-2511:
+    provider: comfyui-native
+    endpoint: "qwen_image_edit_2511"
+    location: local
+    vram_gb: 24
+    cost_usd: 0.0
+    tier: ultra
+    capabilities: [semantic_edit, multi_turn_edit, instruction_edit, multi_ref]
+    max_refs: 4
+    notes: "VPS native ComfyUI workflow. Do not route through chat completions."
+
+  comfyui-esrgan-anime:
+    provider: comfyui
+    endpoint: "RealESRGAN_x4plus_anime_6B.pth"
+    location: local
+    vram_gb: 2
+    cost_usd: 0.0
+    tier: local
+    capabilities: [upscale]
+    max_refs: 0
+    notes: "Local anime ESRGAN upscale."
+
   # ── Semantic editing brain (§5.1) ─────────────────────────────────
 
   qwen-image-edit:

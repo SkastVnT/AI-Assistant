@@ -18,18 +18,48 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import ipaddress
 import json
 import logging
 import os
 import re
+import socket
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import urlsplit
 
 from image_pipeline.paths import STORAGE_DIR
 
 logger = logging.getLogger(__name__)
+
+
+# ── URL safety guard (SSRF mitigation) ───────────────────────────────
+
+def _is_safe_external_url(url: str) -> bool:
+    """Return True only when ``url`` is a public HTTP/HTTPS URL.
+
+    Blocks schemes other than http/https, non-routable hostnames, and
+    IP addresses that resolve to loopback, private, link-local, or
+    otherwise reserved ranges so the download helpers cannot be abused
+    as a server-side request forgery (SSRF) vector.
+    """
+    try:
+        parsed = urlsplit(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        hostname = parsed.hostname or ""
+        if not hostname:
+            return False
+        # Resolve the hostname to an IP and check whether it is public.
+        ip = ipaddress.ip_address(socket.gethostbyname(hostname))
+        if ip.is_loopback or ip.is_private or ip.is_link_local or ip.is_reserved:
+            return False
+        return True
+    except Exception:
+        return False
+
 
 # ── Storage paths ────────────────────────────────────────────────────
 
@@ -39,6 +69,16 @@ _RESEARCH_DIR = _STORAGE_ROOT / "character_research"
 
 # ── Research cache TTL (7 days) ──────────────────────────────────────
 _RESEARCH_TTL_SECONDS = 7 * 24 * 3600
+
+# ── Path-safe tag helper ─────────────────────────────────────────────
+# Danbooru tags can contain characters that are invalid in Windows paths
+# (e.g. rem_(re:zero) contains ':'). Sanitize before building any Path.
+_INVALID_PATH_CHARS = re.compile(r'[<>:"/\\|?*]')
+
+
+def _safe_dir(danbooru_tag: str) -> str:
+    """Return a filesystem-safe directory name for a danbooru tag."""
+    return _INVALID_PATH_CHARS.sub("_", danbooru_tag)
 
 
 # ── Seen-URL / byte-hash registry ────────────────────────────────────
@@ -58,7 +98,7 @@ _RESEARCH_TTL_SECONDS = 7 * 24 * 3600
 
 
 def _seen_registry_path(danbooru_tag: str) -> Path:
-    return _REF_DIR / danbooru_tag / "seen_urls.json"
+    return _REF_DIR / _safe_dir(danbooru_tag) / "seen_urls.json"
 
 
 def _load_seen_registry(danbooru_tag: str) -> dict[str, dict[str, str]]:
@@ -85,7 +125,7 @@ def _load_seen_registry(danbooru_tag: str) -> dict[str, dict[str, str]]:
 
     # Backfill: any image already in the ref dir but absent from the
     # registry should still be treated as seen.
-    ref_dir = _REF_DIR / danbooru_tag
+    ref_dir = _REF_DIR / _safe_dir(danbooru_tag)
     if ref_dir.is_dir():
         existing_files = list(ref_dir.glob("*.png")) + list(ref_dir.glob("*.jpg"))
         new_byte_entries = 0
@@ -172,15 +212,35 @@ _SAA_MIN_LOCAL_REFS = int(os.getenv("CHAR_RESEARCH_MIN_LOCAL_REFS", "5"))
 def _persist_saa_thumbnail(danbooru_tag: str) -> Optional[Path]:
     """Save the SAA WAI thumbnail for ``danbooru_tag`` into character_refs/.
 
+    The thumbnails in wai_character_thumbs.json are stored as
+    base64(gzip(WEBP)).  This function decompresses and converts
+    to PNG so the file is readable by every downstream image handler.
+
     Returns the path on success, None when no thumbnail or already saved.
     Never raises.
     """
+    import gzip
+
     if not danbooru_tag:
         return None
-    ref_dir = _REF_DIR / danbooru_tag
+    ref_dir = _REF_DIR / _safe_dir(danbooru_tag)
     target = ref_dir / "saa_thumb.png"
+
+    # Migration: delete any previously-saved broken file that still contains
+    # gzip magic bytes (written by the old code that skipped decompression).
     if target.exists():
-        return target
+        try:
+            if target.read_bytes()[:2] == b"\x1f\x8b":
+                target.unlink()
+                logger.info(
+                    "[CharResearch] Removed stale gzip saa_thumb.png for %s",
+                    danbooru_tag,
+                )
+            else:
+                return target
+        except Exception:
+            return target
+
     try:
         from .saa_character_db import get_character_thumbnail
     except Exception:
@@ -194,8 +254,33 @@ def _persist_saa_thumbnail(danbooru_tag: str) -> Optional[Path]:
             return None
         if "," in b64 and b64.startswith("data:"):
             b64 = b64.split(",", 1)[1]
+
+        raw = base64.b64decode(b64)
+
+        # Thumbnails are gzip-compressed WEBP — decompress first.
+        if raw[:2] == b"\x1f\x8b":
+            raw = gzip.decompress(raw)
+
+        # Convert WEBP (or any format Pillow understands) → PNG so the
+        # downstream glob("*.png") pattern picks it up correctly.
+        try:
+            from PIL import Image  # type: ignore[import-not-found]
+            import io as _io
+
+            img = Image.open(_io.BytesIO(raw))
+            buf = _io.BytesIO()
+            img.save(buf, format="PNG")
+            raw = buf.getvalue()
+        except Exception as _pil_err:
+            logger.debug(
+                "[CharResearch] PIL WEBP→PNG conversion failed for %s: %s — "
+                "saving raw bytes (may not open as PNG)",
+                danbooru_tag,
+                _pil_err,
+            )
+
         ref_dir.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(base64.b64decode(b64))
+        target.write_bytes(raw)
         logger.info(
             "[CharResearch] Persisted SAA thumbnail for %s -> %s",
             danbooru_tag,
@@ -222,7 +307,7 @@ def _collect_local_refs(
     if not danbooru_tag:
         return []
     out: list[str] = []
-    ref_dir = _REF_DIR / danbooru_tag
+    ref_dir = _REF_DIR / _safe_dir(danbooru_tag)
     saa_path = _persist_saa_thumbnail(danbooru_tag) if include_saa else None
     seen: set[str] = set()
     if saa_path and saa_path.exists():
@@ -306,7 +391,8 @@ class CharacterResearchResult:
 
     def build_positive_tags(self) -> list[str]:
         """Build ordered tag list: character > identity > layers."""
-        tags: list[str] = [self.danbooru_tag, self.series_tag]
+        # Skip empty or placeholder series_tag (e.g. "" or "unknown")
+        tags: list[str] = [t for t in [self.danbooru_tag, self.series_tag] if t and t != "unknown"]
         for layer in [
             self.eyes,
             self.hair,
@@ -586,9 +672,7 @@ _CHARACTER_ALIASES: dict[str, tuple[str, str, str, str]] = {
     "yami": ("konjiki_no_yami", "to_love-ru", "Yami", "To Love-Ru"),
     "haruna": ("sairenji_haruna", "to_love-ru", "Haruna", "To Love-Ru"),
     # Oshi no Ko
-    "ai hoshino": ("hoshino_ai", "oshi_no_ko", "Hoshino Ai", "Oshi no Ko"),
     "ruby hoshino": ("hoshino_ruby", "oshi_no_ko", "Hoshino Ruby", "Oshi no Ko"),
-    "ruby": ("hoshino_ruby", "oshi_no_ko", "Hoshino Ruby", "Oshi no Ko"),
     "kana arima": ("arima_kana", "oshi_no_ko", "Arima Kana", "Oshi no Ko"),
     "akane kurokawa": ("kurokawa_akane", "oshi_no_ko", "Kurokawa Akane", "Oshi no Ko"),
     # Fire Emblem
@@ -1174,7 +1258,7 @@ def _download_reference_images(
     """
     import httpx
 
-    ref_dir = _REF_DIR / danbooru_tag
+    ref_dir = _REF_DIR / _safe_dir(danbooru_tag)
     ref_dir.mkdir(parents=True, exist_ok=True)
 
     registry = _load_seen_registry(danbooru_tag)
@@ -1215,6 +1299,11 @@ def _download_reference_images(
         if w and h and (w < 300 or h < 300):
             continue
         if any(url.lower().endswith(ext) for ext in [".gif", ".webp", ".svg", ".ico"]):
+            continue
+
+        # SSRF guard: only fetch publicly routable HTTP/HTTPS URLs.
+        if not _is_safe_external_url(url):
+            logger.debug("[CharResearch] Skipping non-public URL: %s", url[:80])
             continue
 
         try:
@@ -1569,7 +1658,7 @@ def _analyze_reference_image(
 
 def _load_cached_research(danbooru_tag: str) -> Optional[CharacterResearchResult]:
     """Load cached research if still valid."""
-    cache_file = _RESEARCH_DIR / danbooru_tag / "research.json"
+    cache_file = _RESEARCH_DIR / _safe_dir(danbooru_tag) / "research.json"
     if not cache_file.exists():
         return None
 
@@ -1613,7 +1702,7 @@ def _load_cached_research(danbooru_tag: str) -> Optional[CharacterResearchResult
 
 def _save_research_cache(result: CharacterResearchResult) -> None:
     """Save research to cache."""
-    cache_dir = _RESEARCH_DIR / result.danbooru_tag
+    cache_dir = _RESEARCH_DIR / _safe_dir(result.danbooru_tag)
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_file = cache_dir / "research.json"
     try:
@@ -1630,6 +1719,7 @@ def research_character(
     user_prompt: str,
     user_reference_images: Optional[list[str]] = None,
     force_refresh: bool = False,
+    allow_network: bool = False,
 ) -> Optional[CharacterResearchResult]:
     """Full character research pipeline.
 
@@ -1646,7 +1736,8 @@ def research_character(
     Args:
         user_prompt: The user's generation request text
         user_reference_images: Optional user-uploaded reference images (base64)
-        force_refresh: Skip cache, re-research from web
+        force_refresh: Skip cache before optional provisioning-time web research
+        allow_network: Explicit provisioning-only opt-in for web research
 
     Returns:
         CharacterResearchResult or None if no character detected
@@ -1675,6 +1766,44 @@ def research_character(
     # 2026-04-26: SAA-first — ALWAYS gather local refs (incl. SAA thumb)
     # before any web call so external search becomes a true fallback.
     local_refs = _collect_local_refs(danbooru_tag, max_images=10)
+    if not allow_network:
+        cached = None if force_refresh else _load_cached_research(danbooru_tag)
+        if cached:
+            cached.reference_images_b64 = (
+                list(user_reference_images or [])[:2] + local_refs
+            )[:12]
+            cached.reference_image_urls = []
+            cached.search_sources = []
+            cached.research_time_ms = (time.time() - t0) * 1000
+            cached.local_refs_count = len(local_refs)
+            cached.web_refs_count = 0
+            cached.web_search_skipped = True
+            cached.nsfw_intent = nsfw_intent
+            return cached
+
+        result = CharacterResearchResult(
+            danbooru_tag=danbooru_tag,
+            series_tag=series_tag,
+            display_name=display_name,
+            series_name=series_name,
+            reference_images_b64=(
+                list(user_reference_images or [])[:2] + local_refs
+            )[:12],
+            identity_tags=[danbooru_tag],
+            confidence=0.55 if local_refs or user_reference_images else 0.30,
+            local_refs_count=len(local_refs),
+            web_refs_count=0,
+            web_search_skipped=True,
+            nsfw_intent=nsfw_intent,
+        )
+        _save_research_cache(result)
+        logger.info(
+            "[CharResearch] Offline cache-only result for %s (%d local refs)",
+            danbooru_tag,
+            len(local_refs),
+        )
+        return result
+
     # When _SAA_MIN_LOCAL_REFS <= 0 (default) the cap is disabled — web
     # search ALWAYS runs so the ref cache keeps growing. Set a positive
     # int via CHAR_RESEARCH_MIN_LOCAL_REFS to opt back into capping.

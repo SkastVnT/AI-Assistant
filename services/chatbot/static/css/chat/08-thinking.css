@@ -126,6 +126,13 @@
   transform: translateX(0);
 }
 
+/* In Electron, push the panel below the 36px custom titlebar so the
+   panel header and close button are not hidden under the window controls. */
+body.is-desktop .thinking-side-panel {
+  top: 36px;
+  height: calc(100vh - 36px);
+}
+
 /* Header */
 .thinking-side-panel__header {
   display: flex;

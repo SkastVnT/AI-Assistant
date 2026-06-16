@@ -1,0 +1,64 @@
+version: anime-local-v1
+content_mode: sfw
+comparator_capture:
+  mode: manual_offline_import
+  systems:
+    - ChatGPT Images 2.0 with thinking
+    - Nano Banana 2 (Gemini 3.1 Flash Image)
+    - Nano Banana Pro
+blind_review:
+  randomize_labels: true
+  combine_human_and_local_vlm: true
+defaults: &sfw
+  difficulty: medium
+  dimensions: [instruction_adherence, identity_consistency, anatomy, detail_handling]
+  setup: {mode: t2i, language: en}
+test_cases:
+  - {<<: *sfw, id: T2I-001, category: t2i_anime, instruction: "Anime portrait of an adult woman in a red coat under soft studio light."}
+  - {<<: *sfw, id: T2I-002, category: t2i_anime, instruction: "Anime full-body adult swordswoman on a quiet stone bridge at sunrise."}
+  - {<<: *sfw, id: T2I-003, category: t2i_anime, instruction: "Anime adult mage reading beside a rainy cafe window, warm interior lighting."}
+  - {<<: *sfw, id: T2I-004, category: t2i_anime, instruction: "Anime adult astronaut standing in a colorful orbital greenhouse."}
+  - {<<: *sfw, id: T2I-005, category: t2i_anime, instruction: "Anime adult musician performing on a small neon-lit stage."}
+  - {<<: *sfw, id: T2I-006, category: t2i_anime, instruction: "Anime adult detective in a library with dramatic rim light."}
+  - {<<: *sfw, id: T2I-007, category: t2i_anime, instruction: "Anime adult chef plating dessert in a bright modern kitchen."}
+  - {<<: *sfw, id: T2I-008, category: t2i_anime, instruction: "Anime adult traveler overlooking a mountain valley filled with clouds."}
+  - {<<: *sfw, id: ID-001, category: identity, instruction: "Preserve the adult character reference identity in a close portrait.", setup: {mode: identity, references: [{role: full, image: fixtures/identity/adult_ref_01.png}]}}
+  - {<<: *sfw, id: ID-002, category: identity, instruction: "Preserve face, hair color, and eye color from the adult reference.", setup: {mode: identity, references: [{role: full, image: fixtures/identity/adult_ref_02.png}]}}
+  - {<<: *sfw, id: ID-003, category: identity, instruction: "Render the adult reference character outdoors while preserving identity.", setup: {mode: identity, references: [{role: full, image: fixtures/identity/adult_ref_03.png}]}}
+  - {<<: *sfw, id: ID-004, category: identity, instruction: "Render the adult reference character seated while preserving outfit anchors.", setup: {mode: identity, references: [{role: full, image: fixtures/identity/adult_ref_04.png}]}}
+  - {<<: *sfw, id: ID-005, category: identity, instruction: "Preserve adult character identity under side lighting.", setup: {mode: identity, references: [{role: face, image: fixtures/identity/adult_ref_05.png}]}}
+  - {<<: *sfw, id: ID-006, category: identity, instruction: "Preserve adult character identity with a different camera angle.", setup: {mode: identity, references: [{role: face, image: fixtures/identity/adult_ref_06.png}]}}
+  - {<<: *sfw, id: ID-007, category: identity, instruction: "Preserve adult character identity in a waist-up composition.", setup: {mode: identity, references: [{role: full, image: fixtures/identity/adult_ref_07.png}]}}
+  - {<<: *sfw, id: ID-008, category: identity, instruction: "Preserve adult character identity in a detailed indoor scene.", setup: {mode: identity, references: [{role: full, image: fixtures/identity/adult_ref_08.png}]}}
+  - {<<: *sfw, id: AN-001, category: anatomy, instruction: "Anime adult pianist playing a grand piano with both hands visible."}
+  - {<<: *sfw, id: AN-002, category: anatomy, instruction: "Anime adult archer drawing a bow with clear hand placement."}
+  - {<<: *sfw, id: AN-003, category: anatomy, instruction: "Anime adult tailor sewing fabric with fingers visible."}
+  - {<<: *sfw, id: AN-004, category: anatomy, instruction: "Anime adult dancer in a balanced turning pose."}
+  - {<<: *sfw, id: AN-005, category: anatomy, instruction: "Anime adult mechanic repairing a small device with both hands visible."}
+  - {<<: *sfw, id: AN-006, category: anatomy, instruction: "Anime adult florist arranging flowers with clear wrists and fingers."}
+  - {<<: *sfw, id: AN-007, category: anatomy, instruction: "Anime adult climber tying a rope knot with visible hands."}
+  - {<<: *sfw, id: AN-008, category: anatomy, instruction: "Anime adult violinist performing with anatomically correct hands."}
+  - {<<: *sfw, id: POSE-001, category: pose, instruction: "Anime adult runner leaning forward at the starting line."}
+  - {<<: *sfw, id: POSE-002, category: pose, instruction: "Anime adult martial artist in a stable defensive stance."}
+  - {<<: *sfw, id: POSE-003, category: pose, instruction: "Anime adult photographer kneeling to take a picture."}
+  - {<<: *sfw, id: POSE-004, category: pose, instruction: "Anime adult gardener reaching upward to trim a branch."}
+  - {<<: *sfw, id: POSE-005, category: pose, instruction: "Anime adult cyclist resting beside a bicycle."}
+  - {<<: *sfw, id: POSE-006, category: pose, instruction: "Anime adult fencer lunging in profile."}
+  - {<<: *sfw, id: BG-001, category: complex_background, instruction: "Anime adult traveler in a crowded lantern market at night."}
+  - {<<: *sfw, id: BG-002, category: complex_background, instruction: "Anime adult librarian in a tall archive with spiral stairs."}
+  - {<<: *sfw, id: BG-003, category: complex_background, instruction: "Anime adult engineer in a detailed train station control room."}
+  - {<<: *sfw, id: BG-004, category: complex_background, instruction: "Anime adult botanist inside a layered tropical glasshouse."}
+  - {<<: *sfw, id: BG-005, category: complex_background, instruction: "Anime adult pilot walking through a busy futuristic hangar."}
+  - {<<: *sfw, id: BG-006, category: complex_background, instruction: "Anime adult artist painting beside a canal with reflected city lights."}
+  - {<<: *sfw, id: MR-001, category: multi_ref, instruction: "Combine the adult face reference and outfit reference consistently.", setup: {mode: multi_ref, references: [{role: face, image: fixtures/multi_ref/face_01.png}, {role: full, image: fixtures/multi_ref/outfit_01.png}]}}
+  - {<<: *sfw, id: MR-002, category: multi_ref, instruction: "Use the adult identity reference and pose reference in one coherent render.", setup: {mode: multi_ref, references: [{role: face, image: fixtures/multi_ref/face_02.png}, {role: pose, image: fixtures/multi_ref/pose_02.png}]}}
+  - {<<: *sfw, id: MR-003, category: multi_ref, instruction: "Preserve adult identity while applying the reference palette and composition.", setup: {mode: multi_ref, references: [{role: face, image: fixtures/multi_ref/face_03.png}, {role: style, image: fixtures/multi_ref/style_03.png}]}}
+  - {<<: *sfw, id: MR-004, category: multi_ref, instruction: "Combine adult identity, outfit, and background references.", setup: {mode: multi_ref, references: [{role: face, image: fixtures/multi_ref/face_04.png}, {role: full, image: fixtures/multi_ref/outfit_04.png}, {role: style, image: fixtures/multi_ref/background_04.png}]}}
+  - {<<: *sfw, id: EDIT-001, category: semantic_edit, instruction: "Change the daytime sky to sunset while preserving the adult subject.", setup: {mode: semantic_edit, source_image: fixtures/edit/source_01.png}}
+  - {<<: *sfw, id: EDIT-002, category: semantic_edit, instruction: "Replace the coat color with navy blue while preserving face and pose.", setup: {mode: semantic_edit, source_image: fixtures/edit/source_02.png}}
+  - {<<: *sfw, id: EDIT-003, category: semantic_edit, instruction: "Add a small table lamp and keep the adult character unchanged.", setup: {mode: semantic_edit, source_image: fixtures/edit/source_03.png}}
+  - {<<: *sfw, id: EDIT-004, category: semantic_edit, instruction: "Remove the background sign while preserving the scene composition.", setup: {mode: semantic_edit, source_image: fixtures/edit/source_04.png}}
+  - {<<: *sfw, id: MT-001, category: multi_turn_edit, instruction: "Apply the final edit.", setup: {mode: multi_turn_edit, source_image: fixtures/edit/source_01.png}, turns: [{instruction: "Change the sky to sunset."}, {instruction: "Now add soft window reflections."}]}
+  - {<<: *sfw, id: MT-002, category: multi_turn_edit, instruction: "Apply the final edit.", setup: {mode: multi_turn_edit, source_image: fixtures/edit/source_02.png}, turns: [{instruction: "Change the coat to navy."}, {instruction: "Now add a silver scarf."}]}
+  - {<<: *sfw, id: MT-003, category: multi_turn_edit, instruction: "Apply the final edit.", setup: {mode: multi_turn_edit, source_image: fixtures/edit/source_03.png}, turns: [{instruction: "Add a table lamp."}, {instruction: "Now make the lamp cast warm light."}]}
+  - {<<: *sfw, id: MT-004, category: multi_turn_edit, instruction: "Apply the final edit.", setup: {mode: multi_turn_edit, source_image: fixtures/edit/source_04.png}, turns: [{instruction: "Remove the sign."}, {instruction: "Now add subtle rain reflections."}]}

@@ -39,6 +39,14 @@ jobs:
       run: |
         pytest tests/test_p0_trust_boundary.py tests/test_mcp_guard.py -q --no-header --tb=line
 
+    - name: Anime LOCAL contract smoke
+      working-directory: ./services/chatbot
+      env:
+        TESTING: "True"
+        MONGODB_ENABLED: "False"
+      run: |
+        pytest tests/test_anime_pipeline_local_policy.py -q --no-header --tb=line
+
     - name: Run service tests (default gate)
       working-directory: ./services/chatbot
       env:

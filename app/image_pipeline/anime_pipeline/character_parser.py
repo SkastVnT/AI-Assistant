@@ -483,9 +483,9 @@ def _resolve_via_saa(user_prompt: str) -> Optional[tuple[str, str, str, str]]:
     if best is None:
         return None
 
-    series_tag = (best.series_hint or "").replace(" ", "_").lower() or "unknown"
-    series_name = best.series_hint or "Unknown"
-    display = best.display_name or best.tag.title()
+    series_tag = (best.series_hint or "").replace(" ", "_").lower()  # "" when no series info
+    series_name = best.series_hint or ""
+    display = best.display_name or best.tag.replace("_", " ").title()
     return (best.danbooru_tag, series_tag, display, series_name)
 
 

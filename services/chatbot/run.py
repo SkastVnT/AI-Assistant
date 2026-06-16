@@ -41,6 +41,13 @@ def _kill_sidecars() -> None:
 
 atexit.register(_kill_sidecars)
 
+# Ensure stdout/stderr emit UTF-8 on Windows (default is cp1252 which garbles emoji).
+# Python 3.7+ TextIOWrapper supports reconfigure(); falls back to PYTHONIOENCODING env var.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 # Configure logging early — before any module imports so all loggers inherit this config.
 # NOTE: force=False (default) so that when uvicorn worker re-imports this module it does NOT
 # wipe uvicorn's access-log handlers that were already set up by the worker bootstrap.
@@ -77,15 +84,19 @@ sys.path = _priority + [p for p in sys.path if p not in set(_priority)]
 
 # Load environment variables EARLY — before any app module imports
 # so that config class attributes (evaluated at import time) pick up .env values.
-
-load_shared_env(__file__)
-
-# Load chatbot-specific .env for vars not already set by shared env
-# (e.g. FAL_API_KEY, STEPFUN_API_KEY that only exist in chatbot .env).
-
+#
+# Order matters: load chatbot-specific .env FIRST so API keys and local settings
+# are in os.environ before shared env runs. shared env uses no-override by default,
+# so its empty placeholder values (e.g. GROK_API_KEY=) will NOT clobber the real
+# values already set here.
 _chatbot_env = service_dir / ".env"
 if _chatbot_env.exists():
-    load_dotenv(_chatbot_env)  # no override: shared env values take priority
+    load_dotenv(_chatbot_env)  # sets API keys and chatbot-specific settings
+
+# Now load shared env — fills in global infrastructure settings (FLASK_*, MONGODB_URI,
+# etc.) that are not already set. Empty API key placeholders in shared env are silently
+# skipped because the values are already present from the chatbot .env above.
+load_shared_env(__file__)
 
 
 def _env_flag(name: str, default: str = "false") -> bool:
@@ -123,7 +134,7 @@ def _spawn_background_process(
     logs_dir = project_root / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
     log_path = logs_dir / log_name
-    log_handle = open(log_path, "ab")
+    log_handle = open(log_path, "ab")  # noqa: SIM115  # must stay open for Popen
 
     try:
         child = subprocess.Popen(

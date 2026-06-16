@@ -29,7 +29,7 @@ class ComfyUIClient:
         try:
             response = requests.get(f"{self.api_url}/system_stats", timeout=5)
             return response.status_code == 200
-        except:
+        except Exception:
             return False
 
     # Known working models (verified with non-zero file size)
@@ -172,7 +172,7 @@ class ComfyUIClient:
         try:
             response = requests.post(f"{self.api_url}/interrupt", timeout=5)
             return response.status_code == 200
-        except:
+        except Exception:
             return False
 
     def img2img(
@@ -269,8 +269,8 @@ class ComfyUIClient:
             # Add LoRA nodes if specified
             if lora_models:
                 available_loras = [
-                    l.get("name", l) if isinstance(l, dict) else l
-                    for l in self.get_loras()
+                    lora_item.get("name", lora_item) if isinstance(lora_item, dict) else lora_item
+                    for lora_item in self.get_loras()
                 ]
                 for lora in lora_models:
                     lora_name = (
@@ -558,7 +558,7 @@ class ComfyUIClient:
                             or status.get("status_str") == "success"
                         ):
                             return outputs
-            except:
+            except Exception:
                 pass
             time.sleep(1)
 

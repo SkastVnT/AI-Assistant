@@ -8,7 +8,7 @@ Responsibility:
 
 from .base import Base, get_engine, get_session_factory
 from .chroma import ChromaStore, VectorStore
-from .models import RagChunk, RagDocument
+from .models import RagChunk, RagDocument, RagImageChunk
 
 __all__ = [
     "Base",
@@ -18,4 +18,5 @@ __all__ = [
     "VectorStore",
     "RagDocument",
     "RagChunk",
+    "RagImageChunk",
 ]

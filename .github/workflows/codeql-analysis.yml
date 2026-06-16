@@ -31,7 +31,7 @@ jobs:
 
     - name: Remove excluded directories
       run: |
-        rm -rf ComfyUI app/ComfyUI private venv* .venv*
+        rm -rf ComfyUI private venv* .venv*
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
@@ -42,6 +42,8 @@ jobs:
           paths:
             - services/
             - app/src/
+            - app/image_pipeline/
+            - app/rag/
           paths-ignore:
             - '**/tests/**'
             - '**/test_*'

@@ -23,7 +23,7 @@ try:
     from .repositories.conversation_repository import ConversationRepository
     from .repositories.memory_repository import MemoryRepository
     from .repositories.message_repository import MessageRepository
-    from .utils.session import DatabaseSession, get_db_session
+    from .utils.session import DatabaseSession
 
     DB_AVAILABLE = True
 except ImportError as e:

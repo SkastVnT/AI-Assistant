@@ -35,6 +35,12 @@ class RAGSettings:
     top_k: int = 5
     min_score: float = 0.3
 
+    # ── Image RAG (CLIP multimodal) ────────────────────────────────────
+    image_enabled: bool = False
+    clip_embed_url: str = "http://localhost:8200"
+    clip_embed_dim: int = 512
+    clip_embed_timeout: float = 30.0
+
     # ── Redis (cache / pub-sub) ────────────────────────────────────────
     redis_url: str = "redis://localhost:6379/0"
 
@@ -62,6 +68,10 @@ def get_rag_settings() -> RAGSettings:
         embed_dim=int(os.getenv("RAG_EMBED_DIM", "1536")),
         top_k=int(os.getenv("RAG_TOP_K", "5")),
         min_score=float(os.getenv("RAG_MIN_SCORE", "0.3")),
+        image_enabled=_bool(os.getenv("RAG_IMAGE_ENABLED", "false")),
+        clip_embed_url=os.getenv("CLIP_EMBED_URL", "http://localhost:8200"),
+        clip_embed_dim=int(os.getenv("CLIP_EMBED_DIM", "512")),
+        clip_embed_timeout=float(os.getenv("CLIP_EMBED_TIMEOUT", "30.0")),
         redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
         minio_endpoint=os.getenv("MINIO_ENDPOINT", "localhost:9000"),
         minio_access_key=os.getenv("MINIO_ACCESS_KEY", "minioadmin"),

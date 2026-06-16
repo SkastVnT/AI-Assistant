@@ -301,10 +301,9 @@ ComfyUI/temp/
 ComfyUI/custom_nodes/
 ComfyUI/__pycache__/
 ComfyUI/*.log
-app/ComfyUI/models/
-app/ComfyUI/output/
-app/ComfyUI/input/
-app/ComfyUI/temp/
+# Legacy local residue from the removed tracked mirror. Keep user runtime
+# artifacts out of Git without treating this as a supported runtime path.
+/app/ComfyUI/
 services/edit-image/ComfyUI/models/
 services/edit-image/ComfyUI/output/
 services/edit-image/ComfyUI/input/
@@ -328,6 +327,9 @@ undefined/
 
 # Local character override data (user-supplied; not for commit)
 services/chatbot/config/character_overrides.json
+
+# Local verified-adult benchmark fixtures and operator-authored prompts
+/.local/benchmarks/adult_only/
 
 # ============================================
 # OLD / SUPERSEDED UI FILES

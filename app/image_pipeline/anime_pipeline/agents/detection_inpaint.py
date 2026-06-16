@@ -878,6 +878,13 @@ class DetectionInpaintAgent:
         passes_run = 0
         total_region_count = 0
         for region_type in ordered_types:
+            elapsed_ms = (time.time() - t0) * 1000
+            if passes_run >= self._config.detection_inpaint_max_passes:
+                logger.info("[DetectionInpaint] Reached configured pass cap")
+                break
+            if elapsed_ms >= self._config.detection_inpaint_time_budget_ms:
+                logger.info("[DetectionInpaint] Reached configured time budget")
+                break
             # Instant-cancel checkpoint: abort before submitting the
             # next region's inpaint workflow when the user clicked Stop.
             if _is_job_cancel_requested(getattr(job, "job_id", "")):
@@ -891,6 +898,7 @@ class DetectionInpaintAgent:
             regions = detection.get(region_type)
             if not regions:
                 continue
+            regions = regions[: self._config.detection_inpaint_max_regions_per_pass]
 
             total_region_count += len(regions)
 

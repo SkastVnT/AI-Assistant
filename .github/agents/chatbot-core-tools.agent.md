@@ -17,7 +17,7 @@ You are the repository's chatbot-core specialist for https://github.com/SkastVnT
 
 ## Default away from
 
-- `ComfyUI/`, `app/ComfyUI/`
+- `ComfyUI/`, `services/edit-image/ComfyUI/`
 - `app/image_pipeline/`
 - `services/stable-diffusion/`
 - `services/edit-image/`

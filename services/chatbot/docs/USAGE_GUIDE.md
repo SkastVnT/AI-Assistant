@@ -2,8 +2,7 @@
 
 ## Khởi động ChatBot
 ```bash
-cd "d:\WORK\AI assistant\ChatBot"
-python app.py
+python services/chatbot/run.py
 ```
 Mở trình duyệt: http://127.0.0.1:5000
 

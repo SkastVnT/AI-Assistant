@@ -1,0 +1,6 @@
+version: 1
+# Operator-maintained local registry. Runtime code never downloads references
+# or LoRAs. Set adult_verified only after manually verifying that every subject
+# represented by the pack is an adult.
+packs: []
+

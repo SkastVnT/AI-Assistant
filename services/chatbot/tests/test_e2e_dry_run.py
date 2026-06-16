@@ -1,7 +1,7 @@
 """
 End-to-end dry-run test — AnimePipelineOrchestrator
 
-Exercises the full 7-stage pipeline with ALL external calls mocked:
+Exercises the full multi-stage pipeline with ALL external calls mocked:
   - ComfyClient.submit_workflow → returns fake images
   - VisionAnalystAgent.execute → returns canned VisionAnalysis
   - CritiqueAgent._critique_gemini / _critique_openai → returns mock scores
@@ -10,7 +10,7 @@ Exercises the full 7-stage pipeline with ALL external calls mocked:
 Validates:
   - Correct event sequence from run_stream()
   - Job status transitions: PENDING → RUNNING → COMPLETED
-  - All 7 stages executed
+  - Core stages executed
   - Critique loop respects threshold (pass on first round)
   - Critique loop retries (fail first, pass second)
   - Fallback image captured on complete failure

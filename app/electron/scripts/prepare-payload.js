@@ -83,7 +83,6 @@ const EXCLUDE_SUBSTR = [
     '/app/logs/',
     '/app/local_data/',
     '/app/uploads/',
-    '/app/ComfyUI/',
     '/app/storage/intermediate/',
     '/app/storage/outputs/',
     '/app/storage/character_research/',

@@ -6,13 +6,14 @@ import json
 import logging
 from pathlib import Path
 
-from flask import Blueprint, abort, jsonify, request
+from flask import Blueprint, jsonify, request
 
 from core.job_queue import JOB_STATES, get_queue
 
 logger = logging.getLogger(__name__)
 
 jobs_bp = Blueprint("jobs", __name__, url_prefix="/api/jobs")
+_REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 @jobs_bp.get("")
@@ -50,15 +51,10 @@ def get_job(job_id: str):
 @jobs_bp.get("/<job_id>/manifest")
 def get_manifest(job_id: str):
     """Return the manifest JSON written by ResultStore, if available."""
-    repo_root = Path(__file__).resolve().parents[3]
-    candidate = (repo_root / "storage" / "metadata" / f"{job_id}.json").resolve()
-    try:
-        candidate.relative_to(repo_root)
-    except ValueError:
-        abort(403)
-    if not candidate.exists():
+    rec = get_queue().get(job_id)
+    candidate = _find_manifest_file(job_id, rec.manifest_path if rec else None)
+    if candidate is None:
         # Fall back to in-memory job record if manifest file not written
-        rec = get_queue().get(job_id)
         if rec is None:
             return jsonify({"error": "not_found", "job_id": job_id}), 404
         return jsonify({"job": rec.to_dict(), "manifest_source": "memory"})
@@ -70,6 +66,43 @@ def get_manifest(job_id: str):
     return jsonify(
         {"manifest": data, "manifest_source": "file", "path": str(candidate)}
     )
+
+
+def _find_manifest_file(job_id: str, recorded_path: str | None = None) -> Path | None:
+    """Resolve a manifest only from approved app storage locations."""
+
+    repo_root = _REPO_ROOT
+    storage_root = (repo_root / "app" / "storage").resolve()
+    approved_roots = (
+        (storage_root / "metadata").resolve(),
+        (storage_root / "intermediate").resolve(),
+    )
+    candidates: list[Path] = []
+    if recorded_path:
+        recorded = Path(recorded_path)
+        if not recorded.is_absolute():
+            recorded = repo_root / recorded
+        candidates.append(recorded.resolve())
+    candidates.extend(
+        [
+            (approved_roots[0] / f"{job_id}.json").resolve(),
+            (approved_roots[1] / job_id / "output_manifest.json").resolve(),
+        ]
+    )
+
+    candidate = None
+    for path in candidates:
+        try:
+            if any(path.is_relative_to(root) for root in approved_roots):
+                if path.is_file():
+                    candidate = path
+                    break
+            else:
+                logger.warning("jobs.get_manifest: rejected unsafe path %s", path)
+        except ValueError:
+            logger.warning("jobs.get_manifest: rejected unsafe path %s", path)
+
+    return candidate
 
 
 @jobs_bp.post("/<job_id>/cancel")

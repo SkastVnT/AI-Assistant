@@ -17,6 +17,7 @@ from typing import Optional
 
 from ..config import AnimePipelineConfig
 from ..schemas import AnimePipelineJob, AnimePipelineStatus, VisionAnalysis
+from ..runtime_policy import RuntimePolicy
 
 logger = logging.getLogger(__name__)
 
@@ -647,6 +648,7 @@ class VisionAnalystAgent:
 
     def __init__(self, config: AnimePipelineConfig):
         self._config = config
+        self._policy = RuntimePolicy.from_config(config)
 
     def execute(self, job: AnimePipelineJob) -> AnimePipelineJob:
         """Run vision analysis on reference/source images."""
@@ -677,6 +679,14 @@ class VisionAnalystAgent:
             # Try each vision model in priority order
             analysis = None
             for model_name in self._config.vision_model_priority:
+                if not self._policy.allows_provider(
+                    model_name, purpose="local_vision_analysis"
+                ):
+                    logger.debug(
+                        "[VisionAnalyst] Provider blocked by runtime policy: %s",
+                        model_name,
+                    )
+                    continue
                 try:
                     analysis = self._analyze_with_model(
                         model_name, job.user_prompt, images_b64, job.language
@@ -731,6 +741,16 @@ class VisionAnalystAgent:
         silently fell through to Gemini/GPT, defeating the NSFW chain.
         """
         name = model_name.lower()
+        if name.startswith("local"):
+            return self._analyze_openai_compat(
+                self._config.local_vlm_model or model_name,
+                user_prompt,
+                images_b64,
+                language,
+                base_url=f"{self._config.local_vlm_url.rstrip('/')}/chat/completions",
+                api_key=os.getenv("ANIME_PIPELINE_LOCAL_VLM_API_KEY", "local"),
+                key_label="ANIME_PIPELINE_LOCAL_VLM_API_KEY",
+            )
         if name.startswith("gemini"):
             return self._analyze_gemini(model_name, user_prompt, images_b64, language)
         if name.startswith("gpt"):
@@ -912,6 +932,7 @@ class VisionAnalystAgent:
         """
         if not api_key:
             raise RuntimeError(f"No {key_label} set")
+        self._policy.assert_url(base_url, purpose="local_vision_analysis")
 
         import httpx
 
@@ -1150,6 +1171,33 @@ class VisionAnalystAgent:
                     return [], [str(t).strip() for t in obj[:15] if t]
             except (json.JSONDecodeError, KeyError):
                 pass
+            return [], []
+
+        # Prompt translation is a runtime concern, so it is local-only. A
+        # missing VLM degrades to deterministic prompt parsing below.
+        local_url = f"{self._config.local_vlm_url.rstrip('/')}/chat/completions"
+        try:
+            self._policy.assert_url(local_url, purpose="local_prompt_translation")
+            with httpx.Client(timeout=15) as client:
+                resp = client.post(
+                    local_url,
+                    json={
+                        "model": self._config.local_vlm_model or "local-vlm",
+                        "messages": [{"role": "user", "content": msg}],
+                        "max_tokens": 200,
+                        "temperature": 0.1,
+                        "response_format": {"type": "json_object"},
+                    },
+                    headers={
+                        "Authorization": "Bearer "
+                        + os.getenv("ANIME_PIPELINE_LOCAL_VLM_API_KEY", "local")
+                    },
+                )
+                resp.raise_for_status()
+            text = resp.json()["choices"][0]["message"]["content"]
+            return _parse_tags(text)
+        except Exception as e:
+            logger.debug("[VisionAnalyst] Local translation unavailable: %s", e)
             return [], []
 
         # Try Gemini first (rotate through key pool, skip exhausted keys).

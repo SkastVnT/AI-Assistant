@@ -249,7 +249,7 @@ class TestCharacterState:
         assert restored == alice_char
 
     def test_frozen(self, alice_char: CharacterState) -> None:
-        with pytest.raises(Exception):  # FrozenInstanceError or AttributeError
+        with pytest.raises((AttributeError, TypeError)):  # FrozenInstanceError or AttributeError
             alice_char.character_name = "Bob"  # type: ignore[misc]
 
     def test_hashable(self, alice_char: CharacterState) -> None:

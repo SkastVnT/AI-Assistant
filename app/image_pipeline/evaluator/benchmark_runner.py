@@ -1,7 +1,7 @@
 """
 image_pipeline.evaluator.benchmark_runner — CLI/programmatic benchmark executor.
 
-Loads test cases from configs/benchmark_suite.yaml, runs them through the
+Loads test cases from configs/anime_benchmark_suite.yaml, runs them through the
 pipeline, scores each with the Scorer, records results via ExperimentLog,
 and prints a suite summary.
 
@@ -19,12 +19,19 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+import os
 import sys
+import inspect
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
 import yaml
 
+from image_pipeline.evaluator.benchmark_config import (
+    load_benchmark_config,
+    resolve_suite_path,
+)
 from image_pipeline.evaluator.experiment_log import ExperimentLog, RunSummary
 from image_pipeline.evaluator.scorer import Scorer
 from image_pipeline.job_schema import (
@@ -40,7 +47,19 @@ from image_pipeline.paths import CONFIGS_DIR
 logger = logging.getLogger(__name__)
 
 _CONFIGS_DIR = CONFIGS_DIR
-_BENCHMARK_YAML = _CONFIGS_DIR / "benchmark_suite.yaml"
+_BENCHMARK_YAML = _CONFIGS_DIR / "anime_benchmark_suite.yaml"
+
+
+@dataclass
+class BenchmarkExecution:
+    """Artifacts and provenance returned by one live pipeline execution."""
+
+    output_path: Path
+    run_metadata: Any = None
+    source_image_path: Path | None = None
+    reference_paths: list[Path] = field(default_factory=list)
+    turn_artifacts: list[Path] = field(default_factory=list)
+    route_provenance: dict[str, Any] = field(default_factory=dict)
 
 
 class BenchmarkRunner:
@@ -56,11 +75,18 @@ class BenchmarkRunner:
         benchmark_path: str | Path | None = None,
         scorer: Scorer | None = None,
         pipeline_fn: Any = None,  # async (ImageJob) -> (output_path, RunMetadata)
+        artifact_root: str | Path | None = None,
     ):
         self._benchmark_path = Path(benchmark_path or _BENCHMARK_YAML)
+        self._benchmark_cfg = load_benchmark_config(self._benchmark_path)
+        self.content_mode = str(self._benchmark_cfg.get("content_mode", "sfw"))
+        self.requires_adult_verified = bool(
+            self._benchmark_cfg.get("requires_adult_verified", False)
+        )
         self._test_cases = self._load_test_cases()
         self._scorer = scorer
         self._pipeline_fn = pipeline_fn
+        self._artifact_root = Path(artifact_root) if artifact_root else None
 
         logger.info(
             "BenchmarkRunner: %d test cases loaded",
@@ -77,6 +103,8 @@ class BenchmarkRunner:
         case_ids: list[str] | None = None,
         categories: list[str] | None = None,
         dry_run: bool = False,
+        adult_verified: bool = False,
+        parity: bool = False,
     ) -> RunSummary:
         """
         Run the full benchmark suite or a filtered subset.
@@ -90,10 +118,35 @@ class BenchmarkRunner:
         Returns:
             RunSummary with all aggregated results.
         """
-        experiment = ExperimentLog(run_id=run_id)
+        if not dry_run and (self._pipeline_fn is None or self._scorer is None):
+            raise RuntimeError(
+                "Live benchmark requires both a real pipeline_fn and a scorer; "
+                "use --dry-run only for wiring checks"
+            )
+        if self.requires_adult_verified and not adult_verified:
+            raise RuntimeError("adult_only benchmark requires --adult-verified")
+        if parity and dry_run:
+            raise RuntimeError("Parity benchmark cannot run with --dry-run")
+        experiment = ExperimentLog(
+            run_id=run_id,
+            output_dir=self._artifact_root,
+            benchmark_cfg_path=self._benchmark_path,
+        )
 
         # Filter cases
         cases = self._filter_cases(case_ids, categories)
+        if self.requires_adult_verified and not dry_run:
+            cases = self._overlay_adult_fixture_pack(cases)
+        if not dry_run and self._pipeline_fn and hasattr(
+            self._pipeline_fn, "prepare_suite"
+        ):
+            prepared = self._pipeline_fn.prepare_suite(
+                cases,
+                parity=parity,
+                run_id=experiment.run_id,
+            )
+            if inspect.isawaitable(prepared):
+                await prepared
         logger.info(
             "Running %d/%d test cases (run_id=%s, dry_run=%s)",
             len(cases),
@@ -113,22 +166,32 @@ class BenchmarkRunner:
 
             try:
                 job = self._case_to_job(case)
+                turn_artifacts: list[Path] = []
 
                 if dry_run:
                     eval_result = self._stub_eval(job, case)
                     output_path = ""
                     run_meta = None
                 elif self._pipeline_fn and self._scorer:
-                    output_path, run_meta = await self._pipeline_fn(job)
-                    eval_result = await self._scorer.score(job, output_path)
-                else:
-                    logger.warning(
-                        "No pipeline or scorer configured; using stub for %s",
-                        case_id,
+                    execution = await self._pipeline_fn(job)
+                    if not isinstance(execution, BenchmarkExecution):
+                        output_path, run_meta = execution
+                        execution = BenchmarkExecution(
+                            output_path=Path(output_path),
+                            run_metadata=run_meta,
+                        )
+                    output_path = execution.output_path
+                    run_meta = execution.run_metadata
+                    turn_artifacts = execution.turn_artifacts
+                    eval_result = await self._scorer.score(
+                        job,
+                        output_path,
+                        source_image_path=execution.source_image_path,
+                        reference_paths=execution.reference_paths,
+                        force_dimensions=case.get("dimensions"),
                     )
-                    eval_result = self._stub_eval(job, case)
-                    output_path = ""
-                    run_meta = None
+                else:
+                    raise RuntimeError("Live benchmark wiring disappeared during run")
 
                 experiment.record_case(
                     case_id=case_id,
@@ -138,6 +201,7 @@ class BenchmarkRunner:
                     category=case.get("category", ""),
                     difficulty=case.get("difficulty", ""),
                     output_image_path=str(output_path),
+                    intermediate_images=[str(path) for path in turn_artifacts],
                 )
 
             except Exception as e:
@@ -158,6 +222,8 @@ class BenchmarkRunner:
                     category=case.get("category", ""),
                     difficulty=case.get("difficulty", ""),
                 )
+                if not dry_run:
+                    experiment.record_execution_error(case_id, str(e))
 
         # Save results
         output_dir = experiment.save()
@@ -176,9 +242,35 @@ class BenchmarkRunner:
         if not self._benchmark_path.exists():
             logger.warning("Benchmark file not found: %s", self._benchmark_path)
             return []
-        with open(self._benchmark_path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f) or {}
-        return data.get("test_cases", [])
+        return self._benchmark_cfg.get("test_cases", [])
+
+    def _overlay_adult_fixture_pack(
+        self, cases: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        manifest = str(self._benchmark_cfg.get("fixture_pack_manifest", ""))
+        if not manifest:
+            raise RuntimeError("adult_only suite has no fixture_pack_manifest")
+        manifest_path = Path(manifest)
+        if self._artifact_root:
+            manifest_path = self._artifact_root / manifest_path.name
+        elif not manifest_path.is_absolute():
+            manifest_path = CONFIGS_DIR.parents[1] / manifest_path
+        if not manifest_path.is_file():
+            raise RuntimeError(f"Missing local adult fixture manifest: {manifest_path}")
+        pack = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
+        if pack.get("adult_verified") is not True:
+            raise RuntimeError("Adult fixture pack is not adult_verified")
+        overlays = pack.get("cases", {})
+        merged_cases: list[dict[str, Any]] = []
+        for case in cases:
+            fixture_id = case.get("fixture_case")
+            overlay = overlays.get(fixture_id, {}) if isinstance(overlays, dict) else {}
+            if not isinstance(overlay, dict) or overlay.get("adult_verified") is not True:
+                raise RuntimeError(f"Missing verified adult fixture case: {fixture_id}")
+            merged = {**case, **overlay}
+            merged["setup"] = {**case.get("setup", {}), **overlay.get("setup", {})}
+            merged_cases.append(merged)
+        return merged_cases
 
     def _filter_cases(
         self,
@@ -201,16 +293,18 @@ class BenchmarkRunner:
         """Convert a benchmark test case dict into an ImageJob."""
         setup = case.get("setup", {})
 
-        # Handle multi-turn: use the last instruction
         instruction = case.get("instruction", "")
         turns = case.get("turns")
-        if turns and isinstance(turns, list):
-            instruction = turns[-1].get("instruction", instruction)
 
         job = ImageJob(
             user_instruction=instruction,
             intent=setup.get("mode", "t2i"),
             language=setup.get("language", "en"),
+            edit_turns=[
+                str(turn.get("instruction", "")).strip()
+                for turn in (turns or [])
+                if isinstance(turn, dict) and str(turn.get("instruction", "")).strip()
+            ],
         )
 
         # Source image for edit modes
@@ -309,8 +403,8 @@ class BenchmarkRunner:
         if summary.critical_failures:
             print(f"\n  CRITICAL FAILURES: {', '.join(summary.critical_failures)}")
 
-        nano_label = "YES" if summary.nano_banana_qualified else "NO"
-        print(f"\n  Nano Banana-like qualified: {nano_label}")
+        gate_label = "YES" if summary.local_quality_gate_passed else "NO"
+        print(f"\n  Local quality gate passed: {gate_label}")
         print("=" * 70 + "\n")
 
 
@@ -322,6 +416,17 @@ def main():
         description="Run image pipeline benchmark suite",
     )
     parser.add_argument("--run-id", default=None, help="Run identifier")
+    parser.add_argument(
+        "--suite",
+        choices=("auto", "sfw", "adult_only"),
+        default="auto",
+        help="Select the LOCAL benchmark suite; auto resolves to sfw",
+    )
+    parser.add_argument(
+        "--adult-verified",
+        action="store_true",
+        help="Confirm that the local adult fixture pack contains verified adults",
+    )
     parser.add_argument(
         "--cases",
         nargs="*",
@@ -339,6 +444,8 @@ def main():
         action="store_true",
         help="Generate stub scores without calling models",
     )
+    parser.add_argument("--artifact-root", default=None)
+    parser.add_argument("--parity", action="store_true")
     parser.add_argument(
         "--verbose",
         "-v",
@@ -353,7 +460,13 @@ def main():
         format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
     )
 
-    runner = BenchmarkRunner()
+    runner = BenchmarkRunner(
+        benchmark_path=resolve_suite_path(
+            args.suite,
+            os.getenv("ANIME_PIPELINE_PROFILE", "laptop_6gb"),
+        ),
+        artifact_root=args.artifact_root,
+    )
 
     summary = asyncio.run(
         runner.run_suite(
@@ -361,10 +474,12 @@ def main():
             case_ids=args.cases,
             categories=args.categories,
             dry_run=args.dry_run,
+            adult_verified=args.adult_verified,
+            parity=args.parity,
         )
     )
 
-    sys.exit(0 if summary.nano_banana_qualified else 1)
+    sys.exit(0 if summary.local_quality_gate_passed else 1)
 
 
 if __name__ == "__main__":

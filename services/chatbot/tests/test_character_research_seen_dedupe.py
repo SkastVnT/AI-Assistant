@@ -282,8 +282,7 @@ def test_image_search_relevance_filter_drops_off_character_hits(tmp_storage):
 
     import httpx
 
-    with mock.patch.object(cr, "_get_serpapi_key", return_value="fake_key"):
-        with mock.patch.object(httpx, "get", side_effect=_fake_get):
+    with mock.patch.object(cr, "_get_serpapi_key", return_value="fake_key"), mock.patch.object(httpx, "get", side_effect=_fake_get):
             results = cr._image_search_character(
                 "Hu Tao",
                 "Genshin Impact",

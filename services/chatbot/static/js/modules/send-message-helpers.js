@@ -1091,6 +1091,10 @@ export function buildStreamCallbacks(app, s) {
             if (data?.request_id && s.thinkingContainer) {
                 s.thinkingContainer.dataset.requestId = data.request_id;
             }
+            // Auto-open the side panel for multi-thinking so the user sees live agent logs
+            if (data?.mode === 'multi-thinking' && window.ThinkingPanel && s.thinkingContainer) {
+                window.ThinkingPanel.open(s.thinkingContainer);
+            }
         },
         onThinking: (data) => {
             s.thinkingReceived = true;

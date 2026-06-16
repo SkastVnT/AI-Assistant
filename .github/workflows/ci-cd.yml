@@ -32,11 +32,20 @@ jobs:
       run: |
         python -m compileall -q \
           -x '(^|[\\/])(venv|\.venv|__pycache__|site-packages|ComfyUI|private|node_modules)([\\/]|$)' \
-          services app/src
+          services app/src app/image_pipeline app/rag app/scripts
+
+    - name: Validate runtime topology and core-only Compose
+      run: |
+        test -z "$(git ls-files 'app/ComfyUI/**')"
+        grep -q 'IMAGE_PIPELINE_V2: "false"' docker-compose.yml
+        grep -q 'AUTO_START_IMAGE_SERVICES: "0"' docker-compose.yml
+        grep -q 'AUTO_START_COMFYUI: "0"' docker-compose.yml
+        grep -q 'AUTO_START_STABLE_DIFFUSION: "0"' docker-compose.yml
 
     - name: Run Flake8 (critical errors only)
       run: |
-        flake8 services/ app/src/ \
+        flake8 services/ app/src/ app/image_pipeline/ app/rag/ app/scripts/ \
+          --jobs=1 \
           --count --select=E9,F63,F7 --show-source --statistics \
           --exclude=__pycache__,*.pyc,.git
 
@@ -68,6 +77,14 @@ jobs:
         MONGODB_ENABLED: "False"
       run: |
         pytest tests/test_p0_trust_boundary.py tests/test_mcp_guard.py -q --no-header --tb=line
+
+    - name: Anime LOCAL contract smoke
+      working-directory: ./services/chatbot
+      env:
+        TESTING: "True"
+        MONGODB_ENABLED: "False"
+      run: |
+        pytest tests/test_anime_pipeline_local_policy.py -q --no-header --tb=line
 
     - name: Run chatbot service tests (default gate)
       working-directory: ./services/chatbot
@@ -153,7 +170,7 @@ jobs:
       if: hashFiles(format('services/{0}/Dockerfile', matrix.service)) != ''
       uses: docker/build-push-action@v5
       with:
-       context: .
+        context: .
         file: ./services/${{ matrix.service }}/Dockerfile
         push: false
         tags: |

@@ -1,0 +1,166 @@
+version: 1
+runtime_downloads: false
+notes:
+  - Provision assets manually, verify license terms, then move the deployment offline.
+  - Empty sha256 values are operator-required before parity benchmarking.
+assets:
+  - id: wai_illustrious_sdxl_v170
+    profiles: [laptop_6gb, pc_12gb, vps_96gb, rtx5070]
+    destination: ComfyUI/models/checkpoints/waiIllustriousSDXL_v170.safetensors
+    source_url: "https://civitai.com/models/827184"
+    license: operator-verified
+    sha256: "f116b0c78ff441467b0cdc8f1936e1ed18ea31e9997c7b132b1b8db533f0bd04"
+  - id: flux2_klein_4b_fp8
+    profiles: [pc_12gb]
+    destination: ComfyUI/models/diffusion_models/flux-2-klein-4b-fp8.safetensors
+    source_url: https://huggingface.co/black-forest-labs/FLUX.2-klein-4B
+    license: Apache-2.0
+    sha256: ""
+    required_for_capability: flux2_klein
+  - id: flux2_klein_4b_text_encoder
+    profiles: [pc_12gb]
+    destination: ComfyUI/models/text_encoders/qwen_3_4b.safetensors
+    source_url: https://docs.comfy.org/tutorials/flux/flux-2-klein
+    license: operator-verified
+    sha256: ""
+    required_for_capability: flux2_klein
+  - id: flux2_vae
+    profiles: [pc_12gb, vps_96gb]
+    destination: ComfyUI/models/vae/flux2-vae.safetensors
+    source_url: https://docs.comfy.org/tutorials/flux/flux-2-klein
+    license: operator-verified
+    sha256: ""
+    required_for_capability: flux2_klein
+  - id: flux2_klein_9b_fp8
+    profiles: [vps_96gb]
+    destination: ComfyUI/models/diffusion_models/flux-2-klein-9b-fp8.safetensors
+    source_url: https://huggingface.co/black-forest-labs/FLUX.2-klein-9B
+    license: operator-verified-gated
+    sha256: ""
+    required_for_capability: flux2_klein
+  - id: flux2_klein_9b_text_encoder
+    profiles: [vps_96gb]
+    destination: ComfyUI/models/text_encoders/qwen_3_8b.safetensors
+    source_url: https://docs.comfy.org/tutorials/flux/flux-2-klein
+    license: operator-verified-gated
+    sha256: ""
+    required_for_capability: flux2_klein
+  - id: qwen_image_edit_2511
+    profiles: [vps_96gb]
+    destination: ComfyUI/models/diffusion_models/qwen_image_edit_2511_bf16.safetensors
+    source_url: https://huggingface.co/Qwen/Qwen-Image-Edit-2511
+    license: Apache-2.0
+    sha256: ""
+    required_for_capability: qwen_image_edit
+  - id: qwen_image_edit_text_encoder
+    profiles: [vps_96gb]
+    destination: ComfyUI/models/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors
+    source_url: https://docs.comfy.org/tutorials/image/qwen/qwen-image-edit-2511
+    license: operator-verified
+    sha256: ""
+    required_for_capability: qwen_image_edit
+  - id: qwen_image_vae
+    profiles: [vps_96gb]
+    destination: ComfyUI/models/vae/qwen_image_vae.safetensors
+    source_url: https://docs.comfy.org/tutorials/image/qwen/qwen-image-edit-2511
+    license: operator-verified
+    sha256: ""
+    required_for_capability: qwen_image_edit
+  - id: flux2_klein_4b_workflow
+    profiles: [pc_12gb]
+    destination: app/configs_vps/comfy_workflows/flux2_klein_4b.json
+    source_url: https://docs.comfy.org/tutorials/flux/flux-2-klein
+    license: operator-exported-workflow
+    sha256: ""
+    required_for_capability: flux2_klein
+  - id: flux2_klein_9b_workflow
+    profiles: [vps_96gb]
+    destination: app/configs_vps/comfy_workflows/flux2_klein_9b.json
+    source_url: https://docs.comfy.org/tutorials/flux/flux-2-klein
+    license: operator-exported-workflow
+    sha256: ""
+    required_for_capability: flux2_klein
+  - id: qwen_image_edit_workflow
+    profiles: [vps_96gb]
+    destination: app/configs_vps/comfy_workflows/qwen_image_edit_2511.json
+    source_url: https://docs.comfy.org/tutorials/image/qwen/qwen-image-edit-2511
+    license: operator-exported-workflow
+    sha256: ""
+    required_for_capability: qwen_image_edit
+  - id: esrgan_anime_upscaler
+    profiles: [laptop_6gb, pc_12gb, vps_96gb, rtx5070]
+    destination: ComfyUI/models/upscale_models/RealESRGAN_x4plus_anime_6B.pth
+    source_url: ""
+    license: operator-verified
+    sha256: ""
+    required_for_capability: pre_upscale_v2
+  - id: xinsir_controlnet_union_sdxl
+    profiles: [pc_12gb, vps_96gb]
+    destination: ComfyUI/models/controlnet/xinsir-controlnet-union-sdxl-1.0.safetensors
+    source_url: https://huggingface.co/xinsir/controlnet-union-sdxl-1.0
+    license: Apache-2.0
+    sha256: ""
+    required_for_capability: controlnet
+  - id: dwpose_bbox_detector
+    profiles: [pc_12gb, vps_96gb]
+    destination: services/edit-image/ComfyUI/custom_nodes/comfyui_controlnet_aux/ckpts/yzd-v/DWPose/yolox_l.onnx
+    source_url: https://huggingface.co/yzd-v/DWPose
+    license: operator-verified
+    sha256: ""
+    required_for_capability: controlnet
+  - id: dwpose_pose_estimator
+    profiles: [pc_12gb, vps_96gb]
+    destination: services/edit-image/ComfyUI/custom_nodes/comfyui_controlnet_aux/ckpts/yzd-v/DWPose/dw-ll_ucoco_384_bs5.torchscript.pt
+    source_url: https://huggingface.co/yzd-v/DWPose
+    license: operator-verified
+    sha256: ""
+    required_for_capability: controlnet
+  - id: ipadapter_plus_face_sdxl_vit_h
+    profiles: [pc_12gb, vps_96gb]
+    destination: ComfyUI/models/ipadapter/ip-adapter-plus-face_sdxl_vit-h.safetensors
+    source_url: https://huggingface.co/h94/IP-Adapter
+    license: Apache-2.0
+    sha256: ""
+    required_for_capability: ipadapter
+  - id: clip_vision_vit_h
+    profiles: [pc_12gb, vps_96gb]
+    destination: ComfyUI/models/clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors
+    source_url: https://huggingface.co/h94/IP-Adapter
+    license: Apache-2.0
+    sha256: ""
+    required_for_capability: ipadapter
+  - id: yolo_detailer_face
+    profiles: [vps_96gb]
+    destination: ComfyUI/models/ultralytics/segm/adetailerAnimeGirlFace_segment.zip
+    source_url: ""
+    license: operator-verified
+    sha256: ""
+    required_for_capability: yolo_detailer
+  - id: yolo_detailer_full_eyes
+    profiles: [vps_96gb]
+    destination: ComfyUI/models/ultralytics/bbox/fullEyesDetection_v10.zip
+    source_url: ""
+    license: operator-verified
+    sha256: ""
+    required_for_capability: yolo_detailer
+  - id: yolo_detailer_eyes
+    profiles: [vps_96gb]
+    destination: ComfyUI/models/ultralytics/bbox/eyesDetection_v10.zip
+    source_url: ""
+    license: operator-verified
+    sha256: ""
+    required_for_capability: yolo_detailer
+  - id: yolo_detailer_mouth
+    profiles: [vps_96gb]
+    destination: ComfyUI/models/ultralytics/segm/adetailer2dMouth_v10.pt
+    source_url: ""
+    license: operator-verified
+    sha256: ""
+    required_for_capability: yolo_detailer
+  - id: yolo_detailer_hands
+    profiles: [vps_96gb]
+    destination: ComfyUI/models/ultralytics/segm/handDetailer_v2V9c.zip
+    source_url: ""
+    license: operator-verified
+    sha256: ""
+    required_for_capability: yolo_detailer

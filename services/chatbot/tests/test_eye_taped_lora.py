@@ -73,7 +73,7 @@ def test_stack_generic_only_when_not_klee():
     stack = build_eye_taped_lora_stack(
         character_name="Hu Tao", character_tag="hu_tao_(genshin_impact)"
     )
-    names = [l["name"] for l in stack]
+    names = [lora["name"] for lora in stack]
     assert "effects/eyetaped_v0.safetensors" in names
     assert "effects/taped_eyesV01.safetensors" in names
     assert "effects/klee_eye_taped.safetensors" not in names
@@ -84,14 +84,14 @@ def test_stack_includes_klee_lora_for_klee():
     stack = build_eye_taped_lora_stack(
         character_name="Klee", character_tag="klee_(genshin_impact)"
     )
-    names = [l["name"] for l in stack]
+    names = [lora["name"] for lora in stack]
     assert "effects/klee_eye_taped.safetensors" in names
     assert len(stack) == 3
 
 
 def test_stack_klee_match_is_case_insensitive():
     stack = build_eye_taped_lora_stack(character_name="KLEE")
-    names = [l["name"] for l in stack]
+    names = [lora["name"] for lora in stack]
     assert "effects/klee_eye_taped.safetensors" in names
 
 

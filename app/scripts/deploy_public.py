@@ -106,7 +106,7 @@ def print_banner():
 def check_pyngrok():
     """Check and install pyngrok if needed"""
     try:
-        from pyngrok import ngrok
+        from pyngrok import ngrok  # noqa: F401
 
         return True
     except ImportError:
@@ -137,7 +137,7 @@ def kill_port(port: int):
             shell=True,
             capture_output=True,
         )
-    except:
+    except Exception:
         pass
 
 
@@ -342,17 +342,17 @@ class ServiceManager:
 
         try:
             ngrok.kill()
-        except:
+        except Exception:
             pass
 
         # Kill processes
         for _service_id, process in self.processes.items():
             try:
                 os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-            except:
+            except Exception:
                 try:
                     process.terminate()
-                except:
+                except Exception:
                     pass
 
         print(f"{Colors.GREEN}✓ Cleanup complete{Colors.END}")

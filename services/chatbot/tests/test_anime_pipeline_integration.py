@@ -260,7 +260,7 @@ class TestStreamPipeline:
             {
                 "image_pipeline": MagicMock(),
                 "image_pipeline.anime_pipeline": MagicMock(
-                    AnimePipelineOrchestrator=mock_orch_cls,
+                    LocalAnimeTaskDispatcher=mock_orch_cls,
                     AnimePipelineJob=MagicMock(return_value=mock_job),
                 ),
             },
@@ -297,7 +297,7 @@ class TestStreamPipeline:
             {
                 "image_pipeline": MagicMock(),
                 "image_pipeline.anime_pipeline": MagicMock(
-                    AnimePipelineOrchestrator=mock_orch_cls,
+                    LocalAnimeTaskDispatcher=mock_orch_cls,
                     AnimePipelineJob=MagicMock(return_value=mock_job),
                 ),
             },

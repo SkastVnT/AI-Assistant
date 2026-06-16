@@ -89,7 +89,7 @@ class SynthesizerAgent(BaseAgent):
 
         for i, research in enumerate(state.researcher_outputs):
             parts.append(f"\n--- Research (round {i + 1}) ---\n{research.summary}")
-            for j, ev in enumerate(research.evidence):
+            for _j, ev in enumerate(research.evidence):
                 cite = f" [{ev.url}]" if ev.url else ""
                 parts.append(f"  [{ev.source}] {ev.content[:300]}{cite}")
 

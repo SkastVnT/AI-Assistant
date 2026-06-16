@@ -207,7 +207,7 @@ def test_inject_character_lora_skipped_when_file_missing(monkeypatch):
 
     # Plan must NOT contain the missing LoRA
     for pc in job.layer_plan.passes:
-        names = [l.get("name") for l in (pc.lora_models or [])]
+        names = [lora.get("name") for lora in (pc.lora_models or [])]
         assert "characters/kurumi/kurumi.safetensors" not in names
     # Metadata records the miss, verified slot cleared
     assert (
@@ -233,7 +233,7 @@ def test_inject_character_lora_injects_when_file_present(monkeypatch):
     inst._inject_character_lora(job)
 
     for pc in job.layer_plan.passes:
-        names = [l.get("name") for l in (pc.lora_models or [])]
+        names = [lora.get("name") for lora in (pc.lora_models or [])]
         assert names[0] == "characters/kurumi/kurumi.safetensors"
     assert job.metadata.get("character_lora_triggers") == ["kurumi"]
 
@@ -255,11 +255,11 @@ def test_inject_user_loras_filters_missing_files(monkeypatch):
     inst._inject_user_loras(job)
 
     # job.user_loras narrows to only the real one
-    assert [l["name"] for l in job.user_loras] == ["real.safetensors"]
+    assert [lora["name"] for lora in job.user_loras] == ["real.safetensors"]
     assert job.metadata.get("user_loras_missing") == ["ghost.safetensors"]
     # The real one is injected
     for pc in job.layer_plan.passes:
-        names = [l.get("name") for l in (pc.lora_models or [])]
+        names = [lora.get("name") for lora in (pc.lora_models or [])]
         assert "real.safetensors" in names
         assert "ghost.safetensors" not in names
 
@@ -282,7 +282,7 @@ def test_inject_user_loras_all_missing_is_graceful(monkeypatch):
     ]
     # No pass gets injected with anything
     for pc in job.layer_plan.passes:
-        names = [l.get("name") for l in (pc.lora_models or [])]
+        names = [lora.get("name") for lora in (pc.lora_models or [])]
         assert "a.safetensors" not in names
         assert "b.safetensors" not in names
 
@@ -425,6 +425,9 @@ def test_run_lora_stage_falls_through_to_parser_identity(monkeypatch):
     inst._config.vram.profile.value = "medium"
     inst._config.comfyui_url = ""
     inst._config.composition_model.checkpoint = "test.safetensors"
+
+    inst._runtime_policy = MagicMock()
+    inst._runtime_policy.allow_runtime_downloads = True
 
     # Capture what find_and_verify_character_lora is called with
     call_args = {}

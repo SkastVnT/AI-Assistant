@@ -88,8 +88,13 @@ class ResultStore:
     Each job gets a directory: <base_dir>/<job_id>/
     """
 
-    def __init__(self, base_dir: str | Path = STORAGE_DIR / "intermediate"):
+    def __init__(
+        self,
+        base_dir: str | Path = STORAGE_DIR / "intermediate",
+        metadata_dir: str | Path = STORAGE_DIR / "metadata",
+    ):
         self._base_dir = Path(base_dir)
+        self._metadata_dir = Path(metadata_dir)
 
     def save_intermediate(
         self,
@@ -158,6 +163,7 @@ class ResultStore:
         """
         job_dir = self._job_dir(job.job_id)
         filepath = job_dir / "output_manifest.json"
+        job.manifest_path = str(self._metadata_dir / f"{job.job_id}.json")
 
         if rank_result is not None:
             try:
@@ -190,15 +196,7 @@ class ResultStore:
                     )
                 if job.layer_plan:
                     manifest.setdefault("layer_plan", job.layer_plan.to_dict())
-                try:
-                    filepath.write_text(
-                        json.dumps(manifest, indent=2, ensure_ascii=False),
-                        encoding="utf-8",
-                    )
-                    logger.info("[ResultStore] Manifest (ranked) written: %s", filepath)
-                except Exception as e:
-                    logger.error("[ResultStore] Failed to write ranked manifest: %s", e)
-                return str(filepath)
+                return self._write_manifest_files(job, filepath, manifest)
             except Exception as e:
                 logger.warning(
                     "[ResultStore] Ranked manifest build failed (%s); falling back to legacy manifest",
@@ -212,6 +210,12 @@ class ResultStore:
             "created_at": job.created_at,
             "completed_at": job.completed_at,
             "user_prompt": job.user_prompt,
+            "deployment_profile": job.deployment_profile,
+            "content_mode": job.content_mode,
+            "validator_mode": job.validator_mode,
+            "adult_verified": job.adult_verified,
+            "adult_attestation_source": job.adult_attestation_source,
+            "manifest_path": job.manifest_path,
             "passes": [],
             "critique_rounds": len(job.critique_results),
             "refine_rounds": job.refine_rounds,
@@ -243,16 +247,7 @@ class ResultStore:
         if job.layer_plan:
             manifest["layer_plan"] = job.layer_plan.to_dict()
 
-        try:
-            filepath.write_text(
-                json.dumps(manifest, indent=2, ensure_ascii=False),
-                encoding="utf-8",
-            )
-            logger.info("[ResultStore] Manifest written: %s", filepath)
-        except Exception as e:
-            logger.error("[ResultStore] Failed to write manifest: %s", e)
-
-        return str(filepath)
+        return self._write_manifest_files(job, filepath, manifest)
 
     def save_all(
         self, job: AnimePipelineJob, rank_result: Any = None
@@ -292,6 +287,34 @@ class ResultStore:
         d = self._base_dir / job_id
         d.mkdir(parents=True, exist_ok=True)
         return d
+
+    def _write_manifest_files(
+        self,
+        job: AnimePipelineJob,
+        job_path: Path,
+        manifest: dict[str, Any],
+    ) -> str:
+        """Write the job-local artifact and the canonical metadata mirror."""
+
+        canonical_path = self._metadata_dir / f"{job.job_id}.json"
+        job.manifest_path = str(canonical_path)
+        manifest["manifest_path"] = job.manifest_path
+        payload = json.dumps(manifest, indent=2, ensure_ascii=False)
+        try:
+            job_path.write_text(payload, encoding="utf-8")
+        except Exception as e:
+            logger.error("[ResultStore] Failed to write job-local manifest: %s", e)
+        try:
+            self._metadata_dir.mkdir(parents=True, exist_ok=True)
+            canonical_path.write_text(payload, encoding="utf-8")
+            logger.info(
+                "[ResultStore] Manifest written: %s (mirror: %s)",
+                job_path,
+                canonical_path,
+            )
+        except Exception as e:
+            logger.error("[ResultStore] Failed to write canonical manifest: %s", e)
+        return str(job_path)
 
     @staticmethod
     def _write_b64(filepath: Path, image_b64: str) -> None:

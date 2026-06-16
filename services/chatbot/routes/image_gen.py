@@ -989,18 +989,27 @@ def edit_image():
         source_b64 = img_session.last_image_b64
 
     if not source_b64:
-        # Try downloading from last URL — validate scheme and block cloud-metadata
-        # link-local IPs (e.g. 169.254.169.254) to mitigate SSRF risk.
-        # follow_redirects is disabled to prevent redirect-based bypass.
+        # Try downloading from last URL — validate scheme and block all
+        # non-public IP ranges (private, loopback, link-local, reserved)
+        # to prevent SSRF.  follow_redirects is disabled to prevent
+        # redirect-based bypass.
         last_url = img_session.last_image_url
         if last_url and last_url.startswith(("http://", "https://")):
             try:
+                import socket as _socket
+
                 _host = (urlparse(last_url).hostname or "").lower()
                 _blocked = False
                 try:
-                    _blocked = ipaddress.ip_address(_host).is_link_local
-                except ValueError:
-                    pass  # hostname (not raw IP) — proceed
+                    _ip = ipaddress.ip_address(_socket.gethostbyname(_host))
+                    _blocked = (
+                        _ip.is_loopback
+                        or _ip.is_private
+                        or _ip.is_link_local
+                        or _ip.is_reserved
+                    )
+                except (ValueError, OSError):
+                    pass  # hostname lookup failed — proceed cautiously
                 if not _blocked:
                     import httpx
 
