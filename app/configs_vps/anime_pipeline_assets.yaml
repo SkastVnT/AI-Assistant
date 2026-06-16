@@ -99,35 +99,35 @@ assets:
     destination: ComfyUI/models/controlnet/xinsir-controlnet-union-sdxl-1.0.safetensors
     source_url: https://huggingface.co/xinsir/controlnet-union-sdxl-1.0
     license: Apache-2.0
-    sha256: ""
+    sha256: "9fae2e50cb431bfcbe05822b59ec2228df545ef27f711dea8949e9f4ed9f7cdc"
     required_for_capability: controlnet
   - id: dwpose_bbox_detector
     profiles: [pc_12gb, vps_96gb]
     destination: services/edit-image/ComfyUI/custom_nodes/comfyui_controlnet_aux/ckpts/yzd-v/DWPose/yolox_l.onnx
     source_url: https://huggingface.co/yzd-v/DWPose
     license: operator-verified
-    sha256: ""
+    sha256: "7860ae79de6c89a3c1eb72ae9a2756c0ccfbe04b7791bb5880afabd97855a411"
     required_for_capability: controlnet
   - id: dwpose_pose_estimator
     profiles: [pc_12gb, vps_96gb]
     destination: services/edit-image/ComfyUI/custom_nodes/comfyui_controlnet_aux/ckpts/yzd-v/DWPose/dw-ll_ucoco_384_bs5.torchscript.pt
-    source_url: https://huggingface.co/yzd-v/DWPose
-    license: operator-verified
-    sha256: ""
+    source_url: https://huggingface.co/hr16/DWPose-TorchScript-BatchSize5
+    license: Apache-2.0
+    sha256: "d86a0b2b59fddc0901a7076e9f59c9f8602602133ed72511c693fd11eea23d91"
     required_for_capability: controlnet
   - id: ipadapter_plus_face_sdxl_vit_h
     profiles: [pc_12gb, vps_96gb]
     destination: ComfyUI/models/ipadapter/ip-adapter-plus-face_sdxl_vit-h.safetensors
     source_url: https://huggingface.co/h94/IP-Adapter
     license: Apache-2.0
-    sha256: ""
+    sha256: "677ad8860204f7d0bfba12d29e6c31ded9beefdf3e4bbd102518357d31a292c1"
     required_for_capability: ipadapter
   - id: clip_vision_vit_h
     profiles: [pc_12gb, vps_96gb]
     destination: ComfyUI/models/clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors
-    source_url: https://huggingface.co/h94/IP-Adapter
+    source_url: https://huggingface.co/laion/CLIP-ViT-H-14-laion2B-s32B-b79K
     license: Apache-2.0
-    sha256: ""
+    sha256: "036e6e2bd49697511f4f8b8cb5ee465f93025f7a69a145eadeb9a881ace9b18d"
     required_for_capability: ipadapter
   - id: yolo_detailer_face
     profiles: [vps_96gb]

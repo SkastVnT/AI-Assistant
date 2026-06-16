@@ -30,7 +30,7 @@
 
 param(
     [string]$Root = (Resolve-Path "$PSScriptRoot\..\.." -ErrorAction SilentlyContinue).Path,
-    [string]$HFToken = $env:HF_TOKEN,
+    [string]$HFToken = "",
     [switch]$ComputeChecksums,
     [switch]$SkipExisting = $true
 )
@@ -40,6 +40,21 @@ $ErrorActionPreference = "Stop"
 
 if (-not $Root -or -not (Test-Path $Root)) {
     $Root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+}
+
+# Resolve HF token: param > $env:HF_TOKEN > $env:HUGGINGFACE_TOKEN > app/config/.env
+if (-not $HFToken) { $HFToken = $env:HF_TOKEN }
+if (-not $HFToken) { $HFToken = $env:HUGGINGFACE_TOKEN }
+if (-not $HFToken) {
+    $envFile = Join-Path $Root "app\config\.env"
+    if (Test-Path $envFile) {
+        $line = Select-String -Path $envFile -Pattern '^HUGGINGFACE_TOKEN=(.+)$' | Select-Object -First 1
+        if ($line) { $HFToken = $line.Matches[0].Groups[1].Value.Trim() }
+        if (-not $HFToken) {
+            $line2 = Select-String -Path $envFile -Pattern '^HF_TOKEN=(.+)$' | Select-Object -First 1
+            if ($line2) { $HFToken = $line2.Matches[0].Groups[1].Value.Trim() }
+        }
+    }
 }
 
 $ComfyDir    = Join-Path $Root "ComfyUI"
@@ -67,7 +82,7 @@ $assets = @(
         id          = "dwpose_pose_estimator"
         destDir     = Join-Path $EditImageComfyDir "custom_nodes\comfyui_controlnet_aux\ckpts\yzd-v\DWPose"
         destName    = "dw-ll_ucoco_384_bs5.torchscript.pt"
-        hfRepo      = "yzd-v/DWPose"
+        hfRepo      = "hr16/DWPose-TorchScript-BatchSize5"
         hfFile      = "dw-ll_ucoco_384_bs5.torchscript.pt"
         license     = "Apache-2.0"
     },
