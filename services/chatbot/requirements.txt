@@ -62,7 +62,7 @@ bitsandbytes>=0.41.0; sys_platform != 'win32'
 
 # ============= ADDITIONAL UTILITIES =============
 # Progress bars
-tqdm>=4.67.3
+tqdm>=4.68.1
 
 # JSON handling
 jsonschema>=4.26.0
