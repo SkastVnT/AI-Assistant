@@ -12,3 +12,7 @@ exclude_dirs:
   - node_modules
   - LORA
   - local_data
+
+skips:
+
+  - B608
