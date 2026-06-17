@@ -2086,13 +2086,15 @@ def chat():
             # Parse agent config
             try:
                 agent_config = json.loads(data.get("agent_config", "null"))
-            except Exception:
+            except Exception as _e:
+                logger.debug("Failed to parse agent_config: %s", _e)
                 agent_config = None
 
             # Safe JSON parsing with error handling
             try:
                 tools = json.loads(data.get("tools", "[]")) if data.get("tools") else []
-            except Exception:
+            except Exception as _e:
+                logger.debug("Failed to parse tools: %s", _e)
                 tools = []
 
             try:
@@ -2102,7 +2104,8 @@ def chat():
                     if history_str and history_str != "null"
                     else None
                 )
-            except Exception:
+            except Exception as _e:
+                logger.debug("Failed to parse history: %s", _e)
                 history = None
 
             try:
@@ -2111,7 +2114,8 @@ def chat():
                     if data.get("memory_ids")
                     else []
                 )
-            except Exception:
+            except Exception as _e:
+                logger.debug("Failed to parse memory_ids: %s", _e)
                 memory_ids = []
 
             try:
@@ -2120,7 +2124,8 @@ def chat():
                     if data.get("mcp_selected_files")
                     else []
                 )
-            except Exception:
+            except Exception as _e:
+                logger.debug("Failed to parse mcp_selected_files: %s", _e)
                 mcp_selected_files = []
 
             images = []  # FormData path does not carry base64 image attachments
