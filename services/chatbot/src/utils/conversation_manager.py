@@ -3,10 +3,10 @@ Advanced Conversation Manager
 Features: Semantic search, Branching, Tagging, Full-text search, Related suggestions
 """
 
-import hashlib
 import json
 import logging
 import os
+import secrets
 from datetime import datetime
 from pathlib import Path
 
@@ -643,12 +643,12 @@ Return ONLY a JSON array of tags, e.g.: ["technology", "python", "tutorial"]
     def _generate_conversation_id(self) -> str:
         """Generate unique conversation ID"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        random_hash = hashlib.md5(os.urandom(16), usedforsecurity=False).hexdigest()[:8]
+        random_hash = secrets.token_hex(4)
         return f"conv_{timestamp}_{random_hash}"
 
     def _generate_message_id(self) -> str:
         """Generate unique message ID"""
-        return hashlib.md5(os.urandom(16), usedforsecurity=False).hexdigest()[:16]
+        return secrets.token_hex(8)
 
     def get_statistics(self) -> dict:
         """Get conversation statistics"""
