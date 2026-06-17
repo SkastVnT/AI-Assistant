@@ -39,30 +39,16 @@
   font-size: 28px;
   margin-bottom: 24px;
   box-shadow: var(--shadow-glow);
-  animation: welcomeFloat 3s ease-in-out infinite;
-}
-
-@keyframes welcomeFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
 }
 
 .welcome__title {
   font-size: 28px;
   font-weight: 700;
   margin-bottom: 8px;
-  background: linear-gradient(135deg, #7c6cf0, #00d4ff, #ff6b9d, #7c6cf0);
-  background-size: 300% 300%;
+  background: linear-gradient(135deg, #7c6cf0, #9488f4);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: welcomeGradientShift 4s ease infinite;
-}
-
-@keyframes welcomeGradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
 }
 
 .welcome__subtitle {

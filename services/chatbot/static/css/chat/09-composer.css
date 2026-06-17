@@ -137,12 +137,7 @@
 .input-area__send.ready {
   opacity: 1;
   background: linear-gradient(135deg, #7c6cf0, #6366f1);
-  animation: sendPulse 2s ease infinite;
-}
-
-@keyframes sendPulse {
-  0%, 100% { box-shadow: 0 0 5px rgba(124, 108, 240, 0.3); }
-  50% { box-shadow: 0 0 15px rgba(124, 108, 240, 0.5); }
+  box-shadow: 0 0 8px rgba(124, 108, 240, 0.3);
 }
 
 .input-area__send:hover {

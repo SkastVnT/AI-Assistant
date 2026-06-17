@@ -664,26 +664,95 @@ export class AnimePipeline {
         const decoder = new TextDecoder();
         let buffer = '';
         let currentEvent = '';
+        let gotResult = false;
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
 
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
 
-            for (const line of lines) {
-                if (line.startsWith('event: ')) {
-                    currentEvent = line.slice(7).trim();
-                } else if (line.startsWith('data: ')) {
-                    try {
-                        const data = JSON.parse(line.slice(6));
-                        this._handleInlineEvent(currentEvent, data, bubble, uid, prompt, startTime, chatContainer);
-                    } catch { /* ignore malformed */ }
+                for (const line of lines) {
+                    if (line.startsWith('event: ')) {
+                        currentEvent = line.slice(7).trim();
+                    } else if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            if (currentEvent === 'ap_result' || currentEvent === 'ap_done') gotResult = true;
+                            this._handleInlineEvent(currentEvent, data, bubble, uid, prompt, startTime, chatContainer);
+                        } catch { /* ignore malformed */ }
+                    }
                 }
             }
+        } finally {
+            reader.cancel().catch(() => {});
         }
+
+        // Stream ended without ap_result — backend job may still be running
+        if (!gotResult) {
+            const jobId = bubble.dataset.jobId;
+            if (jobId) {
+                this._pollForResult(bubble, uid, prompt, startTime, chatContainer, jobId);
+            } else {
+                this._setInlineError(bubble, uid, 'Stream kết thúc bất ngờ — không nhận được kết quả');
+            }
+        }
+    }
+
+    /** Poll /api/jobs/<jobId> until completed/failed, then show result. */
+    async _pollForResult(bubble, uid, prompt, startTime, chatContainer, jobId) {
+        this._inlineSetCurrent(uid, '⏳ Kết nối bị ngắt — đang kiểm tra kết quả...');
+        const POLL_INTERVAL = 2000;
+        const POLL_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+        const deadline = Date.now() + POLL_TIMEOUT;
+
+        while (Date.now() < deadline) {
+            await new Promise(r => setTimeout(r, POLL_INTERVAL));
+
+            // Stop polling if user aborted or bubble was removed
+            if (this._abort?.signal.aborted || !bubble.isConnected) return;
+
+            try {
+                const res = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`);
+                if (!res.ok) continue;
+                const { job } = await res.json();
+
+                if (job.state === 'completed') {
+                    // Fetch manifest for local_url
+                    let local_url = null;
+                    try {
+                        const mRes = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/manifest`);
+                        if (mRes.ok) {
+                            const { manifest } = await mRes.json();
+                            local_url = manifest?.local_url || manifest?.share_url || null;
+                        }
+                    } catch { /* manifest optional */ }
+
+                    this._inlineShowResult(bubble, uid, {
+                        job_id: jobId,
+                        local_url,
+                        image_b64: null,
+                        prompt_used: prompt,
+                    }, prompt, startTime, chatContainer);
+                    return;
+                }
+
+                if (job.state === 'failed' || job.state === 'cancelled') {
+                    this._setInlineError(bubble, uid, job.error || `Job ${job.state}`);
+                    return;
+                }
+
+                // Still running — update status text
+                if (job.progress_stage) {
+                    this._inlineSetCurrent(uid, `⏳ ${job.progress_stage} (${Math.round(job.progress_pct)}%)`);
+                }
+            } catch { /* network error — retry next interval */ }
+        }
+
+        this._setInlineError(bubble, uid, 'Hết thời gian chờ kết quả');
     }
 
     /** Dispatch an SSE event to the inline bubble updaters. */

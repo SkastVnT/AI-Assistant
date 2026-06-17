@@ -964,31 +964,41 @@ export async function runStreamingChatFlow(app, ctx) {
         } catch (streamErr) {
             // Sync callback-mutated state even on error
             thinkingContainer = ss.thinkingContainer;
+            fullResponse = ss.fullResponse; // preserve any partial text already streamed
             if (streamErr.name === 'AbortError') throw streamErr;
-            console.warn('[Stream] SSE failed, falling back to regular POST:', streamErr.message);
+            console.warn('[Stream] SSE failed:', streamErr.message, `(partial=${fullResponse.length} chars)`);
             streamFailed = true;
         }
 
-        // ── Fallback to regular POST ──
+        // ── Fallback: keep partial if streamed, retry POST only if nothing received ──
         if (streamFailed) {
-            streamMsgDiv.remove();
-            const data = await app.apiService.sendMessage(
-                message, formValues.model, formValues.context,
-                activeTools, deepThinking, history, [],
-                selectedMemories, app.currentAbortController.signal,
-                agentConfig ? agentConfig.systemPrompt : '', agentConfig
-            );
-            fullResponse = data.error ? `❌ **Lỗi:** ${data.error}` : data.response;
+            if (fullResponse) {
+                // Partial text was already shown in streamMsgDiv — keep it, add warning
+                fullResponse += '\n\n> ⚠ *Kết nối bị ngắt — nội dung có thể chưa đầy đủ*';
+                streamFailed = false; // finalize normally via streamMsgDiv path
+                ({ thinkingContainer, thinkingReceived, thinkingSteps, thinkingData,
+                   streamCompleteData, streamSuggestions } = ss);
+            } else {
+                // Nothing was streamed — remove placeholder and retry via POST
+                streamMsgDiv.remove();
+                const data = await app.apiService.sendMessage(
+                    message, formValues.model, formValues.context,
+                    activeTools, deepThinking, history, [],
+                    selectedMemories, app.currentAbortController.signal,
+                    agentConfig ? agentConfig.systemPrompt : '', agentConfig
+                );
+                fullResponse = data.error ? `❌ **Lỗi:** ${data.error}` : data.response;
 
-            if (data.thinking_process) {
-                if (!thinkingContainer) {
-                    thinkingContainer = app.messageRenderer.createThinkingSection(null, false);
-                    elements.chatContainer.insertBefore(thinkingContainer, streamMsgDiv.nextSibling || null);
+                if (data.thinking_process) {
+                    if (!thinkingContainer) {
+                        thinkingContainer = app.messageRenderer.createThinkingSection(null, false);
+                        elements.chatContainer.insertBefore(thinkingContainer, streamMsgDiv.nextSibling || null);
+                    }
+                    app.messageRenderer.updateThinkingContent(thinkingContainer, data.thinking_process);
+                } else if (thinkingContainer) {
+                    app.messageRenderer.finalizeThinking(thinkingContainer, { summary: 'Hoàn thành' });
                 }
-                app.messageRenderer.updateThinkingContent(thinkingContainer, data.thinking_process);
-            } else if (thinkingContainer) {
-                app.messageRenderer.finalizeThinking(thinkingContainer, { summary: 'Hoàn thành' });
-            }
+            } // end else (no partial — POST fallback)
         }
 
         // ── Finalize display ──

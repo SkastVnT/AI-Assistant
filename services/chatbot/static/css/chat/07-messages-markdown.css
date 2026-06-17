@@ -7,29 +7,9 @@
   animation: msgFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* User messages — slide from right */
-.message.user {
-  animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* AI messages — slide from left */
-.message.assistant {
-  animation: slideInLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
 @keyframes msgFadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(24px) scale(0.97); }
-  to { opacity: 1; transform: translateX(0) scale(1); }
-}
-
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-24px) scale(0.97); }
-  to { opacity: 1; transform: translateX(0) scale(1); }
 }
 
 .message__avatar {
