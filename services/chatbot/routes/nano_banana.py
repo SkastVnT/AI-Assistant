@@ -449,7 +449,7 @@ def _save_to_gallery(
         save_to_mongodb(
             {
                 "url": saved.get("url", ""),
-                "local_path": saved.get("url", ""),
+                "local_path": saved.get("local_path", ""),
                 "filename": os.path.basename(saved.get("local_path", "")),
                 "prompt": prompt,
                 "provider": provider,

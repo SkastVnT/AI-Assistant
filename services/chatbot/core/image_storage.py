@@ -99,6 +99,62 @@ except Exception as e:
     legacy_assets_collection = None
     legacy_gridfs = None
 
+# Reconnect support — called lazily by save_to_mongodb when images_collection is None
+_last_connect_attempt: float = 0.0
+_RECONNECT_COOLDOWN = 60.0  # seconds between retry attempts
+
+
+def _try_connect_mongodb() -> bool:
+    """Attempt to (re)connect to MongoDB. No-op if already connected or called too recently."""
+    global mongo_client, images_collection, legacy_assets_collection, legacy_gridfs, _last_connect_attempt
+    import time
+
+    if images_collection is not None:
+        return True
+
+    now = time.monotonic()
+    if now - _last_connect_attempt < _RECONNECT_COOLDOWN:
+        return False
+    _last_connect_attempt = now
+
+    _uri = os.getenv("MONGODB_URI", "").strip()
+    _x509 = os.getenv("MONGODB_X509_ENABLED", "false").lower() == "true"
+    _x509_uri = os.getenv("MONGODB_X509_URI", "").strip()
+    _db_name = os.getenv("MONGODB_DB_NAME", "chatbot_db").strip() or "chatbot_db"
+    _tls_invalid = os.getenv("MONGODB_TLS_ALLOW_INVALID_CERTIFICATES", "false").lower() == "true"
+    _cert = os.getenv("MONGODB_X509_CERT_PATH", "").strip()
+    _mongo_uri = _x509_uri if (_x509 and _x509_uri) else _uri
+
+    if not _mongo_uri:
+        return False
+
+    try:
+        import gridfs as _gfs
+        from pymongo import MongoClient as _MC
+
+        _kw: dict = {"serverSelectionTimeoutMS": 5000, "tls": True, "tlsAllowInvalidCertificates": _tls_invalid}
+        if _x509 and _cert:
+            _cp = Path(_cert)
+            if _cp.exists():
+                _kw["tlsCertificateKeyFile"] = str(_cp)
+                _kw["authMechanism"] = "MONGODB-X509"
+                _kw["authSource"] = "$external"
+
+        _client = _MC(_mongo_uri, **_kw)
+        _client.admin.command("ping")
+        _db = _client[_db_name]
+
+        mongo_client = _client
+        images_collection = _db["generated_images"]
+        legacy_assets_collection = _db["raw_legacy_assets"]
+        legacy_gridfs = _gfs.GridFS(_db, collection="raw_assets_fs")
+        logger.info(f"[ImageStorage] MongoDB reconnected -> database: {_db.name}")
+        return True
+    except Exception as exc:
+        logger.warning(f"[ImageStorage] MongoDB reconnect failed: {exc}")
+        return False
+
+
 # Firebase Admin (optional)
 try:
     import firebase_admin
@@ -432,8 +488,9 @@ def save_to_mongodb(image_data: dict[str, Any]) -> str | None:
         Document ID or None if failed
     """
     if not images_collection:
-        logger.warning("[MongoDB] Not connected")
-        return None
+        if not _try_connect_mongodb():
+            logger.warning("[MongoDB] Not connected and reconnect failed")
+            return None
 
     try:
         image_data["created_at"] = datetime.utcnow()

@@ -145,7 +145,7 @@ def _save_to_gallery(
 
         doc = {
             "url": saved.get("url", ""),
-            "local_path": saved.get("url", ""),
+            "local_path": saved.get("local_path", ""),
             "filename": os.path.basename(saved.get("local_path", "")),
             "prompt": prompt,
             "provider": provider,
@@ -1156,6 +1156,62 @@ def delete_image(image_id: str):
     if deleted:
         return jsonify({"success": True, "message": f"Deleted {image_id}"})
     return jsonify({"error": "Image not found"}), 404
+
+
+@image_gen_bp.route("/api/image-gen/sync-local", methods=["POST"])
+def sync_local_to_mongodb():
+    """Scan Storage/Image_Gen/ and push any locally-saved images missing from MongoDB."""
+    import os as _os
+
+    try:
+        from core.image_storage import images_collection, save_to_mongodb
+    except Exception as exc:
+        return jsonify({"error": f"MongoDB unavailable: {exc}"}), 503
+
+    storage = _get_storage()
+    all_images = storage.list_recent(limit=100_000)
+
+    synced = skipped = errors = 0
+
+    for meta in all_images:
+        image_id = meta.get("image_id", "")
+        if not image_id:
+            skipped += 1
+            continue
+
+        if images_collection is not None:
+            try:
+                if images_collection.find_one({"image_id": image_id}):
+                    skipped += 1
+                    continue
+            except Exception:
+                pass
+
+        doc = {
+            "image_id": image_id,
+            "url": meta.get("url", f"/api/image-gen/images/{image_id}"),
+            "local_path": meta.get("local_path", ""),
+            "filename": _os.path.basename(meta.get("local_path", "")),
+            "prompt": meta.get("prompt", ""),
+            "provider": meta.get("provider", ""),
+            "model": meta.get("model", ""),
+            "source": "sync_local",
+            "conversation_id": meta.get("conversation_id", ""),
+            "session_id": meta.get("conversation_id", ""),
+            "file_size": meta.get("file_size", 0),
+        }
+        if save_to_mongodb(doc):
+            synced += 1
+        else:
+            errors += 1
+
+    return jsonify({
+        "success": True,
+        "synced": synced,
+        "skipped": skipped,
+        "errors": errors,
+        "total": len(all_images),
+    })
 
 
 @image_gen_bp.route("/api/image-gen/save/<image_id>", methods=["POST"])
