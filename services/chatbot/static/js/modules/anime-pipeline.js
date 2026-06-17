@@ -48,6 +48,15 @@ export class AnimePipeline {
         this._debug = false;
         this._available = null;  // cached availability
 
+        /** Inline-generation queue — max 3 pending slots. */
+        this._queue = [];
+        /** True when the active generation is a multi-image batch (no queueing). */
+        this._batchMode = false;
+        /** True while _runContinuous is looping (no queueing between iterations). */
+        this._continuousMode = false;
+        /** UID of the generation currently being streamed. */
+        this._runningUid = null;
+
         // F5 / tab-close orphan-job cleanup. Without this the backend
         // pipeline keeps running (and eats GPU + the 60s queue slot)
         // long after the user navigated away. We POST cancel beacons
@@ -153,18 +162,44 @@ export class AnimePipeline {
      *                the regenerate round-trip.
      */
     async _runInlineChat(prompt, chatContainer, opts = {}) {
-        if (this._running) return;
-        this._running = true;
         const imageOnly = !!opts.imageOnly;
         const batchSize = Math.max(1, Math.min(parseInt(opts.batchSize, 10) || 1, 6));
 
-        const uid = Date.now().toString(36);
+        // ── Queue guard ──────────────────────────────────────────────────
+        // Internal calls (_isInternal: true) bypass the guard so queued
+        // items and continuous-loop iterations are never re-queued.
+        if ((this._running || this._continuousMode) && !opts._isInternal) {
+            if (this._batchMode || this._continuousMode) {
+                this._appendQueueMessage(chatContainer,
+                    '⚠️ Pipeline đang tạo ảnh hàng loạt / liên tục — vui lòng chờ hoàn tất');
+            } else if (this._queue.length >= 3) {
+                this._appendQueueMessage(chatContainer,
+                    '⚠️ Hàng đợi đầy (tối đa 3) — vui lòng chờ pipeline hiện tại hoàn thành');
+            } else {
+                this._enqueueRequest(prompt, chatContainer, opts);
+            }
+            return;
+        }
+        // ────────────────────────────────────────────────────────────────
+
+        this._running = true;
+        this._batchMode = imageOnly && batchSize > 1;
+
+        const uid = opts._holdingUid || Date.now().toString(36);
+        this._runningUid = uid;
         const startTime = Date.now();
 
-        // Build the inline bubble
-        const bubble = this._createInlineBubble(uid, prompt);
-        chatContainer.appendChild(bubble);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+        // Reuse the queued holding bubble when available; create a fresh one otherwise.
+        let bubble;
+        if (opts._holdingBubble) {
+            bubble = opts._holdingBubble;
+            this._activateQueuedBubble(bubble, uid);
+            if (bubble.isConnected) chatContainer.scrollTop = chatContainer.scrollHeight;
+        } else {
+            bubble = this._createInlineBubble(uid, prompt);
+            chatContainer.appendChild(bubble);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
 
         // Live timer
         const timerEl = document.getElementById(`ap-timer-${uid}`);
@@ -203,11 +238,10 @@ export class AnimePipeline {
         // edit-and-rerun buttons in _inlineShowResult can preserve
         // image-only mode and batch size on the next round-trip
         // without the user re-opening the choice card.
-        const bubbleEl = document.getElementById(`ap-inline-${uid}`);
-        if (bubbleEl) {
-            bubbleEl.dataset.apImageOnly = imageOnly ? '1' : '0';
-            bubbleEl.dataset.apBatchSize = String(body.batch_size);
-        }
+        // Use `bubble` directly — it may be detached (queued background run)
+        // so getElementById would return null.
+        bubble.dataset.apImageOnly = imageOnly ? '1' : '0';
+        bubble.dataset.apBatchSize = String(body.batch_size);
 
         this._abort = new AbortController();
         try {
@@ -232,7 +266,10 @@ export class AnimePipeline {
         } finally {
             clearInterval(timerInterval);
             this._running = false;
+            this._batchMode = false;
+            this._runningUid = null;
             this._abort = null;
+            this._processQueue();
         }
     }
 
@@ -253,11 +290,12 @@ export class AnimePipeline {
         const cont = opts.continuous || {};
         const total = Math.max(2, Math.min(parseInt(cont.count, 10) || 2, 50));
         const sleepMs = Math.max(0, (parseFloat(cont.sleepSeconds) || 0) * 1000);
-        const baseOpts = { imageOnly: !!opts.imageOnly, batchSize: opts.batchSize || 1 };
+        const baseOpts = { imageOnly: !!opts.imageOnly, batchSize: opts.batchSize || 1, _isInternal: true };
 
         // Reset cancel flag and exclude-list at loop start.
         this._continuousCancelled = false;
         this._continuousExcludes = [];
+        this._continuousMode = true;
 
         // Render a small banner so the user sees the loop is active.
         const banner = document.createElement('div');
@@ -330,6 +368,8 @@ export class AnimePipeline {
             if (body) body.innerHTML = `🔁 Tạo liên tục: ${tail}`;
         }
         this._continuousCancelled = false;
+        this._continuousMode = false;
+        this._processQueue();
     }
 
     /** Build the initial inline pipeline message bubble.
@@ -1411,7 +1451,7 @@ export class AnimePipeline {
             // exists for power users / CLI consumers.
 
             msgContent?.appendChild(resultDiv.firstElementChild);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
 
             // Save to session
             window.chatApp?.saveCurrentSession?.(true);
@@ -1980,6 +2020,15 @@ export class AnimePipeline {
                     } catch { /* bad data — fall through */ }
                 }
 
+                // ── Case Q: bubble is sitting in the in-memory queue ─────────
+                const queueIdx = this._queue.findIndex(item => item.uid === uid);
+                if (queueIdx >= 0) {
+                    details.open = true;
+                    const label = details.querySelector('.ap-inline-label');
+                    if (label) label.textContent = `⏳ Holding ${queueIdx + 1} — chờ pipeline sẵn sàng`;
+                    return;
+                }
+
                 // ── Case B: still generating in background ────────────────
                 if (this._running) {
                     details.open = true;
@@ -2051,6 +2100,88 @@ export class AnimePipeline {
                 });
             }
         });
+    }
+
+    // ── Queue management ────────────────────────────────────────────
+
+    /**
+     * Enqueue a pending request. Creates a "holding" bubble immediately so
+     * the user sees their queue position. Max 3 entries.
+     */
+    _enqueueRequest(prompt, chatContainer, opts) {
+        const uid = Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+        const position = this._queue.length + 1;
+
+        const bubble = this._createInlineBubble(uid, prompt);
+        bubble.dataset.apState = 'holding';
+
+        // Override label to show holding position
+        const details = bubble.querySelector('.ap-inline-progress');
+        const label = details?.querySelector('.ap-inline-label');
+        if (label) label.textContent = `⏳ Holding ${position} — chờ pipeline sẵn sàng`;
+        if (details) details.open = false;
+
+        // Stop button is meaningless while holding; keep it hidden
+        const stopBtn = bubble.querySelector('.ap-inline-stop-btn');
+        if (stopBtn) stopBtn.style.display = 'none';
+
+        chatContainer.appendChild(bubble);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        this._queue.push({ uid, prompt, opts, bubble, chatContainer });
+    }
+
+    /**
+     * Start the next queued request when the pipeline is idle.
+     * Called from _runInlineChat finally and _runContinuous end.
+     */
+    _processQueue() {
+        if (this._running || this._continuousMode || this._queue.length === 0) return;
+        const item = this._queue.shift();
+        this._updateQueueLabels();
+        this._runInlineChat(item.prompt, item.chatContainer, {
+            ...item.opts,
+            _isInternal: true,
+            _holdingUid: item.uid,
+            _holdingBubble: item.bubble,
+        });
+    }
+
+    /**
+     * Refresh "Holding N" labels after a queue position changes.
+     */
+    _updateQueueLabels() {
+        this._queue.forEach((item, i) => {
+            const liveBubble = document.getElementById(`ap-inline-${item.uid}`) || item.bubble;
+            const lbl = liveBubble?.querySelector('.ap-inline-label');
+            if (lbl) lbl.textContent = `⏳ Holding ${i + 1} — chờ pipeline sẵn sàng`;
+        });
+    }
+
+    /**
+     * Transition a holding bubble from "Holding N" state to live progress.
+     * Called right before the SSE stream starts for a dequeued request.
+     */
+    _activateQueuedBubble(bubble) {
+        bubble.dataset.apState = 'active';
+        const details = bubble?.querySelector('.ap-inline-progress');
+        if (details) details.open = false;
+        const lbl = details?.querySelector('.ap-inline-label');
+        if (lbl) lbl.textContent = '⚡ Đang khởi động pipeline...';
+        // Stop button stays hidden until job_id arrives via ap_status event
+    }
+
+    /**
+     * Append a transient notice message (auto-dismisses after 5 s).
+     * Used for queue-full and batch-mode rejection notices.
+     */
+    _appendQueueMessage(chatContainer, text) {
+        const el = document.createElement('div');
+        el.className = 'message assistant ap-queue-notice';
+        el.innerHTML = `<div class="message__body"><div class="message-content" style="font-size:13px;color:var(--text-secondary,#aaa);padding:4px 0;opacity:0.85;">${text}</div></div>`;
+        chatContainer.appendChild(el);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        setTimeout(() => { if (el.isConnected) el.remove(); }, 5000);
     }
 
     /**
