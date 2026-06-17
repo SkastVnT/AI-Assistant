@@ -131,7 +131,7 @@
 
 <!-- ═══ Gallery Modal ═══ -->
 <div class="modal-overlay" id="galleryModal">
-    <div class="modal-panel">
+    <div class="modal-panel gallery-modal">
         <div class="modal-panel__header">
             <h2 class="modal-panel__title"><i data-lucide="images" class="lucide"></i> <span>Image Gallery</span></h2>
             <div class="modal-panel__header-actions">
@@ -139,7 +139,18 @@
                 <button class="modal-panel__close" onclick="closeGallery()" title="Close">&times;</button>
             </div>
         </div>
-        <div id="galleryStats"><i data-lucide="loader" class="lucide" style="width:14px;height:14px;"></i> Loading…</div>
+        <div id="galleryStats" class="gallery-stats-bar"></div>
+        <div class="gallery-toolbar">
+            <div class="gallery-search-wrap">
+                <span class="gallery-search-icon">🔍</span>
+                <input id="gallerySearchInput" class="gallery-search-input" type="text" placeholder="Tìm theo prompt, tên file…" autocomplete="off">
+            </div>
+            <div class="gallery-filter-btns">
+                <button id="galleryFilterAll"   class="gallery-filter-btn active" data-filter="all">Tất cả</button>
+                <button id="galleryFilterCloud" class="gallery-filter-btn" data-filter="cloud">☁️ Cloud</button>
+                <button id="galleryFilterLocal" class="gallery-filter-btn" data-filter="local">💾 Local</button>
+            </div>
+        </div>
         <div id="galleryGrid" class="gallery-grid"></div>
     </div>
 </div>

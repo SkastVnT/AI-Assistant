@@ -755,441 +755,116 @@ class ChatBotApp {
             );
             this.uiUtils.clearInput();
 
-            // ── Provider Choice Dialog (LOCAL / API / CANCEL) with 30s timeout ──
-            const providerChoice = await new Promise((resolve) => {
-                const TIMEOUT_SECONDS = 30;
-                const choiceContainer = document.createElement('div');
-                choiceContainer.className = 'message assistant';
-                choiceContainer.innerHTML = `
+            // ── Simplified LOCAL-only mode selector ──────────────────────────
+            const { imageOnly, batchSize, continuous } = await new Promise((resolve) => {
+                const panelEl = document.createElement('div');
+                panelEl.className = 'message assistant';
+                panelEl.innerHTML = `
                     <div class="message__avatar message__avatar--agent"><img src="/static/icons/app-icon.png" class="avatar-img" alt="" width="36" height="36" draggable="false"></div>
                     <div class="message__body">
                         <div class="message-content">
-                            <div class="igv2-provider-choice">
-                                <div class="igv2-choice-header">
-                                    <span class="igv2-choice-icon">⚡</span>
-                                    <span class="igv2-choice-title">Chọn phương thức tạo ảnh</span>
-                                    <span class="igv2-choice-timer" aria-live="polite" aria-atomic="true">${TIMEOUT_SECONDS}s</span>
+                            <div class="igv2-mode-panel">
+                                <div class="igv2-mode-header">
+                                    <span class="igv2-mode-icon">⚡</span>
+                                    <span class="igv2-mode-title">Tạo ảnh (LOCAL)</span>
                                 </div>
-                                <div class="igv2-choice-buttons">
-                                    <button class="igv2-choice-btn igv2-choice-local" data-choice="local">
-                                        <span class="igv2-choice-btn-icon">🖥️</span>
-                                        <span class="igv2-choice-btn-label">LOCAL</span>
-                                        <span class="igv2-choice-btn-desc">ComfyUI · Miễn phí</span>
-                                    </button>
-                                    <button class="igv2-choice-btn igv2-choice-api" data-choice="api">
-                                        <span class="igv2-choice-btn-icon">☁️</span>
-                                        <span class="igv2-choice-btn-label">API</span>
-                                        <span class="igv2-choice-btn-desc">Cloud · Nhanh & chất lượng</span>
-                                    </button>
-                                    <button class="igv2-choice-btn igv2-choice-cancel" data-choice="cancel">
-                                        <span class="igv2-choice-btn-icon">❌</span>
-                                        <span class="igv2-choice-btn-label">HỦY</span>
-                                        <span class="igv2-choice-btn-desc">Không tạo ảnh</span>
-                                    </button>
-                                </div>
-                                <div class="igv2-choice-imageonly" style="margin-top:10px; padding:8px 10px; border:1px dashed var(--border); border-radius:8px; background:var(--bg-secondary,var(--bg));">
-                                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px;">
-                                        <input type="checkbox" class="igv2-imageonly-toggle" style="width:16px; height:16px;">
-                                        <span><strong>🎨 Chỉ tạo ảnh (LOCAL)</strong> — Bỏ qua tinh chỉnh, trả về nhiều ảnh</span>
-                                    </label>
-                                    <div class="igv2-batch-row" style="margin-top:6px; display:flex; align-items:center; gap:6px; opacity:0.45; pointer-events:none; font-size:12px;">
-                                        <span style="color:var(--text-muted,#888);">Số lượng:</span>
-                                        <button type="button" class="igv2-batch-chip" data-batch="2" style="padding:3px 10px; border:1px solid var(--border); border-radius:12px; background:transparent; color:var(--text); cursor:pointer; font-size:12px;">2</button>
-                                        <button type="button" class="igv2-batch-chip selected" data-batch="4" style="padding:3px 10px; border:1px solid var(--accent,#4a9eff); border-radius:12px; background:var(--accent,#4a9eff); color:#fff; cursor:pointer; font-size:12px;">4</button>
-                                        <button type="button" class="igv2-batch-chip" data-batch="6" style="padding:3px 10px; border:1px solid var(--border); border-radius:12px; background:transparent; color:var(--text); cursor:pointer; font-size:12px;">6</button>
+                                <div class="igv2-mode-cards">
+                                    <div class="igv2-mode-card" data-mode="refine" tabindex="0">
+                                        <span class="igv2-mode-card-icon">✨</span>
+                                        <div class="igv2-mode-card-body">
+                                            <span class="igv2-mode-card-name">Tạo tinh chỉnh</span>
+                                            <span class="igv2-mode-card-hint">Đầy đủ pipeline, trả về 1 ảnh tốt nhất</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="igv2-choice-continuous" style="margin-top:8px; padding:8px 10px; border:1px dashed var(--border); border-radius:8px; background:var(--bg-secondary,var(--bg));">
-                                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px;">
-                                        <input type="checkbox" class="igv2-continuous-toggle" style="width:16px; height:16px;">
-                                        <span><strong>🔁 Tạo liên tục</strong> — Giữ nguyên prompt, đổi nhân vật nữ mỗi lượt</span>
-                                    </label>
-                                    <div class="igv2-continuous-row" style="margin-top:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; opacity:0.45; pointer-events:none; font-size:12px;">
-                                        <label style="display:flex; align-items:center; gap:4px; color:var(--text-muted,#888);">Số lần:
-                                            <input type="number" class="igv2-continuous-count" min="2" max="50" value="5" style="width:60px; padding:2px 6px; border:1px solid var(--border); border-radius:6px; background:transparent; color:var(--text); font-size:12px;">
-                                        </label>
-                                        <label style="display:flex; align-items:center; gap:4px; color:var(--text-muted,#888);">Nghỉ (giây):
-                                            <input type="number" class="igv2-continuous-sleep" min="0" max="600" value="3" style="width:60px; padding:2px 6px; border:1px solid var(--border); border-radius:6px; background:transparent; color:var(--text); font-size:12px;">
-                                        </label>
+                                    <div class="igv2-mode-card" data-mode="imageonly" tabindex="0">
+                                        <span class="igv2-mode-card-icon">🎨</span>
+                                        <div class="igv2-mode-card-body">
+                                            <span class="igv2-mode-card-name">Không tinh chỉnh</span>
+                                            <span class="igv2-mode-card-hint">Bỏ qua tinh chỉnh, trả về nhiều ảnh</span>
+                                        </div>
+                                        <div class="igv2-batch-chips" data-batch-group>
+                                            <span class="igv2-batch-label">Số lượng:</span>
+                                            <button type="button" class="igv2-bc" data-batch="2">2</button>
+                                            <button type="button" class="igv2-bc igv2-bc--sel" data-batch="4">4</button>
+                                            <button type="button" class="igv2-bc" data-batch="6">6</button>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="igv2-choice-extra">
-                                    <label class="igv2-extra__opt" title="Chỉ chạy preflight (kiểm tra prompt + character match) — không sinh ảnh.">
-                                        <input type="checkbox" class="igv2-preflight-toggle">
-                                        <i data-lucide="shield-check" class="igv2-extra__icon"></i>
-                                        <span><strong>Check first</strong><span class="igv2-extra__hint"> — chỉ chạy preflight</span></span>
-                                    </label>
-                                    <label class="igv2-extra__opt">
-                                        <i data-lucide="zap" class="igv2-extra__icon"></i>
-                                        <span><strong>Mode</strong></span>
-                                        <select class="igv2-mode-select">
-                                            <option value="normal" selected>Normal</option>
-                                            <option value="fast">Fast</option>
-                                        </select>
-                                    </label>
-                                </div>
-                                <div class="igv2-choice-progress">
-                                    <div class="igv2-choice-progress-bar"></div>
+                                    <div class="igv2-mode-card" data-mode="continuous" tabindex="0">
+                                        <span class="igv2-mode-card-icon">🔁</span>
+                                        <div class="igv2-mode-card-body">
+                                            <span class="igv2-mode-card-name">Tạo liên tục</span>
+                                            <span class="igv2-mode-card-hint">Giữ nguyên prompt, đổi nhân vật mỗi lượt</span>
+                                        </div>
+                                        <div class="igv2-cont-config">
+                                            <label>Số lần: <input type="number" class="igv2-cont-count" min="2" max="50" value="5"></label>
+                                            <label>Nghỉ (s): <input type="number" class="igv2-cont-sleep" min="0" max="600" value="3"></label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 `;
-                elements.chatContainer.appendChild(choiceContainer);
+                elements.chatContainer.appendChild(panelEl);
                 elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
 
-                const timerEl = choiceContainer.querySelector('.igv2-choice-timer');
-                const progressBar = choiceContainer.querySelector('.igv2-choice-progress-bar');
-                let remaining = TIMEOUT_SECONDS;
-                let resolved = false;
-
-                const finalize = (choice) => {
-                    if (resolved) return;
-                    resolved = true;
-                    clearInterval(countdownInterval);
-                    // Mark selected button
-                    choiceContainer.querySelectorAll('.igv2-choice-btn').forEach(btn => {
-                        btn.disabled = true;
-                        if (btn.dataset.choice === choice) btn.classList.add('selected');
-                        else btn.classList.add('dimmed');
-                    });
-                    timerEl.textContent = choice === 'cancel' ? 'Đã hủy' : choice === 'local' ? 'LOCAL' : 'API';
-                    const opts = choiceContainer._getImageOnlyOpts
-                        ? choiceContainer._getImageOnlyOpts()
-                        : { imageOnly: false, batchSize: 1 };
-                    resolve({ choice, opts });
-                };
-
-                // Image-only toggle + batch-size chips wiring
-                const imageOnlyCb = choiceContainer.querySelector('.igv2-imageonly-toggle');
-                const batchRow = choiceContainer.querySelector('.igv2-batch-row');
-                const batchChips = choiceContainer.querySelectorAll('.igv2-batch-chip');
-                let _imageOnly = false;
                 let _batchSize = 4;
-                if (imageOnlyCb) {
-                    imageOnlyCb.addEventListener('change', () => {
-                        _imageOnly = !!imageOnlyCb.checked;
-                        if (batchRow) {
-                            batchRow.style.opacity = _imageOnly ? '1' : '0.45';
-                            batchRow.style.pointerEvents = _imageOnly ? 'auto' : 'none';
-                        }
-                    });
-                }
-                batchChips.forEach(chip => {
-                    chip.addEventListener('click', () => {
+                let _resolved = false;
+
+                // Batch chips: stop propagation so clicking a chip does NOT
+                // also trigger the card click handler.
+                panelEl.querySelectorAll('.igv2-bc').forEach(chip => {
+                    chip.addEventListener('click', (e) => {
+                        e.stopPropagation();
                         _batchSize = parseInt(chip.dataset.batch, 10) || 4;
-                        batchChips.forEach(c => {
-                            const sel = c === chip;
-                            c.classList.toggle('selected', sel);
-                            c.style.background = sel ? 'var(--accent,#4a9eff)' : 'transparent';
-                            c.style.color = sel ? '#fff' : 'var(--text)';
-                            c.style.borderColor = sel ? 'var(--accent,#4a9eff)' : 'var(--border)';
-                        });
+                        panelEl.querySelectorAll('.igv2-bc').forEach(c =>
+                            c.classList.toggle('igv2-bc--sel', c === chip)
+                        );
                     });
                 });
 
-                // Stash on container so the resolver below can read them
-                choiceContainer._getImageOnlyOpts = () => {
-                    const preflightOnly = !!choiceContainer.querySelector('.igv2-preflight-toggle')?.checked;
-                    const budgetMode = choiceContainer.querySelector('.igv2-mode-select')?.value || 'normal';
-                    try {
-                        window.imageGenOptions = window.imageGenOptions || {};
-                        window.imageGenOptions.preflightOnly = preflightOnly;
-                        window.imageGenOptions.budgetMode = budgetMode;
-                    } catch (_) { /* ignore */ }
-                    return {
-                        imageOnly: _imageOnly,
-                        batchSize: Math.max(1, Math.min(parseInt(_batchSize, 10) || 1, 6)),
-                        continuous: _getContinuousOpts(),
-                        preflightOnly,
-                        budgetMode,
-                    };
+                // Number inputs must not bubble up as card clicks.
+                panelEl.querySelectorAll('.igv2-cont-count, .igv2-cont-sleep').forEach(inp => {
+                    inp.addEventListener('click', (e) => e.stopPropagation());
+                    inp.addEventListener('mousedown', (e) => e.stopPropagation());
+                });
+
+                const finalize = (card) => {
+                    if (_resolved) return;
+                    _resolved = true;
+                    panelEl.querySelectorAll('.igv2-mode-card').forEach(c => {
+                        c.style.pointerEvents = 'none';
+                        if (c === card) c.classList.add('igv2-mode-card--selected');
+                        else c.classList.add('igv2-mode-card--dimmed');
+                    });
+                    const mode = card.dataset.mode;
+                    if (mode === 'refine') {
+                        resolve({ imageOnly: false, batchSize: 1, continuous: { enabled: false, count: 1, sleepSeconds: 0 } });
+                    } else if (mode === 'imageonly') {
+                        resolve({ imageOnly: true, batchSize: _batchSize, continuous: { enabled: false, count: 1, sleepSeconds: 0 } });
+                    } else {
+                        const countEl = card.querySelector('.igv2-cont-count');
+                        const sleepEl = card.querySelector('.igv2-cont-sleep');
+                        const count = Math.max(2, Math.min(parseInt(countEl?.value || '5', 10) || 5, 50));
+                        const sleepSeconds = Math.max(0, Math.min(parseFloat(sleepEl?.value || '3') || 3, 600));
+                        resolve({ imageOnly: false, batchSize: 1, continuous: { enabled: true, count, sleepSeconds } });
+                    }
                 };
 
-                // Continuous-generation toggle wiring (independent of image-only).
-                const contCb = choiceContainer.querySelector('.igv2-continuous-toggle');
-                const contRow = choiceContainer.querySelector('.igv2-continuous-row');
-                const contCountEl = choiceContainer.querySelector('.igv2-continuous-count');
-                const contSleepEl = choiceContainer.querySelector('.igv2-continuous-sleep');
-                let _contEnabled = false;
-                if (contCb) {
-                    contCb.addEventListener('change', () => {
-                        _contEnabled = !!contCb.checked;
-                        if (contRow) {
-                            contRow.style.opacity = _contEnabled ? '1' : '0.45';
-                            contRow.style.pointerEvents = _contEnabled ? 'auto' : 'none';
-                        }
+                panelEl.querySelectorAll('.igv2-mode-card').forEach(card => {
+                    card.addEventListener('click', () => finalize(card));
+                    card.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); finalize(card); }
                     });
-                }
-                function _getContinuousOpts() {
-                    const rawCount = parseInt(contCountEl && contCountEl.value, 10);
-                    const rawSleep = parseFloat(contSleepEl && contSleepEl.value);
-                    return {
-                        enabled: _contEnabled,
-                        count: Math.max(2, Math.min(isFinite(rawCount) ? rawCount : 5, 50)),
-                        sleepSeconds: Math.max(0, Math.min(isFinite(rawSleep) ? rawSleep : 3, 600)),
-                    };
-                }
-
-                choiceContainer.querySelectorAll('.igv2-choice-btn').forEach(btn => {
-                    btn.addEventListener('click', () => finalize(btn.dataset.choice));
                 });
-
-                const countdownInterval = setInterval(() => {
-                    remaining--;
-                    if (timerEl) {
-                        timerEl.textContent = `${remaining}s`;
-                        // Color-shift via class state (CSS handles styling).
-                        timerEl.classList.toggle('is-warning', remaining <= 10 && remaining > 5);
-                        timerEl.classList.toggle('is-critical', remaining <= 5);
-                    }
-                    if (progressBar) {
-                        const ratio = Math.max(0, remaining / TIMEOUT_SECONDS);
-                        progressBar.style.width = `${ratio * 100}%`;
-                        // Expose ratio for any CSS that wants it.
-                        choiceContainer.style.setProperty('--igv2-time-left', ratio.toFixed(3));
-                    }
-                    if (remaining <= 0) {
-                        finalize('cancel');
-                    }
-                }, 1000);
-                // Initial progress bar
-                if (progressBar) progressBar.style.width = '100%';
             });
 
-            if (providerChoice.choice === 'cancel') {
-                this.messageRenderer.addMessage(
-                    elements.chatContainer,
-                    '⏰ Đã hủy tạo ảnh — không có phản hồi hoặc người dùng chọn HỦY.',
-                    false, formValues.model, formValues.context,
-                    this.uiUtils.formatTimestamp(new Date())
-                );
-                elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
-                await this.saveCurrentSession(true);
-                return;
-            }
-
-            // LOCAL → open Anime Pipeline modal with pre-filled prompt.
-            // Forward the image-only / batch-size selection from the
-            // choice card so the modal/inline run honors them.
-            if (providerChoice.choice === 'local') {
-                const _opts = providerChoice.opts || { imageOnly: false, batchSize: 1 };
-                this.animePipeline?.openModalWithPrompt(message, {
-                    imageOnly: !!_opts.imageOnly,
-                    batchSize: _opts.batchSize || 1,
-                    continuous: _opts.continuous || { enabled: false, count: 1, sleepSeconds: 0 },
-                });
-                return;
-            }
-
-            const imageGenOptions = { quality: 'auto' };
-            console.log('[App] Provider choice:', providerChoice.choice, imageGenOptions);
-
-            // Create streaming status container (like thinking but for image gen)
-            const statusContainer = document.createElement('div');
-            statusContainer.className = 'message assistant';
-            statusContainer.innerHTML = `
-                <div class="message__avatar message__avatar--agent"><img src="/static/icons/app-icon.png" class="avatar-img" alt="" width="36" height="36" draggable="false"></div>
-                <div class="message__body">
-                    <div class="message-content">
-                        <div class="igv2-stream-status">
-                            <div class="igv2-stream-header">
-                                <span class="igv2-stream-icon spinning">⚙️</span>
-                                <span class="igv2-stream-title">Image Generation</span>
-                            </div>
-                            <div class="igv2-stream-steps"></div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            elements.chatContainer.appendChild(statusContainer);
-            elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
-
-            const stepsContainer = statusContainer.querySelector('.igv2-stream-steps');
-            const headerIcon = statusContainer.querySelector('.igv2-stream-icon');
-            let currentStepEl = null;
-
-            const addStep = (icon, text, className = '') => {
-                const step = document.createElement('div');
-                step.className = `igv2-stream-step ${className}`;
-                step.innerHTML = `<span class="igv2-step-icon">${icon}</span><span class="igv2-step-text">${text}</span>`;
-                stepsContainer.appendChild(step);
-                currentStepEl = step;
-                elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
-                return step;
-            };
-
-            const updateStep = (stepEl, icon, text, className = '') => {
-                if (!stepEl) return;
-                stepEl.className = `igv2-stream-step ${className}`;
-                stepEl.innerHTML = `<span class="igv2-step-icon">${icon}</span><span class="igv2-step-text">${text}</span>`;
-            };
-
-            const conversationId = this.chatManager.getCurrentSession()?.id || '';
-            this.currentAbortController = new AbortController();
-
-            let providerStep = null;
-            const result = await this.imageGenV2.generateFromChatStream(
-                message, conversationId, this.currentAbortController.signal,
-                {
-                    onStatus: (data) => {
-                        if (data.phase === 'enhance') {
-                            if (data.enhanced_prompt) {
-                                addStep('✨', `Prompt enhanced`, 'done');
-                            } else {
-                                addStep('✨', data.step, 'active');
-                            }
-                        } else if (data.phase === 'select') {
-                            if (data.providers) {
-                                addStep('📡', `Providers: ${data.providers.join(', ')}`, 'done');
-                            } else {
-                                addStep('🔍', data.step, 'active');
-                            }
-                        } else {
-                            addStep('⚙️', data.step, 'active');
-                        }
-                    },
-                    onProviderTry: (data) => {
-                        providerStep = addStep('🔄', `Trying ${data.provider} (${data.attempt}/${data.total_providers})...`, 'active');
-                    },
-                    onProviderFail: (data) => {
-                        updateStep(providerStep, '❌', `${data.provider} failed: ${data.error}`, 'fail');
-                        providerStep = null;
-                    },
-                    onProviderSuccess: (data) => {
-                        updateStep(providerStep, '✅', `${data.provider} / ${data.model} — ${Math.round(data.latency_ms)}ms`, 'done');
-                        headerIcon.textContent = '✅';
-                        headerIcon.classList.remove('spinning');
-                    },
-                    onError: (data) => {
-                        addStep('❌', data.error, 'fail');
-                        headerIcon.textContent = '❌';
-                        headerIcon.classList.remove('spinning');
-                    },
-                },
-                imageGenOptions,
-            );
-
-            if (result.success) {
-                let imgSrc = '';
-                let imageId = '';
-                if (result.images?.length > 0 && result.images[0].url) {
-                    imgSrc = result.images[0].url;
-                    imageId = result.images[0].image_id || '';
-                } else if (result.images_url?.length > 0) {
-                    imgSrc = result.images_url[0];
-                }
-
-                const meta = `🎨 **${result.provider}** / ${result.model} | ${Math.round(result.latency_ms)}ms | $${result.cost_usd}`;
-                const enhanced = result.prompt_used ? `\n📝 ${result.prompt_used.substring(0, 150)}` : '';
-                const htmlAttrEsc = (value) => String(value || '')
-                    .replace(/&/g, '&amp;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#39;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;');
-                const promptEsc = htmlAttrEsc(result.prompt_used || message);
-                const imgSrcAttr = htmlAttrEsc(imgSrc);
-                const imageIdAttr = htmlAttrEsc(imageId);
-                const overlayButtons = `
-                    <div class="igv2-img-overlay">
-                        <button type="button" class="igv2-img-btn" title="Tải ảnh" data-igv2-action="download" data-img-src="${imgSrcAttr}" data-image-id="${imageIdAttr}">⬇</button>
-                        <button type="button" class="igv2-img-btn" title="Thông tin" data-igv2-action="info" data-image-id="${imageIdAttr}">ℹ</button>
-                        ${imageId ? `<button type="button" class="igv2-img-btn igv2-save-btn" title="Lưu & Upload Drive" data-igv2-action="save" data-image-id="${imageIdAttr}">☁</button>` : ''}
-                    </div>`;
-                this.messageRenderer.addMessage(
-                    elements.chatContainer,
-                    `<div class="igv2-chat-image" data-image-id="${imageIdAttr}" data-prompt="${promptEsc}">${overlayButtons}<img src="${imgSrc}" alt="Generated"><div class="igv2-chat-meta">${meta}${enhanced}</div></div>`,
-                    false, formValues.model, formValues.context,
-                    this.uiUtils.formatTimestamp(new Date())
-                );
-
-                // Store image gen metadata on the message div for regeneration
-                const lastAssistantMsg = elements.chatContainer.querySelector('.message.assistant:last-child');
-                if (lastAssistantMsg) {
-                    lastAssistantMsg.dataset.igv2Provider = providerChoice.choice;  // 'local' or 'api'
-                    lastAssistantMsg.dataset.igv2Prompt = message;           // original user prompt
-                    lastAssistantMsg.dataset.igv2RegenCount = '0';
-                    lastAssistantMsg.dataset.igv2ConversationId = conversationId;
-                    lastAssistantMsg.dataset.igv2IsImage = 'true';
-                }
-
-                // ── Record into session for context-aware follow-ups ──
-                // Forward any structured metadata the backend returned (job_id,
-                // preset, character_key, manifest_path, seed) so future LLM
-                // turns can reference what was generated, not just where it lives.
-                // Backward compatible: missing fields are dropped by the chat-manager.
-                try {
-                    this.chatManager.addGeneratedImage({
-                        url: imgSrc,
-                        prompt: result.prompt_used || message,
-                        provider: result.provider,
-                        model: result.model,
-                        job_id: result.job_id || result.jobId,
-                        conversation_id: conversationId,
-                        character_key: result.character_key,
-                        series_key: result.series_key,
-                        preset: result.preset,
-                        manifest_path: result.manifest_path,
-                        seed: result.seed,
-                    });
-                } catch (e) {
-                    console.warn('[App] addGeneratedImage failed:', e);
-                }
-
-                // ── 4-Agents Deep Thinking Analysis (when multi-thinking mode) ──
-                if (formValues.thinkingMode === 'multi-thinking' && result.success) {
-                    const thinkingSection = this.messageRenderer.createThinkingSection(null, true);
-                    const thinkMsgEl = document.createElement('div');
-                    thinkMsgEl.className = 'message assistant';
-                    thinkMsgEl.innerHTML = '<div class="message__avatar message__avatar--agent"><img src="/static/icons/app-icon.png" class="avatar-img" alt="" width="36" height="36" draggable="false"></div><div class="message__body"><div class="message-content"></div></div>';
-                    thinkMsgEl.querySelector('.message-content').appendChild(thinkingSection);
-                    elements.chatContainer.appendChild(thinkMsgEl);
-                    elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
-
-                    const analysisSteps = [
-                        { icon: '🔍', text: `**Phân tích prompt** — "${(result.prompt_used || message).substring(0, 80)}..."` },
-                        { icon: '🎨', text: `**Provider:** ${result.provider} / ${result.model}` },
-                        { icon: '⚡', text: `**Hiệu suất:** ${Math.round(result.latency_ms)}ms · Chi phí: $${result.cost_usd}` },
-                        { icon: '📐', text: `**Đánh giá bố cục:** Ảnh được tạo với kích thước ${result.metadata?.width || '?'}×${result.metadata?.height || '?'}` },
-                        { icon: '✨', text: `**Chất lượng:** ${providerChoice.choice === 'local' ? 'ComfyUI local — miễn phí, tùy chỉnh tốt' : 'Cloud API — chất lượng cao, tốc độ nhanh'}` },
-                        { icon: '✅', text: '**Kết luận:** Ảnh đã được tạo thành công. Bạn có thể yêu cầu chỉnh sửa thêm.' },
-                    ];
-
-                    for (let i = 0; i < analysisSteps.length; i++) {
-                        await new Promise(r => setTimeout(r, 400));
-                        this.messageRenderer.addThinkingStep(
-                            thinkingSection,
-                            `${analysisSteps[i].icon} ${analysisSteps[i].text}`
-                        );
-                        elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
-                    }
-
-                    // Finalize thinking
-                    if (this.messageRenderer.finalizeThinking) {
-                        this.messageRenderer.finalizeThinking(thinkingSection);
-                    }
-                }
-            } else {
-                this.messageRenderer.addMessage(
-                    elements.chatContainer,
-                    `❌ Không thể tạo ảnh: ${result.error}`,
-                    false, formValues.model, formValues.context,
-                    this.uiUtils.formatTimestamp(new Date())
-                );
-                // Store image gen metadata on error message too for retry
-                const lastErrMsg = elements.chatContainer.querySelector('.message.assistant:last-child');
-                if (lastErrMsg) {
-                    lastErrMsg.dataset.igv2Provider = providerChoice.choice;
-                    lastErrMsg.dataset.igv2Prompt = message;
-                    lastErrMsg.dataset.igv2RegenCount = '0';
-                    lastErrMsg.dataset.igv2ConversationId = conversationId;
-                    lastErrMsg.dataset.igv2IsImage = 'true';
-                }
-            }
-            elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
-            await this.saveCurrentSession(true);
-            return;  // Don't send to chat API
+            this.animePipeline?.openModalWithPrompt(message, {
+                imageOnly,
+                batchSize,
+                continuous,
+            });
+            return;
         }
         // ── End Image Gen V2 ─────────────────────────────────
 
@@ -3834,110 +3509,299 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     };
 
-    window.openGallery = async () => {
-        const modal = document.getElementById('galleryModal');
-        const grid = document.getElementById('galleryGrid');
-        const stats = document.getElementById('galleryStats');
-        
-        if (!modal) return;
-        
-        modal.classList.add('active', 'open');
-        grid.innerHTML = '<div style="text-align: center; padding: 50px; color: #999;">⏳ Đang tải ảnh...</div>';
-        
-        try {
-            const url = '/api/gallery/images?all=true';
-            const response = await fetch(url);
-            const data = await response.json();
-            
-            if (data.success && data.images.length > 0) {
-                const sourceText = data.source === 'mongodb' ? ' ☁️' : ' 💾';
-                stats.textContent = `📊 Tổng số: ${data.total} ảnh (Tất cả)${sourceText}`;
-                
-                grid.innerHTML = data.images.map(img => {
-                    const metadataStr = JSON.stringify(img.metadata).replace(/"/g, '&quot;');
-                    const rawFilename = img.filename || (img.path || '').split('/').pop() || '';
-                    const filename = escapeHtml(rawFilename);
-                    // JS-safe: escape single quotes and backslashes for onclick contexts
-                    const jsFilename = rawFilename.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                    // Prefer cloud URL (ImgBB CDN) for display, fallback to local path
-                    const displayUrl = escapeHtml(img.cloud_url || img.path || img.url || '');
-                    const isCloud = !!img.cloud_url;
-                    const hasDrive = !!img.drive_url;
-                    const imageDataStr = encodeURIComponent(JSON.stringify({
-                        id: img.id || '',
-                        filename: rawFilename,
-                        path: img.cloud_url || img.path || img.url || '',
-                        cloud_url: img.cloud_url || '',
-                        drive_url: img.drive_url || '',
-                        share_url: img.share_url || img.drive_url || img.cloud_url || img.path || img.url || '',
-                        created: img.created || img.created_at || '',
-                        creator: img.creator || '',
-                        db_status: img.db_status || {},
-                        metadata: img.metadata || {}
-                    }));
-                    const jsImgId = (img.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                    const safePrompt = escapeHtml(img.prompt || '');
-                    const safeCreated = escapeHtml(img.created || '');
-                    const safeFallback = escapeHtml(img.local_path || img.path || '');
-                    return `
-                        <div class="gallery-item" data-path="${displayUrl}" data-filename="${filename}" data-metadata="${metadataStr}">
-                            <img src="${displayUrl}" alt="${filename}" loading="lazy" onerror="this.src='${safeFallback}'">
-                            ${isCloud ? '<span class="gallery-cloud-badge" title="Stored in cloud">☁️</span>' : ''}
-                            ${hasDrive ? '<span class="gallery-drive-badge" title="Saved to Drive">📁</span>' : ''}
-                            <div class="gallery-item-info">
-                                <div style="font-size:10px;opacity:0.7;">📅 ${safeCreated}</div>
-                                <div class="gallery-item-prompt" title="${safePrompt}">
-                                    ${escapeHtml((img.prompt || '').substring(0, 60))}${(img.prompt || '').length > 60 ? '…' : ''}
-                                </div>
-                            </div>
-                            <button class="gallery-info-btn" onclick="event.stopPropagation(); showGalleryImageInfo('${jsFilename}', '${jsImgId}', '${imageDataStr}')" title="Thông tin ảnh">
-                                ℹ️
-                            </button>
-                            <button class="gallery-upload-btn" onclick="event.stopPropagation(); uploadGalleryImageToDB('${jsFilename}')" title="Upload metadata + ảnh lên MongoDB/Firebase/Drive">
-                                ⬆️
-                            </button>
-                            <button class="gallery-delete-btn" onclick="event.stopPropagation(); deleteGalleryImage('${jsFilename}')" title="Xóa ảnh">
-                                🗑️
-                            </button>
-                        </div>
-                    `;
-                }).join('');
-                
-                // Add click event listeners to gallery items
-                document.querySelectorAll('.gallery-item').forEach(item => {
-                    item.addEventListener('click', () => {
-                        const path = item.getAttribute('data-path');
-                        const metadataStr = item.getAttribute('data-metadata');
-                        try {
-                            const metadata = JSON.parse(metadataStr);
-                            viewGalleryImage(path, metadata);
-                        } catch (e) {
-                            console.error('[Gallery] Failed to parse metadata:', e);
-                            viewGalleryImage(path, {});
-                        }
-                    });
-                });
-            } else {
-                const emptyMsg = showAll ? '🖼️ No pictures yet' : '🖼️ No pictures';
-                grid.innerHTML = `<div class="gallery-empty">${emptyMsg}</div>`;
-                stats.textContent = '📊 Total: 0 Pictures';
+    // Gallery state
+    let _galleryPage = 1;
+    let _galleryTotal = 0;
+    let _galleryTotalPages = 1;
+    let _galleryLoading = false;
+    let _galleryItems = [];
+    let _gallerySearchTerm = '';
+    let _gallerySourceFilter = 'all';
+    let _galleryInited = false;
+    const GALLERY_PER_PAGE = 48;
+
+    const _buildGalleryItem = (img) => {
+        const rawFilename = img.filename || (img.path || '').split('/').pop() || '';
+        const displayUrl  = img.cloud_url || img.path || img.url || '';
+        const fallbackUrl = img.local_path && img.local_path !== displayUrl ? img.local_path : '';
+        const isCloud = !!img.cloud_url;
+        const hasDrive = !!img.drive_url;
+        const prompt = img.prompt || '';
+        const created = img.created || img.created_at || '';
+        const createdLabel = created ? (() => { try { return new Date(created).toLocaleDateString('vi-VN'); } catch(_){return created;} })() : '';
+        const imageDataStr = encodeURIComponent(JSON.stringify({
+            id: img.id || '', filename: rawFilename,
+            path: img.cloud_url || img.path || img.url || '',
+            cloud_url: img.cloud_url || '', drive_url: img.drive_url || '',
+            share_url: img.share_url || img.drive_url || img.cloud_url || img.path || img.url || '',
+            created: created, creator: img.creator || '',
+            db_status: img.db_status || {}, metadata: img.metadata || {}
+        }));
+
+        const div = document.createElement('div');
+        div.className = 'gallery-item';
+        div.dataset.path = displayUrl;
+        div.dataset.filename = rawFilename;
+        div.dataset.metadata = JSON.stringify(img.metadata || {});
+
+        // Image element
+        const imgEl = document.createElement('img');
+        imgEl.alt = '';
+        imgEl.loading = 'lazy';
+        if (displayUrl) {
+            imgEl.src = displayUrl;
+            imgEl.onerror = function() {
+                this.onerror = null;
+                if (fallbackUrl) {
+                    this.src = fallbackUrl;
+                    this.onerror = function() {
+                        this.onerror = null;
+                        this.style.display = 'none';
+                        div.classList.add('gallery-item--broken');
+                    };
+                } else {
+                    this.style.display = 'none';
+                    div.classList.add('gallery-item--broken');
+                }
+            };
+        } else {
+            imgEl.style.display = 'none';
+            div.classList.add('gallery-item--broken');
+        }
+        div.appendChild(imgEl);
+
+        // Broken placeholder (shown via CSS when .gallery-item--broken)
+        const placeholder = document.createElement('div');
+        placeholder.className = 'gallery-item__placeholder';
+        const phIcon = document.createElement('div');
+        phIcon.className = 'gallery-item__placeholder-icon';
+        phIcon.textContent = '🖼️';
+        const phName = document.createElement('div');
+        phName.className = 'gallery-item__placeholder-name';
+        phName.textContent = rawFilename;
+        placeholder.appendChild(phIcon);
+        placeholder.appendChild(phName);
+        div.appendChild(placeholder);
+
+        // Badges top-left
+        if (isCloud || hasDrive) {
+            const badges = document.createElement('div');
+            badges.className = 'gallery-item-badges';
+            if (isCloud) {
+                const b = document.createElement('span');
+                b.className = 'gallery-cloud-badge';
+                b.title = 'Cloud (ImgBB)';
+                b.textContent = '☁️';
+                badges.appendChild(b);
             }
-        } catch (error) {
-            console.error('[Gallery] Error:', error);
-            grid.innerHTML = '<div class="gallery-empty">❌ Error while loading images</div>';
+            if (hasDrive) {
+                const b = document.createElement('span');
+                b.className = 'gallery-drive-badge';
+                b.title = 'Google Drive';
+                b.textContent = '📁';
+                badges.appendChild(b);
+            }
+            div.appendChild(badges);
+        }
+
+        // Action buttons — top-right, revealed on hover
+        const jsFilename = rawFilename.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const jsImgId = (img.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const actions = document.createElement('div');
+        actions.className = 'gallery-item-actions';
+
+        const infoBtn = document.createElement('button');
+        infoBtn.className = 'gallery-action-btn';
+        infoBtn.title = 'Thông tin ảnh';
+        infoBtn.textContent = 'ℹ️';
+        infoBtn.onclick = (e) => { e.stopPropagation(); showGalleryImageInfo(jsFilename, jsImgId, imageDataStr); };
+        actions.appendChild(infoBtn);
+
+        const uploadBtn = document.createElement('button');
+        uploadBtn.className = 'gallery-action-btn';
+        uploadBtn.title = 'Upload lên DB';
+        uploadBtn.textContent = '⬆️';
+        uploadBtn.onclick = (e) => { e.stopPropagation(); uploadGalleryImageToDB(jsFilename); };
+        actions.appendChild(uploadBtn);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'gallery-action-btn gallery-action-btn--del';
+        delBtn.title = 'Xóa ảnh';
+        delBtn.textContent = '🗑️';
+        delBtn.onclick = (e) => { e.stopPropagation(); deleteGalleryImage(jsFilename); };
+        actions.appendChild(delBtn);
+
+        div.appendChild(actions);
+
+        // Info overlay — bottom, revealed on hover
+        const info = document.createElement('div');
+        info.className = 'gallery-item-info';
+        if (createdLabel) {
+            const dateEl = document.createElement('div');
+            dateEl.className = 'gallery-item-date';
+            dateEl.textContent = createdLabel;
+            info.appendChild(dateEl);
+        }
+        const promptEl = document.createElement('div');
+        promptEl.className = 'gallery-item-prompt';
+        promptEl.title = prompt;
+        promptEl.textContent = prompt.length > 80 ? prompt.substring(0, 80) + '…' : prompt;
+        info.appendChild(promptEl);
+        div.appendChild(info);
+
+        div.addEventListener('click', () => {
+            if (!displayUrl) return;
+            try { viewGalleryImage(displayUrl, JSON.parse(div.dataset.metadata || '{}')); }
+            catch (_) { viewGalleryImage(displayUrl, {}); }
+        });
+
+        return div;
+    };
+
+    const _galleryRender = () => {
+        const grid = document.getElementById('galleryGrid');
+        if (!grid) return;
+
+        // Save & remove load-more button
+        const loadMoreBtn = grid.querySelector('.gallery-load-more');
+        if (loadMoreBtn) loadMoreBtn.remove();
+
+        // Apply filters
+        let filtered = _galleryItems;
+        if (_gallerySearchTerm) {
+            const term = _gallerySearchTerm.toLowerCase();
+            filtered = filtered.filter(img =>
+                (img.prompt || '').toLowerCase().includes(term) ||
+                (img.filename || '').toLowerCase().includes(term));
+        }
+        if (_gallerySourceFilter === 'cloud') filtered = filtered.filter(img => !!img.cloud_url);
+        if (_gallerySourceFilter === 'local') filtered = filtered.filter(img => !img.cloud_url);
+
+        // Update filter button labels with counts
+        const cloudCount = _galleryItems.filter(img => !!img.cloud_url).length;
+        const localCount = _galleryItems.filter(img => !img.cloud_url).length;
+        const allBtn   = document.getElementById('galleryFilterAll');
+        const cloudBtn = document.getElementById('galleryFilterCloud');
+        const localBtn = document.getElementById('galleryFilterLocal');
+        if (allBtn)   allBtn.textContent   = `Tất cả (${_galleryItems.length})`;
+        if (cloudBtn) cloudBtn.textContent = `☁️ Cloud (${cloudCount})`;
+        if (localBtn) localBtn.textContent = `💾 Local (${localCount})`;
+
+        grid.innerHTML = '';
+
+        if (filtered.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'gallery-empty';
+            empty.textContent = _gallerySearchTerm ? '🔍 Không tìm thấy ảnh phù hợp' : '🖼️ Chưa có ảnh nào';
+            grid.appendChild(empty);
+        } else {
+            const frag = document.createDocumentFragment();
+            filtered.forEach(img => frag.appendChild(_buildGalleryItem(img)));
+            grid.appendChild(frag);
+        }
+
+        // Re-attach load-more if there are more pages to fetch
+        if (_galleryPage < _galleryTotalPages) {
+            const remaining = _galleryTotal - _galleryPage * GALLERY_PER_PAGE;
+            const btn = document.createElement('button');
+            btn.className = 'gallery-load-more';
+            btn.textContent = `Tải thêm${remaining > 0 ? ` (còn ${remaining})` : ''}`;
+            btn.onclick = async () => {
+                _galleryPage++;
+                await _galleryLoadPage(_galleryPage, true);
+            };
+            grid.appendChild(btn);
         }
     };
 
-    // Backward compatibility: old button may still call this
-    window.toggleGalleryMode = () => {
-        openGallery();
+    const _galleryLoadPage = async (page, append = false) => {
+        if (_galleryLoading) return;
+        _galleryLoading = true;
+
+        const grid  = document.getElementById('galleryGrid');
+        const stats = document.getElementById('galleryStats');
+        if (!grid || !stats) { _galleryLoading = false; return; }
+
+        if (!append) {
+            grid.innerHTML = '<div class="gallery-empty">⏳ Đang tải ảnh…</div>';
+        }
+
+        try {
+            const resp = await fetch(`/api/gallery/images?all=true&page=${page}&per_page=${GALLERY_PER_PAGE}`);
+            const data = await resp.json();
+            if (!data.success) throw new Error(data.error || 'Load failed');
+
+            _galleryTotal      = data.total || 0;
+            _galleryTotalPages = data.total_pages || 1;
+
+            if (!append) _galleryItems = [];
+            if (data.images && data.images.length > 0) {
+                _galleryItems.push(...data.images);
+            }
+
+            const srcIcon = (data.source || '').includes('mongodb') ? '☁️' : '💾';
+            const pageInfo = _galleryTotalPages > 1 ? ` — trang ${page}/${_galleryTotalPages}` : '';
+            stats.textContent = `📊 ${_galleryTotal} ảnh ${srcIcon}${pageInfo}`;
+
+            _galleryRender();
+        } catch (err) {
+            console.error('[Gallery] Load error:', err);
+            grid.innerHTML = '<div class="gallery-empty">❌ Lỗi tải gallery</div>';
+        } finally {
+            _galleryLoading = false;
+        }
     };
-    
+
+    const _galleryInitToolbar = () => {
+        if (_galleryInited) return;
+        _galleryInited = true;
+
+        let _searchTimer;
+        const searchInput = document.getElementById('gallerySearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                clearTimeout(_searchTimer);
+                _searchTimer = setTimeout(() => {
+                    _gallerySearchTerm = searchInput.value.trim().toLowerCase();
+                    _galleryRender();
+                }, 240);
+            });
+        }
+
+        document.querySelectorAll('.gallery-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                _gallerySourceFilter = btn.dataset.filter || 'all';
+                document.querySelectorAll('.gallery-filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                _galleryRender();
+            });
+        });
+    };
+
+    window.openGallery = async () => {
+        const modal = document.getElementById('galleryModal');
+        if (!modal) return;
+        modal.classList.add('active', 'open');
+        _galleryInitToolbar();
+        _galleryPage = 1;
+        _galleryItems = [];
+        _gallerySearchTerm = '';
+        _gallerySourceFilter = 'all';
+        document.querySelectorAll('.gallery-filter-btn').forEach(b => b.classList.remove('active'));
+        const allBtn = document.getElementById('galleryFilterAll');
+        if (allBtn) allBtn.classList.add('active');
+        const searchInput = document.getElementById('gallerySearchInput');
+        if (searchInput) searchInput.value = '';
+        await _galleryLoadPage(1, false);
+    };
+
+    window.toggleGalleryMode = () => { openGallery(); };
+
     window.closeGallery = () => {
         const modal = document.getElementById('galleryModal');
         if (modal) modal.classList.remove('active', 'open');
     };
-    
+
     window.refreshGallery = async () => {
         console.log('[Gallery] Refreshing...');
         await openGallery();

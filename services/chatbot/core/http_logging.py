@@ -168,7 +168,19 @@ def setup_http_logging(app):
 
             # Get response info
             content_type = response.content_type or "unknown"
-            content_length = response.content_length or len(response.get_data())
+            # NEVER call get_data() on streaming/SSE responses — it consumes
+            # the entire generator and buffers all events before the client
+            # receives anything, destroying real-time streaming.
+            _is_sse = "event-stream" in content_type
+            if _is_sse or getattr(response, "is_streamed", False):
+                content_length = "streaming"
+            elif response.content_length is not None:
+                content_length = response.content_length
+            else:
+                try:
+                    content_length = len(response.get_data(as_text=False))
+                except Exception:
+                    content_length = 0
 
             log_msg = (
                 f"[{method}] {path} | "
