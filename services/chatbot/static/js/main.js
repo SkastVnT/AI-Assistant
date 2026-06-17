@@ -2347,17 +2347,6 @@ class ChatBotApp {
      * Switch chat
      */
     handleSwitchChat(chatId) {
-        // Abort any active inline image generation before leaving this chat.
-        // Mark unfinished bubbles so recoverInlineBubbles shows a "cancelled"
-        // message instead of "pipeline interrupted (F5/connection lost)".
-        if (this.animePipeline?._running) {
-            document.querySelectorAll('.ap-inline-msg').forEach(el => {
-                if (!el.querySelector('.igv2-chat-image img')) {
-                    el.dataset.apTabSwitchCancelled = '1';
-                }
-            });
-            this.animePipeline.cancel();
-        }
         this.saveCurrentSession();
         this.chatManager.switchChat(chatId);
         this.loadCurrentChat();

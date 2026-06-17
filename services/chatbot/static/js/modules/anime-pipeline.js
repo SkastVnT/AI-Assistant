@@ -712,8 +712,9 @@ export class AnimePipeline {
         while (Date.now() < deadline) {
             await new Promise(r => setTimeout(r, POLL_INTERVAL));
 
-            // Stop polling if user aborted or bubble was removed
-            if (this._abort?.signal.aborted || !bubble.isConnected) return;
+            // Stop only on explicit user abort; keep polling even if bubble is
+            // detached from DOM (user switched chat tab) — result goes to localStorage.
+            if (this._abort?.signal.aborted) return;
 
             try {
                 const res = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`);
@@ -1188,6 +1189,37 @@ export class AnimePipeline {
     /** Replace progress block with the final image result. */
     _inlineShowResult(bubble, uid, data, prompt, startTime, chatContainer) {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+        // ── Background-tab support ──────────────────────────────────────
+        // If the bubble was removed from the DOM because the user switched chat,
+        // persist the result to localStorage so recoverInlineBubbles can restore
+        // it when they return.  Also try to forward directly to a re-inserted
+        // bubble with the same id (user already switched back mid-generation).
+        if (!bubble.isConnected) {
+            const bgKey = `ap_bg_result_${uid}`;
+            try {
+                localStorage.setItem(bgKey, JSON.stringify({
+                    local_url:   data.local_url   || null,
+                    image_b64:   data.image_b64   || null,
+                    job_id:      data.job_id      || uid,
+                    prompt_used: data.prompt_used || prompt,
+                    elapsed,
+                }));
+            } catch { /* storage quota — ignore */ }
+
+            const liveBubble = document.getElementById(`ap-inline-${uid}`);
+            if (liveBubble && liveBubble !== bubble) {
+                // User already switched back; the bubble is live again — render there.
+                localStorage.removeItem(bgKey);
+                this._inlineShowResult(liveBubble, uid, data, prompt, startTime, null);
+                return;
+            }
+            // User is still on a different chat — show a toast.
+            window.appAlert?.('✅ Anime Pipeline hoàn tất! Quay lại chat để xem ảnh.', 'success');
+            return;
+        }
+        // ── end background-tab support ──────────────────────────────────
+
         const wasCancelled = bubble.dataset.apCancelled === '1';
         const cancelStage = bubble.dataset.apCancelStage || '';
         // Disarm the Stop hard-fallback timer set in _createInlineBubble.
@@ -1928,9 +1960,35 @@ export class AnimePipeline {
                 }
                 this._rewireInlineButtons(bubble);
             } else if (details) {
-                // No image — pipeline was interrupted mid-stream.
-                // Distinguish intentional tab-switch cancel from real network drops.
-                const wasTabSwitch = bubble.dataset.apTabSwitchCancelled === '1';
+                // No image yet — three possible reasons:
+                // A) Result arrived while bubble was detached → localStorage has it
+                // B) Generation still running in background (user switched tab mid-run)
+                // C) Real network drop / F5
+
+                const uid = bubble.id?.replace('ap-inline-', '') || '';
+
+                // ── Case A: background result already saved ───────────────
+                const bgKey = `ap_bg_result_${uid}`;
+                const stored = localStorage.getItem(bgKey);
+                if (stored) {
+                    try {
+                        const res = JSON.parse(stored);
+                        localStorage.removeItem(bgKey);
+                        const fakeStart = Date.now() - (parseFloat(res.elapsed || '0') * 1000);
+                        this._inlineShowResult(bubble, uid, res, res.prompt_used || '', fakeStart, null);
+                        return;
+                    } catch { /* bad data — fall through */ }
+                }
+
+                // ── Case B: still generating in background ────────────────
+                if (this._running) {
+                    details.open = true;
+                    const label = details.querySelector('.ap-inline-label');
+                    if (label) label.textContent = '⏳ Đang tạo ảnh nền — sẽ tự cập nhật khi xong';
+                    return;
+                }
+
+                // ── Case C: real interruption (F5 / network drop) ─────────
                 const orphanJobId = bubble.dataset.jobId || '';
                 if (orphanJobId) {
                     fetch('/api/anime-pipeline/cancel', {
@@ -1942,9 +2000,7 @@ export class AnimePipeline {
                 }
                 details.open = true;
                 const label = details.querySelector('.ap-inline-label');
-                if (label) label.textContent = wasTabSwitch
-                    ? '↩️ Đã hủy khi chuyển tab — bấm Tạo lại để tiếp tục'
-                    : '⚠️ Pipeline bị gián đoạn (F5/mất kết nối)';
+                if (label) label.textContent = '⚠️ Pipeline bị gián đoạn (F5/mất kết nối)';
                 const dots = details.querySelector('.thinking-pill__dots');
                 if (dots) dots.remove();
                 const timer = details.querySelector('.ap-inline-timer');
