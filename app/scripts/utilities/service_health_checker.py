@@ -5,6 +5,7 @@ Uses Gemini 2.0 Flash (or Grok as fallback) to verify dependencies and fix issue
 
 import json
 import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -238,8 +239,7 @@ Return ONLY valid JSON, no markdown, no explanation."""
 
         try:
             result = subprocess.run(
-                test_command,
-                shell=True,
+                shlex.split(test_command),
                 capture_output=True,
                 text=True,
                 timeout=10,
@@ -330,16 +330,15 @@ Return ONLY valid JSON, no markdown."""
                     continue
 
                 # Install via pip
-                install_cmd = f'"{pip_path}" install "{cmd}"'
+                install_cmd = [str(pip_path), "install", cmd]
                 print(f"[PIP] Installing: {cmd}")
             else:
                 # Execute as command
-                install_cmd = cmd
+                install_cmd = shlex.split(cmd)
 
             try:
                 result = subprocess.run(
                     install_cmd,
-                    shell=True,
                     capture_output=True,
                     text=True,
                     timeout=300,

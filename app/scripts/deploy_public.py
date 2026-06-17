@@ -132,11 +132,14 @@ def is_port_in_use(port: int) -> bool:
 def kill_port(port: int):
     """Kill process on a specific port"""
     try:
-        subprocess.run(
-            f"lsof -ti :{port} | xargs kill -9 2>/dev/null",
-            shell=True,
+        result = subprocess.run(
+            ["lsof", "-ti", f":{int(port)}"],
             capture_output=True,
+            text=True,
         )
+        if result.stdout.strip():
+            pids = result.stdout.strip().split("\n")
+            subprocess.run(["kill", "-9"] + pids, capture_output=True)
     except Exception:
         pass
 
