@@ -19,10 +19,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # ------ Runtime stage ------
 FROM base AS runtime
 
-COPY libs/ libs/
-COPY apps/ apps/
+RUN useradd -m -u 1001 appuser
+
+COPY --chown=appuser:appuser libs/ libs/
+COPY --chown=appuser:appuser apps/ apps/
 
 ENV PYTHONPATH=/app
+
+USER appuser
 
 EXPOSE 8000
 
