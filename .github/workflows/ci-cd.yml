@@ -110,10 +110,12 @@ jobs:
     - name: Bandit (Python)
       run: |
         bandit -r services/ app/src/ \
+          --configfile .bandit \
           --exclude '**/tests/**,**/__pycache__/**' \
           --severity-level high --confidence-level medium \
           -f json -o bandit-report.json || true
         bandit -r services/ app/src/ \
+          --configfile .bandit \
           --exclude '**/tests/**,**/__pycache__/**' \
           --severity-level high -f txt
     - name: pip-audit
