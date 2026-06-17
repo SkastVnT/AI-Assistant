@@ -479,52 +479,56 @@ export class ImageGenV2 {
             let savedData = null;
             let currentEvent = 'message';
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop(); // Keep incomplete line
-                for (const line of lines) {
-                    if (line.startsWith('event: ')) {
-                        currentEvent = line.slice(7).trim();
-                    } else if (line.startsWith('data: ')) {
-                        try {
-                            const data = JSON.parse(line.slice(6));
-                            switch (currentEvent) {
-                                case 'status':
-                                    if (callbacks.onStatus) callbacks.onStatus(data);
-                                    break;
-                                case 'provider_try':
-                                    if (callbacks.onProviderTry) callbacks.onProviderTry(data);
-                                    break;
-                                case 'provider_fail':
-                                    if (callbacks.onProviderFail) callbacks.onProviderFail(data);
-                                    break;
-                                case 'provider_success':
-                                    if (callbacks.onProviderSuccess) callbacks.onProviderSuccess(data);
-                                    break;
-                                case 'result':
-                                    finalResult = data;
-                                    if (callbacks.onResult) callbacks.onResult(data);
-                                    break;
-                                case 'saved':
-                                    savedData = data;
-                                    if (callbacks.onSaved) callbacks.onSaved(data);
-                                    break;
-                                case 'error':
-                                    if (callbacks.onError) callbacks.onError(data);
-                                    return { success: false, error: data.error };
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // Keep incomplete line
+                    for (const line of lines) {
+                        if (line.startsWith('event: ')) {
+                            currentEvent = line.slice(7).trim();
+                        } else if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                switch (currentEvent) {
+                                    case 'status':
+                                        if (callbacks.onStatus) callbacks.onStatus(data);
+                                        break;
+                                    case 'provider_try':
+                                        if (callbacks.onProviderTry) callbacks.onProviderTry(data);
+                                        break;
+                                    case 'provider_fail':
+                                        if (callbacks.onProviderFail) callbacks.onProviderFail(data);
+                                        break;
+                                    case 'provider_success':
+                                        if (callbacks.onProviderSuccess) callbacks.onProviderSuccess(data);
+                                        break;
+                                    case 'result':
+                                        finalResult = data;
+                                        if (callbacks.onResult) callbacks.onResult(data);
+                                        break;
+                                    case 'saved':
+                                        savedData = data;
+                                        if (callbacks.onSaved) callbacks.onSaved(data);
+                                        break;
+                                    case 'error':
+                                        if (callbacks.onError) callbacks.onError(data);
+                                        return { success: false, error: data.error };
+                                }
+                            } catch (e) {
+                                // Skip invalid JSON
                             }
-                        } catch (e) {
-                            // Skip invalid JSON
+                        } else if (line === '') {
+                            // Empty line = end of SSE message, reset event type
+                            currentEvent = 'message';
                         }
-                    } else if (line === '') {
-                        // Empty line = end of SSE message, reset event type
-                        currentEvent = 'message';
                     }
                 }
+            } finally {
+                reader.cancel().catch(() => {});
             }
 
             // Merge saved image info into result

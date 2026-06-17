@@ -14,6 +14,12 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function _scrollIfNearBottom(container) {
+    if (container.scrollTop >= container.scrollHeight - container.clientHeight - 100) {
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
 /** HTML-attribute-safe escaping */
 function htmlAttrEsc(value) {
     return String(value || '')
@@ -227,6 +233,7 @@ export async function runImageRequestFlow(app, { message, formValues, elements, 
     const { statusContainer, addStep, updateStep, headerIcon } = createImageStreamStatus(elements);
 
     const conversationId = app.chatManager.getCurrentSession()?.id || '';
+    if (app.currentAbortController) app.currentAbortController.abort();
     app.currentAbortController = new AbortController();
 
     let providerStep = null;
@@ -909,6 +916,7 @@ export async function runStreamingChatFlow(app, ctx) {
     let thinkingContainer = null;
 
     app.uiUtils.clearInput();
+    if (app.currentAbortController) app.currentAbortController.abort();
     app.currentAbortController = new AbortController();
 
     try {
@@ -1120,7 +1128,7 @@ export function buildStreamCallbacks(app, s) {
                 s.thinkingContainer, data.step, !!data.is_reasoning_chunk,
                 data.trajectory_id || null
             );
-            s.elements.chatContainer.scrollTop = s.elements.chatContainer.scrollHeight;
+            _scrollIfNearBottom(s.elements.chatContainer);
         },
         onThinkingEnd: (data) => {
             s.thinkingData = data;
@@ -1144,7 +1152,7 @@ export function buildStreamCallbacks(app, s) {
             } else {
                 s.streamTextDiv.textContent = s.fullResponse;
             }
-            s.elements.chatContainer.scrollTop = s.elements.chatContainer.scrollHeight;
+            _scrollIfNearBottom(s.elements.chatContainer);
         },
         onComplete: (data) => {
             s.fullResponse = data.response || s.fullResponse;
@@ -1406,11 +1414,10 @@ function renderSuggestions(app, { streamFailed, streamSuggestions, fullResponse,
         .then(data => {
             if (data?.suggestions?.length > 0) {
                 _renderChips(data.suggestions);
-            } else {
-                suggestionsContainer.querySelectorAll('.suggestion-chip--loading').forEach(el => el.remove());
             }
         })
-        .catch(() => {
+        .catch(() => {})
+        .finally(() => {
             suggestionsContainer.querySelectorAll('.suggestion-chip--loading').forEach(el => el.remove());
         });
     }

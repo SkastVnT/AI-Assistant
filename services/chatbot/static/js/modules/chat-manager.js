@@ -292,6 +292,7 @@ export class ChatManager {
         try {
             localStorage.setItem('chatSessions', JSON.stringify(this.chatSessions));
             console.log('[STORAGE] ✅ Saved after stripping images');
+            window.appAlert?.('⚠️ Bộ nhớ gần đầy — ảnh nội tuyến đã được xóa để giải phóng dung lượng.', 'warning');
             return true;
         } catch (_) { /* still too large, continue */ }
 
@@ -313,7 +314,11 @@ export class ChatManager {
         try {
             localStorage.setItem('chatSessions', JSON.stringify(this.chatSessions));
             console.log(`[STORAGE] ✅ Cleanup successful! Deleted ${deletedCount} old chats, kept ${idsToKeep.length}.`);
-            
+            window.appAlert?.(
+                `⚠️ Bộ nhớ đầy — đã tự động xóa ${deletedCount} cuộc hội thoại cũ để tránh mất dữ liệu hiện tại.`,
+                'warning'
+            );
+
             // If current chat was deleted, switch to most recent
             if (!this.chatSessions[this.currentChatId]) {
                 this.currentChatId = idsToKeep[0];
@@ -334,9 +339,11 @@ export class ChatManager {
             try {
                 localStorage.setItem('chatSessions', JSON.stringify(this.chatSessions));
                 console.log('[STORAGE] ✅ Emergency save — kept only current session');
+                window.appAlert?.('❌ Bộ nhớ cạn kiệt — chỉ giữ lại cuộc hội thoại hiện tại, toàn bộ lịch sử cũ đã bị xóa!', 'error');
                 return true;
             } catch (e3) {
                 console.error('[STORAGE] Complete failure:', e3);
+                window.appAlert?.('❌ Không thể lưu dữ liệu — bộ nhớ cục bộ đã đầy hoàn toàn!', 'error');
                 return false;
             }
         }
@@ -492,8 +499,9 @@ export class ChatManager {
      */
     switchChat(chatId) {
         if (chatId === this.currentChatId) return false;
-        
+
         this.currentChatId = chatId;
+        this.chatHistory = [];
         localStorage.setItem('lastActiveChatId', chatId);
         this._syncUrl(chatId);
         return true;

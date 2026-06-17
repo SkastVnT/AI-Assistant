@@ -248,6 +248,8 @@ export class APIService {
                 // catch and double-toast the user.
                 if (!callbacks.onError) throw e;
             }
+        } finally {
+            reader.cancel().catch(() => {});
         }
 
         return result || (_streamedText ? { content: _streamedText, partial: true } : {});
