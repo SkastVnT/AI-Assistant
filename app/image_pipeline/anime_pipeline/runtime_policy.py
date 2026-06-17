@@ -130,10 +130,31 @@ class RuntimePolicy:
             for host in os.getenv("ANIME_PIPELINE_INTERNAL_HOSTS", "").split(",")
             if host.strip()
         }
+        # Web research defaults to ON for laptop_6gb (dev workstation with API keys).
+        # Override with ANIME_PIPELINE_ALLOW_WEB_RESEARCH=0 to disable, or =1 to
+        # force-enable on other profiles.
+        web_research_env = os.getenv("ANIME_PIPELINE_ALLOW_WEB_RESEARCH", "").strip().lower()
+        if web_research_env in {"1", "true", "yes", "on"}:
+            allow_web = True
+        elif web_research_env in {"0", "false", "no", "off"}:
+            allow_web = False
+        else:
+            allow_web = selected is DeploymentProfile.LAPTOP_6GB
+
+        runtime_dl_env = os.getenv("ANIME_PIPELINE_ALLOW_RUNTIME_DOWNLOADS", "").strip().lower()
+        if runtime_dl_env in {"1", "true", "yes", "on"}:
+            allow_dl = True
+        elif runtime_dl_env in {"0", "false", "no", "off"}:
+            allow_dl = False
+        else:
+            allow_dl = selected is DeploymentProfile.LAPTOP_6GB
+
         return cls(
             profile=selected,
             internal_hosts=frozenset(_LOOPBACK_HOSTS | configured_hosts | env_hosts),
             allow_external_sfw_validation=selected is DeploymentProfile.LAPTOP_6GB,
+            allow_web_research=allow_web,
+            allow_runtime_downloads=allow_dl,
             adult_content_policy=_adult_policy(adult_content_policy, selected),
             verified_adult_worker_asserted=_env_flag(
                 "ANIME_PIPELINE_ASSERT_VERIFIED_ADULT_WORKER"
