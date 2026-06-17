@@ -79,7 +79,7 @@ def get_status() -> dict:
         return payload
 
     try:
-        resp = requests.get(f"{_base_url()}/health", timeout=min(_timeout(), 5.0))
+        resp = requests.get(f"{_base_url()}/health", timeout=min(_timeout(), 5.0))  # nosec B113
         resp.raise_for_status()
         data = resp.json()
         payload["reachable"] = True
@@ -107,7 +107,7 @@ def _post_embed(path: str, key: str, items: list[str]) -> list[list[float]]:
         return []
 
     try:
-        resp = requests.post(
+        resp = requests.post(  # nosec B113
             f"{_base_url()}{path}",
             json={key: items},
             timeout=_timeout(),

@@ -201,7 +201,7 @@ def _blur_score(img: Image.Image) -> float | None:
 
 
 def _file_sha1(p: Path, chunk: int = 65536) -> str:
-    h = hashlib.sha1()
+    h = hashlib.sha1(usedforsecurity=False)
     try:
         with p.open("rb") as fh:
             while True:
