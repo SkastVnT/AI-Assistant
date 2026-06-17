@@ -240,7 +240,7 @@ def get_character_thumbnail(tag: str) -> Optional[str]:
     if not _thumbs:
         return None
     space_form = tag.replace("_", " ")
-    key = hashlib.md5(space_form.encode()).hexdigest()
+    key = hashlib.md5(space_form.encode(), usedforsecurity=False).hexdigest()
     return _thumbs.get(key)
 
 
