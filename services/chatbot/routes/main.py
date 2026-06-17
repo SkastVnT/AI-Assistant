@@ -712,7 +712,7 @@ def chat_suggestions():
         chatbot = get_chatbot()
         response = chatbot.chat(
             message=prompt,
-            model=model,
+            model=None,  # always use default chat model — user's current model may be image-gen/local
             context="casual",
             deep_thinking=False,
         )

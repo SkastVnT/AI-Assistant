@@ -1928,11 +1928,9 @@ export class AnimePipeline {
                 }
                 this._rewireInlineButtons(bubble);
             } else if (details) {
-                // No image — pipeline was interrupted mid-stream (network drop / F5).
-                // Treat as broken: backend job (if any) is unreachable from here, so
-                // immediately fire-and-forget cancel (orphan cleanup) and switch the
-                // bubble into "retry" mode. The Stop button — if any — gets neutered
-                // because there is no live stream to stop.
+                // No image — pipeline was interrupted mid-stream.
+                // Distinguish intentional tab-switch cancel from real network drops.
+                const wasTabSwitch = bubble.dataset.apTabSwitchCancelled === '1';
                 const orphanJobId = bubble.dataset.jobId || '';
                 if (orphanJobId) {
                     fetch('/api/anime-pipeline/cancel', {
@@ -1944,7 +1942,9 @@ export class AnimePipeline {
                 }
                 details.open = true;
                 const label = details.querySelector('.ap-inline-label');
-                if (label) label.textContent = '⚠️ Pipeline bị gián đoạn (F5/mất kết nối)';
+                if (label) label.textContent = wasTabSwitch
+                    ? '↩️ Đã hủy khi chuyển tab — bấm Tạo lại để tiếp tục'
+                    : '⚠️ Pipeline bị gián đoạn (F5/mất kết nối)';
                 const dots = details.querySelector('.thinking-pill__dots');
                 if (dots) dots.remove();
                 const timer = details.querySelector('.ap-inline-timer');

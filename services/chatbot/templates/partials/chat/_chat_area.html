@@ -16,19 +16,21 @@
 
         <!-- Loading indicator -->
         <div class="hidden" id="loading" style="display:none;">
-            <div class="typing-indicator" style="max-width: 768px; margin: 0 auto; padding: 0 16px;">
+            <div style="max-width: 768px; margin: 0 auto; padding: 0 16px;">
                 <div class="message" style="animation: none;">
                     <div class="message__avatar message__avatar--agent"><img src="/static/icons/app-icon.png" class="avatar-img" alt="" width="36" height="36" draggable="false"></div>
-                    <div class="message__body">
-                        <div class="typing-indicator" style="padding: 0;">
-                            <div class="typing-indicator__dot"></div>
-                            <div class="typing-indicator__dot"></div>
-                            <div class="typing-indicator__dot"></div>
+                    <div class="message__body loading-body">
+                        <div class="loading-row">
+                            <div class="typing-indicator" style="padding: 0; margin: 0; flex-shrink: 0;">
+                                <div class="typing-indicator__dot"></div>
+                                <div class="typing-indicator__dot"></div>
+                                <div class="typing-indicator__dot"></div>
+                            </div>
+                            <span id="loadingText">⚡ Đang trả lời...</span>
+                            <span id="loadingTimer" class="loading-timer"></span>
+                            <button id="stopGenerationBtn" class="btn btn--ghost btn--sm" data-lang-key="loading.stop"><i data-lucide="square" class="lucide lucide-sm"></i> Stop</button>
                         </div>
-                        <span id="loadingText" class="stop-text">⚡ Đang trả lời...</span>
-                        <span id="loadingTimer" style="color:var(--text-tertiary);font-size:12px;margin-left:6px;"></span>
                         <div id="toolStatusBar" class="tool-status-bar" style="display:none;"></div>
-                        <button id="stopGenerationBtn" class="btn btn--ghost btn--sm" data-lang-key="loading.stop" style="margin-left: 8px;"><i data-lucide="square" class="lucide lucide-sm"></i> Stop</button>
                     </div>
                 </div>
             </div>
