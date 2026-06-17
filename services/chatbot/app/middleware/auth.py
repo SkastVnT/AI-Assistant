@@ -63,10 +63,9 @@ def require_api_key(f):
                 401,
             )
 
-        # Validate API key (simple validation for now)
         valid_key = os.getenv("API_KEY")
-
-        if valid_key and api_key != valid_key:
+        # Fail closed: if API_KEY is not configured, reject all requests
+        if not valid_key or api_key != valid_key:
             return jsonify({"error": "Unauthorized", "message": "Invalid API key"}), 401
 
         return f(*args, **kwargs)
