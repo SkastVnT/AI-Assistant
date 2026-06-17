@@ -69,7 +69,7 @@ class ChunkingSettings(BaseSettings):
 
 class APISettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="API_")
-    host: str = "0.0.0.0"
+    host: str = "0.0.0.0"  # nosec B104  # Intentional: containerized service
     port: int = 8000
     reload: bool = True
     log_level: str = "info"
