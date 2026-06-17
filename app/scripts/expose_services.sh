@@ -62,7 +62,9 @@ find_cloudflared() {
         cloudflared_bin="/tmp/cloudflared"
     else
         log_warn "cloudflared not found. Installing..."
-        curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+        local _cf_ver="2025.5.0"
+        curl -fsSL "https://github.com/cloudflare/cloudflared/releases/download/${_cf_ver}/cloudflared-linux-amd64" \
+            -o /tmp/cloudflared
         chmod +x /tmp/cloudflared
         cloudflared_bin="/tmp/cloudflared"
     fi
@@ -146,22 +148,19 @@ update_urls_json() {
     local service=$1
     local url=$2
     local json_file="${LOGS_DIR}/public_urls.json"
-    
-    # Create or update JSON file
-    if [[ -f "${json_file}" ]]; then
-        # Update existing file
-        python3 -c "
-import json
-with open('${json_file}', 'r') as f:
-    data = json.load(f)
-data['${service}'] = '${url}'
-with open('${json_file}', 'w') as f:
+
+    python3 -c "
+import json, sys
+json_file, service, url = sys.argv[1], sys.argv[2], sys.argv[3]
+try:
+    with open(json_file) as f:
+        data = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError):
+    data = {}
+data[service] = url
+with open(json_file, 'w') as f:
     json.dump(data, f, indent=2)
-" 2>/dev/null || true
-    else
-        # Create new file
-        echo "{\"${service}\": \"${url}\"}" > "${json_file}"
-    fi
+" "${json_file}" "${service}" "${url}" 2>/dev/null || true
 }
 
 stop_all_tunnels() {
