@@ -69,7 +69,8 @@ def create_application(config_name: str = "default") -> Flask:
     setup_logging(app)
 
     # Initialize CORS
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    _cors_origins = os.getenv("CORS_ORIGINS", "*").split(",")
+    CORS(app, resources={r"/api/*": {"origins": _cors_origins}})
 
     # Initialize extensions (database, cache, etc.)
     init_extensions(app)

@@ -1,6 +1,7 @@
 """FastAPI application factory."""
 
 import logging
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -34,9 +35,10 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    _cors_origins = os.getenv("CORS_ORIGINS", "*").split(",")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Restrict in production
+        allow_origins=_cors_origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )
