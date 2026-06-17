@@ -48,9 +48,9 @@ class HubConfig:
     """Main configuration for Hub Gateway."""
 
     # Flask Configuration
-    DEBUG = os.getenv("DEBUG", "True") == "True"
+    DEBUG = os.getenv("DEBUG", "False") == "True"
     SECRET_KEY = resolve_flask_secret_key()
-    HOST = os.getenv("HUB_HOST", "0.0.0.0")
+    HOST = os.getenv("HUB_HOST", "0.0.0.0")  # nosec B104  # Intentional: containerized service
     PORT = int(os.getenv("HUB_PORT", "3000"))
 
     # CORS Configuration

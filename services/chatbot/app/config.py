@@ -91,7 +91,7 @@ _configs = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,
     "testing": TestingConfig,
-    "default": DevelopmentConfig,
+    "default": ProductionConfig,
 }
 
 
