@@ -194,7 +194,7 @@
   border-radius: 12px;
   margin: 12px 0;
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgba(255, 255, 255, 0.06);
   position: relative;
 }

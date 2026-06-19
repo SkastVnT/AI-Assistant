@@ -70,7 +70,7 @@ function rememberLog(stream, text) {
     if (mainWindow && !mainWindow.isDestroyed()) {
         const safe = JSON.stringify({ stream, text });
         mainWindow.webContents.executeJavaScript(
-            'if (typeof window.__appendLog === "function") window.__appendLog(' + safe + ');'
+            '(function(){var m=' + safe + ';if(typeof window.__appendLog==="function")window.__appendLog(m.stream,m.text);})()'
         ).catch(() => {});
     }
 }

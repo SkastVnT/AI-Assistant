@@ -239,6 +239,7 @@
 
     // Guess classes / update phase from content.
     function classifyLine(stream, text) {
+        if (text == null) return stream === 'err' ? 'err' : 'out';
         const t = text.toLowerCase();
         if (stream === 'err') {
             if (/error|exception|traceback|failed|fatal/i.test(text)) return 'fail';
@@ -314,6 +315,9 @@
 
     // ── global function called directly by main process ────────────
     window.__appendLog = function(stream, text) {
+        // Handle object form {stream, text} in case caller passes a single object
+        if (typeof stream === 'object' && stream !== null) { text = stream.text; stream = stream.stream; }
+        if (text == null) return;
         const cls = classifyLine(stream, text);
         appendLine(text, cls);
         updatePhaseFromLog(text);

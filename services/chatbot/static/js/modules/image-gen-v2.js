@@ -637,8 +637,7 @@ export class ImageGenV2 {
 
         resultArea.innerHTML = `
             <div class="igv2-image-result">
-                <img src="${imgSrc}" alt="Generated" class="igv2-result-img" 
-                     onclick="window.open('${imgSrc}', '_blank')" title="Click to open full size">
+                <img src="${imgSrc}" alt="Generated" class="igv2-result-img igv2-open-btn" title="Click to open full size">
                 <div class="igv2-result-meta">
                     <div class="igv2-meta-row">
                         <span class="igv2-meta-label">Provider:</span>
@@ -662,12 +661,19 @@ export class ImageGenV2 {
                     </div>
                 </div>
                 <div class="igv2-result-actions">
-                    <button onclick="window.imageGenV2?.downloadImage('${imgSrc}')" class="igv2-action-btn">💾 Download</button>
-                    <button onclick="window.imageGenV2?.copyToChat('${imgSrc}')" class="igv2-action-btn">📋 Copy to Chat</button>
-                    <button onclick="document.getElementById('igv2EditPrompt')?.focus(); window.imageGenV2?.switchTab('edit')" class="igv2-action-btn">✏️ Edit</button>
+                    <button class="igv2-action-btn igv2-dl-btn">💾 Download</button>
+                    <button class="igv2-action-btn igv2-copy-btn">📋 Copy to Chat</button>
+                    <button class="igv2-action-btn igv2-edit-btn">✏️ Edit</button>
                 </div>
             </div>
         `;
+        resultArea.querySelector('.igv2-open-btn')?.addEventListener('click', () => window.open(imgSrc, '_blank'));
+        resultArea.querySelector('.igv2-dl-btn')?.addEventListener('click', () => this.downloadImage(imgSrc));
+        resultArea.querySelector('.igv2-copy-btn')?.addEventListener('click', () => this.copyToChat(imgSrc));
+        resultArea.querySelector('.igv2-edit-btn')?.addEventListener('click', () => {
+            document.getElementById('igv2EditPrompt')?.focus();
+            this.switchTab('edit');
+        });
     }
 
     _renderProviderSelect() {

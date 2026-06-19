@@ -45,6 +45,7 @@
   font-size: 28px;
   font-weight: 700;
   margin-bottom: 8px;
+  color: var(--accent);
   background: linear-gradient(135deg, #7c6cf0, #9488f4);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

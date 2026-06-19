@@ -258,48 +258,48 @@ def _run_web_search(query: str, engine: str = "google") -> str:
         return ""
 
     url = "https://www.googleapis.com/customsearch/v1"
-    s = _req.Session()
     retry = Retry(total=2, backoff_factor=0.5, status_forcelist=[500, 502, 503])
-    s.mount("https://", HTTPAdapter(max_retries=retry))
 
-    for api_key in [api_key_1, api_key_2]:
-        if not api_key:
-            continue
-        _attempted.append("GoogleCSE")
-        try:
-            resp = s.get(
-                url,
-                params={
-                    "key": api_key,
-                    "cx": cse_id,
-                    "q": query,
-                    "num": 5,
-                },
-                timeout=15,
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                items = data.get("items", [])
-                if items:
-                    parts = []
-                    for item in items[:5]:
-                        title = item.get("title", "")
-                        snippet = item.get("snippet", "")
-                        link = item.get("link", "")
-                        parts.append(f"**{title}**\n{snippet}\n🔗 {link}")
-                    _trail = " → ".join(_attempted)
-                    return (
-                        f"🪜 _Cascade: {_trail}_\n\n🔍 **Kết quả tìm kiếm web (real-time):**\n\n"
-                        + "\n\n---\n\n".join(parts)
-                    )
-            elif resp.status_code in (429, 403):
+    with _req.Session() as s:
+        s.mount("https://", HTTPAdapter(max_retries=retry))
+        for api_key in [api_key_1, api_key_2]:
+            if not api_key:
                 continue
-            else:
-                logger.warning(f"[WebSearch] HTTP {resp.status_code}")
-                return ""
-        except Exception as e:
-            logger.warning(f"[WebSearch] Error: {e}")
-            continue
+            _attempted.append("GoogleCSE")
+            try:
+                resp = s.get(
+                    url,
+                    params={
+                        "key": api_key,
+                        "cx": cse_id,
+                        "q": query,
+                        "num": 5,
+                    },
+                    timeout=15,
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    items = data.get("items", [])
+                    if items:
+                        parts = []
+                        for item in items[:5]:
+                            title = item.get("title", "")
+                            snippet = item.get("snippet", "")
+                            link = item.get("link", "")
+                            parts.append(f"**{title}**\n{snippet}\n🔗 {link}")
+                        _trail = " → ".join(_attempted)
+                        return (
+                            f"🪜 _Cascade: {_trail}_\n\n🔍 **Kết quả tìm kiếm web (real-time):**\n\n"
+                            + "\n\n---\n\n".join(parts)
+                        )
+                elif resp.status_code in (429, 403):
+                    continue
+                else:
+                    logger.warning(f"[WebSearch] HTTP {resp.status_code}")
+                    return ""
+            except Exception as e:
+                logger.warning(f"[WebSearch] Error: {e}")
+                continue
 
     return ""
 

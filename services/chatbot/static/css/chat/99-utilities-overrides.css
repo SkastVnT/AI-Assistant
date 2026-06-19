@@ -14,7 +14,7 @@
     animation: none;
     box-shadow: 0 0 5px rgba(124, 108, 240, 0.3);
   }
-  .typing-indicator__dot {
+  .loading-dot {
     animation: none;
     opacity: 0.7;
     transform: none;

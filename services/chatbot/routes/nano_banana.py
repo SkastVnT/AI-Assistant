@@ -79,11 +79,12 @@ _req_log: dict = {}
 def _rate_check() -> str | None:
     sid = session.get("session_id", request.remote_addr or "anon")
     now = _time.time()
-    log = _req_log.setdefault(sid, [])
-    _req_log[sid] = [t for t in log if t > now - _RATE_WINDOW]
-    if len(_req_log[sid]) >= _RATE_MAX:
+    recent = [t for t in _req_log.get(sid, []) if t > now - _RATE_WINDOW]
+    if len(recent) >= _RATE_MAX:
+        _req_log[sid] = recent
         return f"Rate limited ({_RATE_MAX} req/{_RATE_WINDOW}s)"
-    _req_log[sid].append(now)
+    recent.append(now)
+    _req_log[sid] = recent
     return None
 
 

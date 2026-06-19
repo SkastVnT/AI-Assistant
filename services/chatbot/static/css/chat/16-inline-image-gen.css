@@ -7,12 +7,12 @@
   gap: 12px;
   padding: 24px;
   border-radius: var(--radius-md);
-  background: var(--bg-tertiary);
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-hover) 50%, var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
   border: 1px dashed var(--border-primary);
   min-height: 200px;
   justify-content: center;
   animation: shimmer 2s infinite linear;
-  background-size: 200% 100%;
 }
 @keyframes shimmer {
   0% { background-position: -200% 0; }

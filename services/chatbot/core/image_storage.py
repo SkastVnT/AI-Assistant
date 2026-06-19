@@ -493,8 +493,9 @@ def save_to_mongodb(image_data: dict[str, Any]) -> str | None:
             return None
 
     try:
-        image_data["created_at"] = datetime.utcnow()
-        result = images_collection.insert_one(image_data)
+        payload = dict(image_data)
+        payload["created_at"] = datetime.utcnow()
+        result = images_collection.insert_one(payload)
         logger.info(f"[MongoDB] Image saved: {result.inserted_id}")
         return str(result.inserted_id)
     except Exception as e:

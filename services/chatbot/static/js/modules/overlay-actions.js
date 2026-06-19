@@ -60,13 +60,6 @@ async function _igv2Save(imageId, triggerEl) {
         if (data.success) {
             triggerEl.textContent = '✅';
             triggerEl.title = data.drive_url ? `Drive: ${data.drive_url}` : 'Đã lưu!';
-            if (data.drive_url) {
-                const a = document.createElement('a');
-                a.href = data.drive_url;
-                a.target = '_blank';
-                a.style.cssText = 'position:absolute;opacity:0;pointer-events:none';
-                // Don't auto-open; just update tooltip
-            }
         } else {
             triggerEl.textContent = '❌';
             triggerEl.title = data.error || 'Lỗi khi lưu';

@@ -315,6 +315,11 @@
   margin-top: 4px;
 }
 
+/* Inside purple user bubble — override page-level vars with white-based tones */
+.message.user .message-timestamp {
+  color: rgba(255, 255, 255, 0.5);
+}
+
 .message-buttons {
   display: flex;
   gap: 4px;

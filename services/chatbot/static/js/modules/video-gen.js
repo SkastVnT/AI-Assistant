@@ -280,10 +280,15 @@ export class VideoGen {
         } catch (e) {
             this._showStatus(`Error: ${e.message}`, 'error');
             this._hideProgress();
-        } finally {
             this.isGenerating = false;
             if (btn) { btn.disabled = false; btn.innerHTML = '🎬 Generate Video'; }
         }
+    }
+
+    _resetGenerateBtn() {
+        this.isGenerating = false;
+        const btn = document.getElementById('vgGenerateBtn');
+        if (btn) { btn.disabled = false; btn.innerHTML = '🎬 Generate Video'; }
     }
 
     // ── Cancel / Stop Job ──────────────────────────────────────────
@@ -312,6 +317,7 @@ export class VideoGen {
         } finally {
             this.currentJobId = null;
             if (cancelBtn) { cancelBtn.disabled = false; cancelBtn.innerHTML = '⛔ Stop / Cancel'; }
+            this._resetGenerateBtn();
         }
     }
 
@@ -326,6 +332,8 @@ export class VideoGen {
         this._stopPolling();
         let interval = 2000;
         let elapsed = 0;
+        let errorCount = 0;
+        const MAX_ERRORS = 5;
 
         const poll = async () => {
             try {
@@ -334,10 +342,10 @@ export class VideoGen {
 
                 if (!resp.ok) throw new Error(data.error || 'Poll failed');
 
+                errorCount = 0;
                 const status = data.status;
                 const progress = data.progress || 0;
 
-                // Update progress meta info
                 const meta = document.getElementById('vgProgressMeta');
                 if (meta) {
                     const parts = [];
@@ -354,6 +362,7 @@ export class VideoGen {
                     this._showCancelBtn(false);
                     this._showVideo(jobId, data);
                     this._showStatus('Video ready!', 'success');
+                    this._resetGenerateBtn();
                     return;
                 }
 
@@ -362,6 +371,7 @@ export class VideoGen {
                     this._showCancelBtn(false);
                     this._showStatus(`Failed: ${data.error || 'Unknown error'}`, 'error');
                     this._hideProgress();
+                    this._resetGenerateBtn();
                     return;
                 }
 
@@ -373,7 +383,16 @@ export class VideoGen {
 
                 this.pollTimer = setTimeout(poll, interval);
             } catch (e) {
-                console.error('[VideoGen] Poll error:', e);
+                errorCount++;
+                console.error(`[VideoGen] Poll error (${errorCount}/${MAX_ERRORS}):`, e);
+                if (errorCount >= MAX_ERRORS) {
+                    this._stopPolling();
+                    this._showCancelBtn(false);
+                    this._showStatus('Lost connection to server — please check job status manually.', 'error');
+                    this._hideProgress();
+                    this._resetGenerateBtn();
+                    return;
+                }
                 this.pollTimer = setTimeout(poll, 5000);
             }
         };

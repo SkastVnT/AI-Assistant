@@ -212,6 +212,9 @@ export class SkillManager {
      * Setup click handlers for the skill selector button and dropdown.
      */
     setupEventListeners() {
+        if (this._listenersBound) return;
+        this._listenersBound = true;
+
         const btn = document.getElementById('skillSelectorBtn');
         const dropdown = document.getElementById('skillSelectorDropdown');
         if (!btn || !dropdown) return;

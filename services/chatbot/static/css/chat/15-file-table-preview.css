@@ -330,8 +330,7 @@
 
 /* ── Table file cards ────────────────────────────────────── */
 .file-attachment-card--table {
-  border-color: var(--accent, #7c6cf0);
-  border-opacity: 0.5;
+  border-color: rgba(124, 108, 240, 0.5);
 }
 .file-attachment-card--table:hover {
   border-color: var(--accent-hover, #9488f4);

@@ -60,7 +60,7 @@ async function openGallery() {
                 const safeFallback = escapeHtml(img.local_path || img.path || '');
                 return `
                     <div class="gallery-item" data-path="${displayUrl}" data-filename="${filename}" data-metadata="${metadataStr}">
-                        <img src="${displayUrl}" alt="${filename}" loading="lazy" onerror="this.src='${safeFallback}'">
+                        <img src="${displayUrl}" alt="${filename}" loading="lazy" onerror="this.onerror=null;this.src='${safeFallback}'">
                         ${isCloud ? '<span class="gallery-cloud-badge" title="Stored in cloud">☁️</span>' : ''}
                         ${hasDrive ? '<span class="gallery-drive-badge" title="Saved to Drive">📁</span>' : ''}
                         <div class="gallery-item-info">
@@ -345,7 +345,7 @@ function viewGalleryImage(imagePath, metadata) {
         img.src = imagePath;
         // Store path for download
         img.dataset.downloadUrl = imagePath;
-        modal.classList.add('active');
+        modal.classList.add('open');
         document.body.style.overflow = 'hidden';
 
         if (info && metadata) {

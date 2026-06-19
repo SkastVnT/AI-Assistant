@@ -238,39 +238,39 @@ export class SplitViewManager {
         let isResizing = false;
         let startX = 0;
 
+        const onMouseMove = (e) => {
+            const container = divider.parentElement;
+            const leftPane = divider.previousElementSibling;
+            const rightPane = divider.nextElementSibling;
+
+            if (!leftPane || !rightPane || !container) return;
+
+            const containerRect = container.getBoundingClientRect();
+            const leftWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+
+            if (leftWidth > 20 && leftWidth < 80) {
+                leftPane.style.flex = `0 0 ${leftWidth}%`;
+                rightPane.style.flex = `0 0 ${100 - leftWidth - 1}%`;
+            }
+        };
+
+        const onMouseUp = () => {
+            isResizing = false;
+            divider.classList.remove('active');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+
         divider.addEventListener('mousedown', (e) => {
             isResizing = true;
             startX = e.clientX;
             divider.classList.add('active');
             document.body.style.cursor = 'col-resize';
             document.body.style.userSelect = 'none';
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!isResizing) return;
-            
-            const container = divider.parentElement;
-            const leftPane = divider.previousElementSibling;
-            const rightPane = divider.nextElementSibling;
-            
-            if (!leftPane || !rightPane || !container) return;
-            
-            const containerRect = container.getBoundingClientRect();
-            const leftWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
-            
-            if (leftWidth > 20 && leftWidth < 80) {
-                leftPane.style.flex = `0 0 ${leftWidth}%`;
-                rightPane.style.flex = `0 0 ${100 - leftWidth - 1}%`;
-            }
-        });
-
-        document.addEventListener('mouseup', () => {
-            if (isResizing) {
-                isResizing = false;
-                divider.classList.remove('active');
-                document.body.style.cursor = '';
-                document.body.style.userSelect = '';
-            }
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
         });
     }
 

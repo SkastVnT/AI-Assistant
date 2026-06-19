@@ -17,18 +17,20 @@
         <!-- Loading indicator -->
         <div class="hidden" id="loading" style="display:none;">
             <div style="max-width: 768px; margin: 0 auto; padding: 0 16px;">
-                <div class="message" style="animation: none;">
+                <div class="message loading-message">
                     <div class="message__avatar message__avatar--agent"><img src="/static/icons/app-icon.png" class="avatar-img" alt="" width="36" height="36" draggable="false"></div>
                     <div class="message__body loading-body">
                         <div class="loading-row">
-                            <div class="typing-indicator" style="padding: 0; margin: 0; flex-shrink: 0;">
-                                <div class="typing-indicator__dot"></div>
-                                <div class="typing-indicator__dot"></div>
-                                <div class="typing-indicator__dot"></div>
+                            <div class="loading-dots" aria-hidden="true">
+                                <span class="loading-dot"></span>
+                                <span class="loading-dot"></span>
+                                <span class="loading-dot"></span>
                             </div>
-                            <span id="loadingText">⚡ Đang trả lời...</span>
-                            <span id="loadingTimer" class="loading-timer"></span>
-                            <button id="stopGenerationBtn" class="btn btn--ghost btn--sm" data-lang-key="loading.stop"><i data-lucide="square" class="lucide lucide-sm"></i> Stop</button>
+                            <span id="loadingText" class="loading-status-text">Đang trả lời...</span>
+                            <div class="loading-meta">
+                                <span id="loadingTimer" class="loading-timer"></span>
+                                <button id="stopGenerationBtn" class="loading-stop-btn" title="Dừng" data-lang-key="loading.stop"><i data-lucide="square" class="lucide lucide-sm"></i></button>
+                            </div>
                         </div>
                         <div id="toolStatusBar" class="tool-status-bar" style="display:none;"></div>
                     </div>

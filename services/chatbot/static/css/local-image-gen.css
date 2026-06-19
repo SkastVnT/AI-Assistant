@@ -114,6 +114,7 @@
   flex-direction: column;
   gap: 6px;
   max-height: 200px;
+  overflow-y: auto;
 }
 
 .lig-results-header {

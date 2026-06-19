@@ -241,7 +241,7 @@ export class ChatManager {
             
             const sessionsData = JSON.stringify(this.chatSessions);
             const sizeInMB = (new Blob([sessionsData]).size / 1024 / 1024).toFixed(2);
-            const maxSizeMB = 200;
+            const maxSizeMB = 5;
             const percentage = (sizeInMB / maxSizeMB) * 100;
             
             console.log(`[STORAGE] Saving ${Object.keys(this.chatSessions).length} sessions, size: ${sizeInMB}MB (${percentage.toFixed(0)}%)`);
@@ -356,7 +356,7 @@ export class ChatManager {
         try {
             const sessionsData = JSON.stringify(this.chatSessions);
             const sizeInMB = (new Blob([sessionsData]).size / 1024 / 1024).toFixed(2);
-            const maxSizeMB = 200;
+            const maxSizeMB = 5;
             const percentage = ((sizeInMB / maxSizeMB) * 100).toFixed(0);
             
             return {
@@ -393,6 +393,9 @@ export class ChatManager {
                 const trimmed = s.messages.length - MAX_MESSAGES;
                 s.messages = s.messages.slice(-MAX_MESSAGES);
                 console.log(`[STORAGE] Trimmed ${trimmed} old messages from "${s.title}"`);
+            }
+            if (s.structuredMessages && s.structuredMessages.length > MAX_MESSAGES) {
+                s.structuredMessages = s.structuredMessages.slice(-MAX_MESSAGES);
             }
         }
 
@@ -475,7 +478,6 @@ export class ChatManager {
         return conversationId;
     }
 
-    /**
     /**
      * Create new chat session.
      * Uses replaceState (not push) so a freshly created empty chat does not

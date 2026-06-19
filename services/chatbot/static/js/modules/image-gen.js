@@ -737,64 +737,6 @@ export class ImageGeneration {
     }
 
     /**
-     * Handle source image upload for Img2Img
-     */
-    handleSourceImageUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        if (!file.type.startsWith('image/')) {
-            alert('⚠️ Vui lòng chọn file hình ảnh!');
-            return;
-        }
-        
-        this.sourceImageFile = file;
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            this.sourceImageBase64 = e.target.result;
-            
-            // Preview image
-            const preview = document.getElementById('sourceImagePreview');
-            const placeholder = document.getElementById('uploadPlaceholder');
-            
-            if (preview && placeholder) {
-                preview.src = this.sourceImageBase64;
-                preview.style.display = 'block';
-                placeholder.style.display = 'none';
-            }
-            
-            // Show feature extraction section
-            const extractSection = document.getElementById('featureExtractionSection');
-            if (extractSection) {
-                extractSection.style.display = 'block';
-            }
-            
-            // Reset extracted tags
-            this.extractedTags = [];
-            this.filteredTags.clear();
-            this.filteredCategories.clear();
-            
-            const extractedTagsEl = document.getElementById('extractedTags');
-            if (extractedTagsEl) {
-                extractedTagsEl.style.display = 'none';
-            }
-            
-            // Auto-detect image size
-            const img = new Image();
-            img.onload = () => {
-                console.log(`[Img2Img] Detected image size: ${img.width}x${img.height}`);
-                const widthInput = document.getElementById('img2imgWidth');
-                const heightInput = document.getElementById('img2imgHeight');
-                if (widthInput) widthInput.value = img.width;
-                if (heightInput) heightInput.value = img.height;
-            };
-            img.src = this.sourceImageBase64;
-        };
-        reader.readAsDataURL(file);
-    }
-
-    /**
      * Extract features from image
      */
     async extractFeatures(models = ['deepdanbooru']) {
@@ -1199,48 +1141,58 @@ Prompt:`;
     handleSourceImageUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
-        
+
         if (!file.type.startsWith('image/')) {
-            alert('⚠️ Please select an image file!');
+            alert('⚠️ Vui lòng chọn file hình ảnh!');
             return;
         }
-        
+
         this.sourceImageFile = file;
-        
-        // Preview image
+
         const reader = new FileReader();
         reader.onload = (e) => {
             this.sourceImageBase64 = e.target.result;
             const preview = document.getElementById('sourceImagePreview');
             const placeholder = document.getElementById('uploadPlaceholder');
-            
+
             if (preview && placeholder) {
                 preview.src = this.sourceImageBase64;
                 preview.style.display = 'block';
                 placeholder.style.display = 'none';
             }
-            
+
             // Show feature extraction section
             const extractSection = document.getElementById('featureExtractionSection');
             if (extractSection) {
                 extractSection.style.display = 'block';
             }
-            
+
             // Reset extracted tags
             this.extractedTags = [];
             this.filteredTags.clear();
             this.filteredCategories.clear();
-            
+
             const extractedTagsEl = document.getElementById('extractedTags');
             if (extractedTagsEl) {
                 extractedTagsEl.style.display = 'none';
             }
-            
+
             // Disable generate button until features extracted
             const generateBtn = document.getElementById('generateImg2ImgBtn');
             if (generateBtn) {
                 generateBtn.disabled = true;
             }
+
+            // Auto-detect image dimensions
+            const img = new Image();
+            img.onload = () => {
+                console.log(`[Img2Img] Detected image size: ${img.width}x${img.height}`);
+                const widthInput = document.getElementById('img2imgWidth');
+                const heightInput = document.getElementById('img2imgHeight');
+                if (widthInput) widthInput.value = img.width;
+                if (heightInput) heightInput.value = img.height;
+            };
+            img.src = this.sourceImageBase64;
         };
         reader.readAsDataURL(file);
     }

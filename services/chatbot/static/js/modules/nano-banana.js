@@ -286,7 +286,7 @@
       const card = el('div', { class: 'nb-result' });
       const img = el('img', {
         src: im.url, alt: `Nano Banana #${idx + 1}`, loading: 'lazy',
-        onclick: () => { try { window.openImagePreview?.(im.url); } catch (_) {} },
+        onclick: () => { try { if (window.openImagePreview) window.openImagePreview(img); } catch (_) {} },
       });
       const bar = el('div', { class: 'nb-result__bar' });
       bar.appendChild(document.createTextNode(`#${idx + 1}`));
