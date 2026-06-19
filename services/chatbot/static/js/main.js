@@ -23,6 +23,7 @@ import { buildHistoryFromTimeline } from './modules/timeline.js';
 // Electron bridge: side-effect import — tags <body class="is-desktop"|"is-browser">,
 // wires custom titlebar buttons, mirrors job count to system tray badge.
 import './modules/electron-bridge.js';
+import { renderSuggestions } from './modules/send-message-helpers.js';
 
 class ChatBotApp {
     constructor() {
@@ -954,13 +955,8 @@ class ChatBotApp {
         }
         // ── End Img2Img ──────────────────────────────────────
         
-        // Handle Auto mode - decide if deep thinking is needed
         let deepThinking = formValues.deepThinking;
-        if (deepThinking === 'auto' && window.coordinatedReasoning) {
-            deepThinking = window.coordinatedReasoning.autoDecideMode(message);
-            console.log('[App] Auto mode decided:', deepThinking ? 'deep thinking' : 'instant');
-        }
-        
+
         // Auto-include file context if files are attached
         // Keep original message for display, build augmented message for API
         const originalUserMessage = message;
@@ -994,9 +990,9 @@ class ChatBotApp {
             deepThinking = true;
             console.log('[App] Auto-enabled Deep Thinking due to attached files, images:', imageDataUrls.length);
         }
-        
+
         // activeTools already declared above (before image gen routing)
-        
+
         // Include MCP context if enabled
         const mcpContextStr = this.getMcpContextString ? this.getMcpContextString() : '';
         const mcpOcrContextStr = (window.mcpController && window.mcpController.getOcrContextString)
@@ -1009,12 +1005,13 @@ class ChatBotApp {
             mcpIndicator = ' 📎 MCP';
             console.log('[App] MCP context injected, length:', fullMcpContext.length);
         }
-        
+
         // Generate message ID for versioning
         this.currentMessageId = 'msg_' + Date.now();
-        
+
         // Show loading with thinking mode indicator
-        const thinkingMode = formValues.thinkingMode || 'instant';
+        // If files attached in instant mode, upgrade to 'thinking' so backend grants extra tokens
+        const thinkingMode = (deepThinking && formValues.thinkingMode === 'instant') ? 'thinking' : (formValues.thinkingMode || 'instant');
         this.uiUtils.showLoading(thinkingMode);
         if (window.showToolStatus) window.showToolStatus();
         
@@ -1410,88 +1407,11 @@ class ChatBotApp {
 
             // ── Follow-up suggestions + Think Harder ──
             if (!streamFailed && this.messageRenderer.features?.suggestionChips !== false) {
-                const suggestionsContainer = document.createElement('div');
-                suggestionsContainer.className = 'follow-up-suggestions';
-
-                // "Think Harder" button (only if current mode is instant)
-                if (thinkingMode === 'instant') {
-                    const thinkBtn = document.createElement('button');
-                    thinkBtn.className = 'suggestion-chip suggestion-chip--think';
-                    thinkBtn.innerHTML = '<i data-lucide="brain" class="lucide"></i> Deep Thinking';
-                    thinkBtn.title = '4-Agents involvement';
-                    thinkBtn.onclick = () => {
-                        // Re-send last message with multi-thinking mode
-                        suggestionsContainer.remove();
-                        const lastUserMsg = message;
-                        if (window.selectThinkingMode) {
-                            window.selectThinkingMode('multi-thinking', 'layers', '4-Agents');
-                        }
-                        // Set input and trigger send
-                        this.uiUtils.setInputValue(lastUserMsg);
-                        setTimeout(() => { document.getElementById('sendBtn')?.click(); }, 100);
-                    };
-                    suggestionsContainer.appendChild(thinkBtn);
-                }
-
-                // Append container early so Think Harder button shows immediately
-                elements.chatContainer.appendChild(suggestionsContainer);
-                if (window.lucide) lucide.createIcons({ nodes: [suggestionsContainer] });
-
-                const _renderChips = (suggestions) => {
-                    // Remove any skeleton loaders
-                    suggestionsContainer.querySelectorAll('.suggestion-chip--loading').forEach(el => el.remove());
-                    suggestions.forEach(text => {
-                        const chip = document.createElement('button');
-                        chip.className = 'suggestion-chip';
-                        chip.innerHTML = `<span class="suggestion-chip__icon">↗</span><span class="suggestion-chip__text">${this._escapeHtml(text)}</span>`;
-                        chip.onclick = () => {
-                            suggestionsContainer.remove();
-                            this.uiUtils.setInputValue(text);
-                            setTimeout(() => { document.getElementById('sendBtn')?.click(); }, 100);
-                        };
-                        suggestionsContainer.appendChild(chip);
-                    });
-                    elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
-                };
-
-                if (streamSuggestions.length > 0) {
-                    // Server already sent suggestions via SSE — render immediately
-                    _renderChips(streamSuggestions);
-                } else if (responseContent) {
-                    // Show skeleton placeholders while we fetch AI-generated suggestions
-                    for (let i = 0; i < 3; i++) {
-                        const s = document.createElement('span');
-                        s.className = 'suggestion-chip suggestion-chip--loading';
-                        s.innerHTML = '<span class="suggestion-chip__icon">↗</span><span class="suggestion-chip__text">…</span>';
-                        suggestionsContainer.appendChild(s);
-                    }
-                    elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
-
-                    // Detect language from response
-                    const _lang = /[àáâãäåæçèéêëìíîïðñòóôõöøùúûüý]/i.test(responseContent) ? 'vi' : 'en';
-                    fetch('/api/chat/suggestions', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            message: message.slice(0, 500),
-                            response: responseContent.slice(0, 1000),
-                            model: formValues.model,
-                            language: _lang,
-                        }),
-                        signal: AbortSignal.timeout(15000),
-                    })
-                    .then(r => r.ok ? r.json() : null)
-                    .then(data => {
-                        if (data?.suggestions?.length > 0) {
-                            _renderChips(data.suggestions);
-                        } else {
-                            suggestionsContainer.querySelectorAll('.suggestion-chip--loading').forEach(el => el.remove());
-                        }
-                    })
-                    .catch(() => {
-                        suggestionsContainer.querySelectorAll('.suggestion-chip--loading').forEach(el => el.remove());
-                    });
-                }
+                renderSuggestions(this, {
+                    streamFailed, streamSuggestions,
+                    fullResponse: responseContent, message, formValues,
+                    elements, thinkingMode,
+                });
             }
             
         } catch (error) {

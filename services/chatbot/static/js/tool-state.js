@@ -14,6 +14,7 @@
         localStorage.setItem(ACTIVE_TOOLS_KEY, JSON.stringify([...activeTools]));
     }
     let activeTools = loadActiveTools();
+    let _thinkingModeBeforeDeepResearch = null;
 
     // Map tool name → button element ID (shared by setupToolItemClicks + removeTool)
     // NOTE: 'reverse-image' is a virtual UI slug that toggles BOTH
@@ -68,14 +69,29 @@
             if (el) el.addEventListener('click', () => {
                 toggleToolActive(tool, el);
                 // Deep Research: also enable web search + switch to multi-thinking
-                if (tool === 'deep-research' && activeTools.has('deep-research')) {
-                    const gsBtn = document.getElementById('googleSearchBtn');
-                    if (gsBtn && !activeTools.has('google-search')) {
-                        activeTools.add('google-search');
-                        gsBtn.classList.add('active');
-                    }
-                    if (typeof selectThinkingMode === 'function') {
-                        selectThinkingMode('multi-thinking', 'layers', '4-Agents');
+                if (tool === 'deep-research') {
+                    if (activeTools.has('deep-research')) {
+                        // Activating — save current mode then switch to multi-thinking
+                        _thinkingModeBeforeDeepResearch = window.getThinkingMode ? window.getThinkingMode() : 'instant';
+                        const gsBtn = document.getElementById('googleSearchBtn');
+                        if (gsBtn && !activeTools.has('google-search')) {
+                            activeTools.add('google-search');
+                            gsBtn.classList.add('active');
+                        }
+                        if (typeof selectThinkingMode === 'function') {
+                            selectThinkingMode('multi-thinking', 'layers', '4-Agents');
+                        }
+                    } else {
+                        // Deactivating — restore previous mode
+                        const _restore = _thinkingModeBeforeDeepResearch || 'instant';
+                        _thinkingModeBeforeDeepResearch = null;
+                        const _modeMap = {
+                            'instant':        ['zap',    'Instant'],
+                            'thinking':       ['brain',  'Think'],
+                            'multi-thinking': ['layers', '4-Agents'],
+                        };
+                        const [_icon, _label] = _modeMap[_restore] || _modeMap.instant;
+                        if (typeof selectThinkingMode === 'function') selectThinkingMode(_restore, _icon, _label);
                     }
                 }
             });

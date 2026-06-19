@@ -54,6 +54,18 @@
 #thinkingModeContainer {
   position: relative;
 }
+#thinkingModeContainer[data-thinking-mode="thinking"] .topbar__btn {
+  color: var(--info, #6366f1);
+}
+#thinkingModeContainer[data-thinking-mode="thinking"] .topbar__btn:hover {
+  background: rgba(99, 102, 241, 0.12);
+}
+#thinkingModeContainer[data-thinking-mode="multi-thinking"] .topbar__btn {
+  color: var(--accent, #7c6cf0);
+}
+#thinkingModeContainer[data-thinking-mode="multi-thinking"] .topbar__btn:hover {
+  background: var(--accent-soft);
+}
 
 .topbar__model-btn {
   display: flex;

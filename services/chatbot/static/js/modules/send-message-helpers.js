@@ -90,10 +90,7 @@ export function routeByIntent(message, activeTools) {
  */
 export function prepareOutgoingPayload(app, { message, formValues, sessionFiles }) {
     let deepThinking = formValues.deepThinking;
-    if (deepThinking === 'auto' && window.coordinatedReasoning) {
-        deepThinking = window.coordinatedReasoning.autoDecideMode(message);
-        console.log('[App] Auto mode decided:', deepThinking ? 'deep thinking' : 'instant');
-    }
+    let thinkingModeOverride = null;
 
     const originalUserMessage = message;
     let augmented = message;
@@ -108,6 +105,8 @@ export function prepareOutgoingPayload(app, { message, formValues, sessionFiles 
         augmented = result.message;
         imageDataUrls.push(...result.imageDataUrls);
         deepThinking = true;
+        // Upgrade instant → thinking so backend uses extra tokens for file analysis
+        if (formValues.thinkingMode === 'instant') thinkingModeOverride = 'thinking';
         console.log('[App] Auto-enabled Deep Thinking due to attached files, images:', imageDataUrls.length);
     }
 
@@ -119,6 +118,7 @@ export function prepareOutgoingPayload(app, { message, formValues, sessionFiles 
         message: augmented,
         originalUserMessage,
         deepThinking,
+        thinkingModeOverride,
         imageDataUrls,
         mcpIndicator: mcpResult.mcpIndicator,
     };
@@ -882,14 +882,14 @@ export async function runImg2ImgFlow(app, { message, formValues, elements }) {
  */
 export async function runStreamingChatFlow(app, ctx) {
     const {
-        message, originalUserMessage, deepThinking,
+        message, originalUserMessage, deepThinking, thinkingModeOverride,
         imageDataUrls, formValues, elements, activeTools, flushedFiles,
     } = ctx;
 
     // Generate message ID for versioning
     app.currentMessageId = 'msg_' + Date.now();
 
-    const thinkingMode = formValues.thinkingMode || 'instant';
+    const thinkingMode = thinkingModeOverride || formValues.thinkingMode || 'instant';
     app.uiUtils.showLoading(thinkingMode);
     if (window.showToolStatus) window.showToolStatus();
 
@@ -1343,84 +1343,154 @@ function persistResponse(app, { fullResponse, formValues, elements, message, str
 
 // ─── 9. renderSuggestions ─────────────────────────────────────
 
-/** Follow-up suggestion chips + "Think Harder" button */
-function renderSuggestions(app, { streamFailed, streamSuggestions, fullResponse, message, formValues, elements, thinkingMode }) {
+/** Detect language: 'vi' if Vietnamese diacritics present, else 'en' */
+function _detectLang(text) {
+    // Vietnamese-specific: stacked tone + vowel diacritics not found in other Latin scripts
+    return /[ắặẵảạẻẹẽếềểệỉịọồổỗộởờớợụủừứựữỳỷỹỵđĐ]/u.test(text) ? 'vi' : 'en';
+}
+
+/** Add a mode-switching chip (pure UI toggle, no auto-resend) */
+function _addModeChip(chipsRow, { toMode, icon, label, cssClass, delay }) {
+    const chip = document.createElement('button');
+    chip.className = `suggestion-chip ${cssClass}`;
+    chip.style.animationDelay = `${delay}ms`;
+    chip.innerHTML = `<i data-lucide="${icon}" class="lucide"></i> ${label}`;
+    chip.onclick = () => {
+        const modeMap = {
+            'instant':        ['zap',    'Instant'],
+            'thinking':       ['brain',  'Think'],
+            'multi-thinking': ['layers', '4-Agents'],
+        };
+        const [mIcon, mLabel] = modeMap[toMode] || modeMap['instant'];
+        if (window.selectThinkingMode) window.selectThinkingMode(toMode, mIcon, mLabel);
+    };
+    chipsRow.appendChild(chip);
+}
+
+/** Follow-up suggestion chips + mode-switching buttons */
+export function renderSuggestions(app, { streamFailed, streamSuggestions, fullResponse, message, formValues, elements, thinkingMode }) {
     if (streamFailed || app.messageRenderer.features?.suggestionChips === false) return;
 
-    const suggestionsContainer = document.createElement('div');
-    suggestionsContainer.className = 'follow-up-suggestions';
+    // Remove any leftover bars from previous turns
+    elements.chatContainer.querySelectorAll('.follow-up-suggestions').forEach(el => el.remove());
 
-    // "Think Harder" button (only in instant mode)
+    const hasModeChips = ['instant', 'thinking', 'multi-thinking'].includes(thinkingMode);
+    const hasFetch = !!fullResponse;
+    const hasStream = streamSuggestions.length > 0;
+
+    // Nothing to show at all
+    if (!hasModeChips && !hasFetch && !hasStream) return;
+
+    const bar = document.createElement('div');
+    bar.className = 'follow-up-suggestions';
+
+    const chipsRow = document.createElement('div');
+    chipsRow.className = 'follow-up-suggestions__chips';
+    bar.appendChild(chipsRow);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'follow-up-suggestions__close';
+    closeBtn.title = 'Đóng';
+    closeBtn.textContent = '×';
+    closeBtn.onclick = () => bar.remove();
+    bar.appendChild(closeBtn);
+
+    // Mode-switching chips: bidirectional navigation between modes
+    let needSep = false;
     if (thinkingMode === 'instant') {
-        const thinkBtn = document.createElement('button');
-        thinkBtn.className = 'suggestion-chip suggestion-chip--think';
-        thinkBtn.innerHTML = '<i data-lucide="brain" class="lucide"></i> Deep Thinking';
-        thinkBtn.title = '4-Agents involvement';
-        thinkBtn.onclick = () => {
-            suggestionsContainer.remove();
-            if (window.selectThinkingMode) {
-                window.selectThinkingMode('multi-thinking', 'layers', '4-Agents');
-            }
-            app.uiUtils.setInputValue(message);
-            setTimeout(() => { document.getElementById('sendBtn')?.click(); }, 100);
-        };
-        suggestionsContainer.appendChild(thinkBtn);
+        _addModeChip(chipsRow, { toMode: 'thinking',       icon: 'brain',  label: 'Think',       cssClass: 'suggestion-chip--think', delay: 0  });
+        _addModeChip(chipsRow, { toMode: 'multi-thinking', icon: 'layers', label: '4-Agents',    cssClass: 'suggestion-chip--think', delay: 30 });
+        needSep = true;
+    } else if (thinkingMode === 'thinking') {
+        _addModeChip(chipsRow, { toMode: 'instant',        icon: 'zap',    label: 'Quick Answer', cssClass: 'suggestion-chip--quick', delay: 0  });
+        _addModeChip(chipsRow, { toMode: 'multi-thinking', icon: 'layers', label: '4-Agents',    cssClass: 'suggestion-chip--think', delay: 30 });
+        needSep = true;
+    } else if (thinkingMode === 'multi-thinking') {
+        _addModeChip(chipsRow, { toMode: 'instant',        icon: 'zap',    label: 'Quick Answer', cssClass: 'suggestion-chip--quick', delay: 0  });
+        needSep = true;
     }
 
-    elements.chatContainer.appendChild(suggestionsContainer);
-    if (window.lucide) lucide.createIcons({ nodes: [suggestionsContainer] });
+    elements.chatContainer.appendChild(bar);
+    if (window.lucide) lucide.createIcons({ nodes: [bar] });
 
-    const _renderChips = (suggestions) => {
-        suggestionsContainer.querySelectorAll('.suggestion-chip--loading').forEach(el => el.remove());
-        suggestions.forEach(text => {
+    const _sep = () => {
+        if (!needSep) return;
+        const s = document.createElement('span');
+        s.className = 'suggestion-chip-sep';
+        chipsRow.appendChild(s);
+        needSep = false;
+    };
+
+    const _addChips = (suggestions, startDelay = 0) => {
+        chipsRow.querySelectorAll('.fus-pending').forEach(el => el.remove());
+        if (!suggestions.length) return;
+        _sep();
+        suggestions.forEach((text, i) => {
             const chip = document.createElement('button');
             chip.className = 'suggestion-chip';
-            chip.innerHTML = `<span class="suggestion-chip__icon">↗</span><span class="suggestion-chip__text">${escapeHtml(text)}</span>`;
+            chip.style.animationDelay = `${startDelay + i * 50}ms`;
+            const label = text.length > 72 ? text.slice(0, 70) + '…' : text;
+            chip.textContent = label;
+            if (text.length > 72) chip.title = text;
             chip.onclick = () => {
-                suggestionsContainer.remove();
+                bar.remove();
                 app.uiUtils.setInputValue(text);
                 setTimeout(() => { document.getElementById('sendBtn')?.click(); }, 100);
             };
-            suggestionsContainer.appendChild(chip);
+            chipsRow.appendChild(chip);
         });
         elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
     };
 
-    if (streamSuggestions.length > 0) {
-        _renderChips(streamSuggestions);
-    } else if (fullResponse) {
-        // Skeleton placeholders while fetching
-        for (let i = 0; i < 3; i++) {
-            const s = document.createElement('span');
-            s.className = 'suggestion-chip suggestion-chip--loading';
-            s.innerHTML = '<span class="suggestion-chip__icon">↗</span><span class="suggestion-chip__text">…</span>';
-            suggestionsContainer.appendChild(s);
-        }
-        elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
-
-        const _lang = /[àáâãäåæçèéêëìíîïðñòóôõöøùúûüý]/i.test(fullResponse) ? 'vi' : 'en';
-        fetch('/api/chat/suggestions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message: message.slice(0, 500),
-                response: fullResponse.slice(0, 1000),
-                model: formValues.model,
-                language: _lang,
-            }),
-            signal: AbortSignal.timeout(15000),
-        })
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-            if (data?.suggestions?.length > 0) {
-                _renderChips(data.suggestions);
-            }
-        })
-        .catch(() => {})
-        .finally(() => {
-            suggestionsContainer.querySelectorAll('.suggestion-chip--loading').forEach(el => el.remove());
-        });
+    // Fast path: suggestions arrived via SSE
+    if (hasStream) {
+        _addChips(streamSuggestions);
+        return;
     }
+
+    if (!hasFetch) return;
+
+    // Capture before _sep() consumes it — used for stagger delay in .then()
+    const _hadModeChips = needSep;
+
+    // Show skeletons while fetching
+    _sep();
+    // Mark this sep as pending so it's removed if fetch fails
+    chipsRow.lastElementChild?.classList.add('fus-pending');
+
+    [108, 148, 118].forEach(w => {
+        const s = document.createElement('span');
+        s.className = 'suggestion-chip suggestion-chip--loading fus-pending';
+        s.style.minWidth = w + 'px';
+        chipsRow.appendChild(s);
+    });
+    elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+
+    fetch('/api/chat/suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            message: message.slice(0, 600),
+            response: fullResponse.slice(0, 2000),
+            model: formValues.model,
+            language: _detectLang(fullResponse),
+        }),
+        signal: AbortSignal.timeout(15000),
+    })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+        if (data?.suggestions?.length > 0) {
+            _addChips(data.suggestions, _hadModeChips ? 60 : 0);
+        } else {
+            chipsRow.querySelectorAll('.fus-pending').forEach(el => el.remove());
+            // If bar now has only the close button, remove entirely
+            if (chipsRow.children.length === 0) bar.remove();
+        }
+    })
+    .catch(() => {
+        chipsRow.querySelectorAll('.fus-pending').forEach(el => el.remove());
+        if (chipsRow.children.length === 0) bar.remove();
+    });
 }
 
 // ─── 10. handleSendFailure ────────────────────────────────────

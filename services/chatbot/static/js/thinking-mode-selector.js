@@ -1,7 +1,7 @@
     // THINKING MODE
     // ════════════════════════════════════════════════════════════
     const _savedMode = localStorage.getItem('thinkingMode');
-    let currentThinkingMode = (_savedMode === 'instant' || _savedMode === 'multi-thinking') ? _savedMode : 'instant';
+    let currentThinkingMode = (['instant', 'thinking', 'multi-thinking'].includes(_savedMode)) ? _savedMode : 'instant';
 
     function initThinkingMode() {
         const btn = document.getElementById('thinkingModeBtn');
@@ -58,11 +58,15 @@
             iconEl.innerHTML = '<i data-lucide="' + icon + '" class="lucide"></i>';
             if (window.lucide) lucide.createIcons({nodes: [iconEl]});
         }
-        document.getElementById('thinkingModeLabel').textContent = label;
-        document.getElementById('thinkingModeValue').value = mode;
+        const labelEl = document.getElementById('thinkingModeLabel');
+        if (labelEl) labelEl.textContent = label;
+        const valueEl = document.getElementById('thinkingModeValue');
+        if (valueEl) valueEl.value = mode;
         document.querySelectorAll('.thinking-mode-option').forEach(o => {
             o.classList.toggle('active', o.dataset.mode === mode);
         });
+        const container = document.getElementById('thinkingModeContainer');
+        if (container) container.dataset.thinkingMode = mode;
     }
 
     window.getThinkingMode = () => currentThinkingMode;

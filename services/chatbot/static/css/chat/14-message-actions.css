@@ -74,6 +74,45 @@
   box-shadow: 0 6px 16px rgba(124, 108, 240, 0.25);
 }
 
+/* ── User bubble overrides: white-based palette on purple gradient ── */
+.message.user .message-actions {
+  background: rgba(0, 0, 0, 0.22);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+}
+
+.message.user .message-action-btn {
+  color: rgba(255, 255, 255, 0.72);
+}
+.message.user .message-action-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px) scale(1.06);
+}
+
+.message.user .message-action-btn.edit-btn {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.88);
+}
+.message.user .message-action-btn.edit-btn:hover {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.message.user .message-action-btn.more-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.65);
+}
+.message.user .message-action-btn.more-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
 /* More actions popup (iOS sheet-like) */
 .message-more-popup {
   position: fixed;
@@ -226,85 +265,139 @@
 /* ── Follow-up Suggestions ── */
 .follow-up-suggestions {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
-  padding: 12px 60px 8px;
-  animation: fadeInUp 0.3s ease-out;
+  /* 32px avatar + 12px gap = 44px; +4px optical nudge */
+  padding: 4px 8px 12px 48px;
+  animation: fusSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(8px); }
+@keyframes fusSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Scrollable chip row — no wrapping */
+.follow-up-suggestions__chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px; /* room for subtle box-shadow on hover */
+}
+.follow-up-suggestions__chips::-webkit-scrollbar { display: none; }
+
+/* Divider between think-btn and question chips */
+.suggestion-chip-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border-primary);
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+/* Base chip */
 .suggestion-chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border: 1px solid var(--border-primary, rgba(255,255,255,0.12));
-  border-radius: 20px;
-  background: var(--bg-tertiary, rgba(255,255,255,0.04));
-  color: var(--text-secondary, #aaa);
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border-primary);
+  border-radius: 16px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 400;
   cursor: pointer;
-  transition: all 0.2s ease;
   white-space: nowrap;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex-shrink: 0;
+  animation: fusChipIn 0.22s ease-out both;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
-
-.suggestion-chip__icon {
-  font-size: 15px;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-}
-
-.suggestion-chip:hover .suggestion-chip__icon { opacity: 1; }
-
 .suggestion-chip:hover {
-  background: var(--bg-hover, rgba(255,255,255,0.08));
-  border-color: var(--accent, #7c6cf0);
-  color: var(--text-primary, #fff);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  background: var(--bg-hover);
+  border-color: var(--accent);
+  color: var(--text-primary);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+/* animation-delay set inline via JS for each chip */
+@keyframes fusChipIn {
+  from { opacity: 0; transform: scale(0.92) translateY(4px); }
+  to   { opacity: 1; transform: none; }
 }
 
+/* Think variant */
 .suggestion-chip--think {
-  border-color: rgba(124, 108, 240, 0.35);
-  background: rgba(124, 108, 240, 0.08);
+  border-color: rgba(124, 108, 240, 0.3);
+  background: rgba(124, 108, 240, 0.07);
   color: var(--accent, #7c6cf0);
   font-weight: 600;
 }
-
 .suggestion-chip--think:hover {
-  background: rgba(124, 108, 240, 0.18);
-  border-color: rgba(124, 108, 240, 0.5);
-  color: var(--accent, #7c6cf0);
-  box-shadow: 0 4px 16px rgba(124, 108, 240, 0.25);
+  background: rgba(124, 108, 240, 0.15);
+  border-color: var(--accent, #7c6cf0);
+  box-shadow: 0 2px 10px rgba(124, 108, 240, 0.2);
 }
+.suggestion-chip--think .lucide { width: 13px; height: 13px; }
 
-.suggestion-chip--think .lucide {
-  width: 14px;
-  height: 14px;
+/* Quick Answer variant (amber/yellow — return to lower mode) */
+.suggestion-chip--quick {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.07);
+  color: var(--warning, #f59e0b);
+  font-weight: 600;
 }
+.suggestion-chip--quick:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: var(--warning, #f59e0b);
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.2);
+}
+.suggestion-chip--quick .lucide { width: 13px; height: 13px; }
 
+/* Skeleton / loading placeholder — overrides base animation entirely */
 .suggestion-chip--loading {
   pointer-events: none;
-  cursor: default;
-  opacity: 0.45;
-  min-width: 120px;
+  color: transparent;
+  border-color: transparent;
   background: linear-gradient(90deg,
     var(--bg-tertiary, rgba(255,255,255,0.04)) 25%,
-    rgba(255,255,255,0.08) 50%,
+    var(--bg-hover, rgba(255,255,255,0.08)) 50%,
     var(--bg-tertiary, rgba(255,255,255,0.04)) 75%);
   background-size: 200% 100%;
-  animation: suggestion-shimmer 1.4s infinite;
+  /* Override fusChipIn with shimmer; min-width set inline per skeleton */
+  animation: fusSkeleton 1.4s infinite !important;
+  min-width: 100px;
 }
-
-@keyframes suggestion-shimmer {
+@keyframes fusSkeleton {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+/* Internal marker class — no styles needed, used for targeted cleanup */
+.fus-pending {}
+
+/* Dismiss button */
+.follow-up-suggestions__close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+}
+.follow-up-suggestions__close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }

@@ -245,6 +245,7 @@ export class UIUtils {
         if (loadingText) {
             const modeLabels = {
                 'instant':        '⚡ Đang trả lời...',
+                'thinking':       '🤔 Đang phân tích...',
                 'multi-thinking': '🧠 Đang suy nghĩ...',
             };
             loadingText.textContent = modeLabels[thinkingMode] || '⚡ Đang trả lời...';
@@ -394,9 +395,10 @@ export class UIUtils {
      * Compact relative timestamp: just now / 5m / 2h / Yesterday / 12 Mar.
      */
     _relativeTime(ts) {
-        if (!ts || typeof ts !== 'number') return '';
+        const ms = ts instanceof Date ? ts.getTime() : Number(ts);
+        if (!ms) return '';
         const now = Date.now();
-        const diff = Math.max(0, now - ts);
+        const diff = Math.max(0, now - ms);
         const m = Math.floor(diff / 60000);
         if (m < 1) return 'vừa xong';
         if (m < 60) return `${m}m`;
@@ -720,17 +722,18 @@ export class UIUtils {
         `;
         document.body.appendChild(menu);
 
-        // Position near anchor
-        const rect = anchorEl.getBoundingClientRect();
-        let top = rect.bottom + 4;
-        let left = rect.right - menu.offsetWidth;
-        // Keep within viewport
-        if (left < 8) left = 8;
-        if (top + menu.offsetHeight > window.innerHeight - 8) {
-            top = rect.top - menu.offsetHeight - 4;
-        }
-        menu.style.top = top + 'px';
-        menu.style.left = left + 'px';
+        // Position near anchor — defer one frame so offsetWidth/Height are measured after paint
+        requestAnimationFrame(() => {
+            const rect = anchorEl.getBoundingClientRect();
+            let top = rect.bottom + 4;
+            let left = rect.right - menu.offsetWidth;
+            if (left < 8) left = 8;
+            if (top + menu.offsetHeight > window.innerHeight - 8) {
+                top = rect.top - menu.offsetHeight - 4;
+            }
+            menu.style.top = top + 'px';
+            menu.style.left = left + 'px';
+        });
 
         if (window.lucide) lucide.createIcons({ nodes: [menu] });
 
