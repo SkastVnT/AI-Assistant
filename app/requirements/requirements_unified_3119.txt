@@ -411,7 +411,7 @@ tomesd==0.1.3
 toml==0.10.2
 tomli==2.3.0
 tomlkit==0.13.3
-torch==2.12.0
+torch==2.12.1
 torch-audiomentations==0.12.0
 torch_pitch_shift==1.2.5
 torchaudio==2.1.2+cu118
