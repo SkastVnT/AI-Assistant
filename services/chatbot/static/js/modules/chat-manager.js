@@ -219,12 +219,16 @@ export class ChatManager {
      */
     async saveSessions() {
         try {
-            // Compress images in current session if needed
-            if (this.currentChatId && this.chatSessions[this.currentChatId] && 
-                this.chatSessions[this.currentChatId].messages) {
-                const messages = this.chatSessions[this.currentChatId].messages;
+            // Compress images in current session if needed.
+            // Capture chatId early — currentChatId can change during async compression
+            // (e.g. user clicks New Chat while images are being compressed), which
+            // would write compressed messages to the wrong session.
+            const chatIdToCompress = this.currentChatId;
+            if (chatIdToCompress && this.chatSessions[chatIdToCompress] &&
+                this.chatSessions[chatIdToCompress].messages) {
+                const messages = this.chatSessions[chatIdToCompress].messages;
                 const hasImages = messages.some(msg => typeof msg === 'string' && msg.includes('data:image'));
-                
+
                 if (hasImages) {
                     console.log('[STORAGE] Compressing images in current session...');
                     const compressedMessages = [];
@@ -235,7 +239,7 @@ export class ChatManager {
                             compressedMessages.push(msg);
                         }
                     }
-                    this.chatSessions[this.currentChatId].messages = compressedMessages;
+                    this.chatSessions[chatIdToCompress].messages = compressedMessages;
                 }
             }
             

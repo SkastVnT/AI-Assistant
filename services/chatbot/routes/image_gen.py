@@ -82,6 +82,9 @@ def _rate_check() -> str | None:
         return f"Rate limited ({_RATE_MAX} req/{_RATE_WINDOW}s)"
     recent.append(now)
     _req_log[sid] = recent
+    # Evict expired sessions to prevent unbounded growth
+    for key in [k for k, v in _req_log.items() if not any(t > now - _RATE_WINDOW for t in v)]:
+        del _req_log[key]
     return None
 
 
@@ -1143,6 +1146,26 @@ def serve_image(image_id: str):
     storage = _get_storage()
     img_bytes = storage.get(image_id)
     if not img_bytes:
+        # Fall back to cloud URL if available in MongoDB
+        try:
+            from core.image_storage import images_collection
+            from flask import redirect
+
+            if images_collection is not None:
+                doc = images_collection.find_one(
+                    {
+                        "$or": [
+                            {"local_path": {"$regex": image_id}},
+                            {"filename": {"$regex": image_id}},
+                            {"image_id": image_id},
+                        ]
+                    },
+                    {"cloud_url": 1},
+                )
+                if doc and doc.get("cloud_url"):
+                    return redirect(doc["cloud_url"], code=302)
+        except Exception:
+            pass
         return jsonify({"error": "Image not found"}), 404
     return send_file(
         BytesIO(img_bytes), mimetype="image/png", download_name=f"{image_id}.png"

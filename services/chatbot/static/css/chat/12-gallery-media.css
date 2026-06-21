@@ -50,10 +50,10 @@
 .gallery-search-input {
   width: 100%;
   padding: 5px 10px 5px 28px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-primary);
   border-radius: 20px;
-  background: var(--bg-secondary, var(--bg));
-  color: var(--text);
+  background: var(--bg-secondary, #1a1a2e);
+  color: var(--text-primary);
   font-size: 12px;
   font-family: inherit;
   outline: none;
@@ -70,7 +70,7 @@
 
 .gallery-filter-btn {
   padding: 4px 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-primary);
   border-radius: 20px;
   background: transparent;
   color: var(--text-secondary);
@@ -82,7 +82,7 @@
 
 .gallery-filter-btn:hover {
   background: var(--bg-secondary);
-  color: var(--text);
+  color: var(--text-primary);
 }
 
 .gallery-filter-btn.active {
@@ -279,9 +279,9 @@
   grid-column: 1 / -1;
   padding: 8px 24px;
   margin: 4px auto 8px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
-  background: var(--bg-secondary, var(--bg));
+  background: var(--bg-secondary, #1a1a2e);
   color: var(--text-secondary);
   font-size: 13px;
   cursor: pointer;
@@ -293,7 +293,7 @@
 .gallery-load-more:hover {
   background: var(--accent-bg, rgba(99,102,241,0.08));
   border-color: var(--accent);
-  color: var(--text);
+  color: var(--text-primary);
 }
 
 .gallery-info-modal {
