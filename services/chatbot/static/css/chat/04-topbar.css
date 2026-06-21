@@ -67,6 +67,22 @@
   background: var(--accent-soft);
 }
 
+/* Visual accent on the thinking-mode button based on active mode */
+#thinkingModeContainer[data-thinking-mode="thinking"] #thinkingModeBtn {
+  color: var(--info, #6366f1);
+}
+#thinkingModeContainer[data-thinking-mode="thinking"] #thinkingModeBtn svg,
+#thinkingModeContainer[data-thinking-mode="thinking"] #thinkingModeBtn .lucide {
+  color: var(--info, #6366f1);
+}
+#thinkingModeContainer[data-thinking-mode="multi-thinking"] #thinkingModeBtn {
+  color: var(--accent, #7c6cf0);
+}
+#thinkingModeContainer[data-thinking-mode="multi-thinking"] #thinkingModeBtn svg,
+#thinkingModeContainer[data-thinking-mode="multi-thinking"] #thinkingModeBtn .lucide {
+  color: var(--accent, #7c6cf0);
+}
+
 .topbar__model-btn {
   display: flex;
   align-items: center;

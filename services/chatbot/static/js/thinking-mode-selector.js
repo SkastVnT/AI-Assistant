@@ -89,9 +89,6 @@
         },
         autoDecideMode(msg) {
             const mode = window.getThinkingMode ? window.getThinkingMode() : 'instant';
-            if (mode === 'auto') {
-                return this.estimateComplexity(msg) >= 3;
-            }
             return mode === 'multi-thinking';
         }
     };

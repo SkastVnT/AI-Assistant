@@ -63,6 +63,8 @@
         const configBtn = document.getElementById('configAgentBtn');
         if (configBtn) configBtn.addEventListener('click', () => { closeToolsMenu(); openConfigAgentModal(); });
 
+        let _thinkingModeBeforeDeepResearch = null;
+
         // All toggle-able tools — derived from toolBtnMap for DRY
         Object.entries(toolBtnMap).forEach(([tool, id]) => {
             const el = document.getElementById(id);
