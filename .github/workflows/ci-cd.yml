@@ -148,7 +148,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     steps:
     - uses: actions/checkout@v4
-    - uses: docker/setup-buildx-action@v3
+    - uses: docker/setup-buildx-action@v4
     - name: Build chatbot
       if: hashFiles('services/chatbot/Dockerfile') != ''
       uses: docker/build-push-action@v5
