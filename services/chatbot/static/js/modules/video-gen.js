@@ -302,11 +302,6 @@ export class VideoGen {
         try {
             const resp = await fetch(`/api/video/cancel/${this.currentJobId}`, { method: 'POST' });
             const data = await resp.json();
-
-            this._stopPolling();
-            this._hideProgress();
-            this._showCancelBtn(false);
-
             if (resp.ok) {
                 this._showStatus(`⛔ Job cancelled: ${this.currentJobId}`, 'info');
             } else {
@@ -315,6 +310,9 @@ export class VideoGen {
         } catch (e) {
             this._showStatus(`Cancel error: ${e.message}`, 'error');
         } finally {
+            this._stopPolling();
+            this._hideProgress();
+            this._showCancelBtn(false);
             this.currentJobId = null;
             if (cancelBtn) { cancelBtn.disabled = false; cancelBtn.innerHTML = '⛔ Stop / Cancel'; }
             this._resetGenerateBtn();

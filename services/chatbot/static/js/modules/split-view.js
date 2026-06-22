@@ -87,6 +87,18 @@ export class SplitViewManager {
 
         this.mainEl.classList.remove('split-view');
 
+        // Clean up any dangling drag listeners if split was closed mid-drag
+        if (this._dividerOnMouseMove) {
+            document.removeEventListener('mousemove', this._dividerOnMouseMove);
+            this._dividerOnMouseMove = null;
+        }
+        if (this._dividerOnMouseUp) {
+            document.removeEventListener('mouseup', this._dividerOnMouseUp);
+            this._dividerOnMouseUp = null;
+        }
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+
         // Remove split container
         if (this.splitContainer && this.splitContainer.parentNode) {
             this.splitContainer.parentNode.removeChild(this.splitContainer);
@@ -261,6 +273,8 @@ export class SplitViewManager {
             document.body.style.userSelect = '';
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
+            this._dividerOnMouseMove = null;
+            this._dividerOnMouseUp = null;
         };
 
         divider.addEventListener('mousedown', (e) => {
@@ -269,6 +283,8 @@ export class SplitViewManager {
             divider.classList.add('active');
             document.body.style.cursor = 'col-resize';
             document.body.style.userSelect = 'none';
+            this._dividerOnMouseMove = onMouseMove;
+            this._dividerOnMouseUp = onMouseUp;
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', onMouseUp);
         });
