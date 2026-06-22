@@ -332,6 +332,7 @@ export class VideoGen {
         let elapsed = 0;
         let errorCount = 0;
         const MAX_ERRORS = 5;
+        const MAX_ELAPSED = 15 * 60 * 1000; // 15 min absolute cap
 
         const poll = async () => {
             try {
@@ -378,6 +379,14 @@ export class VideoGen {
 
                 elapsed += interval;
                 if (elapsed > 30000 && interval < 5000) interval = 5000;
+                if (elapsed >= MAX_ELAPSED) {
+                    this._stopPolling();
+                    this._showCancelBtn(false);
+                    this._showStatus('Timed out — job may still be running. Check back later.', 'error');
+                    this._hideProgress();
+                    this._resetGenerateBtn();
+                    return;
+                }
 
                 this.pollTimer = setTimeout(poll, interval);
             } catch (e) {

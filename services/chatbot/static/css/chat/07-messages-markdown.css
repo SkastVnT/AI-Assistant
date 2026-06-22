@@ -452,7 +452,9 @@ body.light-mode .message__content pre {
   opacity: 1;
   padding: 0 14px 12px;
 }
-.thinking-content--open > * { overflow-y: auto; max-height: 600px; }
+.thinking-content--open > * { overflow-y: auto; overflow-x: hidden; max-height: 600px; }
+.thinking-content--open pre,
+.thinking-content--open pre code { overflow-x: auto; }
 .thinking-content--collapsed {
   grid-template-rows: 0fr;
   opacity: 0;
