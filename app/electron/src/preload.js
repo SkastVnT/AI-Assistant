@@ -37,6 +37,15 @@ const api = Object.freeze({
     }),
     notify: Object.freeze({
         show: (payload) => ipcRenderer.invoke('notify:show', payload || {})
+    }),
+    comfyui: Object.freeze({
+        onLog(cb) {
+            const handler = (_e, data) => { try { cb(data); } catch (_) {} };
+            ipcRenderer.on('comfyui:log', handler);
+            return () => ipcRenderer.removeListener('comfyui:log', handler);
+        },
+        getHistory: () => ipcRenderer.invoke('comfyui:getHistory'),
+        getStatus:  () => ipcRenderer.invoke('comfyui:getStatus'),
     })
 });
 

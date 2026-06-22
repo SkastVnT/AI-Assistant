@@ -206,8 +206,8 @@
 
 .thinking-reasoning__body ol,
 .thinking-reasoning__body ul,
-.thinking-side-panel__body ol,
-.thinking-side-panel__body ul,
+.thinking-block__content ol,
+.thinking-block__content ul,
 .tsp-reasoning ol,
 .tsp-reasoning ul {
   list-style-position: outside;
@@ -216,15 +216,15 @@
 }
 
 .thinking-reasoning__body ol,
-.thinking-side-panel__body ol,
+.thinking-block__content ol,
 .tsp-reasoning ol { list-style-type: decimal; }
 
 .thinking-reasoning__body ul,
-.thinking-side-panel__body ul,
+.thinking-block__content ul,
 .tsp-reasoning ul { list-style-type: disc; }
 
 .thinking-reasoning__body li,
-.thinking-side-panel__body li,
+.thinking-block__content li,
 .tsp-reasoning li {
   padding-left: 0.3rem;
   margin-bottom: 0.35rem;

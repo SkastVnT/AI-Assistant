@@ -43,6 +43,7 @@ let backendChild = null;
 let comfyuiChild = null;
 let comfyuiStatus = 'stopped'; // 'stopped' | 'starting' | 'running' | 'failed'
 let recentLog = '';
+let comfyuiLog = '';  // separate buffer — only ComfyUI output
 let activeJobs = 0;
 let isQuitting = false;
 
@@ -72,6 +73,22 @@ function rememberLog(stream, text) {
         mainWindow.webContents.executeJavaScript(
             '(function(){var m=' + safe + ';if(typeof window.__appendLog==="function")window.__appendLog(m.stream,m.text);})()'
         ).catch(() => {});
+    }
+}
+
+// ComfyUI-specific log handler — buffers separately and forwards to the chatbot renderer via IPC.
+function rememberComfyUILog(stream, text) {
+    // Store each line with stream prefix for later history fetch
+    const chunk = text.endsWith('\n') ? text.slice(0, -1) : text;
+    chunk.split('\n').forEach(line => {
+        comfyuiLog += '[' + stream + '] ' + line + '\n';
+    });
+    if (comfyuiLog.length > 16000) comfyuiLog = comfyuiLog.slice(-16000);
+    // Also show on loading splash
+    rememberLog(stream, text);
+    // Forward live to chatbot renderer
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        try { mainWindow.webContents.send('comfyui:log', { stream, text }); } catch (_) {}
     }
 }
 
@@ -297,7 +314,7 @@ async function bootComfyUI() {
     comfyuiStatus = 'starting';
     refreshTray();
     try {
-        const { child } = await startComfyUI({ payloadRoot: REPO_ROOT, onLog: rememberLog });
+        const { child } = await startComfyUI({ payloadRoot: REPO_ROOT, onLog: rememberComfyUILog });
         comfyuiChild = child;
         comfyuiStatus = 'running';
     } catch (err) {
@@ -370,6 +387,9 @@ function registerIpc() {
         refreshTray();
         return activeJobs;
     });
+
+    ipcMain.handle('comfyui:getHistory', () => comfyuiLog);
+    ipcMain.handle('comfyui:getStatus',  () => comfyuiStatus);
 
     ipcMain.handle('notify:show', (_e, payload) => {
         try {

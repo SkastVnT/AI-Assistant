@@ -980,61 +980,74 @@ export class MessageRenderer {
      * API-compatible replacement for the old inline thinking block.
      */
     createThinkingSection(thinkingProcess, isLoading = false) {
-        const pill = document.createElement('div');
-        pill.className = 'thinking-pill' + (isLoading ? ' thinking-pill--loading' : ' thinking-pill--done');
-        pill._stepsData = [];
-        pill._startTime = Date.now();
-        pill._durationMs = 0;
-        pill._finalized = !isLoading;
-        pill._summary = '';
+        const block = document.createElement('div');
+        block.className = 'thinking-block' + (isLoading ? ' thinking-block--loading' : ' thinking-block--done');
+        block._stepsData = [];
+        block._startTime = Date.now();
+        block._durationMs = 0;
+        block._finalized = !isLoading;
+        block._summary = '';
+        block._contentEl = null;
+
+        const bodyHTML = `
+            <div class="thinking-block__body">
+                <div class="thinking-block__body-inner">
+                    <div class="thinking-block__content"></div>
+                </div>
+            </div>`;
 
         if (isLoading) {
-            pill.innerHTML = `
-                <div class="thinking-pill__dots">
-                    <span></span><span></span><span></span>
+            block.innerHTML = `
+                <div class="thinking-block__header">
+                    <div class="thinking-block__spinner"></div>
+                    <span class="thinking-block__label">Đang suy nghĩ</span>
+                    <span class="thinking-block__sep">·</span>
+                    <span class="thinking-block__timer"></span>
                 </div>
-                <span class="thinking-pill__label">Đang suy nghĩ</span>
-                <span class="thinking-pill__timer"></span>
+                ${bodyHTML}
             `;
-            pill._timerInterval = setInterval(() => {
-                // Self-healing: stop if finalized or detached from DOM
-                if (pill._finalized || !pill.isConnected) {
-                    clearInterval(pill._timerInterval);
-                    pill._timerInterval = null;
+            block._contentEl = block.querySelector('.thinking-block__content');
+            block._timerInterval = setInterval(() => {
+                if (block._finalized || !block.isConnected) {
+                    clearInterval(block._timerInterval);
+                    block._timerInterval = null;
                     return;
                 }
-                const elapsed = ((Date.now() - pill._startTime) / 1000).toFixed(1);
-                const timerEl = pill.querySelector('.thinking-pill__timer');
+                const elapsed = ((Date.now() - block._startTime) / 1000).toFixed(1);
+                const timerEl = block.querySelector('.thinking-block__timer');
                 if (timerEl) timerEl.textContent = elapsed + 's';
             }, 100);
         } else {
-            pill.innerHTML = `
-                <span class="thinking-pill__done-icon">🧠</span>
-                <span class="thinking-pill__label">Đã suy nghĩ xong</span>
-                <span class="thinking-pill__timer"></span>
-                <span class="thinking-pill__chevron">›</span>
+            block.innerHTML = `
+                <div class="thinking-block__header">
+                    <div class="thinking-block__dot"></div>
+                    <span class="thinking-block__label">Đã suy nghĩ</span>
+                    <span class="thinking-block__sep">·</span>
+                    <span class="thinking-block__timer"></span>
+                    <span class="thinking-block__chevron">›</span>
+                </div>
+                ${bodyHTML}
             `;
+            block._contentEl = block.querySelector('.thinking-block__content');
             if (thinkingProcess) {
                 if (typeof thinkingProcess === 'string') {
-                    pill._stepsData.push({ text: thinkingProcess, isReasoning: false, tid: null, done: true });
+                    block._stepsData.push({ text: thinkingProcess, isReasoning: false, tid: null, done: true });
                 } else if (Array.isArray(thinkingProcess)) {
                     thinkingProcess.forEach(step => {
-                        pill._stepsData.push({ text: typeof step === 'string' ? step : JSON.stringify(step), isReasoning: false, tid: null, done: true });
+                        block._stepsData.push({ text: typeof step === 'string' ? step : JSON.stringify(step), isReasoning: false, tid: null, done: true });
                     });
                 }
             }
         }
 
-        pill.addEventListener('click', () => {
-            if (!window.ThinkingPanel) return;
-            if (pill.classList.contains('thinking-pill--panel-open')) {
-                window.ThinkingPanel.close();
-            } else {
-                window.ThinkingPanel.open(pill);
-            }
-        });
+        const header = block.querySelector('.thinking-block__header');
+        if (header) {
+            header.addEventListener('click', () => {
+                if (window.ThinkingPanel) window.ThinkingPanel.toggle(block);
+            });
+        }
 
-        return pill;
+        return block;
     }
 
     /**
@@ -1080,20 +1093,40 @@ export class MessageRenderer {
             container._stepsData.forEach(s => { s.done = true; });
         }
 
-        container.classList.remove('thinking-pill--loading');
-        container.classList.add('thinking-pill--done');
+        const wasExpanded = container.classList.contains('thinking-block--expanded');
+
+        container.classList.remove('thinking-block--loading', 'thinking-block--expanded');
+        container.classList.add('thinking-block--done');
 
         const durationText = container._durationMs
             ? (container._durationMs / 1000).toFixed(1) + 's'
             : '';
 
-        // Rebuild inner HTML cleanly — no surgical querySelector patching
         container.innerHTML = `
-            <span class="thinking-pill__done-icon">🧠</span>
-            <span class="thinking-pill__label">Đã suy nghĩ xong</span>
-            ${durationText ? `<span class="thinking-pill__timer">${durationText}</span>` : ''}
-            <span class="thinking-pill__chevron">›</span>
+            <div class="thinking-block__header">
+                <div class="thinking-block__dot"></div>
+                <span class="thinking-block__label">Đã suy nghĩ</span>
+                <span class="thinking-block__sep">·</span>
+                ${durationText ? `<span class="thinking-block__timer">${durationText}</span>` : ''}
+                <span class="thinking-block__chevron">›</span>
+            </div>
+            <div class="thinking-block__body">
+                <div class="thinking-block__body-inner">
+                    <div class="thinking-block__content"></div>
+                </div>
+            </div>
         `;
+
+        container._contentEl = container.querySelector('.thinking-block__content');
+
+        const header = container.querySelector('.thinking-block__header');
+        if (header) {
+            header.addEventListener('click', () => {
+                if (window.ThinkingPanel) window.ThinkingPanel.toggle(container);
+            });
+        }
+
+        if (wasExpanded) container.classList.add('thinking-block--expanded');
 
         if (window.ThinkingPanel) window.ThinkingPanel.onFinalize(container, data);
     }

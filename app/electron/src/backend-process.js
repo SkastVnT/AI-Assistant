@@ -104,6 +104,10 @@ function startBackend({ onLog } = {}) {
             FLASK_PORT: String(PORT),
             PYTHONIOENCODING: 'utf-8',
             ELECTRON_DESKTOP: 'true',
+            // Electron manages ComfyUI via comfyui-process.js (with IPC log integration).
+            // Prevent run.py from also starting it — which would open a Windows Terminal popup.
+            AUTO_START_COMFYUI: 'false',
+            IMAGE_SERVICE_VISIBLE_WINDOWS: 'false',
             PYTHONPATH: existingPythonPath
                 ? extraPaths + path.delimiter + existingPythonPath
                 : extraPaths,

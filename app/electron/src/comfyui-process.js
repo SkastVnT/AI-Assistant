@@ -81,7 +81,6 @@ function startComfyUI({ payloadRoot, onLog } = {}) {
 
         const log = (stream, chunk) => {
             const text = chunk.toString();
-            process.stdout.write('[comfyui ' + stream + '] ' + text);
             if (typeof onLog === 'function') {
                 try { onLog(stream, text); } catch (_) {}
             }

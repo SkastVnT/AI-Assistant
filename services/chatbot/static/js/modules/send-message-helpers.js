@@ -1109,7 +1109,7 @@ export function buildStreamCallbacks(app, s) {
             if (data?.request_id && s.thinkingContainer) {
                 s.thinkingContainer.dataset.requestId = data.request_id;
             }
-            // Auto-open the side panel for multi-thinking so the user sees live agent logs
+            // Auto-expand the inline thinking block for multi-thinking so live agent steps are visible
             if (data?.mode === 'multi-thinking' && window.ThinkingPanel && s.thinkingContainer) {
                 window.ThinkingPanel.open(s.thinkingContainer);
             }
