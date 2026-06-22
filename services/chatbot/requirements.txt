@@ -57,7 +57,7 @@ torchaudio>=2.0.0
 transformers>=4.37.0
 accelerate>=1.13.0
 sentencepiece>=0.1.99
-protobuf>=5.29.0
+protobuf>=7.35.1
 
 # Quantization (for efficient local models - Windows requires Visual C++)
 bitsandbytes>=0.41.0; sys_platform != 'win32'
