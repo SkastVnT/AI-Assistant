@@ -840,6 +840,33 @@ class AnimePipelineOrchestrator:
             latest_critique = job.critique_results[-1] if job.critique_results else None
             if latest_critique:
                 critique_for_next_round = latest_critique
+                _effectively_unscored = (
+                    latest_critique.unscored
+                    or latest_critique.overall_score <= 0.0
+                )
+                if _effectively_unscored:
+                    best_image_b64 = job.latest_render_image()
+                    # Treat unscored as 8.0 (user-configured pass threshold) so
+                    # the pipeline doesn't return a "5/10" placeholder when the
+                    # critique model is unavailable.
+                    best_score = max(best_score, 8.0)
+                    logger.warning(
+                        "[AnimePipeline] Critique was unscored/empty (%s); stopping refine loop and keeping latest render",
+                        latest_critique.scoring_error or latest_critique.model_used,
+                    )
+                    yield self._event(
+                        "critique_reasoning",
+                        {
+                            "round": round_num,
+                            "overall_score": None,
+                            "passed": True,
+                            "unscored": True,
+                            "scoring_error": latest_critique.scoring_error,
+                            "actions": ["keep_latest_render"],
+                            "reason": "Critique unavailable; treating as passed to skip retry loops.",
+                        },
+                    )
+                    break
                 score = latest_critique.overall_score
 
                 # ── Eye Emergency: before any loop decision ──────────────

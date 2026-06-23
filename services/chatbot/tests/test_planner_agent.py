@@ -115,6 +115,22 @@ class TestMakeLayerPlan:
         assert isinstance(plan, LayerPlan)
         assert len(plan.passes) >= 3  # at least composition, structure_lock, beauty
 
+    def test_default_loras_are_copied_per_render_pass(self, config):
+        config.default_loras = [{"name": "style.safetensors", "enabled": True}]
+        plan = LayerPlannerAgent(config).build_plan(
+            AnimePipelineJob(user_prompt="1girl, anime style")
+        )
+
+        composition = plan.composition_pass
+        beauty = plan.beauty_pass
+        assert composition is not None
+        assert beauty is not None
+        assert composition.lora_models is not beauty.lora_models
+
+        composition.lora_models[0]["enabled"] = False
+        assert beauty.lora_models[0]["enabled"] is True
+        assert config.default_loras[0]["enabled"] is True
+
     def test_with_references(self, config, vision_analysis):
         plan = make_layer_plan(
             "anime girl",
@@ -289,6 +305,12 @@ class TestPromptConstruction:
         plan = planner.build_plan(job)
         comp = plan.get_pass("composition")
         assert "detailed_eyes" in comp.positive_prompt
+
+    def test_default_style_uses_vibrant_colors(self, planner, basic_job):
+        plan = planner.build_plan(basic_job)
+        assert "vibrant_colors" in plan.style_tags
+        assert "colorful" in plan.style_tags
+        assert "anime" in plan.style_tags
 
 
 # ═══════════════════════════════════════════════════════════════════

@@ -57,6 +57,7 @@ from image_pipeline.anime_pipeline.schemas import (
     RefineAction,
     RefineActionType,
     RefineDecision,
+    RankCandidate,
 )
 
 # ── Fixtures ─────────────────────────────────────────────────────────
@@ -449,6 +450,15 @@ class TestFinalRanker:
         assert cand.composite_score > 0
         assert cand.artifact_count == 0
 
+    def test_score_candidate_with_unscored_critique_uses_neutral_fallback(self):
+        from image_pipeline.anime_pipeline.agents.final_ranker import score_candidate
+
+        critique = CritiqueReport(unscored=True, retry_recommendation=True)
+        cand = score_candidate("base64img", "beauty_pass", critique)
+        assert cand.composite_score > 0
+        assert cand.face_quality == 5.0
+        assert cand.clarity == 5.0
+
     def test_rank_candidates_orders_correctly(self, good_critique, bad_critique):
         from image_pipeline.anime_pipeline.agents.final_ranker import (
             rank_candidates,
@@ -461,6 +471,22 @@ class TestFinalRanker:
         assert result.winner.image_b64 == "good_img"
         assert result.total_candidates == 2
         assert len(result.runner_ups) == 1
+
+    def test_rank_candidates_tie_prefers_later_render_stage(self):
+        from image_pipeline.anime_pipeline.agents.final_ranker import rank_candidates
+
+        composition = RankCandidate(
+            image_b64="composition",
+            stage="composition_pass",
+            composite_score=5.0,
+        )
+        beauty = RankCandidate(
+            image_b64="beauty",
+            stage="beauty_pass",
+            composite_score=5.0,
+        )
+        result = rank_candidates([composition, beauty])
+        assert result.winner is beauty
 
     def test_empty_candidates(self):
         from image_pipeline.anime_pipeline.agents.final_ranker import rank_candidates
@@ -515,6 +541,31 @@ class TestOutputManifest:
         assert manifest["preset"] == "anime_quality"
         assert len(manifest["passes"]) == 3
         assert manifest["total_latency_ms"] == 3700
+
+    def test_manifest_collapses_repeated_stage_rows_with_run_count(self):
+        from image_pipeline.anime_pipeline.agents.output_manifest import (
+            build_output_manifest,
+        )
+
+        job = AnimePipelineJob(user_prompt="test", preset="anime_quality")
+        job.stages_executed = [
+            "composition_pass",
+            "beauty_pass",
+            "critique",
+            "beauty_pass",
+            "critique",
+        ]
+        job.stage_timings_ms = {
+            "composition_pass": 1000,
+            "beauty_pass": 2000,
+            "critique": 300,
+        }
+
+        manifest = build_output_manifest(job)
+        names = [entry["name"] for entry in manifest["passes"]]
+        assert names == ["composition_pass", "beauty_pass", "critique"]
+        critique_row = next(row for row in manifest["passes"] if row["name"] == "critique")
+        assert critique_row["runs"] == 2
 
     def test_manifest_to_json(self):
         from image_pipeline.anime_pipeline.agents.output_manifest import (

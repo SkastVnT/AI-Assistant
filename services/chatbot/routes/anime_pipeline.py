@@ -14,7 +14,7 @@ import logging
 import re
 import time as _time
 
-from flask import Blueprint, Response, jsonify, request, session
+from flask import Blueprint, Response, jsonify, request, session, stream_with_context
 
 from core.character_registry import get_registry
 from core.job_queue import get_queue
@@ -315,39 +315,7 @@ def stream_pipeline():
         ap_error        — error         { error, recoverable }
         ap_done         — sentinel      { job_id }
     """
-    from core.anime_pipeline_service import (
-        check_availability,
-        validate_request,
-    )
-    from core.anime_pipeline_service import (
-        stream_pipeline as _stream,
-    )
-
-    # ── Availability gate ───────────────────────────────────────────
-    avail = check_availability(probe_remote=True)
-    if not avail.available:
-
-        def _err_unavail():
-            yield (
-                "event: ap_error\ndata: "
-                + json.dumps(
-                    {
-                        "error": "; ".join(avail.errors),
-                        "recoverable": False,
-                        "availability": avail.to_dict(),
-                    }
-                )
-                + "\n\n"
-            )
-
-        return Response(
-            _err_unavail(),
-            mimetype="text/event-stream",
-            status=503,
-            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-        )
-
-    # ── Rate check ──────────────────────────────────────────────────
+    # ── Rate check (fast — no blocking I/O) ────────────────────────
     rate_err = _rate_check()
     if rate_err:
 
@@ -356,30 +324,105 @@ def stream_pipeline():
 
         return Response(_err_rate(), mimetype="text/event-stream", status=429)
 
-    # ── Validate payload ────────────────────────────────────────────
-    data = request.get_json(force=True, silent=True) or {}
-    data = _enrich_with_character(data)
-    resolved_char = data.pop("_resolved_character", None)
-    req, val_err = validate_request(data)
-    if val_err:
-
-        def _err_val():
-            yield "event: ap_error\ndata: " + json.dumps({"error": val_err}) + "\n\n"
-
-        return Response(_err_val(), mimetype="text/event-stream", status=400)
-
-    # Fill session context
-    req.session_id = session.get("session_id", request.remote_addr or "")
-    req.conversation_id = data.get(
+    # ── Read raw body + session context (fast — no blocking I/O) ──
+    # Everything else — NLU enrichment, validation, ComfyUI probe,
+    # and the heavy image_pipeline imports they trigger — is deferred
+    # into the generator so the browser's fetch() resolves on the first
+    # keepalive chunk before any slow work runs.
+    raw_data = request.get_json(force=True, silent=True) or {}
+    _session_id = session.get("session_id", request.remote_addr or "")
+    _conversation_id = raw_data.get(
         "conversation_id", session.get("conversation_id", "")
     )
 
-    inner = _stream(req)
+    # Quick character record lookup for job-queue metadata only.
+    # Uses the explicitly provided character_key (dict lookup, no NLU).
+    # NLU-derived enrichment happens inside the generator after the keepalive.
+    _char_key_explicit = (raw_data.get("character_key") or "").strip()
+    _resolved_char_quick = (
+        get_registry().get(_char_key_explicit) if _char_key_explicit else None
+    )
+
+    def _gen_with_preflight():
+        # ── Flush TCP immediately — browser's fetch() resolves here ──
+        # All blocking imports and I/O happen AFTER this yield so that
+        # HTTP 200 headers reach the client before any slow work.
+        yield ": keepalive\n\n"
+
+        # Emit an immediate ap_status so the browser shows something
+        # meaningful while heavy imports (torch/PIL/numpy) load on first
+        # cold-start.  This fires before _enrich_with_character which
+        # triggers importing image_pipeline.anime_pipeline (~2–30 s).
+        yield (
+            "event: ap_status\ndata: "
+            + json.dumps({"message": "Đang khởi động pipeline…"})
+            + "\n\n"
+        )
+
+        # Heavy imports deferred to here to avoid blocking the response.
+        # Importing core.anime_pipeline_service is fast (stdlib only).
+        # The first call to _enrich_with_character triggers importing
+        # image_pipeline.anime_pipeline which loads torch/PIL/numpy etc.
+        # — that's why it must run inside the generator, not before it.
+        from core.anime_pipeline_service import validate_request
+        from core.anime_pipeline_service import stream_pipeline as _stream
+        from core.anime_pipeline_service import comfyui_reachable, pipeline_enabled
+
+        data = _enrich_with_character(dict(raw_data))
+        data.pop("_resolved_character", None)  # captured above for queue metadata
+
+        req, val_err = validate_request(data)
+        if val_err:
+            yield (
+                "event: ap_error\ndata: "
+                + json.dumps({"error": val_err})
+                + "\n\n"
+            )
+            return
+
+        req.session_id = _session_id
+        req.conversation_id = _conversation_id
+
+        if not pipeline_enabled():
+            yield (
+                "event: ap_error\ndata: "
+                + json.dumps(
+                    {
+                        "error": "Anime pipeline is disabled — set IMAGE_PIPELINE_V2=true to enable.",
+                        "recoverable": False,
+                    }
+                )
+                + "\n\n"
+            )
+            return
+
+        yield (
+            "event: ap_status\ndata: "
+            + json.dumps({"message": "Đang kết nối ComfyUI…"})
+            + "\n\n"
+        )
+
+        if not comfyui_reachable():
+            yield (
+                "event: ap_error\ndata: "
+                + json.dumps(
+                    {
+                        "error": "ComfyUI không phản hồi — hãy kiểm tra ComfyUI đã khởi động chưa.",
+                        "recoverable": False,
+                    }
+                )
+                + "\n\n"
+            )
+            return
+
+        yield from _stream(req)
+
+    inner = stream_with_context(_gen_with_preflight())
     wrapped = _wrap_stream_with_queue(
         inner,
-        character_record=resolved_char,
-        preset=req.preset,
-        prompt_preview=req.prompt,
+        character_record=_resolved_char_quick,
+        preset=raw_data.get("preset", ""),
+        prompt_preview=raw_data.get("prompt", ""),
     )
     return Response(
         wrapped,

@@ -163,6 +163,7 @@ quality:
   recommended_clip: 0.30
   compatible_models: ["illustrious", "pony", "noobai", "flux"]
   tags: ["quality", "detail", "micro", "texture"]
+  condition: optional_quality_boost
   trigger_words: ["addmicrodetails"]
   notes: "Use 0.2~0.3 for photorealistic images"
 
@@ -189,6 +190,7 @@ eyes:
   recommended_clip: 0.25
   tags: ["eyes", "symmetry"]
   detection_regions: ["full_eyes", "eyes"]
+  trigger_words: ["eyes taped open with hand"]
 
 - name: "Doll_Eyes_XL__Eye_Contacts-000004.safetensors"
   location: lora_dir
@@ -212,6 +214,7 @@ eyes:
   recommended_clip: 0.80
   compatible_models: ["illustrious"]
   tags: ["eyes", "effect", "bloodshot"]
+  condition: WAI_OK
   detection_regions: ["full_eyes", "eyes"]
   trigger_words: ["bloodshot eyes"]
 
@@ -226,6 +229,7 @@ eyes:
   recommended_clip: 0.80
   compatible_models: ["illustrious"]
   tags: ["eyes", "effect", "bloodshot"]
+  condition: WAI_OK
   detection_regions: ["full_eyes", "eyes"]
   trigger_words: ["bloodshot eyes"]
 
@@ -240,6 +244,7 @@ eyes:
   recommended_clip: 0.90
   compatible_models: ["sd15"]
   tags: ["eyes", "effect", "rolling"]
+  condition: SD15_ONLY
   detection_regions: ["full_eyes", "eyes"]
   trigger_words: ["ROLLING EYES"]
 
@@ -254,6 +259,7 @@ eyes:
   recommended_clip: 0.90
   compatible_models: ["sd15"]
   tags: ["eyes", "effect", "sleepy"]
+  condition: SD15_ONLY
   detection_regions: ["full_eyes", "eyes"]
   trigger_words: ["sleepy"]
   notes: "Trigger 'sleepy' is optional — effect activates without it"
@@ -269,6 +275,7 @@ eyes:
   recommended_clip: 0.70
   compatible_models: ["illustrious"]
   tags: ["eyes", "effect", "unconscious", "empty"]
+  condition: WAI_OK
   detection_regions: ["full_eyes", "eyes"]
   trigger_words: ["0utc0ld"]
   keywords: ["unconscious", "empty eyes", "wide-eyed", "looking away", "saliva", "drooling"]
@@ -284,6 +291,7 @@ eyes:
   recommended_clip: 0.80
   compatible_models: ["pony"]
   tags: ["eyes", "effect", "empty", "hypnosis"]
+  condition: PONY_ONLY
   detection_regions: ["full_eyes", "eyes"]
   trigger_words: ["empty eyes"]
 
@@ -298,6 +306,7 @@ eyes:
   recommended_clip: 0.65
   compatible_models: ["sd15"]
   tags: ["eyes", "effect", "empty", "hypnosis"]
+  condition: SD15_ONLY
   detection_regions: ["full_eyes", "eyes"]
   notes: "No trigger word needed — effect activates passively"
 
@@ -312,6 +321,7 @@ eyes:
   recommended_clip: 0.55
   compatible_models: ["sd15"]
   tags: ["eyes", "effect", "empty", "diffuser"]
+  condition: SD15_ONLY
   detection_regions: ["full_eyes", "eyes"]
   notes: "No trigger needed — removes eye highlights passively"
 
@@ -327,16 +337,7 @@ eyes:
   compatible_models: ["illustrious", "pony"]
   tags: ["eyes", "effect", "taped", "restrained", "unconscious"]
   detection_regions: ["full_eyes", "eyes", "face"]
-  trigger_words:
-    - "eyes taped open with hand"
-    - "duct tape forcing eyes wide open"
-    - "thick silver duct tape wrapped around head"
-    - "hands pressing tape on eyes"
-    - "fingers holding eyelids open"
-    - "taped eyes unable to blink"
-    - "bulging wide eyes"
-    - "bloodshot glassy eyes"
-    - "unconscious with taped eyes"
+  trigger_words: ["eye check"]
   keywords: ["taped eyes", "duct tape", "forced open eyes", "eyelids held open", "restrained",
     "unconscious"]
   notes: "Strength must be HIGH — drop below 0.85 and the tape stops rendering. For detection
@@ -369,9 +370,9 @@ face:
       words: "forced p1g nose back, pushing nose up, finger on another's nose, covering forehead, nostrils, male head out
         of frame"
       description: "後ろから豚鼻 — forced pig nose from behind"
-    taped_pig_nose:
-      words: "taped p1g nose, tape on nose, pushing nose up, nostrils"
-      description: "テープで豚鼻 — taped pig nose"
+    # taped_pig_nose:
+    #   words: "taped p1g nose, tape on nose, pushing nose up, nostrils"
+    #   description: "テープで豚鼻 — taped pig nose"
 
 - name: "mouthpull_sd15.safetensors"
   location: comfyui
@@ -384,8 +385,9 @@ face:
   recommended_clip: 0.80
   compatible_models: ["sd15"]
   tags: ["face", "mouth", "pull", "expression"]
+  condition: SD15_ONLY
   detection_regions: ["face"]
-  trigger_words: ["mouth_pull", "open_mouth", "finger_in_own_mouth", "fangs", "tongue", "tongue_out"]
+  trigger_words: ["mouth_pull", "finger_in_own_mouth"]
 
 - name: "mouth_wider_illustrious.safetensors"
   location: comfyui
@@ -398,6 +400,7 @@ face:
   recommended_clip: 0.80
   compatible_models: ["illustrious"]
   tags: ["face", "mouth", "expression"]
+  condition: WAI_OK
   detection_regions: ["face"]
   trigger_words: ["mouthwider"]
   notes: "Add 'clench teeth' to close mouth; add 'tongue' for half-open"
@@ -413,8 +416,9 @@ face:
   recommended_clip: 0.65
   compatible_models: ["pony"]
   tags: ["face", "mouth", "pull", "expression"]
+  condition: PONY_ONLY
   detection_regions: ["face"]
-  trigger_words: ["open mouth", "finger in another's mouth", "mouth pull"]
+  trigger_words: ["open mouth", "finger in another's mouth"]
 
 - name: "akanbe_pony.safetensors"
   location: comfyui
@@ -427,8 +431,9 @@ face:
   recommended_clip: 0.80
   compatible_models: ["pony"]
   tags: ["face", "expression", "akanbe", "tongue"]
+  condition: PONY_ONLY
   detection_regions: ["face"]
-  trigger_words: ["akanbe", "tongue out", "eyelid pull", "finger to eyelid"]
+  trigger_words: ["akanbe", "tongue out", "eyelid pull"]
 
 - name: "double_cheek_pull_illustrious.safetensors"
   location: comfyui
@@ -441,9 +446,9 @@ face:
   recommended_clip: 0.80
   compatible_models: ["illustrious"]
   tags: ["face", "expression", "cheek", "pull"]
+  condition: WAI_OK
   detection_regions: ["face"]
-  trigger_words: ["double cheek pull", "blush", "smile", "open mouth", "one eye closed", "teeth", "grin", "pinching", "cheek
-      pinching"]
+  trigger_words: ["double cheek pull"]
 
 - name: "ohogao_illustrious.safetensors"
   location: comfyui
@@ -456,9 +461,9 @@ face:
   recommended_clip: 0.80
   compatible_models: ["illustrious", "pony"]
   tags: ["face", "expression", "ohogao"]
+  condition: WAI_OK
   detection_regions: ["face"]
-  trigger_words: ["ohogao", "puckered lips", "trembling", "tearing up", "v-shaped eyebrows", "rolling eyes", "open mouth tongue
-      out", "tongue up"]
+  trigger_words: ["ohogao", "puckered lips", "trembling"]
   notes: "Author: Magochi. 422K+ downloads."
 
 - name: "better_crying_sd15.safetensors"
@@ -472,6 +477,7 @@ face:
   recommended_clip: 0.55
   compatible_models: ["sd15"]
   tags: ["face", "expression", "crying", "tears"]
+  condition: SD15_ONLY
   detection_regions: ["face"]
   trigger_words: ["CRY TEAR"]
 
@@ -486,6 +492,7 @@ face:
   recommended_clip: 0.80
   compatible_models: ["illustrious"]
   tags: ["face", "mouth", "pull", "drool", "expression"]
+  condition: WAI_OK
   detection_regions: ["face"]
   trigger_words: ["mouthpull", "tongue out", "drooling"]
 
@@ -500,8 +507,9 @@ face:
   recommended_clip: 0.80
   compatible_models: ["sd15"]
   tags: ["face", "expression", "ahegao"]
+  condition: SD15_ONLY
   detection_regions: ["face"]
-  trigger_words: ["ahehalf", "tongue out", "saliva", "drooling", "trembling", "constricted pupils"]
+  trigger_words: ["ahehalf", "tongue out", "saliva"]
 
 # ── Drunk / Sleep Expressions ──────────────────────────────────────
 
@@ -517,8 +525,9 @@ drunk_sleep:
   recommended_clip: 0.70
   compatible_models: ["pony"]
   tags: ["face", "expression", "drunk"]
+  condition: PONY_ONLY_NON_EXPLICIT
   detection_regions: ["face"]
-  trigger_words: ["Dr1nk", "blush", "drunk bubbles", "squeans", "alcohol"]
+  trigger_words: ["Dr1nk", "blush", "drunk bubbles"]
 
 - name: "drunk_illustrious.safetensors"
   location: comfyui
@@ -531,8 +540,9 @@ drunk_sleep:
   recommended_clip: 0.70
   compatible_models: ["illustrious"]
   tags: ["face", "expression", "drunk"]
+  condition: WAI_OK_NON_EXPLICIT
   detection_regions: ["face"]
-  trigger_words: ["Dr1nk", "drunk", "bubbles", "squeans"]
+  trigger_words: ["Dr1nk", "drunk", "bubbles"]
   keywords: ["blush", "drunk bubbles", "alcohol"]
 
 - name: "drunk_pouting_illustrious.safetensors"
@@ -546,8 +556,9 @@ drunk_sleep:
   recommended_clip: 0.80
   compatible_models: ["illustrious"]
   tags: ["face", "expression", "drunk", "pout"]
+  condition: WAI_OK_NON_EXPLICIT
   detection_regions: ["face"]
-  trigger_words: ["drunk pouting", "solo", "looking at viewer", "blush", ":t", "pout", "whiskey", "half-closed eyes"]
+  trigger_words: ["drunk pouting", "pout"]
 
 - name: "drunk_bar_stool_pony.safetensors"
   location: comfyui
@@ -560,7 +571,8 @@ drunk_sleep:
   recommended_clip: 0.80
   compatible_models: ["pony", "illustrious"]
   tags: ["pose", "expression", "drunk", "sleeping"]
-  trigger_words: ["drunk", "stool position", "sleeping", "drooling", "bar", "alcohol", "bottle"]
+  condition: CHECK_VERSION_NON_EXPLICIT
+  trigger_words: ["drunk", "stool position", "sleeping"]
 
 - name: "drunk_and_sleep_illustrious.safetensors"
   location: comfyui
@@ -574,6 +586,7 @@ drunk_sleep:
   compatible_models: ["illustrious"]
   clip_skip: 2
   tags: ["pose", "expression", "drunk", "sleeping"]
+  condition: WAI_OK_NON_EXPLICIT
   trigger_words: ["drunk_sleep"]
   keywords: ["drunk", "closed eyes", "sleepy", "sleeping", "lying", "on back", "mouth drool", "saliva trail"]
 
@@ -588,6 +601,7 @@ drunk_sleep:
   recommended_clip: 0.70
   compatible_models: ["sd15"]
   tags: ["pose", "expression", "sleeping"]
+  condition: SD15_ONLY
   trigger_words: ["sleepeace"]
   notes: "Use 0.4~0.7 for happy face variant; 0.8~1.0 for peaceful sleep"
 
@@ -602,7 +616,8 @@ drunk_sleep:
   recommended_clip: 0.80
   compatible_models: ["pony"]
   tags: ["pose", "sleeping", "nsfw"]
-  trigger_words: ["Sleep_Peek", "closed eyes", "sleeping", "clothes lift", "skirt lift", "panty pull"]
+  condition: PONY_ONLY_NON_EXPLICIT
+  trigger_words: ["Sleep_Peek", "sleeping"]
 
 # ── Drool / Saliva Effects ─────────────────────────────────────────
 
@@ -618,6 +633,7 @@ drool:
   recommended_clip: 0.85
   compatible_models: ["illustrious"]
   tags: ["face", "drool", "saliva", "effect"]
+  condition: WAI_OK
   detection_regions: ["face"]
   trigger_words: ["Dr00l"]
   keywords: ["drooling", "saliva", "drool"]
@@ -634,6 +650,7 @@ drool:
   recommended_clip: 0.80
   compatible_models: ["sd15"]
   tags: ["face", "drool", "saliva", "sleeping"]
+  condition: SD15_ONLY
   detection_regions: ["face"]
   trigger_words: ["drooling", "saliva", "sleep"]
 
@@ -648,8 +665,9 @@ drool:
   recommended_clip: 0.80
   compatible_models: ["illustrious"]
   tags: ["face", "drool", "saliva", "gag", "nsfw"]
+  condition: WAI_OK_ADULT_ONLY
   detection_regions: ["face"]
-  trigger_words: ["ball_gag_drooling", "wiffle gag", "saliva"]
+  trigger_words: ["ball_gag_drooling", "wiffle gag"]
 
 - name: "drool_bottle_concept_illustrious.safetensors"
   location: comfyui
@@ -662,6 +680,7 @@ drool:
   recommended_clip: 0.80
   compatible_models: ["illustrious"]
   tags: ["face", "drool", "saliva", "concept"]
+  condition: WAI_OK_ADULT_ONLY
   detection_regions: ["face"]
   trigger_words: ["SbtlingSP"]
 
@@ -701,7 +720,8 @@ body:
   recommended_clip: 2.00
   compatible_models: ["pony", "illustrious"]
   tags: ["pose", "dynamic", "foreshortening"]
-  trigger_words: ["dynamic pose", "foreshortening", "extreme perspective"]
+  condition: SLIDER_LORA
+  trigger_words: ["dynamic pose", "foreshortening"]
   notes: "Slider LoRA — requires HIGH strength (2.5). Normal range 2.0~3.0."
 
 - name: "legs_up_sd15.safetensors"
@@ -715,6 +735,7 @@ body:
   recommended_clip: 0.75
   compatible_models: ["sd15"]
   tags: ["pose", "legs"]
+  condition: SD15_ONLY
   trigger_words: ["legsupms", "legsupsexms"]
 
 - name: "legs_together_up_sd15.safetensors"
@@ -728,6 +749,7 @@ body:
   recommended_clip: 0.75
   compatible_models: ["sd15"]
   tags: ["pose", "legs"]
+  condition: SD15_ONLY
   trigger_words: ["legs together", "legs up"]
   notes: "Trigger in file is embed-style — use 'legs together, legs up' as keywords"
 
@@ -742,7 +764,8 @@ body:
   recommended_clip: 0.75
   compatible_models: ["sd15"]
   tags: ["pose", "legs", "spread"]
-  trigger_words: ["jack-o' challenge", "flexible", "spread legs", "top-down bottom-up"]
+  condition: SD15_ONLY
+  trigger_words: ["jack-o' challenge", "flexible"]
 
 - name: "feet_pose_anime.safetensors"
   location: comfyui
@@ -754,6 +777,7 @@ body:
   recommended_model: 0.85
   recommended_clip: 0.75
   tags: ["pose", "feet"]
+  condition: CHECK_VERSION
   trigger_words: ["feet", "soles", "foot focus"]
   notes: "Base model: Other (mixed). No specific trigger required — use foot-related keywords."
 
@@ -828,6 +852,7 @@ clothing:
   recommended_clip: 0.75
   compatible_models: ["illustrious"]
   tags: ["clothing", "sweater", "backless"]
+  condition: WAI_OK
   trigger_words: ["virgin killer sweater"]
 
 - name: "virgin_destroyer_sweater_illustrious.safetensors"
@@ -841,6 +866,7 @@ clothing:
   recommended_clip: 0.75
   compatible_models: ["illustrious"]
   tags: ["clothing", "sweater", "nsfw"]
+  condition: WAI_OK
   trigger_words: ["virgin destroyer sweater"]
 
 - name: "slingshot_swimsuit_illustrious.safetensors"
@@ -854,6 +880,7 @@ clothing:
   recommended_clip: 0.75
   compatible_models: ["illustrious", "pony", "sd15"]
   tags: ["clothing", "swimsuit", "nsfw"]
+  condition: CHECK_VERSION
   trigger_words: ["slingshot swimsuit"]
 
 - name: "better_legwear_sd15.safetensors"
@@ -867,6 +894,7 @@ clothing:
   recommended_clip: 0.60
   compatible_models: ["sd15"]
   tags: ["clothing", "legwear", "pantyhose", "stockings"]
+  condition: SD15_ONLY
   trigger_words: ["legs", "pantyhose"]
   notes: "HTTP 500 on initial fetch but API returned data. Also supports: wet clothes, public tattoo"
 
@@ -881,7 +909,8 @@ clothing:
   recommended_clip: 0.75
   compatible_models: ["illustrious", "pony"]
   tags: ["style", "comic", "manga"]
-  trigger_words: ["hcr_generator", "(comic:1.25)"]
+  condition: WAI_OK
+  trigger_words: ["hcr_generator", "comic"]
 
 - name: "hentai_comic_hardcore_illustrious.safetensors"
   location: comfyui
@@ -894,7 +923,8 @@ clothing:
   recommended_clip: 0.75
   compatible_models: ["illustrious", "pony"]
   tags: ["style", "comic", "manga", "nsfw"]
-  trigger_words: ["fcomichardcore", "(comic:1.25)"]
+  condition: WAI_OK
+  trigger_words: ["fcomichardcore", "comic"]
 
   # ── Lingerie LoRAs ─────────────────────────────────────────────
 
@@ -910,6 +940,7 @@ clothing:
   recommended_clip: 0.65
   compatible_models: ["sd15"]
   tags: ["clothing", "lingerie", "detail", "bra"]
+  condition: NEED_LORA_BLOCK_WEIGHT_SD15_ONLY
   trigger_words: []
   notes: "No trigger word required. Must use LoRA Block Weight 0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1 or image will be distorted.
     Strength < 0.8. Optional: add (smile:0.3) to avoid forced smile."
@@ -926,6 +957,7 @@ clothing:
   recommended_clip: 0.8
   compatible_models: ["pony"]
   tags: ["clothing", "lingerie", "panties", "see-through"]
+  condition: PONY_ONLY_ADULT_ONLY
   detection_regions: ["underwear", "swimsuit"]
   trigger_words: ["lingerie", "panties", "pasties", "see-through"]
 
@@ -941,6 +973,7 @@ clothing:
   recommended_clip: 0.75
   compatible_models: ["illustrious"]
   tags: ["clothing", "lingerie", "frills", "bikini"]
+  condition: WAI_OK_ADULT_ONLY
   detection_regions: ["underwear", "swimsuit"]
   trigger_words: ["lingerie", "bikini", "criss-cross halter", "frills"]
   notes: "Pony version also available (4ng3ll1ng trigger). Avoid stacking too many LoRAs."
@@ -957,6 +990,7 @@ clothing:
   recommended_clip: 0.75
   compatible_models: ["illustrious"]
   tags: ["clothing", "lingerie", "harness", "bondage", "straps"]
+  condition: WAI_OK_ADULT_ONLY
   detection_regions: ["underwear"]
   trigger_words: ["lingerie02", "skindentation"]
   notes: "Swap areola_slip → nipples to remove center strap. Pony version also available (lingerie02, harness, areola slip,
@@ -975,8 +1009,9 @@ clothing:
   recommended_clip: 0.75
   compatible_models: ["illustrious"]
   tags: ["clothing", "lingerie", "leotard", "fishnet", "gloves", "bondage"]
+  condition: WAI_OK_ADULT_ONLY
   detection_regions: ["underwear", "leotard"]
-  trigger_words: ["lingerie01", "leotard", "frills", "fishnet thighhighs", "bare shoulders", "elbow gloves"]
+  trigger_words: ["lingerie01", "leotard", "frills", "fishnet thighhighs"]
   notes: "Color customizable. Add backless_outfit for back view. Pony version: lingerie01, black leotard. From Bishop eroge
     Shura no Chikandou."
 
@@ -992,8 +1027,9 @@ clothing:
   recommended_clip: 0.75
   compatible_models: ["illustrious"]
   tags: ["clothing", "lingerie", "see-through", "thighhighs"]
+  condition: WAI_OK_ADULT_ONLY
   detection_regions: ["underwear"]
-  trigger_words: ["lingerie", "thighhighs", "see-through", "skirt", "bare shoulders", "bow", "black choker"]
+  trigger_words: ["lingerie", "thighhighs", "see-through", "skirt"]
 
 - name: "Chitose_Style_Lingerie-000008.safetensors"
   location: comfyui
@@ -1007,8 +1043,9 @@ clothing:
   recommended_clip: 0.75
   compatible_models: ["illustrious"]
   tags: ["clothing", "lingerie", "cupless", "crotchless", "nsfw"]
+  condition: WAI_OK_ADULT_ONLY
   detection_regions: ["underwear"]
-  trigger_words: ["lingerie", "crotch-less panties", "cupless bra", "cupless lingerie"]
+  trigger_words: ["lingerie", "crotch-less panties", "cupless bra"]
 
 - name: "GyaruBabydollLingerieILL.safetensors"
   location: comfyui
@@ -1022,8 +1059,9 @@ clothing:
   recommended_clip: 0.75
   compatible_models: ["illustrious"]
   tags: ["clothing", "lingerie", "babydoll", "see-through", "gyaru", "frills"]
+  condition: WAI_OK_ADULT_ONLY
   detection_regions: ["underwear"]
-  trigger_words: ["lingerie", "see-through", "panties", "animal print", "bow", "frills"]
+  trigger_words: ["lingerie", "see-through", "panties", "animal print"]
 
 - name: "lingerie_miwabe_illustrious.safetensors"
   location: comfyui
@@ -1037,6 +1075,7 @@ clothing:
   recommended_clip: 0.70
   compatible_models: ["illustrious"]
   tags: ["clothing", "lingerie", "style", "miwabe"]
+  condition: WAI_OK_ADULT_ONLY
   detection_regions: ["underwear"]
   trigger_words: ["lingerie"]
   notes: "Pony and SD 1.5 versions also available. Can double as artist style. Strength 0.6–1.0."
@@ -1053,8 +1092,9 @@ clothing:
   recommended_clip: 0.75
   compatible_models: ["illustrious"]
   tags: ["clothing", "lingerie", "transparent", "pajama", "see-through", "nsfw"]
+  condition: WAI_OK_ADULT_ONLY
   detection_regions: ["underwear"]
-  trigger_words: ["Lingerie", "translucent", "pajama", "transparent", "sexy lingerie"]
+  trigger_words: ["Lingerie", "translucent", "pajama", "transparent"]
 
 - name: "Lingerie 03 - Christmas Eve Detective.safetensors"
   location: comfyui
@@ -1069,9 +1109,9 @@ clothing:
   recommended_clip: 0.8
   compatible_models: ["pony"]
   tags: ["clothing", "lingerie", "christmas", "harness", "girls-frontline"]
+  condition: PONY_ONLY_ADULT_ONLY
   detection_regions: ["underwear", "swimsuit"]
-  trigger_words: ["lingerie03", "blue bikini", "micro skirt", "blue thighhighs", "fur trim", "white gloves", "skindentation",
-    "heart o-ring", "high heels"]
+  trigger_words: ["lingerie03", "blue bikini"]
   notes: "Cape, hoodie, tail and ears are optional extras. May force blue hair color — use heavier hair weight (1.2) if needed.
     Strength up to 1.2."
 
@@ -1166,20 +1206,20 @@ nsfw_effect:
   strength_clip_range: [0.30, 0.55]
   recommended_model: 0.50
   recommended_clip: 0.45
-  tags: ["nsfw", "tape", "spread"]
+  tags: ["nsfw", "tape_pussy", "spread"]
   detection_regions: ["genital"]
-  trigger_words: ["tape spread", "taped"]
+  trigger_words: ["tape spread", "taped_pussy"]
 
-- name: "TapeGape-000037.safetensors"
-  location: comfyui
-  description: "Tape gape effect"
-  strength_model_range: [0.35, 0.65]
-  strength_clip_range: [0.30, 0.55]
-  recommended_model: 0.50
-  recommended_clip: 0.45
-  tags: ["nsfw", "tape", "gape"]
-  detection_regions: ["genital"]
-  trigger_words: ["tape gape", "taped open"]
+# - name: "TapeGape-000037.safetensors"
+#   location: comfyui
+#   description: "Tape gape effect"
+#   strength_model_range: [0.35, 0.65]
+#   strength_clip_range: [0.30, 0.55]
+#   recommended_model: 0.50
+#   recommended_clip: 0.45
+#   tags: ["nsfw", "tape", "gape"]
+#   detection_regions: ["genital"]
+#   trigger_words: ["tape gape", "taped open"]
 
 - name: "LoraILXL10_vibrator_on_clitoris_v1.safetensors"
   location: comfyui
@@ -1227,6 +1267,7 @@ nsfw_effect:
   recommended_clip: 0.75
   compatible_models: ["illustrious"]
   tags: ["nsfw", "milking", "breast"]
+  condition: WAI_OK_ADULT_ONLY
   detection_regions: ["nipples", "breast"]
   trigger_words: ["milking machine"]
 
@@ -1241,6 +1282,7 @@ nsfw_effect:
   recommended_clip: 0.75
   compatible_models: ["illustrious", "pony", "sd15"]
   tags: ["nsfw", "lactation", "breast"]
+  condition: CHECK_VERSION_ADULT_ONLY
   detection_regions: ["nipples", "breast"]
   trigger_words: ["lactation", "lactation through clothes"]
 
@@ -1255,8 +1297,9 @@ nsfw_effect:
   recommended_clip: 0.75
   compatible_models: ["sd15"]
   tags: ["nsfw", "masturbation", "fingering"]
+  condition: SD15_ONLY_ADULT_ONLY
   detection_regions: ["genital", "breast"]
-  trigger_words: ["masturbation", "fingering", "female_masturbation", "grabbing_own_breast"]
+  trigger_words: ["masturbation", "fingering", "female_masturbation"]
 
 - name: "bondage_suspension_illustrious.safetensors"
   location: comfyui
@@ -1269,6 +1312,7 @@ nsfw_effect:
   recommended_clip: 0.75
   compatible_models: ["illustrious"]
   tags: ["nsfw", "bondage", "pose"]
+  condition: WAI_OK_ADULT_ONLY
   trigger_words: ["suspension", "bondage", "rope"]
 
 - name: "anal_beads_v02a_sd15.safetensors"
@@ -1282,6 +1326,7 @@ nsfw_effect:
   recommended_clip: 0.70
   compatible_models: ["sd15"]
   tags: ["nsfw", "anal", "insertion", "sex_toy"]
+  condition: SD15_ONLY_ADULT_ONLY
   detection_regions: ["genital"]
   trigger_words: ["anal beads"]
   keywords: ["anal", "anal object insertion", "object insertion", "gaping"]
@@ -1298,6 +1343,7 @@ nsfw_effect:
   recommended_clip: 0.70
   compatible_models: ["sd15"]
   tags: ["nsfw", "anal", "insertion", "sex_toy"]
+  condition: SD15_ONLY_ADULT_ONLY
   detection_regions: ["genital"]
   trigger_words: ["anarubizu", "sex toy"]
   notes: >
@@ -1316,6 +1362,7 @@ nsfw_effect:
   recommended_clip: 0.75
   compatible_models: ["sd15"]
   tags: ["nsfw", "anal", "pose", "legs"]
+  condition: SD15_ONLY_ADULT_ONLY
   detection_regions: ["genital"]
   trigger_words: ["anal_hold"]
   keywords: ["legs_together", "legs_up", "anal", "hetero", "penis", "sex", "pussy", "open mouth", "testicles", "ass", "solo focus", "1girl", "1boy"]
@@ -1414,8 +1461,7 @@ character:
   recommended_clip: 0.60
   compatible_models: ["pony"]
   tags: ["character", "azur_lane", "all_in_one", "chenkin"]
-  trigger_words:
-  - all in one
+  trigger_words: ["all in one"]
   notes: "200+ chars. Use charactername_(azur_lane) format. Guide: civitai.com/articles/5480"
 
   civitai_version_id: 554678
@@ -1503,7 +1549,11 @@ character:
   recommended_clip: 0.75
   compatible_models: ["pony"]
   tags: ["character", "hsr", "huohuo", "fox_girl"]
-  trigger_words: ["huohuodef", "green eyes", "green hair", "long hair", "ahoge", "fox girl", "animal ears", "fox tail"]
+  trigger_words:
+  - "huohuodef, green eyes, green hair, long hair, ahoge, fox girl, animal ears, fox tail, hair ornament, yin yang"
+  - "hat, bare shoulders, detached sleeves, long sleeves, shirt, chinese clothes, shorts, white socks, shoes, black footwear"
+  - "symbol-shaped pupils"
+  - "holding flag"
   notes: "Weight 0.9~1.0 for default outfit. 0.7~0.8 for other outfits."
 
 - name: "Huohuo-07.safetensors"
@@ -1556,8 +1606,8 @@ character:
   recommended_clip: 0.80
   compatible_models: ["pony"]
   tags: ["character", "hsr", "stelle", "trailblazer"]
-  trigger_words: ["stelle (honkai: star rail)", "medium hair", "grey hair", "yellow eyes", "stelle def", "black jacket", "black
-      skirt", "thigh strap"]
+  trigger_words:
+  - "stelle (honkai: star rail), medium hair, grey hair, yellow eyes, stelle def, black jacket, open jacket, jacket, coat, white shirt, black gloves, miniskirt, black skirt, thigh strap"
   notes: "Weight 0.8~1. Default outfit: jacket, white shirt, black gloves."
 
 - name: "silver_wolf_starrail.safetensors"
@@ -1571,8 +1621,7 @@ character:
   recommended_clip: 0.75
   compatible_models: ["sd15"]
   tags: ["character", "hsr", "silver_wolf"]
-  trigger_words: ["silver_wolf_starrail", "grey hair", "long hair", "grey eyes", "bangs", "eyewear on head", "ponytail", "drill
-      hair"]
+  trigger_words: ["silver_wolf_starrail"]
   notes: "Weight 0.5~0.85. Embed .pt not needed for WebUI 1.7+."
 
   # ── Chenkin "All in One" Character Packs ─────────────────────────
@@ -1604,7 +1653,7 @@ character:
   tags: ["character", "genshin", "hutao"]
   trigger_words: ["pikkyhutao", "1girl"]
 
-- name: "kurumi_date_a_live_sd15.safetensors"
+- name: "tokisaki_kurumi_v1.safetensors"
   location: comfyui
   download_required: true
   civitai_id: 115839
@@ -1616,6 +1665,7 @@ character:
   compatible_models: ["sd15"]
   clip_skip: 2
   tags: ["character", "date_a_live", "kurumi"]
+  trigger_words: ["aakurumi", "bbkurumi", "cckurumi", "ddkurumi"]
   trigger_words_by_outfit:
     gothic_red: "aakurumi, long hair, twintails, hairband, heterochromia, medium breasts, cleavage, black choker, red ribbon,
       bare shoulders, gothic, red dress, red bow, detached sleeves"
@@ -1637,11 +1687,10 @@ character:
   compatible_models: ["illustrious"]
   tags: ["character", "hsr", "all_in_one", "chenkin"]
   trigger_words:
-  - 'charactername_(honkai: star rail)'
-  - herta_(unknowable_domain)
-  - 'fugue (honkai: star rail)'
-  - 'rappa (honkai: star rail)'
-  - 'march 7th (hunt) (honkai: star rail)'
+  - "herta_(unknowable_domain)"
+  - "fugue (honkai: star rail)"
+  - "rappa (honkai: star rail)"
+  - "march 7th (hunt) (honkai: star rail)"
   notes: "70+ chars (Illustrious-XL v2.0). Special triggers: herta_(unknowable_domain), fugue (honkai: star rail), rappa (honkai:
     star rail), march 7th (hunt) (honkai: star rail). Standard: charactername_(honkai: star rail)."
 
@@ -1719,9 +1768,7 @@ character:
   recommended_clip: 0.60
   compatible_models: ["pony"]
   tags: ["character", "arknights", "all_in_one", "chenkin"]
-  trigger_words:
-  - arknights
-  - all in one
+  trigger_words: ["arknights", "all in one"]
   notes: "150-200 chars. Use charactername_(arknights) format. Guide: civitai.com/articles/5342"
 
   civitai_version_id: 637867
@@ -1737,8 +1784,7 @@ character:
   recommended_clip: 0.60
   compatible_models: ["pony"]
   tags: ["character", "league_of_legends", "all_in_one", "chenkin"]
-  trigger_words:
-  - all in one
+  trigger_words: ["all in one"]
   notes: "50+ chars. Use charactername_(league_of_legends) format."
 
   civitai_version_id: 470400
@@ -1811,8 +1857,7 @@ character:
   recommended_clip: 0.60
   compatible_models: ["pony"]
   tags: ["character", "honkai_impact", "all_in_one", "chenkin"]
-  trigger_words:
-  - all in one
+  trigger_words: ["all in one"]
   notes: "30+ chars. Use danbooru tag format. Skin variants: kiana_kaslana_(white_comet), bianka_(haxxor_bunny), etc. Guide:
     civitai.com/articles/5619"
 
@@ -1857,10 +1902,7 @@ character:
   recommended_clip: 0.70
   compatible_models: ["pony"]
   tags: ["character", "genshin", "all_in_one", "chenkin"]
-  trigger_words:
-  - hina_(genshin_impact)
-  - sethos_(genshin_impact)
-  - raiden_shogun_mitake
+  trigger_words: ["hina_(genshin_impact)", "sethos_(genshin_impact)", "raiden_shogun_mitake"]
   notes: "127 chars (v4.0). Special triggers for new chars: hina_(genshin_impact), sethos_(genshin_impact), raiden_shogun_mitake.
     Standard: charactername_(genshin_impact). Clorinde: use weight 0.6~0.8. Guide: civitai.com/articles/4584"
 
@@ -1879,18 +1921,7 @@ character:
   clip_skip: 2
   tags: ["character", "genshin", "sd15", "makki_shizu"]
   trigger_words:
-  - aether (genshin impact)
-  - lumine (genshin impact)
-  - paimon (genshin impact)
-  - hu tao (genshin impact)
-  - keqing (genshin impact)
-  - ganyu (genshin impact)
-  - raiden shogun
-  - kamisato ayaka
-  - yae miko
-  - nahida (genshin impact)
-  - furina (genshin impact)
-  - arlecchino (genshin impact)
+  - "aether (genshin impact),lumine (genshin impact),paimon (genshin impact),albedo (genshin impact),amber (genshin impact),barbara (genshin impact),bennett (genshin impact),diluc (genshin impact),diona (genshin impact),eula (genshin impact),fischl (genshin impact),jean (genshin impact),kaeya (genshin impact),klee (genshin impact),lisa (genshin impact),mika (genshin impact),mona (genshin impact),noelle (genshin impact),razor (genshin impact),rosaria (genshin impact),sucrose (genshin impact),venti (genshin impact),baizhu (genshin impact),beidou (genshin impact),chongyun (genshin impact),gaming (genshin impact),ganyu (genshin impact),hu tao (genshin impact),keqing (genshin impact),ningguang (genshin impact),qiqi (genshin impact),shenhe (genshin impact),tartaglia (genshin impact),xiangling (genshin impact),xiao (genshin impact),xingqiu (genshin impact),xinyan (genshin impact),xianyun (genshin impact),yanfei (genshin impact),yaoyao (genshin impact),yelan (genshin impact),yun jin (genshin impact),zhongli (genshin impact),arataki itto,gorou (genshin impact),kaedehara kazuha,kamisato ayaka,kamisato ayato,kirara (genshin impact),kujou sara,kuki shinobu,raiden shogun,sangonomiya kokomi,sayu (genshin impact),thoma (genshin impact),yae miko,yoimiya (genshin impact),shikanoin heizou,alhaitham (genshin impact),candace (genshin impact),collei (genshin impact),cyno (genshin impact),dehya (genshin impact),dori (genshin impact),faruzan (genshin impact),kaveh (genshin impact),layla (genshin impact),nahida (genshin impact),nilou (genshin impact),tighnari (genshin impact),wanderer (genshin impact),charlotte (genshin impact),chevreuse (genshin impact),chiori (genshin impact),freminet (genshin impact),furina (genshin impact),lynette (genshin impact),lyney (genshin impact),navia (genshin impact),neuvillette (genshin impact),wriothesley (genshin impact),arlecchino (genshin impact),clorinde (genshin impact),dainsleif (genshin impact),sigewinne (genshin impact),ganyu (china merchants bank) (genshin impact),keqing (lantern rite) (genshin impact),keqing (opulent splendor) (genshin impact),ganyu (twilight blossom) (genshin impact),shenhe (frostflower dew) (genshin impact),klee (blossoming starlight) (genshin impact),kamisato ayaka (springbloom missive),diluc (red dead of night) (genshin impact),barbara (summertime sparkle) (genshin impact),jean (sea breeze dandelion) (genshin impact),ningguang (orchid's evening gown) (genshin impact),fischl (ein immernachtstraum) (genshin impact),lisa (a sobriquet under shade) (genshin impact),kaeya (sailwind shadow) (genshin impact),xingqiu (bamboo rain) (genshin impact)"
   notes: "100 chars. SD1.5 (NovelAI1 base). IMPORTANT: use 'charactername (genshin impact)' format — spaces, no underscores.
     Costume suffix e.g. 'ganyu (twilight blossom) (genshin impact)'. CLIP SKIP 2."
 
@@ -1907,8 +1938,7 @@ character:
   recommended_clip: 0.60
   compatible_models: ["pony"]
   tags: ["character", "wuthering_waves", "all_in_one", "chenkin"]
-  trigger_words:
-  - wuthering waves
+  trigger_words: ["wuthering waves"]
   notes: "27 chars. Use charactername_(wuthering_waves) format, e.g. changli_(wuthering_waves)."
 
   civitai_version_id: 890954
@@ -1951,8 +1981,7 @@ character:
   recommended_clip: 0.60
   compatible_models: ["pony"]
   tags: ["character", "umamusume", "all_in_one", "chenkin"]
-  trigger_words:
-  - all in one
+  trigger_words: ["all in one"]
   notes: "50~100 chars. Use character name directly — no 'character:' prefix needed. Guide: civitai.com/articles/5841"
 
   civitai_version_id: 589974
@@ -1968,8 +1997,7 @@ character:
   recommended_clip: 0.60
   compatible_models: ["pony"]
   tags: ["character", "idolmaster", "cinderella", "all_in_one", "chenkin"]
-  trigger_words:
-  - :idolmaster_cinderella
+  trigger_words: [":idolmaster_cinderella"]
   notes: "250+ chars (255 folders). Use danbooru tag names directly, e.g. shimamurauzuki, tachibanaarisu. Guide: civitai.com/articles/7719"
 
   civitai_version_id: 899943
@@ -1985,8 +2013,7 @@ character:
   recommended_clip: 0.60
   compatible_models: ["pony"]
   tags: ["character", "idolmaster", "shiny_colors", "all_in_one", "chenkin"]
-  trigger_words:
-  - all in one
+  trigger_words: ["all  in one"]
   notes: "Guide: civitai.com/articles/5610. Note: suzuki_hana not covered."
 
   civitai_version_id: 559278
@@ -2002,13 +2029,7 @@ character:
   recommended_clip: 0.80
   compatible_models: ["sdxl"]
   tags: ["character", "bocchi_the_rock", "all_in_one", "chenkin"]
-  trigger_words:
-  - gotoh_hitori
-  - ijichi_nijika
-  - yamada_ryo
-  - kita_ikuyo
-  - ijichi_seika
-  - pa-san
+  trigger_words: ["gotoh_hitori", "ijichi_nijika", "yamada_ryo", "kita_ikuyo", "ijichi_seika", "pa-san"]
   notes: "SDXL base (Animagine XL 3.0), NOT Pony. Inference: Animagine XL 3.1. Weight 0.8~1."
 
   civitai_version_id: 450477
@@ -2024,8 +2045,7 @@ character:
   recommended_clip: 0.60
   compatible_models: ["pony"]
   tags: ["character", "fate", "fgo", "all_in_one", "chenkin"]
-  trigger_words:
-  - all in one
+  trigger_words: ["all in one"]
   notes: "200+ chars. Use charactername_(fate) format — NO 'character:' prefix. Guide: civitai.com/articles/5597"
 
   civitai_version_id: 556880
@@ -2082,20 +2102,20 @@ character:
   compatible_models: ["illustrious"]
   tags: ["character", "hsr", "amphoreus", "all_in_one", "chenkin"]
   trigger_words:
-  - 'aglaea (honkai: star rail)'
-  - 'anaxa (honkai: star rail)'
-  - 'castorice (honkai: star rail)'
-  - 'cyrene (honkai: star rail)'
-  - 'cipher (honkai: star rail)'
-  - 'cyrene (ripples of past reverie) (honkai: star rail)'
-  - 'dan heng (permansor terrae) (honkai: star rail)'
-  - 'evernight (honkai: star rail)'
-  - 'little ica (honkai: star rail)'
-  - 'mydei (honkai: star rail)'
-  - 'phainon (honkai: star rail)'
-  - 'tribbie (honkai: star rail)'
-  - 'cerydra (honkai: star rail)'
-  - 'hysilens (honkai: star rail)'
+  - "aglaea (honkai: star rail)"
+  - "anaxa (honkai: star rail)"
+  - "castorice (honkai: star rail)"
+  - "cyrene (honkai: star rail)"
+  - "cipher (honkai: star rail)"
+  - "cyrene (ripples of past reverie) (honkai: star rail)"
+  - "dan heng (permansor terrae) (honkai: star rail)"
+  - "evernight (honkai: star rail)"
+  - "little ica (honkai: star rail)"
+  - "mydei (honkai: star rail)"
+  - "phainon (honkai: star rail)"
+  - "cerydra (honkai: star rail)"
+  - "hysilens (honkai: star rail)"
+  - "tribbie (honkai: star rail)"
   notes: "v3.6 — 14 chars. Use 'charactername (honkai: star rail)' as trigger. Guide: civitai.com/articles/19804"
 
   civitai_version_id: 2250685
@@ -2111,8 +2131,7 @@ character:
   recommended_clip: 0.80
   compatible_models: ["illustrious"]
   tags: ["character", "hsr", "all_in_one", "chenkin", "2025"]
-  trigger_words:
-  - 'honkai: star rail'
+  trigger_words: ["honkai: star rail"]
   notes: "80+ chars (Illustrious). Recommend NoobAI-XL. Guide: civitai.com/articles/20764"
 
   # ── Other Character LoRAs ─────────────────────────────────────────
@@ -2131,6 +2150,7 @@ character:
   compatible_models: ["pony"]
   clip_skip: 1
   tags: ["character", "lewd_elves", "nsfw", "elf"]
+  trigger_words: ["Delva Celebrian", "Elda Ballad", "Evelyn Celebrian", "Lucie Menelumia", "Misery Stentrem", "Nol big form", "Nol small form", "Phyllis Hagerhelm"]
   trigger_words_by_character:
     delva: "Delva Celebrian (character), elf, purple hair, long hair, yellow eyes, dark-skinned female, pointy ears, large
       breasts"
@@ -2275,8 +2295,1338 @@ character:
   compatible_models: ["illustrious"]
   tags: ["character", "wuthering_waves", "wuwa"]
 
+  # ── Genshin Impact — Individual Characters ────────────────────────
+
+- name: "raiden_shogun_genshin_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 11896
+  description: "Raiden Shogun / Ei (Genshin Impact) SD1.5"
+  strength_model_range: [0.60, 0.85]
+  strength_clip_range: [0.50, 0.75]
+  recommended_model: 0.75
+  recommended_clip: 0.65
+  compatible_models: ["sd15"]
+  tags: ["character", "genshin", "raiden_shogun"]
+  trigger_words: []
+
+- name: "raiden_shogun_genshin_collection.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 4829
+  description: "Raiden Shogun LoRA Collection (Genshin Impact) — multiple outfits by trauters"
+  strength_model_range: [0.60, 0.85]
+  strength_clip_range: [0.50, 0.75]
+  recommended_model: 0.75
+  recommended_clip: 0.65
+  compatible_models: ["sd15"]
+  tags: ["character", "genshin", "raiden_shogun"]
+  trigger_words: ["character (series)"]
+
+- name: "raiden_shogun_genshin_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2207213
+  description: "Raiden Shogun (Genshin Impact) Illustrious XL"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "raiden_shogun"]
+  trigger_words:
+  - "RdenShgn, purple hair, very long hair, purple eyes, mole under eye, hair ornament ,straight bangs, side lock,very long braided hair"
+  - "short purple kimono, cleavage,kimono, earrings, long sleeves, hair ornament, obi, shoulder armor, purple flower, obijime, red sash, obiage, coattails, okobo, mitsudomoe,thigh-high stockings"
+
+- name: "raiden_shogun_genshin_il2.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1779288
+  description: "Raiden Shogun (Genshin Impact) Illustrious v2"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "raiden_shogun"]
+  trigger_words: ["raidenshogundef"]
+
+- name: "raiden_shogun_genshin_outfits_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1074566
+  description: "Raiden Shogun 5 Outfits (Genshin Impact) Illustrious — includes all alternate skins"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "raiden_shogun", "multi_outfit"]
+  trigger_words:
+  - "purple hair, braided ponytail, braid, purple eyes, mole under eye, large breasts, hair ornament"
+  - "purple hair, braided ponytail, braid, purple eyes, mole under eye, large breasts, hair ornament, vision (genshin impact), shoulder armor, japanese clothes, obi, purple kimono, sash, bridal gauntlets, cleavage, wide sleeves, tomoe (symbol), mitsudomoe (shape), musou isshin (genshin impact), purple flower, obijime, obiage, tassel, ribbon, purple thighhighs"
+  - "RdnShognMagatsu, long hair, large breasts, purple hair, purple eyes, horns, doll joints, tomoe (symbol), mitsudomoe (shape), ribbon, purple leotard, armor, shoulder armor, japanese armor, cleavage, purple thighhighs"
+  - "RdnMkt, purple hair, long hair, braided ponytail, braid, purple eyes, mole under eye, large breasts, hair flower, hair ornament, purple flower, japanese clothes, long sleeves, wide sleeves, obi, white kimono, short kimono, sash, bow, bare legs"
+  - "rdenShgunAnv, purple hair, sidelocks, purple eyes, glasses, bespectacled, headphones, hair ornament, purple hoodie, hood down, drawstring, long sleeves, necklace, jewelry, bag, pleated skirt, black skirt, contemporary, casual"
+  - "RdnPrgntr, purple hair, purple eyes, braided ponytail, single braid, low ponytail, long hair, sidelocks, blunt bangs, mole under eye, large breasts, star hair ornament, japanese clothes, black kimono, long sleeves, wide sleeves, black sleeves, purple flower, family crest, badge, tomoe (symbol), mitsudomoe (shape), black thighhighs, black shoes"
+
+- name: "yae_miko_genshin_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 8484
+  description: "Yae Miko (Genshin Impact) SD1.5 — 125k+ downloads"
+  strength_model_range: [0.60, 0.85]
+  strength_clip_range: [0.50, 0.75]
+  recommended_model: 0.75
+  recommended_clip: 0.65
+  compatible_models: ["sd15"]
+  tags: ["character", "genshin", "yae_miko"]
+  trigger_words: []
+
+- name: "shenhe_genshin_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 130957
+  description: "Shenhe (Genshin Impact) Illustrious XL"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "shenhe"]
+  trigger_words:
+  - "shenhe_genshin"
+  - "long_hair, blue_eyes, bangs, hair_over_one_eye, breasts, hair_ornament, large_breasts, jewelry, grey_hair, white_hair, tassel, earrings, very_long_hair, braid, breast_curtain"
+
+- name: "shenhe_genshin_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 83994
+  description: "Shenhe (Genshin Impact) SD1.5"
+  strength_model_range: [0.60, 0.85]
+  strength_clip_range: [0.50, 0.75]
+  recommended_model: 0.75
+  recommended_clip: 0.65
+  compatible_models: ["sd15"]
+  tags: ["character", "genshin", "shenhe"]
+  trigger_words: ["shenhe_genshin"]
+
+- name: "shenhe_genshin_2outfits_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1839922
+  description: "Shenhe 2 Outfits (Genshin Impact) Illustrious"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "shenhe", "multi_outfit"]
+  trigger_words:
+  - "ehnehs"
+  - "blue eyes, grey hair, hair over one eye, long hair, hair flower"
+  - "earrings, black dress, china dress, see-through cleavage, sleeveless dress, detached sleeves"
+
+- name: "ganyu_genshin_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 11814
+  description: "Ganyu (Genshin Impact) SD1.5 realistic/anime"
+  strength_model_range: [0.60, 0.85]
+  strength_clip_range: [0.50, 0.75]
+  recommended_model: 0.75
+  recommended_clip: 0.65
+  compatible_models: ["sd15"]
+  tags: ["character", "genshin", "ganyu"]
+  trigger_words: ["ganyu (genshin impact)"]
+
+- name: "ganyu_genshin_v2.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 9191
+  description: "Ganyu (Genshin Impact) SD1.5 v2"
+  strength_model_range: [0.60, 0.85]
+  strength_clip_range: [0.50, 0.75]
+  recommended_model: 0.75
+  recommended_clip: 0.65
+  compatible_models: ["sd15"]
+  tags: ["character", "genshin", "ganyu"]
+  trigger_words: ["ganyu (genshin impact)"]
+
+- name: "ganyu_genshin_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 354087
+  description: "Ganyu (Genshin Impact) Pony XL"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["pony"]
+  tags: ["character", "genshin", "ganyu"]
+  trigger_words:
+  - "ganyu, blue hair, goat horns, horns, long hair, purple eyes, sidelocks"
+  - "gloves, bare shoulders, detached sleeves, black gloves, bell, bodysuit, neck bell, black bodysuit, vision (genshin impact), bodystocking, cowbell, chinese knot"
+
+- name: "yelan_genshin_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 375119
+  description: "Yelan (Genshin Impact) Illustrious XL"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "yelan"]
+  trigger_words:
+  - "yelan, black hair, blue hair, eyebrows hidden by hair, green eyes, multicolored hair, short hair"
+  - "bare shoulders, black gloves, chinese clothes, cleavage, elbow gloves, jewelry, necklace"
+
+- name: "yelan_genshin_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 899921
+  description: "Yelan (Genshin Impact) Pony XL"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["pony"]
+  tags: ["character", "genshin", "yelan"]
+  trigger_words:
+  - "yelan (genshin impact), black hair, short hair, two-tone hair, green eyes, clothing cutout, tassel, fur trim, earrings, blue dress, white jacket, jacket on shoulders, elbow gloves, black gloves, tight pants"
+
+- name: "hutao_genshin_pony2.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 512568
+  description: "Hu Tao (Genshin Impact) Pony XL v2 — alternate Pony pack"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["pony"]
+  tags: ["character", "genshin", "hutao"]
+  trigger_words: ["HuTao_DskFll"]
+
+- name: "hutao_genshin_sd15_v2.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 7505
+  description: "Hu Tao (Genshin Impact) SD1.5 alternate version"
+  strength_model_range: [0.60, 0.85]
+  strength_clip_range: [0.50, 0.75]
+  recommended_model: 0.75
+  recommended_clip: 0.65
+  compatible_models: ["sd15"]
+  tags: ["character", "genshin", "hutao"]
+  trigger_words: ["hu tao(genshin impact)", "boo tao", "symbol shaped pupils"]
+
+- name: "hutao_genshin_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1129999
+  description: "Hu Tao (Genshin Impact) Illustrious XL"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "hutao"]
+  trigger_words: ["hu tao (genshin impact)"]
+
+- name: "jean_genshin_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 156359
+  description: "Jean Gunnhildr (Genshin Impact) SD1.5"
+  strength_model_range: [0.60, 0.85]
+  strength_clip_range: [0.50, 0.75]
+  recommended_model: 0.75
+  recommended_clip: 0.65
+  compatible_models: ["sd15"]
+  tags: ["character", "genshin", "jean"]
+  trigger_words:
+  - "jean, long hair, bangs, blue eyes, blonde hair, bow, hair between eyes, ponytail, hair bow, sidelocks"
+  - "gloves, belt, capelet, cleavage, pants, white pants, detached sleeves, detached collar"
+
+- name: "jean_genshin_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 722921
+  description: "Jean (Genshin Impact) Pony XL"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["pony"]
+  tags: ["character", "genshin", "jean"]
+  trigger_words:
+  - "jean (genshin impact), jean def, blue eyes, blonde hair,ponytail,black gloves,detached collar,blue capelet, tight pants"
+  - "jean (genshin impact), jean sea breeze, official alternate costume, blue eyes, blonde hair, hair bow, ponytail, sidelocks, earrings, detached sleeves, shorts, flower"
+
+- name: "eula_genshin_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 354253
+  description: "Eula (Genshin Impact) Pony XL"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["pony"]
+  tags: ["character", "genshin", "eula"]
+  trigger_words:
+  - "eula, bangs, hair ornament, hair between eyes, blue hair, purple eyes, sidelocks, hairband, medium hair, black hairband"
+  - "thighhighs, gloves, long sleeves, necktie, black gloves, cape, leotard, blue necktie, vision (genshin impact)"
+
+- name: "eula_genshin_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 130955
+  description: "Eula (Genshin Impact) SD1.5"
+  strength_model_range: [0.60, 0.85]
+  strength_clip_range: [0.50, 0.75]
+  recommended_model: 0.75
+  recommended_clip: 0.65
+  compatible_models: ["sd15"]
+  tags: ["character", "genshin", "eula"]
+  trigger_words:
+  - "eula_genshin"
+  - "blue_hair, bangs, hairband, breasts, black_hairband, medium_hair, hair_ornament, blush, yellow_eyes, large_breasts, purple_eyes"
+
+- name: "beidou_genshin_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 33845
+  description: "Beidou (Genshin Impact) SD1.5"
+  strength_model_range: [0.60, 0.85]
+  strength_clip_range: [0.50, 0.75]
+  recommended_model: 0.75
+  recommended_clip: 0.65
+  compatible_models: ["sd15"]
+  tags: ["character", "genshin", "beidou"]
+  trigger_words: ["beidouep", "ogoutfit"]
+
+- name: "beidou_genshin_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1842849
+  description: "Beidou (Genshin Impact) Illustrious XL"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "beidou"]
+  trigger_words:
+  - "beidou, beidou (genshin impact), long hair, bangs, brown hair, black hair, hair ornament, red eyes, hair over one eye, eyepatch, hairpin, one eye covered, mature female, breasts, 3d"
+  - "thighhighs, gloves, cleavage, jewelry, earrings, black gloves, fingerless gloves, fur trim, chinese clothes, vision (genshin impact)"
+
+- name: "ningguang_genshin_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 27337
+  description: "Ningguang (Genshin Impact) SD1.5"
+  strength_model_range: [0.60, 0.85]
+  strength_clip_range: [0.50, 0.75]
+  recommended_model: 0.75
+  recommended_clip: 0.65
+  compatible_models: ["sd15"]
+  tags: ["character", "genshin", "ningguang"]
+  trigger_words: ["ningguang", "dress, china dress, side slit, long dress, red eyes"]
+
+- name: "ningguang_genshin_sd15_v2.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 42738
+  description: "Ningguang (Genshin Impact) SD1.5 v2"
+  strength_model_range: [0.60, 0.85]
+  strength_clip_range: [0.50, 0.75]
+  recommended_model: 0.75
+  recommended_clip: 0.65
+  compatible_models: ["sd15"]
+  tags: ["character", "genshin", "ningguang"]
+  trigger_words: ["ningguangdef", "ningguangorc", "ningguangrnd"]
+
+- name: "lisa_genshin_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 42775
+  description: "Lisa (Genshin Impact) SD1.5"
+  strength_model_range: [0.60, 0.85]
+  strength_clip_range: [0.50, 0.75]
+  recommended_model: 0.75
+  recommended_clip: 0.65
+  compatible_models: ["sd15"]
+  tags: ["character", "genshin", "lisa"]
+  trigger_words: ["lisadef", "lisasobriquet", "lisarnd"]
+
+- name: "lisa_genshin_pony_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 578580
+  description: "Lisa (Genshin Impact) Pony/Illustrious"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["pony", "illustrious"]
+  tags: ["character", "genshin", "lisa"]
+  trigger_words:
+  - "<lora:GenshinLisa-IL-v1-08:0.9>, ChopioLisa, brown hair, long hair, hair between eyes, hair flower, green eyes, looking at viewer, anime coloring, mature female, large breasts"
+  - "outfit_1, witch hat, hat flower, purple headwear, purple dress, multicolored dress, purple capelet, short sleeves, necklace, black gloves, belt, purple pelvic curtain, black shorts, black thighhighs, lace-trimmed legwear, high heels, black footwear"
+
+  # ── Genshin Impact — Adult / Special ─────────────────────────────
+
+- name: "adult_nahida_genshin_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1999698
+  description: "Adult Nahida (Genshin Impact) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "nahida", "adult_version"]
+  trigger_words: ["aunahida"]
+
+- name: "adult_klee_genshin_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1917112
+  description: "Adult Klee (Genshin Impact) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "klee", "adult_version"]
+  trigger_words: ["auklee"]
+
+- name: "adult_dori_genshin_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1999665
+  description: "Adult Dori (Genshin Impact) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "dori", "adult_version"]
+  trigger_words: ["audori"]
+
+- name: "adult_yaoyao_genshin_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2041758
+  description: "Adult Yaoyao (Genshin Impact) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "yaoyao", "adult_version"]
+  trigger_words: ["auyaoyao", "hair bell", "braided hair rings"]
+
+- name: "adult_sayu_genshin_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1999655
+  description: "Adult Sayu (Genshin Impact) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "sayu", "adult_version"]
+  trigger_words: ["ausayu"]
+
+- name: "adult_diona_genshin_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1999637
+  description: "Adult Diona (Genshin Impact) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "diona", "adult_version"]
+  trigger_words: ["audiona"]
+
+- name: "adult_qiqi_genshin_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1917245
+  description: "Adult Qiqi (Genshin Impact) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "qiqi", "adult_version"]
+  trigger_words: []
+
+- name: "adult_iansan_genshin_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2042171
+  description: "Adult Iansan (Genshin Impact) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "iansan", "adult_version"]
+  trigger_words: ["auiansan"]
+
+- name: "adult_sigewinne_genshin_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2041805
+  description: "Adult Sigewinne (Genshin Impact) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "sigewinne", "adult_version"]
+  trigger_words: ["ausigewinne", "low twintails", "pom pom hair ornament"]
+
+- name: "adult_kachina_genshin_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2041882
+  description: "Adult Kachina (Genshin Impact) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "kachina", "adult_version"]
+  trigger_words: ["aukachina"]
+
+- name: "klee_bombshell_genshin_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 135048
+  description: "Klee Bombshell Beauty — adult version (Genshin Impact) Illustrious/Pony"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious", "pony"]
+  tags: ["character", "genshin", "klee", "adult_version"]
+  trigger_words:
+  - "zzKleeCitron, red eyes, blonde hair, sidelocks, pointy ears, ahoge, hair between eyes, long hair, skindentation"
+  - "zzKleeCitron, red eyes, blonde hair, sidelocks, pointy ears, ahoge, hair between eyes, long hair, skindentation,  red hat, fur trim, garter straps, thick thighs, red dress, cleavage cutout, cabbie hat, hat feather, fur-trimmed sleeves, goggles on headwear, fur-trimmed legwear, clover print"
+
+- name: "noelle_genshin_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 9071
+  description: "Noelle (Genshin Impact) SD1.5"
+  strength_model_range: [0.60, 0.85]
+  strength_clip_range: [0.50, 0.75]
+  recommended_model: 0.75
+  recommended_clip: 0.65
+  compatible_models: ["sd15"]
+  tags: ["character", "genshin", "noelle"]
+  trigger_words:
+  - "noelle_(genshin_impact), 1girl,(green_eyes:1.2//),silver hair, short_hair, medium_breasts, rose, red_flower,hair_flower"
+
+- name: "furina_focalors_genshin_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 156141
+  description: "Furina / Focalors (Genshin Impact) Illustrious XL"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "furina", "focalors"]
+  trigger_words: ["furina_(genshin_impact)"]
+
+- name: "genshin_background_sdxl.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 119568
+  description: "Genshin Impact Background / Environment SDXL style LoRA"
+  strength_model_range: [0.40, 0.70]
+  strength_clip_range: [0.35, 0.60]
+  recommended_model: 0.55
+  recommended_clip: 0.45
+  compatible_models: ["illustrious", "sdxl"]
+  tags: ["character", "genshin", "background", "environment"]
+  trigger_words: []
+
+  # ── Honkai: Star Rail — Adult / Special ──────────────────────────
+
+- name: "adult_silver_wolf_hsr_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2080077
+  description: "Adult Silver Wolf (Honkai: Star Rail) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "silver_wolf", "adult_version"]
+  trigger_words: ["ausilwol"]
+
+- name: "adult_bailu_hsr_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2080022
+  description: "Adult Bailu (Honkai: Star Rail) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "bailu", "adult_version"]
+  trigger_words: ["aubailu"]
+
+- name: "adult_hook_hsr_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2175200
+  description: "Adult Hook (Honkai: Star Rail) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "hook", "adult_version"]
+  trigger_words: ["auhook"]
+
+- name: "adult_huohuo_hsr_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2175237
+  description: "Adult Huohuo (Honkai: Star Rail) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "huohuo", "adult_version"]
+  trigger_words: ["auhuohuo"]
+
+- name: "adult_clara_hsr_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2080033
+  description: "Adult Clara (Honkai: Star Rail) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "clara", "adult_version"]
+  trigger_words: ["auclara"]
+
+- name: "adult_herta_hsr_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2080055
+  description: "Adult Herta (Honkai: Star Rail) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "herta", "adult_version"]
+  trigger_words: ["auherta", "herta (puppet)"]
+
+- name: "adult_tribbie_hsr_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2175216
+  description: "Adult Tribbie (Honkai: Star Rail) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "tribbie", "adult_version"]
+  trigger_words: ["autribbie"]
+
+- name: "adult_hyacine_hsr_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2176983
+  description: "Adult Hyacine (Honkai: Star Rail) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "hyacine", "adult_version"]
+  trigger_words: ["auhyacine"]
+
+- name: "adult_pela_hsr_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2181068
+  description: "Adult Pela (Honkai: Star Rail) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "pela", "adult_version"]
+  trigger_words: ["aupela"]
+
+- name: "adult_yunli_hsr_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2080180
+  description: "Adult Yunli (Honkai: Star Rail) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "yunli", "adult_version"]
+  trigger_words: ["auyunli"]
+
+- name: "adult_fu_xuan_hsr_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2080047
+  description: "Adult Fu Xuan (Honkai: Star Rail) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "fu_xuan", "adult_version"]
+  trigger_words: ["auxuan"]
+
+- name: "adult_sparkle_hsr_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2177145
+  description: "Adult Sparkle (Honkai: Star Rail) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "sparkle", "adult_version"]
+  trigger_words: ["ausparkle"]
+
+- name: "adult_qingque_hsr_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2177093
+  description: "Adult Qingque (Honkai: Star Rail) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "qingque", "adult_version"]
+  trigger_words: ["auqingque"]
+
+- name: "adult_lynx_hsr_il.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2181049
+  description: "Adult Lynx (Honkai: Star Rail) PDIL — aged-up version"
+  strength_model_range: [0.65, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "lynx", "adult_version"]
+  trigger_words: ["aulynx"]
+
+- name: "hsr_all_in_one_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 302234
+  description: "Honkai: Star Rail All-in-One SD1.5 character pack"
+  strength_model_range: [0.55, 0.80]
+  strength_clip_range: [0.45, 0.70]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["sd15"]
+  tags: ["character", "hsr", "all_in_one"]
+  trigger_words:
+  - "kafka_(honkai:_star_rail)"
+  - "march_7th_(honkai:_star_rail)"
+  - "stelle_(honkai:_star_rail)"
+  - "silver_wolf_(honkai:_star_rail)"
+  - "dan_heng_(honkai:_star_rail)"
+  - "caelus_(honkai:_star_rail)"
+  - "blade_(honkai:_star_rail)"
+  - "jingliu_(honkai:_star_rail)"
+  - "himeko_(honkai:_star_rail)"
+  - "bronya_rand"
+  - "dan_heng_(imbibitor_lunae)_(honkai:_star_rail)"
+  - "seele_(honkai:_star_rail)"
+  - "fu_xuan_(honkai:_star_rail)"
+  - "herta_(honkai:_star_rail)"
+  - "jing_yuan"
+  - "tingyun_(honkai:_star_rail)"
+  - "ruan_mei_(honkai:_star_rail)"
+  - "topaz_(honkai:_star_rail)"
+  - "pom-pom_(honkai:_star_rail)"
+  - "bailu_(honkai:_star_rail)"
+  - "clara_(honkai:_star_rail)"
+  - "asta_(honkai:_star_rail)"
+  - "black_swan_(honkai:_star_rail)"
+
+- name: "hsr_all_in_one_female_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 308142
+  description: "Honkai: Star Rail All-in-One Female SD1.5 — female characters only"
+  strength_model_range: [0.55, 0.80]
+  strength_clip_range: [0.45, 0.70]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["sd15"]
+  tags: ["character", "hsr", "all_in_one", "female"]
+  trigger_words:
+  - "acheron, hair over one eye, mismatched gloves, leg tattoo, uneven boots"
+  - "acheronult, hair over one eye, body tattoo, red arm, single glove, detached sleeve, uneven boots"
+  - "asta, choker, id card, thigh strap, high heels"
+  - "bailu, dragon tail, boots"
+  - "blackswan, elbow gloves, veil, black pantyhose, thigh boots"
+  - "bronya, elbow gloves, black pantyhose, thigh boots"
+  - "clara, thigh strap, barefoot"
+  - "feixiao, open coat, black gloves, half-skirt, double thigh strap, knee boots"
+  - "fireflyhsr, hairband, gradient thighhighs, white boots"
+  - "fireflyhsr, hairband, plugsuit"
+  - "1other, sam, mecha, armor"
+  - "fuxuan, white pantyhose, high heels"
+  - "guinaifen, detached sleeves, black gloves, black pantyhose, thigh strap, black boots"
+  - "hanya, horns, elbow gloves, leg tattoo, toeless footware"
+  - "herta, doll joints, beret, black footwear"
+  - "the herta, witch hat, black choker, necklace, detached sleeves, black pantyhose, frilled boots"
+  - "himeko, black coat, single glove, high heels"
+  - "hook, hat, black gloves, boots"
+  - "huohuo, hat, tail, loose socks, black shoes"
+  - "jade, black brim hat, necklace, bangle, single glove, thigh strap, high heels"
+  - "jingliu, blindfold, elbow gloves, knee boots"
+  - "kafka, open jacket, purple gloves, sunglasses, purple pantyhose, boots"
+  - "lingsha, hair ornament, red limbs, single wrist cuff, leg tattoo, thigh strap, black heels"
+  - "lynxlandau, white headwear, elbow gloves, blue pantyhose, boots"
+  - "march7th, choker, single glove, thigh strap, black heels, camera"
+  - "march7th (festival), crown, detached sleeves, white thighhighs, blue heels"
+  - "march7th (hunt), double bun, fingerless gloves, white legwear, black boots"
+  - "march7th (kfc), beret, off shoulder, black footwear"
+  - "natasha, single elbow glove, black pantyhose, thigh boots"
+  - "pela, beret, glasses, elbow gloves, brown pantyhose, white boots"
+  - "qingque, shoulder cutout, black boots"
+  - "ruanmei, forearm gloves, thigh strap, high heels"
+  - "robin, halo, head wings, white gloves, pearl bracelet, high heels"
+  - "robincm, halo, head wings, blue gloves, pearl bracelet, white heels, ribbon"
+  - "seele, single gauntlet, black shorts, boots, white leotard"
+  - "serval, detached sleeves, black pantyhose, boots"
+  - "silverwolf, open jacket, goggles on head, fingerless gloves, fishnet socks, boots"
+  - "siobhan, halo, choker, bracelet, shoes"
+  - "sparklehsr, mask on head, choker, single glove, bracelet, thigh strap, sandals"
+  - "sparklehsrpv, hairclip, open jacket"
+  - "stelle, open coat, black gloves, black boots, thigh strap"
+  - "sushang, black footwear"
+  - "tingyun, detached sleeves, bangle, fox tail, toeless kneehighs, high heels"
+  - "topaz, black gloves, knee boots"
+  - "xueyi, gauntlets, white pantyhose, high heels"
+  - "yukong, fox tail, elbow gloves, high heels"
+
+- name: "bronya_rand_hsr_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 15827
+  description: "Bronya / Rand (Honkai: Star Rail) SD1.5"
+  strength_model_range: [0.60, 0.85]
+  strength_clip_range: [0.50, 0.75]
+  recommended_model: 0.75
+  recommended_clip: 0.65
+  compatible_models: ["sd15"]
+  tags: ["character", "hsr", "bronya", "rand"]
+  trigger_words: ["bronyarand"]
+
 # ---- Style / detail polish ----
 
+- name: "genshin-xianyun-ingame-illustriousxl-lora-nochekaiser.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1854222
+  description: "genshin xianyun ingame illustriousxl lora nochekaiser"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "xianyun"]
+  trigger_words: ["xianyun, xianyun (genshin impact), long hair, black hair, hair ornament, very long hair, blue hair, multicolored hair, green hair, glasses, two-tone hair, aqua eyes, aqua hair, colored inner hair, semi-rimless eyewear, red-framed eyewear, mature female, large breasts, 3d", "long sleeves, gloves, dress, jewelry, earrings, black gloves, black dress, tassel, tassel earrings"]
+- name: "Robertlu1021_keqing__genshin_impact__v1_0_epoch_10.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2515975
+  description: "Robertlu1021 keqing  genshin impact  v1 0 epoch 10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "keqing"]
+  trigger_words: ["keqing_(default),  purple eyes ,purple hair, twintails,cone hair bun,gold hair ornament,braided bangs,earrings ,  frilled sleeves,neck tassel,purple gloves,bare shoulders,sleeveless dress,   frilled skirt,frills ,patterned pantyhose,  purple footwear,", "keqing_(opulent_splendor),  purple eyes ,purple hair, pearl hair ornament ,twintails, cone hair bun,hair ribbon, earrings,hair frills,  neck bow, choker,bare shoulders,detached sleeves,two-tone dress,  black pantyhose,round high heels,", "keqing_(lantern_rite),  purple eyes ,purple hair, hair flower ,twintails,braided bangs,cone hair bun,hair ribbon,  plaid scarf,white belt,off-shoulder sweater,off shoulder,  white high-waist skirt ,black pantyhose, fur boots,"]
+- name: "kafka OG.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2540097
+  description: "kafka OG"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "kafka"]
+  trigger_words: []
+- name: "Acheron.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2175496
+  description: "Acheron"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "acheron"]
+  trigger_words: ["Acheron,purple_eye,purple hair, long_hair, hair over one eye, huge_breasts, hair_ornament,", "leg tattoo, single knee boot, single thigh boot, midriff, black gloves,choker, long coat, single sleeve, single gauntlet, uneven legwear"]
+- name: "ruanmeiXue_v1-000024.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2371896
+  description: "ruanmeiXue v1 000024"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "ruan_mei"]
+  trigger_words: ["1girl,ruanmei(hsr),black hair,blue hair,(long hair),bangs,braid,hair bun,hair ornament,multicolored hair,blue eyes,", "bare shoulders,breasts,medium breasts,cleavage,blue dress,[white dress:0.9],chinese clothes,detached collar,detached sleeves,gloves,elbow gloves,blue gloves,white gloves,bowtie,ribbon,tassel,beads,earrings,anklet,jewelry,floral print,frills,side slit,pelvic curtain,black footwear,high heels,"]
+- name: "Topaz.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2170181
+  description: "Topaz"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "topaz"]
+  trigger_words: ["Topaz,very short_hair, silver hair, red inner hair, purple_eyes, huge_breasts,hair between eyes, hairclip,", "black gloves, thigh strap, knee boots, hair ornament, unitard, detached sleeves, badge, side cape, sleeveless shirt, belt"]
+- name: "Robertlu1021_exusiai_the_new_covenant_arknights_v1.0-000010.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1882733
+  description: "Robertlu1021 exusiai the new covenant arknights v1.0 000010"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "arknights", "exusiai"]
+  trigger_words: ["exusiai_the_new_covenant_(arknights),  red hair, orange eyes, one side up,     swept bangs  ,    energy wings  ,   traditional_halo , earrings ,   fingerless gloves,   cropped jacket ,   open jacket , black shorts , thigh strap  , white thighhighs,  jewelry , sneakers ,"]
+- name: "jinxv1.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2694889
+  description: "jinxv1"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "lol", "jinx"]
+  trigger_words: ["jinxarcanev1, 1girl,long blue hair, long braids,blue hair,long hair, asymmetrical bangs,pink eyes, pale", "blue cloud tattoos,tattoo", "black crop top, purple pinstripe pants, brown boots, black fingerless leather gloves, belt", "3d,blende"]
+- name: "OGIllustriousleagueoflegend1FR_r32.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2622185
+  description: "OGIllustriousleagueoflegend1FR r32"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "lol", "evelynn"]
+  trigger_words: ["GJinx, solo, 1girl, long_blue_hair, long_braids, magenta_eyes, pale_skin, dark_undereyes, blue_tattoos, black_crop_top, striped_pants, punk-tech,", "arcane_style, painted,", "OGKatarina, solo, 1girl, red_hair, black_leather, midriff,", "OGMissFortune, solo, 1girl, red_hair, long_hair, pirate_hat, pirate_outfit, midriff, flintlock_pistols,", "OGRiven, solo, 1girl, white_hair, amber_eyes, muscular_female, scarred_face, battle_wrappings, leather_corset, arm_guards, broken_sword,"]
+- name: "checkpoint-e100_s700.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2344047
+  description: "checkpoint e100 s700"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "lol", "seraphine"]
+  trigger_words: ["FCKseraphine,blue hair,very long hair,hair buns,hair ornament,blue eyes,bare shoulders,detached sleeves,bracelets,multicolored dress,skirt,black thighhighs,"]
+- name: "illustrious_final_fantasy_3protagonist_cg_v6_000018000.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2681772
+  description: "illustrious final fantasy 3protagonist cg v6 000018000"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "ff7", "tifa"]
+  trigger_words: []
+- name: "Commander white mercy_epoch_8.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2467168
+  description: "Commander white mercy epoch 8"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "overwatch", "mercy"]
+  trigger_words: ["mercy (overwatch), commander white mercy"]
+- name: "kuromi_widow_illus-000043.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2396241
+  description: "kuromi widow illus 000043"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "overwatch", "widowmaker"]
+  trigger_words: ["kuromi widow, widowmaker (overwatch)"]
+- name: "Chun-Li__Street_Fighter_Series__Dragon_Kings_Special.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2645488
+  description: "Chun Li  Street Fighter Series  Dragon Kings Special"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "street_fighter", "chun_li"]
+  trigger_words: ["1girl, Chun-Li, brown eyes, double hair bun, short hair, bun cover, glossy lips, massive breasts, curvy, extremely sexy, wide hips, thick thighs, nude, fully nude, nipples pussy, anime_screencap, anime screenshot, soft shadows, 2d, flat colors, anime_studio_quality, superb quality", "1girl, Chun-Li, brown eyes, double hair bun, short hair, bun cover, glossy lips, massive breasts, curvy, extremely sexy, wide hips, thick thighs, anime_screencap, anime screenshot, soft shadows, 2d, flat colors, anime_studio_quality, superb quality", "1girl, Chun-Li, brown eyes, double hair bun, short hair, bun cover, glossy lips, massive breasts, anime_screencap, anime screenshot, soft shadows, 2d, flat colors, anime_studio_quality, superb quality"]
+- name: "IL_Cammy_White_-_Street_Fighter.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2634707
+  description: "IL Cammy White   Street Fighter"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "street_fighter", "cammy"]
+  trigger_words: ["official art, detailed anime, ultra detailed anime art, anime screencap, screencap, masterpiece, anime coloring, source anime,", "realistic, 3d, cgi, game cg,", "cammyw, 1girl, solo, very long hair, twin braids, blonde hair, ahoge, blue eyes, scar on cheek, medium breast, curvy, large hips,", "blue garrison cap, turtleneck, yellow necktie, shoulder pads, blue highleg leotard, ribbed leotard, covered navel, long sleeves, black arm band, red fingerless gloves, leg camouflage, leg bodypaint, brown boots,", "red beret, turtleneck, green highleg leotard, sleeveless, red fingerless gloves, covered navel, chest harness, thigh holster, leg camouflage, leg bodypaint, red socks, black footwear,"]
+- name: "illustrious_XL_sakuragi_h13a.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2699124
+  description: "illustrious XL sakuragi h13a"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "kof", "mai_shiranui"]
+  trigger_words: ["sakuragi"]
+- name: "Akali_LOL.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2614302
+  description: "Akali LOL"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "lol", "akali"]
+  trigger_words: ["AKaLI_1,1girl,brown eyes,black hair,long hair,short hair,ponytail,high ponytail,bangs,hair between eyes", "mask,mouth mask,covered mouth,ninja mask,hair ribbon,bandana,veil,hair ornament,green ribbon,ribbon,crop top,green shirt,shirt,sleeveless,halterneck,pants,green pants,black pants,belt,pouch,gloves,fingerless gloves,bandages,rope,breasts,medium breasts,small breasts,midriff,tattoo,arm tattoo,shoulder tattoo,stomach tattoo,bare shoulders", "lips,hair ribbon,ribbon,crop top,green shirt,shirt,sleeveless,sleeveless shirt,pants,green pants,black pants,belt,armor,breasts,medium breasts,midriff,hip vent,tattoo,arm tattoo,shoulder tattoo,bare shoulders,bare arms,rope,boots,wrist wrap", "AKaLI_2,1girl,purple eyes,lips,lipstick,makeup,eyeshadow,purple hair,long hair,ponytail,sidelocks", "hat,baseball cap,black headwear,jacket,blue jacket,hooded jacket,hood,open jacket,cropped jacket,open clothes,asymmetrical clothes,crop top,gloves,fingerless gloves,black gloves,choker,black choker,jewelry,bracelet,earrings,belt,pants,black pants,asymmetrical legwear,uneven legwear,single pantsleg,socks,single sock,thighhighs,single thighhigh,kneehighs,shoes,sneakers,black footwear,breasts,medium breasts,small breasts,midriff,torn clothes,official alternate costume"]
+- name: "Jane_Doe_-_Zenless_Zone_Zero_-_Illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2693166
+  description: "Jane Doe   Zenless Zone Zero   Illustrious"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "zzz", "jane_doe"]
+  trigger_words: ["j4ned0e, aqua eyes, black hair, red hair, blunt bangs, long hair, multicolored hair, animal ears, tail", "j4nedef, earrings, red necktie, fur trim jacket, long sleeves, cropped jacket, fingerless gloves, black gloves, red nails, black short, black shorts, single thighhigh, pantyhose, torn clothes, black thighhighs, boots", "j4nealt, earrings, o-ring bare shoulders, leotard, fishnets, clothing cutout, red nails, skirt, thigh strap, sandals"]
+- name: "Tsukishiro_Yanagi_IL.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2671103
+  description: "Tsukishiro Yanagi IL"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "zzz", "yanagi"]
+  trigger_words: ["tsukishiro yanagi", "unique outfit"]
+- name: "hoshimi miyabi (dignified blossom) v0.9 Illustrious-000030.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2650287
+  description: "hoshimi miyabi (dignified blossom) v0.9 Illustrious 000030"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "zzz", "miyabi"]
+  trigger_words: ["hoshimi miyabi (dignified blossom)"]
+- name: "Burnice_White_Zenless_Zone_Zero_clothes_style-000013.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2237189
+  description: "Burnice White Zenless Zone Zero clothes style 000013"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "zzz", "burnice"]
+  trigger_words: ["Brnclthstyl, black jacket, cropped jacket, long sleeves, black top, turtleneck, cleavage, black skirt, black thighhighs, red thigh strap,eyewear on head,fingerless gloves"]
+- name: "Ellen.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2679874
+  description: "Ellen"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "zzz", "ellen"]
+  trigger_words: ["Ellen (character), maid (outfit), 1girl, red eyes, mole under eye, black hair, multicolored hair, colored inner hair, red hair, short hair, m_razor_blade_hair_ornament, m_ear_piercing, shark girl, maid, maid headdress, metal hairband, spiked headband, m_collar, m_spiked_collar, m_black_dress, frills, m_puffy_sleeves, m_puffy_short_sleeves, m_wrist_cuffs, m_spiked_wrist_cuffs, m_white_apron, m_fishnet_pantyhose, m_black_pantyhose, shark tail, heels, nail polish", "Ellen (character), school (outfit), 1girl, red eyes, mole under eye, black hair, multicolored hair, colored inner hair, red hair, short hair, s_razor_blade_hair_ornament, s_ear_piercing, shark girl, s_black_choker, s_white_shirt, s_collared_shirt, sleeves rolled up, s_belt, s_pleated_skirt, s_blue_skirt, high-waist_skirt, s_black_pantyhose, shark tail, nail polish", "Ellen (character), fest 2025 (outfit), 1girl, red eyes, mole under eye, black hair, multicolored hair, colored inner hair, red hair, short hair, f_razor_blade_hair_ornament, f_ear_piercing, shark girl, f_single_earing, f_black_dress, f_frilled_dress, f_sleeveless_dress, f_collared_dress, f_corset, f_black_corset, f_arm_belt, f_arm_warmers, f_striped_arm_warmers, f_mismatched_arm_warmers, f_black_warmers, f_multple_belts, miniskirt, f_thigh_strap, black socks, black shoes, shark tail", "Ellen (character), Cocacola (outfit), 1girl, red eyes, mole under eye, black hair, multicolored hair, colored inner hair, red hair, short hair, c_razor blade hair ornament, c_ear_piercing, shark girl, c_blue_hat, eyewear on head, sunglasses, white-framed eyewear, c_choker, c_spiked_collar, tooth necklace, headphones, headphones around neck, c_white_shirt, c_crop_top, c_cleavage_cutout, c_clothing_cutout, c_black_jacket, c_jacket_partially_removed, c_open clothes, c_open jacket, midriff, navel, nail polish, rings, c_belt, denim, c_jeans, blue pants, torn pants, torn clothes, platform sandals, shark tail,", "Ellen (character), casual (outfit), 1girl, red eyes, mole under eye, black hair, multicolored hair, colored inner hair, red hair, short hair, ca_razor_blade_hair_ornament, ca_ear_piercing, ca_black_choker, ca_white_shirt, ca_collared_shirt, ca_blue_necktie, ca_jacket, ca_hood, hood_up, open_clothes, open_jacket, fanny pack, ca_black_skirt, pleated skirt, shark girl, shark tail, sweater"]
+- name: "saber.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2495697
+  description: "saber"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "fate", "artoria"]
+  trigger_words: ["saber, blonde hair, bangs,braided bun, ahoge, green eyes,  small breasts, anime screenshot,", "saberDaily,blue hair ribbon,blue neck ribbon, white long sleeves shirt,blue skirt, black pantyhose, brown footwear,", "saberWarDress,armored dress, puffy sleeves, gauntlets, armored boots,", "saberWhite, high ponytail,blue hair bow, white choker,  white strapless dress, white elbow gloves, purple garter straps, white thighhighs,white high heels,", "saberWinter, blue scarf,  white coat, buttons,  blue skirt, black pantyhose,"]
+- name: "PB4JHAQYB7NBM92YPD2SNZJEW0.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2541487
+  description: "PB4JHAQYB7NBM92YPD2SNZJEW0"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "fate", "scathach"]
+  trigger_words: ["scathach, scathach (fate), long hair, purple hair, red eyes, large breasts,", "armor, bodysuit, pauldrons, purple bodysuit, shoulder armor, thighs, veil, black veil,", "long sleeves, ribbed sweater, sweater, turtleneck, turtleneck sweater, white sweater,", "animal ears, cleavage, detached collar, fake animal ears, fishnet pantyhose, fishnets, highleg, highleg leotard, leotard, official alternate costume, pantyhose, playboy bunny, purple leotard, rabbit ears, thighs, wrist cuffs,", "bare shoulders, bikini, bracelet, bridal garter, cleavage, collarbone, flower, hair flower, hair ornament, hibiscus, jewelry, navel, purple bikini, sarong, swimsuit, thighs,"]
+- name: "[Yamitsuki Honpo (Wise Speak)] Tamamo-san Shichihenge (Fate Extra) Doujin Style Illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2571425
+  description: "[Yamitsuki Honpo (Wise Speak)] Tamamo san Shichihenge (Fate Extra) Doujin Style Illustrious"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "fate", "tamamo"]
+  trigger_words: ["Malebolgia, Yamitsuki"]
+- name: "Atago_(Character_Cosplay)_ILXL.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2073597
+  description: "Atago (Character Cosplay) ILXL"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "azur_lane", "atago"]
+  trigger_words: ["Promts for this LoRA:", "Character*", "cosplay, parody, alternate costume,", "atago (azur lane), atago (full moon's feral wolf) (azur lane),", "Face/head:"]
+- name: "Taihou.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2300559
+  description: "Taihou"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "azur_lane", "taihou"]
+  trigger_words: ["Taihou, twintails, red eyes, crossed bangs , black hair, red eyes, hair ornament, huge breasts,", "off shoulder kimono, short kimono, zettai ryouiki, wide sleeves, black thighhighs, hakama short skirt, red kimono , cleavage,"]
+- name: "Shinano.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2326214
+  description: "Shinano"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "azur_lane", "shinano"]
+  trigger_words: ["Shinano,grey hair, very long_hair, bangs, fox ears, fox tails, purple_eyes, huge_breasts,", "japanese clothes, white skirt, v, bare shoulders, kimono, off shoulder, pleated skirt, wide sleeves, detached collar, long sleeves,"]
+- name: "SED2YRYDY7TD9FS5ZY9AYCPMJ0.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2685528
+  description: "SED2YRYDY7TD9FS5ZY9AYCPMJ0"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "nier", "2b"]
+  trigger_words: ["2bthewhore", "white hair, short hair, blue eyes, small breasts, hair ornament, slender body, lips, nose, anime screencap, original style"]
+- name: "surtr_arknights_for_IL-000010.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1196311
+  description: "surtr arknights for IL 000010"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "arknights", "surtr"]
+  trigger_words: ["surtr_(arknights),  purple eyes , red hair , demon horns,   sleeveless dress, off shoulder  , black thighhighs,  black jacket,  chest strap  , detached collar ,  thigh strap,    high heels , holding sword  ,", "surtr_(colorful_wonderland)_(arknights),  purple eyes , red hair , demon horns,  hair rings,  star hair ornament,   detached sleeves ,  swimsuit thigh strap, black bikini  , halterneck, swimsuit cover-up,  side-tie bikini bottom ,    high heels ,  popsicle", "surtr_(liberte_echec)_(arknights),  purple eyes , red hair , demon horns, ponytail ,   short sleeves, black choker,  cross necklace, miniskirt, single glove , midriff,  black belt,  crop top,  kneehighs , pencil skirt, garter straps,    high heels , skateboard,"]
+- name: "Stelle_Trailblazer.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1944388
+  description: "Stelle Trailblazer"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "stelle"]
+  trigger_words: ["St3113CFH", "Black skirt", "Black jacket yellow trim"]
+- name: "jeannedarcalterswimsuitberserker-illustriousxl-lora-nochekaiser.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2639730
+  description: "jeannedarcalterswimsuitberserker illustriousxl lora nochekaiser"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "fate", "jeanne"]
+  trigger_words: ["<lora:jeannedarcalterswimsuitberserker-illustriousxl-lora-nochekaiser:1>, jeanned'arcalterswimsuitberserker, jeanne d'arc alter (swimsuit berserker) (fate), solo, bikini, black gloves, choker, gloves, multiple swords, navel, o-ring, o-ring bikini, o-ring bottom, o-ring top, swimsuit, sword, thighhighs, black bikini, red trim, cropped jacket, black jacket, long sleeves"]
+- name: "A2.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2548538
+  description: "A2"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "nier", "a2"]
+  trigger_words: [",A2260417,1girl,a2 (nier:automata),solo,gloves,long hair,elbow gloves,white hair,shorts,black gloves,hair over one eye,blue eyes,toeless footwear,thighhighs,high heels,black shorts,short shorts,breasts,bare shoulders,medium breasts,armlet,collarbone,realistic,game cg,photorealistic,"]
+- name: "DVA overwatch.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2631908
+  description: "DVA overwatch"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "overwatch", "dva"]
+  trigger_words: ["zitdva, d.va (overwatch), hetero, 1boy, sex, breasts, brown hair, tongue, vaginal, whisker markings, bodysuit, girl on top, long hair, one eye closed, penis, clothed sex, brown eyes, tongue out, cowgirl position, straddling, pussy, assertive female, open mouth, squatting cowgirl position, facial mark, gloves, solo focus, white gloves, pilot suit"]
+- name: "miyamotomusashiswimsuitberserkersecondascension-illustriousxl-lora-nochekaiser.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2639287
+  description: "miyamotomusashiswimsuitberserkersecondascension illustriousxl lora nochekaiser"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "fate", "musashi"]
+  trigger_words: ["<lora:miyamotomusashiswimsuitberserkersecondascension-illustriousxl-lora-nochekaiser:1>, miyamotomusashiswimsuitberserkersecondascension, miyamoto musashi (swimsuit berserker) (fate), miyamoto musashi (swimsuit berserker) (second ascension) (fate), solo, american flag, american flag bikini, american flag print, asymmetrical footwear, asymmetrical gloves, belt, bikini, blue jacket, brown gloves, choker, collarbone, cropped jacket, fingerless gloves, flag print, flag print bikini, gloves, jacket, leather, leather boots, leather gloves, leather elbow gloves, long sleeves, navel, print bikini, ribbon, shrug (clothing), swimsuit, thigh boots, thighhighs, belt, belt skirt, bikini, elbow gloves, front-tie bikini top, front-tie top, half-skirt, multi-strapped bikini bottom, print swimsuit, single elbow glove, single thigh boot, single thighhigh, uneven gloves"]
+- name: "firefly_combat_suit-001-000008.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2406365
+  description: "firefly combat suit 001 000008"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "firefly"]
+  trigger_words: ["firefly (AR-26710 Combat Suit)"]
+- name: "KK8QEPVF42HTQHJS8X31662QA0.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2698956
+  description: "KK8QEPVF42HTQHJS8X31662QA0"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "march_7th"]
+  trigger_words: ["March 7th,pink hair,short hair,hair between eyes,blue eyes,bangs,gigantic breasts,", "shirt,skirt"]
+- name: "black_swan_honkai_star_rail_for_IL-000008.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1187627
+  description: "black swan honkai star rail for IL 000008"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "black_swan"]
+  trigger_words: ["black_swan_(honkai_star_rail),  veil ,purple hair , purple eyes ,", "bare shoulders ,elbow gloves,purple dress,pantyhose, high heel boots  ,  covered navel , short shorts ,card ,"]
+- name: "robin_V1.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2393531
+  description: "robin V1"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "robin"]
+  trigger_words: ["robin,robin clothes,1girl, solo"]
 new_2_style:
 - name: "new_2_style/Smooth_Booster_v5.safetensors"
   location: comfyui
@@ -2416,3 +3766,889 @@ new_2_expression:
   recommended_clip: 0.45
   compatible_models: ["illustrious", "sdxl"]
   tags: ["expression", "crying", "mood"]
+
+anime-quality:
+- name: "Smooth_Booster_v5.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1145743
+  description: "Smooth Booster v5"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["anime-quality"]
+  trigger_words: []
+
+characters:
+- name: "Arlecchino.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2699538
+  description: "Arlecchino"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "arlecchino"]
+  trigger_words: ["arle (character), 1girl, black eyes, white hair, multicolored hair, bangs, low ponytail, symbol in eye, x_(symbol), streaked hair, hair between eyes, short hair, red pupils, two-tone hair", "arle (character), def (outfit), 1girl, black eyes, white hair, multicolored hair, bangs, low ponytail, symbol in eye, x_(symbol), streaked hair, hair between eyes, short hair, red pupils, two-tone hair, earrings, coat, grey coat, grey vest, jewelry, turtleneck shirt, white shirt, long sleeves, elbow gloves, black gloves, frills, black gloves, black pants,", "arle (character), weekly_boss_(outfit), 1girl, black eyes, white hair, multicolored hair, bangs, low ponytail, symbol in eye, x_(symbol), streaked hair, hair between eyes, short hair, red pupils, two-tone hair, earrings, hair ornament, jewelry, jacket, center opening, long sleeves, gloves, black gloves, black pants, clothing cutout, high_heels, sharp heels, wings, red wings, extra wings", "arle (character), assassin (outfit), 1girl, white hair, multicolored hair, bangs, low ponytail, streaked hair, hair between eyes, short hair, two-tone hair, earrings, mask, black_vest, cleavage, black pants, black heels, rings, hooded_cape, cape ornament, elbow gloves,", "arle (character), Hoyofair (outfit), 1girl, black eyes, white hair, multicolored hair, bangs, low ponytail, symbol in eye, x_(symbol), streaked hair, hair between eyes, short hair, red pupils, two-tone hair, earrings, cropped jacket, red jacket, black corset, grey skirt, long skirt, grey dress, side_slit, center opening, elbow gloves, multiple belts, garter_straps, emblem, thigh_boots"]
+- name: "Citlali_IL.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2620510
+  description: "Citlali IL"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "citlali"]
+  trigger_words: ["Citlali (Genshin Impact)"]
+- name: "Clorinde.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2133926
+  description: "Clorinde"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "clorinde"]
+  trigger_words: ["Clorinde,navy blue_hair, very_long_low ponytail ,huge_breasts, purple_eyes, hair between eyes, hat,hair ribbon, black ribbon, earrings,", "military uniform,"]
+- name: "Dehya.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2134101
+  description: "Dehya"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "dehya"]
+  trigger_words: ["Dehya,light brown skinned female, blue_eyes, dark brown_hair, long_hair, wavy hair, multicolored hair, dark yellow hair between eyes, ahoge, fake animal ears, huge_breasts, earrings,", "red bukini,spats, belts, gloves, boots,"]
+- name: "fire_emblem_all_v1.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 539130
+  description: "fire emblem all v1"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["pony"]
+  tags: ["characters"]
+  trigger_words: ["byleth_(fire_emblem)"]
+- name: "sousou_no_frieren_all-000020.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 558527
+  description: "sousou no frieren all 000020"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["pony"]
+  tags: ["characters"]
+  trigger_words: ["frieren"]
+- name: "Himeko_clothes-000012.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2648913
+  description: "Himeko clothes 000012"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "himeko"]
+  trigger_words: ["H1meko_clothes, white dress, elegant dress, asymmetrical dress, sleeveless dress, high slit dress, layered skirt, red inner skirt, gold ornaments,gold trim, rose accessories", "long coat, open coat, black and gold coat, coat draped over shoulders, inner lining, decorative buttons"]
+- name: "Jingliu.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1777699
+  description: "Jingliu"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "jingliu"]
+  trigger_words: []
+- name: "Mavuika_-_Genshin_Impact_-_Illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2654550
+  description: "Mavuika   Genshin Impact   Illustrious"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "mavuika"]
+  trigger_words: ["m4vu1ka, orange eyes, star (symbol), symbol in eye, very long hair, wavy hair, ahoge, red hair, red hair, orange hair, yellow hair, colored inner hair", "m4vdef, earrings, black bodysuit, black cropped jacket, zipper, long sleeves, clothing cutout, black gloves, black shoes, high heels"]
+- name: "MonaInkerIllustrious1.0.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2681984
+  description: "MonaInkerIllustrious1.0"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "mona"]
+  trigger_words: ["mona, 1girl, long hair, solo, brown hair, large breasts, cleavage, fake horns, bangs, ponytail, short sleeves, yellow dress, pants, boots, cow print, bow"]
+- name: "Navia.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2222043
+  description: "Navia"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "navia"]
+  trigger_words: ["Navia, blonde hair, long hair, blue eyes, drill hair, drill sidelocks,huge_breasts, wavy hair,", "fancy hat, thigh boots, detached sleeves, single glove, strapless dress, detached collar, showgirl skirt, necklace, waist cape"]
+- name: "checkpoint-e18_s774.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2166216
+  description: "checkpoint e18 s774"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "nikke", "modernia"]
+  trigger_words: ["Modernia (Goddess of Victory: Nikke), 1girl, solo, long_hair, breasts, large_breasts, red_eyes,  grey_hair, hairband, bandages, bandaged_head, ahoge, yellow_ribbon, hair_ribbon, bangs, sidelocks, braid, thick Thighs", "Marian (Goddess of Victory: Nikke), 1girl, solo, long hair,  brown hair, blue inner hair, bangs, large breasts, brown eyes, blue eyes, gradient eyes, Thighs, thick thighs, breasts", "Modernia (Goddess of Victory: Nikke), 1girl, solo, long_hair, breasts, large_breasts, red_eyes,  grey_hair, hairband, bandages, bandaged_head, ahoge, yellow_ribbon, hair_ribbon, bangs, sidelocks, braid, thick Thighs, tail, boots, wings, armor, see-through, bodysuit, thigh_boots, skin_tight, shiny_clothes, mecha_musume, mechanical_wings, mechanical_tail, thighhighs, cleavage, pantyhose, see-through_cleavage, gloves,  fingerless_gloves, high_heels, bodystocking, armored_boots, black_gloves, black_bodysuit, shoulder_armor", "Modernia (Goddess of Victory: Nikke), 1girl, solo, long_hair, breasts, large_breasts, red_eyes,  grey_hair, hairband, bandages, bandaged_head, ahoge, yellow_ribbon, hair_ribbon, bangs, sidelocks, braid, thick Thighs, boots, armor, see-through, bodysuit, thigh_boots, skin_tight, shiny_clothes, thighhighs, cleavage, pantyhose, see-through_cleavage, gloves,  fingerless_gloves, high_heels, bodystocking, armored_boots, black_gloves, black_bodysuit, shoulder_armor", "Modernia (Goddess of Victory: Nikke), 1girl, solo, long_hair, breasts, large_breasts, red_eyes,  grey_hair, hairband, bandages, bandaged_head, ahoge, bangs, sidelocks, braid, thick Thighs, long_sleeves, gloves, hairband, japanese_clothes, black_gloves, socks, wide_sleeves, black_footwear, kimono, sash, white_socks, sandals, floral_print, obi, animal_print, tabi, print_kimono, black_kimono, zouri, obijime, hair_ornament, jewelry, earrings, hairband"]
+- name: "nike_base.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 677863
+  description: "nike base"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["pony"]
+  tags: ["characters"]
+  trigger_words: []
+- name: "nikke-rapi-redhood_8000_1024_rank64_fp32.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2495054
+  description: "nikke rapi redhood 8000 1024 rank64 fp32"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "nikke", "rapi"]
+  trigger_words: []
+- name: "oshi_no_ko.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 422352
+  description: "oshi no ko"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["pony"]
+  tags: ["characters"]
+  trigger_words: ["hoshino_ai_(oshi_no_ko)", "hoshino_ruby", "hoshino_aquamarine", "kurokawa_akane", "memcho"]
+- name: "Rosaria.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2514968
+  description: "Rosaria"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "rosaria"]
+  trigger_words: ["Rosaria, halo, black_tiara, multicolored hair, black hair, long hair, red eyes,  black dress, armored dress, detached collar, black gloves, elbow gloves, black thighhighs,"]
+- name: "touhou_146.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 413006
+  description: "touhou 146"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["pony"]
+  tags: ["characters"]
+  trigger_words: ["145"]
+- name: "camellya (Solar5)_v0.9-illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2688254
+  description: "camellya (Solar5) v0.9 illustrious"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "wuwa", "camellya"]
+  trigger_words: ["camellya (Solar5)"]
+- name: "changliV1.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2532094
+  description: "changliV1"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "wuwa", "changli"]
+  trigger_words: []
+- name: "lucilla-000006.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2699678
+  description: "lucilla 000006"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "wuwa"]
+  trigger_words: ["lucilla"]
+- name: "Yinlin [kirabase](ww)-Illus.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2480924
+  description: "Yinlin [kirabase](ww) Illus"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "wuwa", "yinlin"]
+  trigger_words: ["Yinlin [kirabase]", "very long hair,red hair,high ponytail,hair ornament,pointy ears,earrings,hair between eyes,sidelocks,purple eyes", "black vest,white shirt,collared shirt,long sleeves,half gloves,red gloves,black skirt,side slit,brown pantyhose,high heels,black footwear"]
+- name: "Xianyun.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2128324
+  description: "Xianyun"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "genshin", "xianyun"]
+  trigger_words: ["Xianyun,navy blue_hair, light green inner hair, very_long_ponytail, light green_eyes, glasses, huge_breasts, hairpin,hair_ornaments, forehead,", "Black dress,"]
+- name: "zenless_zone_zero_ill.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 471854
+  description: "zenless zone zero ill"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["characters"]
+  trigger_words: ["enless_zone_zero"]
+
+effects:
+- name: "Eye_Focus_(Concept)_ILXL.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1719571
+  description: "Eye Focus (Concept) ILXL"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["effects"]
+  trigger_words: ["eyelashes, close-up, reflection, multicolored eyes,"]
+- name: "Eyes_Lora_Pony_Perfect_eyes.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 596221
+  description: "Eyes Lora Pony Perfect eyes"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["pony"]
+  tags: ["effects"]
+  trigger_words: ["eye_focus, close-up, solo, looking_at_viewer"]
+- name: "whiteeyelash_xl_v10_ill.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1690241
+  description: "whiteeyelash xl v10 ill"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["effects"]
+  trigger_words: []
+- name: "analfingering.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1466471
+  description: "analfingering"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["effects"]
+  trigger_words: ["analfingeringILL, anal fingering, anal masturbation,"]
+- name: "better panties-v1.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 459445
+  description: "better panties v1"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sdxl"]
+  tags: ["effects"]
+  trigger_words: ["panties"]
+- name: "betterahegao.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1430080
+  description: "betterahegao"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["effects"]
+  trigger_words: ["ahegao, expressive ahegao", "open mouth, tongue out, rolling eyes, full-face blush, wavy mouth, smile, saliva, upper-teeth only"]
+- name: "BetterNipples-10.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 72811
+  description: "BetterNipples 10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["effects"]
+  trigger_words: ["BetterNipples", "small breasts", "medium breasts", "large breasts"]
+- name: "betterPinkPussy_v01.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 17122
+  description: "betterPinkPussy v01"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["effects"]
+  trigger_words: ["pussy"]
+- name: "cumontongue.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 728342
+  description: "cumontongue"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["pony"]
+  tags: ["effects"]
+  trigger_words: ["cum on tongue"]
+- name: "nude_000100000.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2183555
+  description: "nude 000100000"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sdxl"]
+  tags: ["effects"]
+  trigger_words: []
+
+poses:
+- name: "over300PosesSFW_10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 14488
+  description: "over300PosesSFW 10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "openpose3girlsFromBelow_v10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 149843
+  description: "openpose3girlsFromBelow v10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "openposePortraitArm_v11.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 120904
+  description: "openposePortraitArm v11"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeCarrying_carryingPersonV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 140628
+  description: "OpenposeCarrying carryingPersonV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeContrapposto_contrappostoV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 136185
+  description: "OpenposeContrapposto contrappostoV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeCoverSoloDuo_v10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 167868
+  description: "OpenposeCoverSoloDuo v10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeCrossedArms_crossedArmsV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 139509
+  description: "OpenposeCrossedArms crossedArmsV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeCrossedArms_v10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 211714
+  description: "OpenposeCrossedArms v10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeCrossedLegs_crossedLegsV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 139618
+  description: "OpenposeCrossedLegs crossedLegsV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeFetal_fetalPositionV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 152396
+  description: "OpenposeFetal fetalPositionV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeFromAbove_onKneesV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 129435
+  description: "OpenposeFromAbove onKneesV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeFromBelow_standingV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 130644
+  description: "OpenposeFromBelow standingV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeAdjustingHair_v10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 203686
+  description: "OpenposeAdjustingHair v10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeHeadRest_headRestV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 141049
+  description: "OpenposeHeadRest headRestV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeHoldingFood_holdingFoodV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 144931
+  description: "OpenposeHoldingFood holdingFoodV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeHoldingHands_handsSideBySideV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 142326
+  description: "OpenposeHoldingHands handsSideBySideV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeHug_hugV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 136853
+  description: "OpenposeHug hugV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeHuggingOwn_huggingOwnLegsV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 139761
+  description: "OpenposeHuggingOwn huggingOwnLegsV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeIncomingHug_v10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 199989
+  description: "OpenposeIncomingHug v10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeJumping_jumpingV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 132242
+  description: "OpenposeJumping jumpingV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeKneesTogether_v10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 191514
+  description: "OpenposeKneesTogether v10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeLeaning_leaningForwardV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 135053
+  description: "OpenposeLeaning leaningForwardV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeLineartMiddle_middleFingerV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 145473
+  description: "OpenposeLineartMiddle middleFingerV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "openposePantyshotLeaning_v11.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 122442
+  description: "openposePantyshotLeaning v11"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposePawClawPoses_pawClawV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 133809
+  description: "OpenposePawClawPoses pawClawV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeLineart_v10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 192941
+  description: "OpenposeLineart v10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeCannyPOV_povHoldingHandsV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 142711
+  description: "OpenposeCannyPOV povHoldingHandsV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeReaching_reachingTowardsVV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 134075
+  description: "OpenposeReaching reachingTowardsVV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeRunning_runningV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 138955
+  description: "OpenposeRunning runningV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeSeiza_seizaV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 137709
+  description: "OpenposeSeiza seizaV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeLineartSitting_v10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 213828
+  description: "OpenposeLineartSitting v10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeSquatting_squattingV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 137086
+  description: "OpenposeSquatting squattingV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeStanding_standingV20.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 128029
+  description: "OpenposeStanding standingV20"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "openposeStranglingPov_v10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 138964
+  description: "openposeStranglingPov v10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeWariza_warizaV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 138079
+  description: "OpenposeWariza warizaV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+- name: "OpenposeLineart_yandereTranceV10.zip"
+  location: comfyui
+  download_required: true
+  civitai_id: 143831
+  description: "OpenposeLineart yandereTranceV10"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["poses"]
+  trigger_words: []
+
+styles:
+- name: "anime_screencap-IL-NOOB_v3.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 345962
+  description: "anime screencap IL NOOB v3"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["styles"]
+  trigger_words: ["anime screencap, anime coloring"]
+- name: "MeMax6-noob-vpred.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 269772
+  description: "MeMax6 noob vpred"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sdxl"]
+  tags: ["styles"]
+  trigger_words: ["memaxl6_a", "memaxl6_b", "memaxl6_c", "memaxl6_d", "memaxl6_e"]
+- name: "textolyte_Style_Illustrious-000009.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1623264
+  description: "textolyte Style Illustrious 000009"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["styles"]
+  trigger_words: ["textolyte"]

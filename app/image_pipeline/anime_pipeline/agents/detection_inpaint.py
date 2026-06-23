@@ -121,6 +121,11 @@ REGION_PROCESSING_ORDER: list[str] = [
 
 # ── Region-specific LoRA stacks ────────────────────────────────────
 
+def _region_allowed_for_job(region_type: str, job: AnimePipelineJob) -> bool:
+    """FULL NSFW mode: all detected regions are allowed."""
+    return True
+
+
 _REGION_LORA_MAP: dict[str, list[dict[str, Any]]] = {
     # Tier 1: Core anatomy
     "face": [
@@ -460,6 +465,12 @@ except Exception as _exc:  # pragma: no cover - defensive
     logger.debug("[DetectionInpaint] effect LoRA auto-discovery skipped: %s", _exc)
 
 # ── Quality tags per region ────────────────────────────────────────
+
+# Skip any region whose bounding-box area exceeds this fraction of the full image.
+# Prevents YOLO from spending time inpainting background figures that dominate the frame
+# (e.g. a full-body background character covering 60-70% of the image).
+# Foreground characters in portrait renders typically cover 10-30% per region.
+_MAX_INPAINT_AREA_FRACTION: float = 0.55
 
 _QUALITY_PREFIX = (
     "masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest"
@@ -833,6 +844,9 @@ class DetectionInpaintAgent:
             logger.warning("[DetectionInpaint] No source image available, skipping")
             return
 
+        # Compute image area once for region-size filtering below.
+        image_area = self._get_image_area(current_image_b64)
+
         # Get base prompt from job for context
         base_positive = self._get_base_positive(job)
         base_negative = self._config.negative_base
@@ -878,6 +892,13 @@ class DetectionInpaintAgent:
         passes_run = 0
         total_region_count = 0
         for region_type in ordered_types:
+            if not _region_allowed_for_job(region_type, job):
+                logger.info(
+                    "[DetectionInpaint] Skipping %s for content_mode=%s",
+                    region_type,
+                    getattr(job, "content_mode", "sfw"),
+                )
+                continue
             elapsed_ms = (time.time() - t0) * 1000
             if passes_run >= self._config.detection_inpaint_max_passes:
                 logger.info("[DetectionInpaint] Reached configured pass cap")
@@ -899,6 +920,21 @@ class DetectionInpaintAgent:
             if not regions:
                 continue
             regions = regions[: self._config.detection_inpaint_max_regions_per_pass]
+
+            # Skip regions that cover more than _MAX_INPAINT_AREA_FRACTION of the
+            # image — these are likely background figures, not detail-fixable subjects.
+            if image_area > 0:
+                combined_area = sum(r.area for r in regions)
+                area_fraction = combined_area / image_area
+                if area_fraction > _MAX_INPAINT_AREA_FRACTION:
+                    logger.info(
+                        "[DetectionInpaint] Skipping %s — combined region area %.0f%% "
+                        "exceeds cap %.0f%% (likely background figure)",
+                        region_type,
+                        area_fraction * 100,
+                        _MAX_INPAINT_AREA_FRACTION * 100,
+                    )
+                    continue
 
             total_region_count += len(regions)
 
@@ -1064,6 +1100,21 @@ class DetectionInpaintAgent:
         )
 
     # ── Helpers ──────────────────────────────────────────────────────
+
+    @staticmethod
+    def _get_image_area(image_b64: str) -> int:
+        """Return pixel area of a base64-encoded image, or 0 if unavailable."""
+        try:
+            import base64 as _b64
+            import io
+
+            from PIL import Image as _Image
+
+            data = _b64.b64decode(image_b64)
+            with _Image.open(io.BytesIO(data)) as img:
+                return img.width * img.height
+        except Exception:
+            return 0
 
     def _get_latest_image(self, job: AnimePipelineJob) -> str:
         """Get the most recent *render* image from intermediates.

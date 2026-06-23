@@ -15,22 +15,30 @@ capabilities:
   multi_reference: true
 models:
   composition:
-    checkpoint: waiIllustriousSDXL_v170.safetensors
+    checkpoint: waiIllustriousSDXL_v160.safetensors
     model_type: sdxl
     steps: 32
     cfg: 5.0
   beauty:
-    checkpoint: waiIllustriousSDXL_v170.safetensors
+    checkpoint: waiIllustriousSDXL_v160.safetensors
     model_type: sdxl
     steps: 28
     cfg: 5.0
     denoise_strength: 0.25
   final:
-    checkpoint: waiIllustriousSDXL_v170.safetensors
+    checkpoint: waiIllustriousSDXL_v160.safetensors
     model_type: sdxl
     steps: 26
     cfg: 5.0
     denoise_strength: 0.18
+  loras:
+    defaults:
+      - name: Anime_artistic_2.safetensors
+        strength: 0.65
+        enabled: true
+      - name: HueSpark1llust.safetensors
+        strength: 0.35
+        enabled: true
 structure_lock:
   max_simultaneous_layers: 2
   layers:

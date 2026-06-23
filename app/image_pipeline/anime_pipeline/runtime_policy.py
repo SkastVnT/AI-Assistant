@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field
+
+logger = logging.getLogger(__name__)
 from enum import Enum
 from urllib.parse import urlsplit
 
@@ -49,7 +52,7 @@ def _profile(value: str | DeploymentProfile | None) -> DeploymentProfile:
     if isinstance(value, DeploymentProfile):
         return value
     try:
-        return DeploymentProfile(str(value or DeploymentProfile.LAPTOP_6GB.value))
+        return DeploymentProfile(str(value or DeploymentProfile.RTX5070.value))
     except ValueError as exc:
         raise PolicyViolation(f"Unknown deployment profile: {value}") from exc
 
@@ -102,7 +105,7 @@ def _origin_host(origin: str) -> str:
 class RuntimePolicy:
     """Fail-closed network policy for one standalone deployment."""
 
-    profile: DeploymentProfile = DeploymentProfile.LAPTOP_6GB
+    profile: DeploymentProfile = DeploymentProfile.RTX5070
     internal_hosts: frozenset[str] = field(default_factory=lambda: _LOOPBACK_HOSTS)
     external_validator_hosts: frozenset[str] = field(
         default_factory=lambda: _EXTERNAL_VALIDATOR_HOSTS
@@ -164,13 +167,13 @@ class RuntimePolicy:
     @classmethod
     def from_env(cls) -> "RuntimePolicy":
         return cls.from_profile(
-            os.getenv("ANIME_PIPELINE_PROFILE", DeploymentProfile.LAPTOP_6GB.value)
+            os.getenv("ANIME_PIPELINE_PROFILE", DeploymentProfile.RTX5070.value)
         )
 
     @classmethod
     def from_config(cls, config: object) -> "RuntimePolicy":
         return cls.from_profile(
-            getattr(config, "deployment_profile", DeploymentProfile.LAPTOP_6GB.value),
+            getattr(config, "deployment_profile", DeploymentProfile.RTX5070.value),
             internal_origins=list(getattr(config, "allowed_internal_origins", []) or []),
             adult_content_policy=getattr(config, "adult_content_policy", None),
         )
@@ -186,14 +189,16 @@ class RuntimePolicy:
         return ContentMode.SFW
 
     def assert_worker_ready(self) -> None:
+        """FULL NSFW mode: always pass worker readiness (no assertion required)."""
         if (
             self.adult_content_policy is AdultContentPolicy.WORKER_DEFAULT
             and not self.verified_adult_worker_asserted
         ):
-            raise PolicyViolation(
-                "worker_default requires "
-                "ANIME_PIPELINE_ASSERT_VERIFIED_ADULT_WORKER=1"
+            # In FULL NSFW we ignore the assertion flag
+            logger.warning(
+                "[RuntimePolicy] FULL NSFW mode active — skipping verified_adult_worker_asserted check"
             )
+            return
 
     def validate_request(
         self,

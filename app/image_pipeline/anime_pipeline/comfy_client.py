@@ -254,6 +254,23 @@ class ComfyClient:
         # This handles cases where custom nodes are not installed.
         workflow = self._preprocess_workflow(workflow)
 
+        # Remove LoraLoader nodes whose lora_name isn't in ComfyUI's live list.
+        # ComfyUI only knows about files present at startup; models added later
+        # are invisible until restart. Skipping them prevents hard validation
+        # failures — the rest of the workflow still executes.
+        available = self.get_available_loras()
+        if available:
+            workflow, skipped = self._filter_unavailable_loras(workflow, available)
+            if skipped:
+                logger.warning(
+                    "[ComfyClient] job=%s pass=%s skipped %d LoRA(s) unknown to "
+                    "ComfyUI (restart ComfyUI to load them): %s",
+                    job_id,
+                    pass_name,
+                    len(skipped),
+                    skipped,
+                )
+
         # Save workflow JSON for debugging before any attempt
         workflow_file = ""
         if self._debug_mode:
@@ -353,6 +370,81 @@ class ComfyClient:
         except Exception as e:
             logger.warning("[ComfyClient] Queue status failed: %s", e)
         return {}
+
+    # ── LoRA availability helpers ─────────────────────────────────────
+
+    def get_available_loras(self) -> set[str]:
+        """Return ComfyUI's current set of known LoRA filenames.
+
+        Calls ``GET /object_info/LoraLoader`` which ComfyUI serves from its
+        in-memory model cache (populated at startup). Returns an empty set on
+        any failure so callers can treat it as "skip the filter".
+        """
+        try:
+            with httpx.Client(timeout=10) as client:
+                resp = client.get(f"{self._base_url}/object_info/LoraLoader")
+                if resp.status_code == 200:
+                    data = resp.json()
+                    lora_list = (
+                        data.get("LoraLoader", {})
+                        .get("input", {})
+                        .get("required", {})
+                        .get("lora_name", [[]])[0]
+                    )
+                    if isinstance(lora_list, list):
+                        return set(lora_list)
+        except Exception as e:
+            logger.warning("[ComfyClient] Could not fetch LoRA list: %s", e)
+        return set()
+
+    def _filter_unavailable_loras(
+        self, workflow: dict, available: set[str]
+    ) -> tuple[dict, list[str]]:
+        """Remove LoraLoader nodes whose lora_name is absent from *available*.
+
+        Rewires the model/clip chain to bypass each removed node, handling
+        chains of any length including multiple consecutive unavailable LoRAs.
+        Returns ``(filtered_workflow, skipped_names)``.
+        """
+        import copy
+
+        # Collect nodes to remove: node_id -> (upstream_model_id, upstream_clip_id)
+        to_remove: dict[str, tuple[str, str]] = {}
+        for nid, node in workflow.items():
+            if node.get("class_type") != "LoraLoader":
+                continue
+            inputs = node.get("inputs", {})
+            lora_name = inputs.get("lora_name", "")
+            if lora_name not in available:
+                model_ref = inputs.get("model", ["0", 0])
+                clip_ref = inputs.get("clip", ["0", 1])
+                to_remove[nid] = (str(model_ref[0]), str(clip_ref[0]))
+
+        if not to_remove:
+            return workflow, []
+
+        skipped = [workflow[nid]["inputs"]["lora_name"] for nid in to_remove]
+
+        def _resolve(node_id: str, port: int, seen: frozenset[str] = frozenset()) -> list:
+            """Walk through removed nodes to find the real upstream."""
+            if node_id not in to_remove or node_id in seen:
+                return [node_id, port]
+            up_model, up_clip = to_remove[node_id]
+            upstream = up_model if port == 0 else up_clip
+            return _resolve(upstream, port, seen | {node_id})
+
+        new_wf = copy.deepcopy(workflow)
+        for removed_id in to_remove:
+            for nid, node in new_wf.items():
+                if nid == removed_id:
+                    continue
+                inputs = node.get("inputs", {})
+                for key, val in list(inputs.items()):
+                    if isinstance(val, list) and len(val) == 2 and str(val[0]) == removed_id:
+                        inputs[key] = _resolve(removed_id, int(val[1]))
+            del new_wf[removed_id]
+
+        return new_wf, skipped
 
     # ── Internal: submit + poll ───────────────────────────────────────
 

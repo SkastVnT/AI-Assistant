@@ -22,13 +22,17 @@ logger = logging.getLogger(__name__)
 
 _THIS_DIR = Path(__file__).resolve().parent
 _APP_ROOT = _THIS_DIR.parent.parent
-_CONFIG_PATH = CONFIGS_DIR / "anime_pipeline_laptop_6gb.yaml"
 _PROFILE_CONFIGS = {
     "laptop_6gb": CONFIGS_DIR / "anime_pipeline_laptop_6gb.yaml",
     "pc_12gb": CONFIGS_DIR / "anime_pipeline_pc_12gb.yaml",
     "vps_96gb": CONFIGS_DIR / "anime_pipeline_vps_96gb.yaml",
     "rtx5070": CONFIGS_DIR / "anime_pipeline_rtx5070.yaml",
 }
+_DEFAULT_PROFILE = os.getenv("ANIME_PIPELINE_DEFAULT_PROFILE", "rtx5070")
+_CONFIG_PATH = _PROFILE_CONFIGS.get(
+    _DEFAULT_PROFILE,
+    CONFIGS_DIR / "anime_pipeline_rtx5070.yaml",
+)
 
 
 def _get_config_path() -> Path:
@@ -269,7 +273,7 @@ class AnimePipelineConfig:
     """Parsed config from anime_pipeline.yaml with env-var overrides."""
 
     # Standalone deployment and outbound policy.
-    deployment_profile: str = "laptop_6gb"
+    deployment_profile: str = "rtx5070"
     max_concurrent: int = 1
     allowed_internal_origins: list[str] = field(default_factory=list)
     adult_content_policy: str = "sfw_only"
@@ -512,7 +516,7 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
     # Composition model
     comp = models.get("composition", {})
     cfg.composition_model = ModelConfig(
-        checkpoint=comp.get("checkpoint", "waiIllustriousSDXL_v170.safetensors"),
+        checkpoint=comp.get("checkpoint", "waiIllustriousSDXL_v160.safetensors"),
         model_type=comp.get("type", comp.get("model_type", "sdxl")),
         sampler=comp.get("sampler", "dpmpp_2m_sde"),
         scheduler=comp.get("scheduler", "karras"),
@@ -525,7 +529,7 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
     # Beauty model
     beauty = models.get("beauty", {})
     cfg.beauty_model = ModelConfig(
-        checkpoint=beauty.get("checkpoint", "waiIllustriousSDXL_v170.safetensors"),
+        checkpoint=beauty.get("checkpoint", "waiIllustriousSDXL_v160.safetensors"),
         model_type=beauty.get("type", beauty.get("model_type", "sdxl")),
         sampler=beauty.get("sampler", "dpmpp_2m_sde"),
         scheduler=beauty.get("scheduler", "karras"),

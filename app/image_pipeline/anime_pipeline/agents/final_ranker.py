@@ -45,6 +45,16 @@ _RANKABLE_STAGES = frozenset(
     }
 )
 
+# Later render stages should win ties, especially when the critic is
+# unavailable and all candidates fall back to neutral scores.
+_STAGE_PRIORITY: dict[str, int] = {
+    "composition_pass": 10,
+    "cleanup_pass": 20,
+    "beauty_pass": 30,
+    "refine_beauty": 40,
+    "upscale": 50,
+}
+
 # Default scores when no critique is available
 _DEFAULT_SCORE = 5.0
 
@@ -61,7 +71,7 @@ def score_candidate(
 
     Returns a fully populated RankCandidate.
     """
-    if critique:
+    if critique and not critique.unscored:
         face_quality = _face_quality_from_critique(critique)
         clarity = _clarity_from_critique(critique)
         style_consistency = float(critique.style_score)
@@ -97,7 +107,11 @@ def rank_candidates(candidates: list[RankCandidate]) -> RankResult:
     if not candidates:
         return RankResult(total_candidates=0)
 
-    sorted_cands = sorted(candidates, key=lambda c: c.composite_score, reverse=True)
+    sorted_cands = sorted(
+        candidates,
+        key=lambda c: (c.composite_score, _STAGE_PRIORITY.get(c.stage, 0)),
+        reverse=True,
+    )
     return RankResult(
         winner=sorted_cands[0],
         runner_ups=sorted_cands[1:],
@@ -158,9 +172,10 @@ class FinalRanker:
         if img.stage in ("beauty_pass", "refine_beauty", "upscale"):
             return job.critique_results[-1]
 
-        # Earlier stages: use first available
-        if job.critique_results:
-            return job.critique_results[0]
+        # Earlier stages should not inherit a later critique result. That made
+        # composition tie with polished outputs when the critic was unscored.
+        if img.stage in ("composition_pass", "cleanup_pass"):
+            return None
 
         return None
 

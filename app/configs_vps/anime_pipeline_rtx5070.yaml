@@ -51,7 +51,7 @@ deployment:
 
 models:
   composition:
-    checkpoint: "waiIllustriousSDXL_v170.safetensors"
+    checkpoint: "waiIllustriousSDXL_v160.safetensors"
     type: sdxl
     sampler: dpmpp_2m       # faster sampler for test iterations
     scheduler: karras
@@ -61,7 +61,7 @@ models:
     vae: null
 
   beauty:
-    checkpoint: "waiIllustriousSDXL_v170.safetensors"
+    checkpoint: "waiIllustriousSDXL_v160.safetensors"
     type: sdxl
     sampler: dpmpp_2m_sde
     scheduler: karras
@@ -72,7 +72,7 @@ models:
     denoise_strength: 0.45  # keep prod value — beauty pass needs the redraw budget
 
   final:
-    checkpoint: "waiIllustriousSDXL_v170.safetensors"
+    checkpoint: "waiIllustriousSDXL_v160.safetensors"
     type: sdxl
     sampler: euler_ancestral
     scheduler: karras
@@ -82,16 +82,15 @@ models:
     vae: null
     denoise_strength: 0.30
 
-  # LoRAs disabled by default for local test — enable per-run when testing
-  # LoRA-specific behavior. Saves ~0.5 GB VRAM and ~5s load time.
+  # Legacy WAI quality stack recovered from the 2026-04-27 good run.
   loras:
     defaults:
       - name: "Anime_artistic_2.safetensors"
         strength: 0.65
-        enabled: false
+        enabled: true
       - name: "HueSpark1llust.safetensors"
         strength: 0.35
-        enabled: false
+        enabled: true
 
   upscale:
     model: "RealESRGAN_x4plus_anime_6B"
@@ -126,41 +125,55 @@ resolutions:
 
 
 # ── Structure Lock (ControlNet) ─────────────────────────────────────
-# Only 1 layer active at a time on 12 GB — avoids OOM during composition.
-# Lineart is the most useful single layer for anime composition lock.
+# 1 layer max on RTX 5070 — leaves headroom for beauty pass VRAM spikes.
+# All layers use xinsir Union SDXL model (SDXL-native).
 
 structure_lock:
   max_simultaneous: 1
   layers:
+    - type: openpose
+      preprocessor: "DWPreprocessor"
+      controlnet_model: "xinsir-controlnet-union-sdxl-1.0.safetensors"
+      union_control_type: openpose
+      strength: 0.80
+      start_percent: 0.0
+      end_percent: 1.0
+      priority: 0
+      optional: true
+      enabled: true
+
     - type: lineart_anime
       preprocessor: "AnimeLineArtPreprocessor"
-      controlnet_model: "control_v11p_sd15_lineart_anime"
-      strength: 0.85
+      controlnet_model: "xinsir-controlnet-union-sdxl-1.0.safetensors"
+      union_control_type: canny/lineart/anime_lineart/mlsd
+      strength: 0.72
       start_percent: 0.0
       end_percent: 0.8
       priority: 1
       optional: true
-      enabled: false  # SD1.5 ControlNet is incompatible with SDXL
+      enabled: true
 
     - type: depth
       preprocessor: "DepthAnythingV2Preprocessor"
-      controlnet_model: "control_v11f1p_sd15_depth"
-      strength: 0.55
+      controlnet_model: "xinsir-controlnet-union-sdxl-1.0.safetensors"
+      union_control_type: depth
+      strength: 0.50
       start_percent: 0.0
       end_percent: 0.6
       priority: 2
       optional: true
-      enabled: false
+      enabled: true
 
     - type: canny
       preprocessor: "CannyEdgePreprocessor"
-      controlnet_model: "control_v11p_sd15_canny"
+      controlnet_model: "xinsir-controlnet-union-sdxl-1.0.safetensors"
+      union_control_type: canny/lineart/anime_lineart/mlsd
       strength: 0.35
       start_percent: 0.0
       end_percent: 0.4
       priority: 3
       optional: true
-      enabled: false
+      enabled: true
 
 
 # ── Vision Analyst ──────────────────────────────────────────────────
@@ -268,5 +281,5 @@ prompts:
     twitter_username, instagram_username, url, website
 
   style_negatives:
-    anime: "3d, photorealistic, photo, cgi"
+    anime: "3d, photorealistic, photo, cgi, oversaturated, overexposed, harsh lens flare, chibi, oversized head, doll-like face, abnormal proportions, disproportionate body"
     realistic: "anime, cartoon, drawing, illustration"

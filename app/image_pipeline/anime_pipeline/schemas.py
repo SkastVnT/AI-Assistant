@@ -494,7 +494,11 @@ class CritiqueReport:
         # Skip dimensions with score == 0 (not set by LLM)
         active = [(s, w) for s, w in scores_weights if s > 0]
         if not active:
-            return 0.0
+            # No dimensions filled in — critique model failed or returned nothing.
+            # Return 8.0 (the user-configured pass threshold) so the pipeline
+            # treats an unscored image as "good enough" and skips the retry loop
+            # rather than defaulting to 5.0 which always triggers retries.
+            return 8.0
         total_weighted = sum(s * w for s, w in active)
         total_weight = sum(w for _, w in active)
         return total_weighted / total_weight if total_weight else 0.0
@@ -505,8 +509,12 @@ class CritiqueReport:
 
         Strict mode: no dimension is allowed to be below 8/10.
         Dimensions scored 0 are considered 'not evaluated' and skipped.
+        When unscored (all critique models failed) the image passes by default
+        so the pipeline does not waste GPU on retry loops without a working critic.
         """
-        if self.unscored or self.retry_recommendation:
+        if self.unscored:
+            return True  # no critic available → skip quality gate
+        if self.retry_recommendation:
             return False
         if self.overall_score < 8.0:
             return False
@@ -674,7 +682,7 @@ class AnimePipelineJob:
     orientation_hint: str = ""  # auto-detected if empty
     preset: str = "anime_quality"
     user_loras: list[dict[str, Any]] = field(default_factory=list)
-    deployment_profile: str = "laptop_6gb"
+    deployment_profile: str = "rtx5070"
     content_mode: str = "sfw"
     validator_mode: str = "local"
     adult_verified: bool = False

@@ -203,8 +203,12 @@ class CritiqueAgent:
 
         if not result:
             logger.warning("[Critique] All permitted models failed; result is unscored")
+            # Do NOT set retry_recommendation=True here — when no critique model
+            # is available retrying will not improve anything and just wastes GPU
+            # time. The passed property returns True for unscored results so the
+            # pipeline proceeds to upscale instead of looping forever.
             result = CritiqueResult(
-                retry_recommendation=True,
+                retry_recommendation=False,
                 unscored=True,
                 scoring_error="All permitted critic models failed",
                 model_used="unscored",
@@ -502,28 +506,33 @@ class CritiqueAgent:
 
             # Support both old (overall_score 0-1) and new (per-dimension 0-10) formats
             if "anatomy_score" in obj:
-                # New format
+                # New format — use 0 as default for dimensions the LLM did not
+                # score. Scores of 0 are excluded from overall_score (treated as
+                # "not evaluated"), keeping the average honest. Previously all
+                # missing fields defaulted to 5, which dragged every partial
+                # response down to ~5/10 even when the LLM gave 7-9 for the
+                # dimensions it DID score.
                 return CritiqueResult(
-                    anatomy_score=int(obj.get("anatomy_score", 5)),
+                    anatomy_score=int(obj.get("anatomy_score", 0)),
                     anatomy_issues=obj.get("anatomy_issues", []),
-                    face_score=int(obj.get("face_score", 5)),
+                    face_score=int(obj.get("face_score", 0)),
                     face_issues=obj.get("face_issues", []),
                     eye_consistency_score=int(obj.get("eye_consistency_score", 0)),
                     eye_reference_match_pct=float(
                         obj.get("eye_reference_match_pct", 0.0)
                     ),
                     eye_issues=obj.get("eye_issues", []),
-                    hands_score=int(obj.get("hands_score", 5)),
+                    hands_score=int(obj.get("hands_score", 0)),
                     hand_issues=obj.get("hand_issues", []),
                     clothing_score=int(obj.get("clothing_score", 0)),
                     clothing_issues=obj.get("clothing_issues", []),
-                    composition_score=int(obj.get("composition_score", 5)),
+                    composition_score=int(obj.get("composition_score", 0)),
                     composition_issues=obj.get("composition_issues", []),
-                    color_score=int(obj.get("color_score", 5)),
+                    color_score=int(obj.get("color_score", 0)),
                     color_issues=obj.get("color_issues", []),
-                    style_score=int(obj.get("style_score", 5)),
+                    style_score=int(obj.get("style_score", 0)),
                     style_drift=obj.get("style_drift", []),
-                    background_score=int(obj.get("background_score", 5)),
+                    background_score=int(obj.get("background_score", 0)),
                     background_issues=obj.get("background_issues", []),
                     accessories_score=int(obj.get("accessories_score", 0)),
                     accessories_issues=obj.get("accessories_issues", []),

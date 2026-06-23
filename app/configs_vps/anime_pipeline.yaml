@@ -19,7 +19,7 @@ models:
   # Stage 3: Base composition — stable, broad, good anatomy
   # Switched to WAI-illustrious-SDXL v16 (NSFW-tuned, anime-native, 12GB friendly)
   composition:
-    checkpoint: "waiIllustriousSDXL_v170.safetensors"
+    checkpoint: "waiIllustriousSDXL_v160.safetensors"
     type: sdxl
     sampler: euler_ancestral  # WAI recommends euler_a / dpmpp_2m
     scheduler: karras
@@ -30,7 +30,7 @@ models:
 
   # Stage 5: Beauty redraw — best final quality, anime-optimized
   beauty:
-    checkpoint: "waiIllustriousSDXL_v170.safetensors"
+    checkpoint: "waiIllustriousSDXL_v160.safetensors"
     type: sdxl
     sampler: dpmpp_2m_sde
     scheduler: karras
@@ -44,7 +44,7 @@ models:
   # Defaults to beauty model values when absent. Set a different checkpoint
   # here to switch the final-pass model in one place.
   final:
-    checkpoint: "waiIllustriousSDXL_v170.safetensors"
+    checkpoint: "waiIllustriousSDXL_v160.safetensors"
     type: sdxl
     sampler: euler_ancestral      # euler_a is A1111 name; ComfyUI uses euler_ancestral
     scheduler: karras
@@ -55,16 +55,17 @@ models:
     denoise_strength: 0.30
 
   # Optional LoRA stack applied on composition/cleanup/beauty passes.
-  # NOTE: Anime_Enhancer_flux_by_n0utis.safetensors is Flux-based and should
-  # not be auto-attached to this SDXL pipeline.
+  # Legacy WAI quality stack recovered from the 2026-04-27 good run
+  # (anime_pipeline_20260427_030859_a0cc2caa). These two LoRAs are part of
+  # the soft WAI look; disabling them made composition drift into neon colors.
   loras:
     defaults:
       - name: "Anime_artistic_2.safetensors"
         strength: 0.65
-        enabled: false  # Provision manually before enabling
+        enabled: true
       - name: "HueSpark1llust.safetensors"
         strength: 0.35
-        enabled: false  # Provision manually before enabling
+        enabled: true
 
   # Stage 7: Upscale model
   upscale:
@@ -103,44 +104,52 @@ resolutions:
 # ── Structure Lock (ControlNet layers) ─────────────────────────────
 
 structure_lock:
-  # Priority order: lineart is primary, depth is secondary, canny optional
-  # NOTE: SD1.5 ControlNet models are architecturally incompatible with SDXL.
-  # Disable lineart/depth until SDXL-native ControlNet models are available.
-  # AnimeLineArtPreprocessor / DepthAnythingV2Preprocessor also require
-  # comfyui_controlnet_aux custom nodes to be installed.
+  max_simultaneous: 2
+
   layers:
+    - type: openpose
+      preprocessor: "DWPreprocessor"
+      controlnet_model: "xinsir-controlnet-union-sdxl-1.0.safetensors"
+      union_control_type: openpose
+      strength: 0.80
+      start_percent: 0.0
+      end_percent: 1.0
+      priority: 0
+      optional: true
+      enabled: true
+
     - type: lineart_anime
       preprocessor: "AnimeLineArtPreprocessor"
-      controlnet_model: "control_v11p_sd15_lineart_anime"
-      strength: 0.85
+      controlnet_model: "xinsir-controlnet-union-sdxl-1.0.safetensors"
+      union_control_type: canny/lineart/anime_lineart/mlsd
+      strength: 0.72
       start_percent: 0.0
       end_percent: 0.8
       priority: 1
       optional: true
-      enabled: false  # SD1.5 ControlNet is incompatible with SDXL
+      enabled: true
 
     - type: depth
       preprocessor: "DepthAnythingV2Preprocessor"
-      controlnet_model: "control_v11f1p_sd15_depth"
-      strength: 0.55
+      controlnet_model: "xinsir-controlnet-union-sdxl-1.0.safetensors"
+      union_control_type: depth
+      strength: 0.50
       start_percent: 0.0
       end_percent: 0.6
       priority: 2
       optional: true
-      enabled: false  # SD1.5 ControlNet incompatible with SDXL; enable when SDXL ControlNet available
+      enabled: true
 
     - type: canny
       preprocessor: "CannyEdgePreprocessor"
-      controlnet_model: "control_v11p_sd15_canny"
+      controlnet_model: "xinsir-controlnet-union-sdxl-1.0.safetensors"
+      union_control_type: canny/lineart/anime_lineart/mlsd
       strength: 0.35
       start_percent: 0.0
       end_percent: 0.4
       priority: 3
       optional: true
-      enabled: false  # disabled by default — enable when hard edges help
-
-  # Max layers to apply simultaneously (VRAM budget)
-  max_simultaneous: 2
+      enabled: true
 
 
 # ── Vision Analyst ─────────────────────────────────────────────────
@@ -221,7 +230,7 @@ prompts:
 
   # Style-specific negative additions
   style_negatives:
-    anime: "3d, photorealistic, photo, cgi"
+    anime: "3d, photorealistic, photo, cgi, oversaturated, overexposed, harsh lens flare, chibi, oversized head, doll-like face, abnormal proportions, disproportionate body"
     realistic: "anime, cartoon, drawing, illustration"
 
 

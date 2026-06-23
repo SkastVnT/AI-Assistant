@@ -388,6 +388,7 @@ export class AnimePipeline {
     _createInlineBubble(uid, prompt) {
         const stagesHtml = STAGES.map(s => `
             <div class="ap-stage-item pending" data-ap-stage="${s.key}" id="ap-stage-${uid}-${s.key}">
+                <span class="ap-stage-dot"></span>
                 <span class="ap-stage-icon">${s.icon}</span>
                 <span class="ap-stage-label">${s.label}</span>
                 <span class="ap-stage-time"></span>
@@ -403,25 +404,23 @@ export class AnimePipeline {
             </div>
             <div class="message__body">
                 <div class="message-content">
-                    <details class="ap-inline-progress ap-reasoning-pill" open>
-                        <summary class="ap-inline-summary ap-reasoning-summary">
-                            <span class="ap-reasoning-chevron">›</span>
+                    <div class="ap-pipeline-card" data-open>
+                        <div class="ap-pipeline-header">
                             <div class="thinking-pill__dots">
                                 <span></span><span></span><span></span>
                             </div>
-                            <span class="ap-inline-label" id="ap-headline-${uid}">Finalizing image adjustments</span>
+                            <span class="ap-inline-label" id="ap-headline-${uid}">Khởi động…</span>
                             <span class="ap-inline-timer" id="ap-timer-${uid}">0.0s</span>
                             <button type="button"
                                     class="ap-inline-stop-btn"
                                     id="ap-stop-${uid}"
-                                    style="margin-left:8px; padding:2px 10px; font-size:12px; border:1px solid var(--border); background:var(--bg-secondary,var(--bg)); color:var(--text); border-radius:6px; cursor:pointer;"
-                                    title="Ngưng pipeline và xuất ảnh hiện tại">⏹ Ngưng & xuất ảnh</button>
-                        </summary>
-                        <div class="ap-reasoning-body">
-                            <div class="ap-inline-current ap-reasoning-text" id="ap-current-${uid}">Khởi động…</div>
+                                    title="Ngưng pipeline và xuất ảnh hiện tại">⏹ Ngưng &amp; xuất ảnh</button>
+                        </div>
+                        <div class="ap-pipeline-body">
+                            <div class="ap-pipeline-status ap-inline-current" id="ap-current-${uid}">Khởi động…</div>
                             <div class="ap-inline-stages" id="ap-stages-${uid}">${stagesHtml}</div>
                         </div>
-                    </details>
+                    </div>
                     <div class="ap-layers-gallery" id="ap-layers-${uid}" style="display:none; margin-top:10px;"></div>
                 </div>
             </div>`;
@@ -520,16 +519,15 @@ export class AnimePipeline {
         const lastThumb = lastCard ? lastCard.querySelector('.ap-layer-thumb') : null;
         const imgSrc = (lastCard && (_layerFullSrcMap.get(lastCard) || lastCard.dataset.fullSrc)) || lastThumb?.src || '';
 
-        const details = bubble.querySelector('.ap-inline-progress');
-        if (details) {
-            details.open = false;
-            const summary = details.querySelector('.ap-inline-summary');
-            if (summary) {
-                const dots = summary.querySelector('.thinking-pill__dots');
-                if (dots) dots.remove();
-                const stop = summary.querySelector('.ap-inline-stop-btn');
+        const card = bubble.querySelector('.ap-pipeline-card');
+        if (card) {
+            card.removeAttribute('data-open');
+            const header = card.querySelector('.ap-pipeline-header');
+            if (header) {
+                header.querySelector('.thinking-pill__dots')?.remove();
+                const stop = header.querySelector('.ap-inline-stop-btn');
                 if (stop) stop.style.display = 'none';
-                const label = summary.querySelector('.ap-inline-label');
+                const label = header.querySelector('.ap-inline-label');
                 if (label) label.textContent = '⏸ Đã ngưng — đang dùng layer cuối làm output';
             }
         }
@@ -705,12 +703,26 @@ export class AnimePipeline {
         let buffer = '';
         let currentEvent = '';
         let gotResult = false;
+        let lastDataMs = Date.now();
+        let gotFirstEvent = false;
+
+        // Show "connecting" immediately so user sees SSE is open (fetch resolved).
+        this._inlineSetCurrent(uid, '⏳ Đang kết nối pipeline…');
+
+        // Update the counter every 4s while waiting for the first real event.
+        // Stops once gotFirstEvent is true so it never clobbers stage text.
+        const silenceInterval = setInterval(() => {
+            if (gotFirstEvent) return;
+            const silentSec = Math.round((Date.now() - lastDataMs) / 1000);
+            this._inlineSetCurrent(uid, `⏳ Đang kết nối pipeline… (${silentSec}s)`);
+        }, 4000);
 
         try {
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
+                lastDataMs = Date.now();
                 buffer += decoder.decode(value, { stream: true });
                 const lines = buffer.split('\n');
                 buffer = lines.pop() || '';
@@ -722,12 +734,15 @@ export class AnimePipeline {
                         try {
                             const data = JSON.parse(line.slice(6));
                             if (currentEvent === 'ap_result' || currentEvent === 'ap_done') gotResult = true;
+                            // Mark first real event received (not keepalive comments)
+                            if (currentEvent && !gotFirstEvent) gotFirstEvent = true;
                             this._handleInlineEvent(currentEvent, data, bubble, uid, prompt, startTime, chatContainer);
                         } catch { /* ignore malformed */ }
                     }
                 }
             }
         } finally {
+            clearInterval(silenceInterval);
             reader.cancel().catch(() => {});
         }
 
@@ -740,6 +755,20 @@ export class AnimePipeline {
                 this._setInlineError(bubble, uid, 'Stream kết thúc bất ngờ — không nhận được kết quả');
             }
         }
+    }
+
+    /**
+     * Reflect a `progress_stage` key (from job-queue poll) into the stage cells.
+     * Marks every stage before curStage as done, curStage as active.
+     * Called when SSE has dropped and we're polling /api/jobs/{id} for progress.
+     */
+    _syncStagesFromPoll(uid, curStage) {
+        const curIdx = STAGES.findIndex(s => s.key === curStage);
+        if (curIdx < 0) return;
+        STAGES.forEach((s, i) => {
+            if (i < curIdx)      this._inlineSetStage(uid, s.key, 'done');
+            else if (i === curIdx) this._inlineSetStage(uid, s.key, 'active');
+        });
     }
 
     /** Poll /api/jobs/<jobId> until completed/failed, then show result. */
@@ -786,9 +815,11 @@ export class AnimePipeline {
                     return;
                 }
 
-                // Still running — update status text
+                // Still running — update status text AND stage cells
                 if (job.progress_stage) {
-                    this._inlineSetCurrent(uid, `⏳ ${job.progress_stage} (${Math.round(job.progress_pct)}%)`);
+                    const pct = typeof job.progress_pct === 'number' ? Math.round(job.progress_pct) : 0;
+                    this._inlineSetCurrent(uid, `⏳ ${job.progress_stage} · ${pct}%`);
+                    this._syncStagesFromPoll(uid, job.progress_stage);
                 }
             } catch { /* network error — retry next interval */ }
         }
@@ -845,6 +876,18 @@ export class AnimePipeline {
                 // sampling. Shows elapsed time so the pill feels alive.
                 const stageLabel = bubble.dataset.apCurrentStageLabel || data.stage || '';
                 this._inlineSetCurrent(uid, `${stageLabel} · ${data.elapsed_s}s`);
+                // If ap_stage_start was missed (e.g. SSE buffering), the cell
+                // may still be pending. Promote it to active so the UI reflects
+                // the stage that's actually running.
+                if (data.stage) {
+                    const hbRow = document.getElementById(`ap-stage-${uid}-${data.stage}`);
+                    if (hbRow && hbRow.classList.contains('pending')) {
+                        this._inlineSetStage(uid, data.stage, 'active');
+                        if (!bubble.dataset.apCurrentStageLabel) {
+                            bubble.dataset.apCurrentStageLabel = stageLabel;
+                        }
+                    }
+                }
                 break;
             }
             case 'ap_stage_done': {
@@ -1287,23 +1330,27 @@ export class AnimePipeline {
         const jobId = data.job_id || uid;
         const promptAttr = prompt.replace(/"/g, '&quot;');
 
-        // Close the details and update the summary label to "done"
-        const details = bubble.querySelector('.ap-inline-progress');
-        if (details) {
-            details.open = false;
-            const summary = details.querySelector('.ap-inline-summary');
-            if (summary) {
+        // Collapse the card and update the header to "done"
+        const card = bubble.querySelector('.ap-pipeline-card');
+        if (card) {
+            card.removeAttribute('data-open');
+            const header = card.querySelector('.ap-pipeline-header');
+            if (header) {
+                header.querySelector('.thinking-pill__dots')?.remove();
+                header.querySelector('.ap-inline-timer')?.remove();
+                header.querySelector('.ap-inline-stop-btn')?.remove();
+                const label = header.querySelector('.ap-inline-label');
+                const icon = document.createElement('span');
+                icon.className = 'ap-inline-done-icon';
                 if (wasCancelled) {
-                    const stageLabel = cancelStage
-                        ? ` (ngưng tại ${cancelStage})`
-                        : '';
-                    summary.innerHTML = `
-                        <span class="ap-inline-done-icon">⏸</span>
-                        <span class="ap-inline-label">Đã ngưng — ảnh hiện tại · ${elapsed}s${stageLabel}</span>`;
+                    const stageLabel = cancelStage ? ` (ngưng tại ${cancelStage})` : '';
+                    icon.textContent = '⏸';
+                    header.prepend(icon);
+                    if (label) label.textContent = `Đã ngưng — ảnh hiện tại · ${elapsed}s${stageLabel}`;
                 } else {
-                    summary.innerHTML = `
-                        <span class="ap-inline-done-icon">🎨</span>
-                        <span class="ap-inline-label">✅ Anime Pipeline · ${elapsed}s</span>`;
+                    icon.textContent = '🎨';
+                    header.prepend(icon);
+                    if (label) label.textContent = `✅ Anime Pipeline · ${elapsed}s`;
                 }
             }
         }
@@ -1339,7 +1386,7 @@ export class AnimePipeline {
                         : (g.image_b64 ? 'data:image/png;base64,' + g.image_b64 : '');
                     if (!src) return '';
                     return `<div class="ap-batch-tile" style="position:relative;">
-                        <img src="${src}" alt="Anime Pipeline candidate ${i + 1}" data-igv2-open="${src}" style="width:100%;height:auto;display:block;border-radius:8px;cursor:zoom-in;">
+                        <img src="${src}" alt="Anime Pipeline candidate ${i + 1}" style="width:100%;height:auto;display:block;border-radius:8px;cursor:zoom-in;">
                         <span class="ap-batch-tile-num" style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.6);color:#fff;font-size:11px;padding:2px 6px;border-radius:4px;">#${i + 1}</span>
                     </div>`;
                 }).join('');
@@ -1469,14 +1516,22 @@ export class AnimePipeline {
         }
         bubble.dataset.apFinalized = '1';
         bubble.dataset.apState = 'error';
-        const details = bubble?.querySelector('.ap-inline-progress');
-        if (details) {
-            details.open = true;
-            const label = details.querySelector('.ap-inline-label');
+        const card = bubble?.querySelector('.ap-pipeline-card');
+        if (card) {
+            card.setAttribute('data-open', '');
+            const label = card.querySelector('.ap-inline-label');
             if (label) label.textContent = '❌ ' + message;
             const current = document.getElementById(`ap-current-${uid}`);
             if (current) current.textContent = message;
         }
+        // Mark every stage that is still "pending" with a dim cancelled style
+        // so the user can see the pipeline never reached them.
+        STAGES.forEach(s => {
+            const row = document.getElementById(`ap-stage-${uid}-${s.key}`);
+            if (row && row.classList.contains('pending')) {
+                row.style.opacity = '0.12';
+            }
+        });
     }
 
     closeModal() {
@@ -1978,28 +2033,27 @@ export class AnimePipeline {
         if (!bubbles.length) return;
 
         bubbles.forEach(bubble => {
-            const details = bubble.querySelector('.ap-inline-progress');
+            const card = bubble.querySelector('.ap-pipeline-card');
             const hasResult = bubble.querySelector('.igv2-chat-image img');
 
             if (hasResult) {
                 // Image exists — collapse progress, re-wire buttons
-                if (details) {
-                    details.open = false;
-                    const summary = details.querySelector('.ap-inline-summary');
-                    if (summary) {
-                        const dots = summary.querySelector('.thinking-pill__dots');
-                        if (dots) dots.remove();
-                        const label = summary.querySelector('.ap-inline-label');
+                if (card) {
+                    card.removeAttribute('data-open');
+                    const header = card.querySelector('.ap-pipeline-header');
+                    if (header) {
+                        header.querySelector('.thinking-pill__dots')?.remove();
+                        const label = header.querySelector('.ap-inline-label');
                         if (label && !label.textContent.includes('✅')) {
-                            const timer = summary.querySelector('.ap-inline-timer');
+                            const timer = header.querySelector('.ap-inline-timer');
                             const elapsed = timer?.textContent || '';
                             label.textContent = `✅ Anime Pipeline · ${elapsed}`;
-                            if (timer) timer.remove();
+                            timer?.remove();
                         }
                     }
                 }
                 this._rewireInlineButtons(bubble);
-            } else if (details) {
+            } else if (card) {
                 // No image yet — three possible reasons:
                 // A) Result arrived while bubble was detached → localStorage has it
                 // B) Generation still running in background (user switched tab mid-run)
@@ -2023,16 +2077,16 @@ export class AnimePipeline {
                 // ── Case Q: bubble is sitting in the in-memory queue ─────────
                 const queueIdx = this._queue.findIndex(item => item.uid === uid);
                 if (queueIdx >= 0) {
-                    details.open = true;
-                    const label = details.querySelector('.ap-inline-label');
+                    card.setAttribute('data-open', '');
+                    const label = card.querySelector('.ap-inline-label');
                     if (label) label.textContent = `⏳ Holding ${queueIdx + 1} — chờ pipeline sẵn sàng`;
                     return;
                 }
 
                 // ── Case B: still generating in background ────────────────
                 if (this._running) {
-                    details.open = true;
-                    const label = details.querySelector('.ap-inline-label');
+                    card.setAttribute('data-open', '');
+                    const label = card.querySelector('.ap-inline-label');
                     if (label) label.textContent = '⏳ Đang tạo ảnh nền — sẽ tự cập nhật khi xong';
                     return;
                 }
@@ -2047,15 +2101,13 @@ export class AnimePipeline {
                         keepalive: true,
                     }).catch(() => {});
                 }
-                details.open = true;
-                const label = details.querySelector('.ap-inline-label');
+                card.setAttribute('data-open', '');
+                const label = card.querySelector('.ap-inline-label');
                 if (label) label.textContent = '⚠️ Pipeline bị gián đoạn (F5/mất kết nối)';
-                const dots = details.querySelector('.thinking-pill__dots');
-                if (dots) dots.remove();
-                const timer = details.querySelector('.ap-inline-timer');
-                if (timer) timer.remove();
+                card.querySelector('.thinking-pill__dots')?.remove();
+                card.querySelector('.ap-inline-timer')?.remove();
                 // Disable any leftover Stop button — its job is dead.
-                const stopBtn = details.querySelector('.ap-inline-stop-btn');
+                const stopBtn = card.querySelector('.ap-inline-stop-btn');
                 if (stopBtn) {
                     stopBtn.disabled = true;
                     stopBtn.style.display = 'none';
@@ -2115,11 +2167,11 @@ export class AnimePipeline {
         const bubble = this._createInlineBubble(uid, prompt);
         bubble.dataset.apState = 'holding';
 
-        // Override label to show holding position
-        const details = bubble.querySelector('.ap-inline-progress');
-        const label = details?.querySelector('.ap-inline-label');
+        // Override label to show holding position, hide body
+        const card = bubble.querySelector('.ap-pipeline-card');
+        const label = card?.querySelector('.ap-inline-label');
         if (label) label.textContent = `⏳ Holding ${position} — chờ pipeline sẵn sàng`;
-        if (details) details.open = false;
+        if (card) card.removeAttribute('data-open');
 
         // Stop button is meaningless while holding; keep it hidden
         const stopBtn = bubble.querySelector('.ap-inline-stop-btn');
@@ -2164,9 +2216,9 @@ export class AnimePipeline {
      */
     _activateQueuedBubble(bubble) {
         bubble.dataset.apState = 'active';
-        const details = bubble?.querySelector('.ap-inline-progress');
-        if (details) details.open = false;
-        const lbl = details?.querySelector('.ap-inline-label');
+        const card = bubble?.querySelector('.ap-pipeline-card');
+        if (card) card.setAttribute('data-open', '');
+        const lbl = card?.querySelector('.ap-inline-label');
         if (lbl) lbl.textContent = '⚡ Đang khởi động pipeline...';
         // Stop button stays hidden until job_id arrives via ap_status event
     }

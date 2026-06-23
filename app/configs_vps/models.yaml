@@ -20,16 +20,16 @@ models:
 
   # Standalone LOCAL providers. RuntimePolicy routes only to these entries.
 
-  comfyui-wai-v170:
+  comfyui-wai-v160:
     provider: comfyui
-    endpoint: "waiIllustriousSDXL_v170.safetensors"
+    endpoint: "waiIllustriousSDXL_v160.safetensors"
     location: local
     vram_gb: 6
     cost_usd: 0.0
     tier: local
     capabilities: [t2i, i2i, inpaint, preview]
     max_refs: 1
-    notes: "Canonical anime checkpoint for all standalone tiers."
+    notes: "Canonical WAI/Illustrious anime checkpoint for local standalone tiers."
 
   comfyui-flux2-klein-4b:
     provider: comfyui-native

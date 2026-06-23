@@ -113,13 +113,29 @@ def manifest_to_json(
 
 
 def _build_pass_list(job: AnimePipelineJob) -> list[dict[str, Any]]:
-    """Build the ordered pass list from job execution data."""
+    """Build the ordered pass list from job execution data.
+
+    ``job.stages_executed`` records every loop iteration, while
+    ``stage_timings_ms`` stores only the latest timing per stage. Emitting the
+    raw list makes manifests look like the workflow itself is duplicated. Keep
+    one row per stage and expose a ``runs`` count when a stage repeated.
+    """
     passes: list[dict[str, Any]] = []
+    stage_counts: dict[str, int] = {}
+    ordered_stages: list[str] = []
     for stage in job.stages_executed:
+        stage_counts[stage] = stage_counts.get(stage, 0) + 1
+        if stage in ordered_stages:
+            continue
+        ordered_stages.append(stage)
+
+    for stage in ordered_stages:
         entry: dict[str, Any] = {
             "name": stage,
             "duration_ms": round(job.stage_timings_ms.get(stage, 0.0), 1),
         }
+        if stage_counts.get(stage, 0) > 1:
+            entry["runs"] = stage_counts[stage]
         # Attach model info if we can find it
         model = _model_for_stage(stage, job)
         if model:
@@ -132,7 +148,7 @@ def _build_pass_list(job: AnimePipelineJob) -> list[dict[str, Any]]:
 
 def _model_for_stage(stage: str, job: AnimePipelineJob) -> Optional[str]:
     """Resolve the model used for a given stage from intermediates metadata."""
-    for img in job.intermediates:
+    for img in reversed(job.intermediates):
         if img.stage == stage:
             model = img.metadata.get("model") or img.metadata.get("checkpoint")
             if model:

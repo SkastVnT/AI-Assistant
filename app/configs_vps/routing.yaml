@@ -107,7 +107,7 @@ task_routes:
 # There are intentionally no API or cross-device fallbacks.
 offline_task_routes:
   t2i:
-    primary: comfyui-wai-v170
+    primary: comfyui-wai-v160
     fallbacks: []
     location: local
     notes: "Canonical local anime render."
@@ -122,7 +122,7 @@ offline_task_routes:
     location: local
     notes: "Native ComfyUI Qwen Image Edit workflow with local lineage."
   inpaint:
-    primary: comfyui-wai-v170
+    primary: comfyui-wai-v160
     fallbacks: []
     location: local
     notes: "Local SDXL inpaint graph."
@@ -157,7 +157,7 @@ offline_task_routes:
     location: local
     notes: "Local YOLO detailer when provisioned."
   preview:
-    primary: comfyui-wai-v170
+    primary: comfyui-wai-v160
     fallbacks: []
     location: local
     notes: "Laptop-safe local preview."

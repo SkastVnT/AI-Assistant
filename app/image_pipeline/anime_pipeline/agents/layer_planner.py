@@ -348,7 +348,7 @@ class LayerPlannerAgent:
             expected_output=(
                 "Structurally sound draft with correct pose and composition"
             ),
-            lora_models=self._config.default_loras,
+            lora_models=self._default_loras(),
             **identity_adapter,
         )
         plan.passes.append(composition_pass)
@@ -407,7 +407,7 @@ class LayerPlannerAgent:
                 expected_output=(
                     "Cleaned silhouette, simplified background, stable face block-in"
                 ),
-                lora_models=self._config.default_loras,
+                lora_models=self._default_loras(),
                 **identity_adapter,
             )
             plan.passes.append(cleanup_pass)
@@ -451,7 +451,7 @@ class LayerPlannerAgent:
             expected_output=(
                 "Final anime polish: eyes, hair, costume shading, clean linework"
             ),
-            lora_models=self._config.default_loras,
+            lora_models=self._default_loras(),
             **identity_adapter,
         )
         plan.passes.append(beauty_pass)
@@ -479,6 +479,14 @@ class LayerPlannerAgent:
             logger.warning("[LayerPlanner] Plan validation issues: %s", errors)
 
         return plan
+
+    def _default_loras(self) -> list[dict[str, object]]:
+        """Return an isolated copy of the configured default LoRA stack."""
+        return [
+            dict(lora)
+            for lora in (self._config.default_loras or [])
+            if isinstance(lora, dict)
+        ]
 
     # ── Orientation ───────────────────────────────────────────────────
 
@@ -684,7 +692,7 @@ class LayerPlannerAgent:
             if additions:
                 combined = combined + ", " + ", ".join(additions)
 
-        return combined
+        return self._dedupe_prompt_tags(combined)
 
     @staticmethod
     def _apply_pass_prompt(base_prompt: str, override: PassOverride) -> str:
@@ -696,6 +704,19 @@ class LayerPlannerAgent:
         if override.prompt_suffix:
             parts.append(override.prompt_suffix)
         return ", ".join(parts)
+
+    @staticmethod
+    def _dedupe_prompt_tags(prompt: str) -> str:
+        """Deduplicate comma-separated prompt tags while preserving order."""
+        seen: set[str] = set()
+        tags: list[str] = []
+        for tag in prompt.split(","):
+            cleaned = tag.strip()
+            key = cleaned.lower()
+            if cleaned and key not in seen:
+                seen.add(key)
+                tags.append(cleaned)
+        return ", ".join(tags)
 
     def _build_style_tags(self, job: AnimePipelineJob, va) -> list[str]:
         tags = ["anime", "vibrant_colors", "colorful"]

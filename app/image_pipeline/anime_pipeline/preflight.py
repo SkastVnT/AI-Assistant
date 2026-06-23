@@ -256,6 +256,22 @@ def run_preflight(
                     )
     report.active_models.extend(checkpoints)
 
+    for lora in cfg.default_loras:
+        if not isinstance(lora, dict) or lora.get("enabled", True) is False:
+            continue
+        lora_name = str(
+            lora.get("name") or lora.get("model") or lora.get("filename") or ""
+        ).strip()
+        if not lora_name:
+            continue
+        _check_path(
+            report,
+            f"lora:{lora_name}",
+            comfy_root / "models" / "loras" / Path(lora_name),
+            required=True,
+            detail="Active default LoRA",
+        )
+
     for layer in cfg.structure_layers:
         if not layer.enabled or not layer.controlnet_model:
             continue
@@ -275,7 +291,7 @@ def run_preflight(
     for item in manifest_assets:
         destination = str(item.get("destination", ""))
         if not destination or destination.endswith(
-            "waiIllustriousSDXL_v170.safetensors"
+            "waiIllustriousSDXL_v160.safetensors"
         ):
             continue
         path = Path(destination)

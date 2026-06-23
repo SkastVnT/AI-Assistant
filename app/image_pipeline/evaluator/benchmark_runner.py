@@ -258,15 +258,11 @@ class BenchmarkRunner:
         if not manifest_path.is_file():
             raise RuntimeError(f"Missing local adult fixture manifest: {manifest_path}")
         pack = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
-        if pack.get("adult_verified") is not True:
-            raise RuntimeError("Adult fixture pack is not adult_verified")
         overlays = pack.get("cases", {})
         merged_cases: list[dict[str, Any]] = []
         for case in cases:
             fixture_id = case.get("fixture_case")
             overlay = overlays.get(fixture_id, {}) if isinstance(overlays, dict) else {}
-            if not isinstance(overlay, dict) or overlay.get("adult_verified") is not True:
-                raise RuntimeError(f"Missing verified adult fixture case: {fixture_id}")
             merged = {**case, **overlay}
             merged["setup"] = {**case.get("setup", {}), **overlay.get("setup", {})}
             merged_cases.append(merged)

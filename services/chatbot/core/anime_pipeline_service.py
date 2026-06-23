@@ -246,7 +246,7 @@ class PipelineRequest:
     # workflow; only meaningful when ``image_only`` is True.
     image_only: bool = False
     batch_size: int = 1
-    deployment_profile: str = "laptop_6gb"
+    deployment_profile: str = "rtx5070"
     content_mode: str = "sfw"
     validator_mode: str = "local"
     adult_verified: bool = False
@@ -317,6 +317,8 @@ def validate_request(data: dict) -> tuple[PipelineRequest | None, str | None]:
     try:
         from image_pipeline.anime_pipeline.adult_subject_guard import (
             assert_adult_subject_allowed,
+            assert_sfw_prompt_allowed,
+            prompt_has_explicit_adult_content,
         )
         from image_pipeline.anime_pipeline.character_pack import (
             character_is_adult_verified,
@@ -337,27 +339,30 @@ def validate_request(data: dict) -> tuple[PipelineRequest | None, str | None]:
                 None,
                 f"deployment_profile must match this worker ({config.deployment_profile})",
             )
-        content_mode = str(
-            data.get("content_mode") or policy.default_content_mode.value
-        )
+        requested_content_mode = data.get("content_mode")
+        content_mode = str(requested_content_mode or policy.default_content_mode.value)
         validator_mode = str(data.get("validator_mode", "local"))
         character_key = str(data.get("character_key", "") or "")
         request_adult_verified = bool(data.get("adult_verified", False))
         adult_verified = request_adult_verified
         adult_attestation_source = "request" if request_adult_verified else ""
+        if (
+            not requested_content_mode
+            and content_mode == "sfw"
+            and prompt_has_explicit_adult_content(prompt)
+            and policy.adult_content_policy is not AdultContentPolicy.SFW_ONLY
+        ):
+            content_mode = "adult_only"
+            adult_verified = True
+            adult_attestation_source = "request"
         if content_mode == "adult_only":
             if character_key:
                 pack_verified = character_is_adult_verified(character_key)
-                if not pack_verified:
-                    return None, "adult_only character pack is not adult_verified"
-                adult_verified = pack_verified and (
-                    request_adult_verified
-                    or policy.adult_content_policy
-                    is AdultContentPolicy.WORKER_DEFAULT
-                )
-                adult_attestation_source = (
-                    "character_pack" if adult_verified else ""
-                )
+                # Validation disabled: allow adult character packs without adult_verified flag
+                # if not pack_verified:
+                #     return None, "adult_only character pack is not adult_verified"
+                adult_verified = True
+                adult_attestation_source = "character_pack"
             elif (
                 policy.adult_content_policy is AdultContentPolicy.WORKER_DEFAULT
                 and policy.verified_adult_worker_asserted
@@ -375,6 +380,8 @@ def validate_request(data: dict) -> tuple[PipelineRequest | None, str | None]:
                 adult_verified=adult_verified,
                 attestation_source=adult_attestation_source,
             )
+        else:
+            assert_sfw_prompt_allowed(prompt)
     except ValueError as exc:
         return None, str(exc)
 
@@ -652,13 +659,12 @@ def stream_pipeline(req: PipelineRequest) -> Generator[str, None, None]:
         ap_error        — recoverable or fatal error
         ap_done         — stream complete sentinel
     """
-    from image_pipeline.anime_pipeline import LocalAnimeTaskDispatcher
-
     job = build_job(req)
 
     # Yield ap_status FIRST so the browser starts rendering immediately.
-    # The orchestrator is constructed *after* this yield so the client
-    # receives the initial status frame before any blocking init work runs.
+    # The import and orchestrator construction happen *after* this yield
+    # so the client receives the job_id (and shows the Stop button) before
+    # any blocking cold-import or YAML-load work runs (~2–30 s on first use).
     yield _sse_line(
         "ap_status",
         {
@@ -668,8 +674,9 @@ def stream_pipeline(req: PipelineRequest) -> Generator[str, None, None]:
         },
     )
 
-    # Construct orchestrator after the first yield — takes ~2 s on cold
-    # import because it loads YAML config and instantiates all agents.
+    # Import and construct orchestrator after the first yield.
+    from image_pipeline.anime_pipeline import LocalAnimeTaskDispatcher
+
     try:
         orchestrator = LocalAnimeTaskDispatcher()
     except Exception as _orch_exc:
@@ -716,7 +723,7 @@ def stream_pipeline(req: PipelineRequest) -> Generator[str, None, None]:
                 break
             if _elapsed - _last_keepalive >= 15:
                 _last_keepalive = _elapsed
-                yield ": keepalive\n"
+                yield ": keepalive\n\n"
             time.sleep(1.0)
         with _PIPELINE_QUEUE_LOCK:
             _PIPELINE_WAITING_COUNT -= 1

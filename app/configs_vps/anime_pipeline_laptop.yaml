@@ -26,7 +26,7 @@ vram:
 #   Steps: 18–22 adequate at fp8 quality level
 #
 # Option B — SD 1.5 anime (~2 GB VRAM, maximum headroom)
-#   Filename: anything-v5-PrtRE.safetensors
+#   Filename: legacy SD1.5 checkpoints
 #              counterfeitV30_v30.safetensors
 #              dreamshaper_8.safetensors
 #   Type: sd15   (must change `type:` field below to sd15)
@@ -46,9 +46,9 @@ models:
   composition:
     # ── 6 GB recommendation: Option B (SD 1.5) ────────────────────
     # checkpoint: "waiIllustriousSDXL_v160_fp8.safetensors"  # Option A SDXL fp8, tight on 6 GB
-    checkpoint: "anything-v5-PrtRE.safetensors"               # Option B SD1.5 — recommended for 6 GB
+    checkpoint: "waiIllustriousSDXL_v160.safetensors"
     # checkpoint: "sd_xl_base_1.0_fp8.safetensors"            # Option C SDXL base
-    type: sd15          # sd15 for Option B; sdxl for Options A/C
+    type: sdxl
     sampler: euler_ancestral
     scheduler: karras
     steps: 20           # 20 vs 28 production — fast enough for flow testing
@@ -58,8 +58,8 @@ models:
 
   beauty:
     # checkpoint: "waiIllustriousSDXL_v160_fp8.safetensors"  # Option A
-    checkpoint: "anything-v5-PrtRE.safetensors"               # Option B — 6 GB recommended
-    type: sd15          # sd15 for Option B
+    checkpoint: "waiIllustriousSDXL_v160.safetensors"
+    type: sdxl
     sampler: euler_ancestral
     scheduler: karras
     steps: 15           # 15 vs 30 production — beauty pass still detectable
@@ -70,8 +70,8 @@ models:
 
   final:
     # checkpoint: "waiIllustriousSDXL_v160_fp8.safetensors"  # Option A
-    checkpoint: "anything-v5-PrtRE.safetensors"               # Option B — 6 GB recommended
-    type: sd15          # sd15 for Option B
+    checkpoint: "waiIllustriousSDXL_v160.safetensors"
+    type: sdxl
     sampler: euler_ancestral
     scheduler: karras
     steps: 18
@@ -80,9 +80,15 @@ models:
     vae: null
     denoise_strength: 0.30
 
-  # LoRAs: disable all on laptop — saves VRAM and speeds up load
+  # Legacy WAI quality stack recovered from the 2026-04-27 good run.
   loras:
-    defaults: []
+    defaults:
+      - name: "Anime_artistic_2.safetensors"
+        strength: 0.65
+        enabled: true
+      - name: "HueSpark1llust.safetensors"
+        strength: 0.35
+        enabled: true
 
   upscale:
     model: "RealESRGAN_x4plus_anime_6B"
@@ -111,13 +117,44 @@ resolutions:
 
 
 # ── Structure Lock (ControlNet) ─────────────────────────────────────
-# Disabled on laptop:
-#   - SD1.5 ControlNet models are architecturally incompatible with SDXL
-#   - SDXL-native ControlNet models require extra VRAM (2–4 GB)
-#   - Pipeline flow is fully exercised without ControlNet
+# 1 layer max on 8 GB — all optional so pipeline continues on OOM.
+# xinsir Union SDXL model (~2 GB incremental on top of base model).
+
 structure_lock:
-  max_simultaneous: 0
-  layers: []
+  max_simultaneous: 1
+  layers:
+    - type: openpose
+      preprocessor: "DWPreprocessor"
+      controlnet_model: "xinsir-controlnet-union-sdxl-1.0.safetensors"
+      union_control_type: openpose
+      strength: 0.75
+      start_percent: 0.0
+      end_percent: 1.0
+      priority: 0
+      optional: true
+      enabled: true
+
+    - type: lineart_anime
+      preprocessor: "AnimeLineArtPreprocessor"
+      controlnet_model: "xinsir-controlnet-union-sdxl-1.0.safetensors"
+      union_control_type: canny/lineart/anime_lineart/mlsd
+      strength: 0.65
+      start_percent: 0.0
+      end_percent: 0.8
+      priority: 1
+      optional: true
+      enabled: true
+
+    - type: depth
+      preprocessor: "DepthAnythingV2Preprocessor"
+      controlnet_model: "xinsir-controlnet-union-sdxl-1.0.safetensors"
+      union_control_type: depth
+      strength: 0.45
+      start_percent: 0.0
+      end_percent: 0.6
+      priority: 2
+      optional: true
+      enabled: true
 
 
 # ── Vision Analyst ──────────────────────────────────────────────────

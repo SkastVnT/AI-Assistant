@@ -4,7 +4,7 @@ deployment:
   allowed_internal_origins:
     - http://127.0.0.1:8188
     - http://127.0.0.1:8080
-  adult_content_policy: sfw_only
+  adult_content_policy: worker_default
 capabilities:
   flux2_klein: false
   qwen_image_edit: false
@@ -14,22 +14,30 @@ capabilities:
   pre_upscale_v2: false
 models:
   composition:
-    checkpoint: waiIllustriousSDXL_v170.safetensors
+    checkpoint: waiIllustriousSDXL_v160.safetensors
     model_type: sdxl
     steps: 22
     cfg: 5.0
   beauty:
-    checkpoint: waiIllustriousSDXL_v170.safetensors
+    checkpoint: waiIllustriousSDXL_v160.safetensors
     model_type: sdxl
     steps: 18
     cfg: 5.0
     denoise_strength: 0.18
   final:
-    checkpoint: waiIllustriousSDXL_v170.safetensors
+    checkpoint: waiIllustriousSDXL_v160.safetensors
     model_type: sdxl
     steps: 18
     cfg: 5.0
     denoise_strength: 0.15
+  loras:
+    defaults:
+      - name: Anime_artistic_2.safetensors
+        strength: 0.65
+        enabled: true
+      - name: HueSpark1llust.safetensors
+        strength: 0.35
+        enabled: true
 resolutions:
   portrait: [640, 896]
   landscape: [896, 640]
@@ -39,21 +47,24 @@ structure_lock:
   layers:
     - type: lineart_anime
       preprocessor: AnimeLineArtPreprocessor
-      controlnet_model: control_v11p_sd15_lineart_anime
-      strength: 0.85
+      controlnet_model: xinsir-controlnet-union-sdxl-1.0.safetensors
+      union_control_type: canny/lineart/anime_lineart/mlsd
+      strength: 0.65
       priority: 1
       optional: true
       enabled: false
     - type: depth
       preprocessor: DepthAnythingV2Preprocessor
-      controlnet_model: control_v11f1p_sd15_depth
-      strength: 0.55
+      controlnet_model: xinsir-controlnet-union-sdxl-1.0.safetensors
+      union_control_type: depth
+      strength: 0.45
       priority: 2
       optional: true
       enabled: false
     - type: canny
       preprocessor: CannyEdgePreprocessor
-      controlnet_model: control_v11p_sd15_canny
+      controlnet_model: xinsir-controlnet-union-sdxl-1.0.safetensors
+      union_control_type: canny/lineart/anime_lineart/mlsd
       strength: 0.35
       priority: 3
       optional: true
