@@ -944,6 +944,8 @@ export async function runStreamingChatFlow(app, ctx) {
             thinkingContainer, thinkingReceived, thinkingSteps, thinkingData,
             fullResponse, streamCompleteData, streamSuggestions, streamFailed,
             streamMsgDiv, streamTextDiv, elements,
+            message,           // original user prompt — used by the image bridge
+            animeUid: null,    // set on first ap_* frame (Thinking-with-Images)
         };
 
         try {
@@ -1173,6 +1175,30 @@ export function buildStreamCallbacks(app, s) {
         onError: (data) => {
             console.error('[Stream] Error:', data.error);
             s.streamFailed = true;
+        },
+        // ── Thinking-with-Images bridge ─────────────────────────────────
+        // The chat stream forwards the anime pipeline's ap_* frames. On the
+        // first one, mount an inline image bubble (above the caption message
+        // div) and drive it via the existing renderer. The short LLM caption
+        // arrives afterwards as normal `chunk` events → the assistant text
+        // bubble; `complete` finalizes/saves the turn.
+        onAnimeEvent: (name, data) => {
+            if (!window.animePipeline || !window.animePipeline.injectSSEEvent) return;
+            if (!s.animeUid) {
+                s.animeUid = 'apc-' + ((data && data.job_id) || Date.now().toString(36));
+                const bubble = window.animePipeline.beginInlineFromChat(
+                    s.animeUid, s.message || '',
+                    { chatContainer: s.elements && s.elements.chatContainer },
+                );
+                // Keep the caption (normal streaming text) bubble hidden until
+                // its first chunk, and place the image bubble ABOVE it so the
+                // turn reads image → caption.
+                if (s.streamMsgDiv) s.streamMsgDiv.style.display = 'none';
+                if (bubble && s.streamMsgDiv && s.streamMsgDiv.parentNode) {
+                    s.streamMsgDiv.parentNode.insertBefore(bubble, s.streamMsgDiv);
+                }
+            }
+            window.animePipeline.injectSSEEvent(s.animeUid, name, data);
         },
     };
 }

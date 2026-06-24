@@ -16,10 +16,10 @@
 .ap-select {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-primary);
     border-radius: 8px;
-    background: var(--bg-secondary, var(--bg));
-    color: var(--text);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     font-size: 14px;
     font-family: inherit;
     transition: border-color 0.2s;
@@ -161,7 +161,7 @@
 .ap-debug-preview img {
     width: 100%;
     border-radius: 6px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-primary);
 }
 .ap-debug-preview__label {
     font-size: 11px;
@@ -221,9 +221,9 @@
     flex-shrink: 0;
     padding: 2px 8px;
     font-size: 11px;
-    border: 1px solid var(--border);
-    background: var(--bg-secondary, var(--bg));
-    color: var(--text);
+    border: 1px solid var(--border-primary);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     border-radius: 5px;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s;
@@ -232,14 +232,6 @@
     background: rgba(239, 68, 68, 0.1);
     border-color: #ef4444;
     color: #ef4444;
-}
-
-.ap-pipeline-status {
-    padding: 6px 14px 4px;
-    font-size: 12px;
-    color: var(--text-tertiary);
-    font-style: italic;
-    min-height: 22px;
 }
 
 .ap-inline-stages {
@@ -260,9 +252,9 @@
     padding: 5px 12px;
     border-radius: 6px;
     font-size: 13px;
-    border: 1px solid var(--border);
-    background: var(--bg-secondary, var(--bg));
-    color: var(--text);
+    border: 1px solid var(--border-primary);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s;
 }
@@ -305,12 +297,12 @@
 .ap-layer-chip--dim {
     background: var(--bg-secondary);
     color: var(--text-tertiary);
-    border-color: var(--border);
+    border-color: var(--border-primary);
 }
 .ap-layer-chip--res {
     background: transparent;
     color: var(--text-tertiary);
-    border-color: var(--border);
+    border-color: var(--border-primary);
     font-variant-numeric: tabular-nums;
 }
 

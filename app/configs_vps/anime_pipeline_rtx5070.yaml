@@ -51,7 +51,7 @@ deployment:
 
 models:
   composition:
-    checkpoint: "waiIllustriousSDXL_v160.safetensors"
+    checkpoint: "waiIllustriousSDXL_v170.safetensors"
     type: sdxl
     sampler: dpmpp_2m       # faster sampler for test iterations
     scheduler: karras
@@ -61,7 +61,7 @@ models:
     vae: null
 
   beauty:
-    checkpoint: "waiIllustriousSDXL_v160.safetensors"
+    checkpoint: "waiIllustriousSDXL_v170.safetensors"
     type: sdxl
     sampler: dpmpp_2m_sde
     scheduler: karras
@@ -72,7 +72,7 @@ models:
     denoise_strength: 0.45  # keep prod value — beauty pass needs the redraw budget
 
   final:
-    checkpoint: "waiIllustriousSDXL_v160.safetensors"
+    checkpoint: "waiIllustriousSDXL_v170.safetensors"
     type: sdxl
     sampler: euler_ancestral
     scheduler: karras
@@ -85,12 +85,16 @@ models:
   # Legacy WAI quality stack recovered from the 2026-04-27 good run.
   loras:
     defaults:
+      # TEMP (Thinking-with-Images Phase 1a test): disabled because the LoRA
+      # files are not present in ComfyUI/models/loras yet. Re-enable after
+      # downloading them — preflight marks missing default_loras as required
+      # (blocked). Set enabled: true once the .safetensors are in place.
       - name: "Anime_artistic_2.safetensors"
         strength: 0.65
-        enabled: true
+        enabled: false
       - name: "HueSpark1llust.safetensors"
         strength: 0.35
-        enabled: true
+        enabled: false
 
   upscale:
     model: "RealESRGAN_x4plus_anime_6B"

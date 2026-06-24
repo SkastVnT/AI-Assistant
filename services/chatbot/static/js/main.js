@@ -4,7 +4,7 @@
  */
 
 import { ChatManager } from './modules/chat-manager.js?v=20260422';
-import { APIService } from './modules/api-service.js?v=20260422';
+import { APIService } from './modules/api-service.js?v=20260624a';
 import { UIUtils } from './modules/ui-utils.js';
 import { MessageRenderer } from './modules/message-renderer.js?v=20260509a';
 import { FileHandler } from './modules/file-handler.js';
@@ -15,7 +15,7 @@ import { VideoGen } from './modules/video-gen.js';
 import { ExportHandler } from './modules/export-handler.js';
 import { SplitViewManager } from './modules/split-view.js';
 import { initLanguage } from './language-switcher.js';
-import { AnimePipeline } from './modules/anime-pipeline.js?v=20260509a';
+import { AnimePipeline } from './modules/anime-pipeline.js?v=20260624a';
 import { initOverlayActions } from './modules/overlay-actions.js';
 import { initOverlayManager, registerOverlay, enablePanelMode, openOverlay, closeOverlay, toggleOverlay, isOpen } from './modules/overlay-manager.js?v=20260508';
 import { domToStructured, legacyHtmlToStructured } from './modules/message-model.js';
@@ -43,6 +43,22 @@ class ChatBotApp {
         // Expose chatManager and chatApp globally
         window.chatManager = this.chatManager;
         window.chatApp = this;
+        // Expose the anime pipeline instance so the Thinking-with-Images
+        // bridge (and the legacy provider dialog in send-message-helpers.js)
+        // can reach it via window.animePipeline. Without this, the bridge's
+        // window.animePipeline.injectSSEEvent is undefined and image frames
+        // are silently dropped.
+        window.animePipeline = this.animePipeline;
+
+        // Resolve the Thinking-with-Images bridge flag ONCE in the background
+        // so the send path can read it synchronously and never block on a
+        // (slow) health probe. Default false until resolved → safe fallback
+        // to the legacy modal flow for a send fired in the first moment.
+        if (window.__IMAGE_CHAT_BRIDGE === undefined) window.__IMAGE_CHAT_BRIDGE = false;
+        fetch('/api/anime-pipeline/health')
+            .then(r => r.json())
+            .then(d => { window.__IMAGE_CHAT_BRIDGE = !!d.chat_bridge; })
+            .catch(() => { window.__IMAGE_CHAT_BRIDGE = false; });
         window.uiUtils = this.uiUtils;
         window.appConfirm = (m, opts) => this.uiUtils.showConfirmAsync(m, opts);
         window.appPrompt  = (m, defVal, opts) => this.uiUtils.showPromptAsync(m, defVal, opts);
@@ -740,6 +756,17 @@ class ChatBotApp {
             return;
         }
 
+        // ── Double-click guard ──────────────────────────────────────────
+        // Only catches an accidental rapid double/triple click (< 800ms) so
+        // it never fires two requests at once. Does NOT affect normal sending
+        // (typing + send is always far more than 800ms apart).
+        const _nowMs = performance.now();
+        if (this._lastSendMs && (_nowMs - this._lastSendMs) < 800) {
+            console.warn('[send] ignored accidental double-click');
+            return;
+        }
+        this._lastSendMs = _nowMs;
+
         // Get active tools early — needed for routing
         const activeTools = window.getActiveTools ? window.getActiveTools() : Array.from(this.activeTools);
 
@@ -747,7 +774,19 @@ class ChatBotApp {
         // Route to image gen if: (1) tool is ON, OR (2) message looks like an image request
         const imageGenToolActive = activeTools.includes('image-generation');
         const isImageIntent = message && (imageGenToolActive || ImageGenV2.isImageRequest(message));
-        if (isImageIntent) {
+
+        // ── Thinking-with-Images bridge gate ─────────────────────────────
+        // The flag is resolved ONCE at app init (non-blocking — see the
+        // background fetch in the constructor) and cached on
+        // window.__IMAGE_CHAT_BRIDGE. Read it SYNCHRONOUSLY here. We must NOT
+        // await a health probe in the click path — /api/anime-pipeline/health
+        // runs a slow check_availability(probe_remote=True), and awaiting it
+        // froze the Send button on the first image prompt.
+        const chatBridgeOn = window.__IMAGE_CHAT_BRIDGE === true;
+
+        // Bridge OFF → legacy modal/panel flow (unchanged). Bridge ON → skip
+        // this block and fall through to the normal /chat/stream send.
+        if (isImageIntent && !chatBridgeOn) {
             console.log('[App] Image generation routing:', imageGenToolActive ? 'tool active' : 'intent detected');
             const timestamp = this.uiUtils.formatTimestamp(new Date());
             this.messageRenderer.addMessage(
@@ -1034,7 +1073,10 @@ class ChatBotApp {
         // If image-generation tool is active, show inline loading placeholder
         let imageLoadingPlaceholder = null;
         const hasImageTool = activeTools.includes('image-generation');
-        if (hasImageTool) {
+        // In bridge mode the inline image bubble (ap_* renderer) IS the loading
+        // indicator, so skip the legacy "Đang tạo ảnh" placeholder.
+        const _forceImageBridge = isImageIntent && !!chatBridgeOn;
+        if (hasImageTool && !_forceImageBridge) {
             const placeholder = document.createElement('div');
             placeholder.className = 'message assistant';
             placeholder.innerHTML = `
@@ -1083,6 +1125,7 @@ class ChatBotApp {
             let thinkingReceived = false;
             let streamCompleteData = {};
             let streamSuggestions = [];
+            let animeUid = null;  // Thinking-with-Images: id of the inline image bubble
             const _streamStartMs = performance.now();
 
             // Prepare streaming message div for progressive rendering
@@ -1130,6 +1173,7 @@ class ChatBotApp {
                         skill: window.skillManager ? window.skillManager.getActiveSkillId() : '',
                         conversationId: _conversationId,
                         generatedImages: _recentGenImages,
+                        forceImageBridge: _forceImageBridge,
                         ...window.getAdvancedModelParams(),
                     },
                     this.currentAbortController.signal,
@@ -1217,6 +1261,31 @@ class ChatBotApp {
                         onError: (data) => {
                             console.error('[Stream] Error:', data.error);
                             streamFailed = true;
+                        },
+                        // ── Thinking-with-Images bridge ──────────────────
+                        // The chat stream forwards the anime pipeline's ap_*
+                        // frames. Mount an inline image bubble (above the
+                        // caption text div) on the first frame, then drive it
+                        // via the existing renderer. The short LLM caption
+                        // arrives afterwards as normal `chunk` events.
+                        onAnimeEvent: (name, data) => {
+                            if (!window.animePipeline || !window.animePipeline.injectSSEEvent) {
+                                console.warn('[bridge] injectSSEEvent missing — stale anime-pipeline.js cache?', name);
+                                return;
+                            }
+                            if (!animeUid) {
+                                animeUid = 'apc-' + ((data && data.job_id) || Date.now().toString(36));
+                                console.log('[bridge] image bubble start, uid=', animeUid);
+                                const bubble = window.animePipeline.beginInlineFromChat(
+                                    animeUid, message,
+                                    { chatContainer: elements.chatContainer },
+                                );
+                                if (streamMsgDiv) streamMsgDiv.style.display = 'none';
+                                if (bubble && streamMsgDiv && streamMsgDiv.parentNode) {
+                                    streamMsgDiv.parentNode.insertBefore(bubble, streamMsgDiv);
+                                }
+                            }
+                            window.animePipeline.injectSSEEvent(animeUid, name, data);
                         },
                     }
                 );

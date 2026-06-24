@@ -57,6 +57,15 @@ export class AnimePipeline {
         /** UID of the generation currently being streamed. */
         this._runningUid = null;
 
+        /**
+         * Per-uid run state for bubbles driven by the CHAT SSE stream
+         * (the "Thinking with Images" bridge), keyed by uid:
+         *   { bubble, prompt, startTime, chatContainer, timerInterval, savedImage }
+         * Separate from _runningUid so a chat-bridged image turn never
+         * collides with this module's own /api/anime-pipeline/stream runs.
+         */
+        this._chatBridgeRuns = new Map();
+
         // F5 / tab-close orphan-job cleanup. Without this the backend
         // pipeline keeps running (and eats GPU + the 60s queue slot)
         // long after the user navigated away. We POST cancel beacons
@@ -500,6 +509,103 @@ export class AnimePipeline {
             });
         }
         return div;
+    }
+
+    // ── Thinking-with-Images bridge (chat-stream driven) ─────────────────
+    //
+    // These two public methods let the CHAT SSE stream (api-service.js)
+    // drive the inline bubble instead of this module's own
+    // /api/anime-pipeline/stream consumer. The backend bridge in
+    // routes/stream.py forwards the pipeline's ap_* frames verbatim into
+    // /chat/stream; send-message-helpers.js calls beginInlineFromChat()
+    // once, then injectSSEEvent() for every ap_* frame. No new renderer is
+    // built — we reuse _createInlineBubble + _handleInlineEvent wholesale.
+
+    /**
+     * Create + mount an inline image bubble that will be fed by the chat
+     * SSE stream. Returns the bubble element (so the caller can reposition
+     * it, e.g. above the caption message div). Does NOT fetch anything.
+     *
+     * @param {string} uid   stable id for this chat-bridged image turn
+     * @param {string} prompt original user prompt (for result metadata)
+     * @param {object} opts   { chatContainer?, parentEl? }
+     *                        parentEl reserved for Phase 1b (nest under a
+     *                        thinking-section); defaults to chatContainer.
+     */
+    beginInlineFromChat(uid, prompt, opts = {}) {
+        const chatContainer = opts.chatContainer
+            || document.getElementById('chatContainer')
+            || document.querySelector('.chat-container');
+        if (!chatContainer) return null;
+        const parentEl = opts.parentEl || chatContainer;
+
+        const bubble = this._createInlineBubble(uid, prompt || '');
+        parentEl.appendChild(bubble);
+        try { chatContainer.scrollTop = chatContainer.scrollHeight; } catch (_) { /* noop */ }
+
+        const startTime = Date.now();
+        const timerEl = document.getElementById(`ap-timer-${uid}`);
+        const timerInterval = setInterval(() => {
+            if (!timerEl || !timerEl.isConnected) { clearInterval(timerInterval); return; }
+            timerEl.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+        }, 200);
+
+        this._chatBridgeRuns.set(uid, {
+            bubble,
+            prompt: prompt || '',
+            startTime,
+            chatContainer,
+            timerInterval,
+            savedImage: false,
+        });
+        return bubble;
+    }
+
+    /**
+     * Push a single pre-parsed SSE event (forwarded from the chat stream)
+     * into the inline bubble renderer. Drives the full _handleInlineEvent
+     * dispatch so a chat-bridged bubble behaves exactly like a native run
+     * (ap_status job_id capture, ap_queued, ap_preview, ap_refine,
+     * ap_result, ap_error, …).
+     *
+     * Duplicate-save guard: only the FIRST ap_result registers the image
+     * asset (addGeneratedImage) / finalizes; the chat `complete` event also
+     * persists the turn, so a re-entrant ap_result must not double-add.
+     */
+    injectSSEEvent(uid, name, data) {
+        const run = this._chatBridgeRuns.get(uid);
+        if (!run) { console.warn('[bridge] injectSSEEvent: no run for uid', uid, name); return; }
+        const bubble = document.getElementById(`ap-inline-${uid}`) || run.bubble;
+        if (!bubble) { console.warn('[bridge] injectSSEEvent: no bubble for uid', uid); return; }
+        if (name === 'ap_result') {
+            console.log('[bridge] ap_result: connected=', bubble.isConnected,
+                'local_url=', !!(data && data.local_url),
+                'image_b64=', !!(data && data.image_b64),
+                'images=', Array.isArray(data && data.images) ? data.images.length : 0);
+        }
+
+        if (name === 'ap_result') {
+            if (run.savedImage) return;  // guard: finalize/persist once
+            run.savedImage = true;
+        }
+
+        try {
+            this._handleInlineEvent(
+                name, data, bubble, uid, run.prompt, run.startTime, run.chatContainer,
+            );
+        } catch (e) {
+            // eslint-disable-next-line no-console
+            console.error('[anime-pipeline] injectSSEEvent failed:', e?.message || e);
+        }
+
+        // Terminal pipeline events: stop the timer; release run state on
+        // ap_done / ap_error (ap_done always trails ap_result from the bridge).
+        if (name === 'ap_result' || name === 'ap_error' || name === 'ap_done') {
+            clearInterval(run.timerInterval);
+        }
+        if (name === 'ap_done' || name === 'ap_error') {
+            this._chatBridgeRuns.delete(uid);
+        }
     }
 
     /** Forcefully finalize the bubble as "stopped + exported best layer"

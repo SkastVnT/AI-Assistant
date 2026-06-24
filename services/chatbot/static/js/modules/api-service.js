@@ -123,7 +123,15 @@ export class APIService {
             skill_auto_route: params.skillAutoRoute !== false ? 'true' : 'false',
             conversation_id: params.conversationId || '',
             generated_images: Array.isArray(params.generatedImages) ? params.generatedImages : [],
+            // Thinking-with-Images: explicit signal that the frontend classified
+            // this as an image request, so the backend bridge engages reliably
+            // regardless of its own keyword router.
+            force_image_bridge: params.forceImageBridge || false,
         };
+
+        // Forward image-bridge run options (mode-card) into the pipeline request.
+        if (params.imageOnly != null) body.image_only = !!params.imageOnly;
+        if (params.batchSize != null) body.batch_size = params.batchSize;
 
         // Include images for vision models (base64 data URLs)
         if (params.images && params.images.length > 0) {
@@ -179,6 +187,13 @@ export class APIService {
             };
         }
 
+        // currentEvent MUST persist across reader reads. A large SSE frame
+        // (e.g. ap_result carrying a multi-MB base64 image) splits its
+        // `event:` and `data:` lines across separate network chunks; if this
+        // is declared inside the read loop the event name is lost and the
+        // frame is dropped — exactly why bridged image results showed a
+        // caption but no image. (Mirrors anime-pipeline.js _consumeInlineSSE.)
+        let currentEvent = 'message';
         try {
             while (true) {
                 const { done, value } = await reader.read();
@@ -188,7 +203,6 @@ export class APIService {
                 const lines = buffer.split('\n');
                 buffer = lines.pop(); // keep incomplete line
 
-                let currentEvent = 'message';
                 for (const line of lines) {
                     if (line.startsWith('event: ')) {
                         currentEvent = line.slice(7).trim();
@@ -221,6 +235,15 @@ export class APIService {
                                     break;
                                 case 'error':
                                     if (callbacks.onError) callbacks.onError(data);
+                                    break;
+                                default:
+                                    // Thinking-with-Images bridge: the chat stream
+                                    // forwards the anime pipeline's ap_* frames
+                                    // verbatim. Hand them to the renderer via a
+                                    // single delegate callback (do NOT rename them).
+                                    if (currentEvent.startsWith('ap_') && callbacks.onAnimeEvent) {
+                                        callbacks.onAnimeEvent(currentEvent, data);
+                                    }
                                     break;
                             }
                         } catch (e) {

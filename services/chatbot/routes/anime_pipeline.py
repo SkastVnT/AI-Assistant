@@ -261,11 +261,12 @@ _req_log: dict = {}
 def _rate_check() -> str | None:
     sid = session.get("session_id", request.remote_addr or "anon")
     now = _time.time()
-    log = _req_log.setdefault(sid, [])
-    _req_log[sid] = [t for t in log if t > now - _RATE_WINDOW]
-    if len(_req_log[sid]) >= _RATE_MAX:
+    recent = [t for t in _req_log.get(sid, []) if t > now - _RATE_WINDOW]
+    if len(recent) >= _RATE_MAX:
+        _req_log[sid] = recent
         return f"Rate limited ({_RATE_MAX} pipeline jobs per {_RATE_WINDOW}s)"
-    _req_log[sid].append(now)
+    recent.append(now)
+    _req_log[sid] = recent
     return None
 
 
@@ -278,11 +279,20 @@ def health():
     Pre-flight check.  Returns:
         { available: bool, feature_flag: bool, comfyui_reachable: bool, errors: [...] }
     """
+    import os
+
     from core.anime_pipeline_service import check_availability
 
     result = check_availability(probe_remote=True)
+    payload = result.to_dict()
+    # Surface the chat-bridge flag so the frontend (main.js) knows whether to
+    # route image prompts through /chat/stream (Thinking-with-Images) or fall
+    # back to the legacy modal/panel flow.
+    payload["chat_bridge"] = (
+        os.getenv("IMAGE_PIPELINE_CHAT_BRIDGE", "false").lower() == "true"
+    )
     status = 200 if result.available else 503
-    return jsonify(result.to_dict()), status
+    return jsonify(payload), status
 
 
 # ── Streaming SSE endpoint ──────────────────────────────────────────────
@@ -476,6 +486,7 @@ def generate_pipeline():
         "conversation_id", session.get("conversation_id", "")
     )
 
+    job = None
     try:
         from image_pipeline.anime_pipeline import AnimePipelineOrchestrator
 
@@ -514,7 +525,8 @@ def generate_pipeline():
     except Exception as e:
         logger.error("[anime_pipeline] Failed: %s", e, exc_info=True)
         try:
-            get_queue().transition(job.job_id, "failed", error=str(e))  # type: ignore[name-defined]
+            if job is not None:
+                get_queue().transition(job.job_id, "failed", error=str(e))
         except Exception:
             pass
         return jsonify({"error": str(e)}), 500
@@ -859,21 +871,16 @@ def fix_text_image():
     ``factor=1.0`` and ``denoise=0.40``. New callers should use
     ``/api/anime-pipeline/upscale`` directly with the desired factor.
     """
+    rate_err = _rate_check()
+    if rate_err:
+        return jsonify({"ok": False, "error": rate_err}), 429
+
     data = request.get_json(force=True, silent=True) or {}
     data["factor"] = 1.0
     if "denoise" not in data:
         data["denoise"] = 0.40
-    # Reinject into the request context. Easiest: call the function and
-    # let it parse from a stub. We do a direct call by mutating
-    # request.json via a tiny shim.
-    from werkzeug.wrappers import Request as _WReq  # noqa: F401
-
-    # Simplest path: just call upscale_image — Flask's request is
-    # request-scoped and we cannot easily rebuild it; instead, replicate
-    # the body inline by passing through the JSON cache.
-    # Flask caches parsed JSON on the request object.
-    request._cached_json = (data, data)  # type: ignore[attr-defined]
-    return upscale_image()
+    body, status = run_upscale_payload(data)
+    return jsonify(body), status
 
 
 # ── Cancel endpoint ─────────────────────────────────────────────────────

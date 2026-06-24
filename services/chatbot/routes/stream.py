@@ -863,6 +863,229 @@ def chat_stream():
                 yield _emit("metadata", metadata_payload)
                 yield _emit("router.selected", route_decision.to_dict())
 
+                # ── Thinking-with-Images bridge ─────────────────────────
+                # When the request is an image intent and the bridge flag
+                # is on, run the anime pipeline as an in-chat image
+                # sub-stream INSTEAD of the LLM text path. The pipeline keeps
+                # its own queue / GPU semaphore / cancel and its ap_* SSE
+                # vocabulary; we forward those frames VERBATIM so the existing
+                # anime-pipeline.js renderer drives the inline bubble. After
+                # the image finishes we stream a short LLM caption + a real
+                # `complete` so the chat turn is finalized and saved.
+                #
+                # NOTE: multi-thinking council is NOT re-run here — the
+                # orchestrator already runs its own council internally when
+                # job.thinking_mode == "multi-thinking", and we return before
+                # the text-council dispatch below, so it runs exactly once.
+                def _caption_with_timeout(user_prompt: str, timeout_s: float = 12.0) -> str:
+                    """Short, non-blocking LLM caption. Returns "" on timeout/err."""
+                    import re as _re_cap
+                    import threading as _th_cap
+
+                    _res: dict = {}
+
+                    def _work():
+                        try:
+                            buf = []
+                            for ch in chatbot.chat_stream(
+                                message=(
+                                    "Viết MỘT câu ngắn (tối đa 25 từ), thân thiện, bằng "
+                                    "tiếng Việt, giới thiệu bức ảnh vừa được tạo theo yêu "
+                                    "cầu sau. Chỉ trả về đúng một câu, không markdown, "
+                                    f"không tiền tố.\n\nYêu cầu: {user_prompt}"
+                                ),
+                                model=model,
+                                context=context,
+                                deep_thinking=False,
+                                history=[],
+                                language=language,
+                                custom_prompt="",
+                                images=[],
+                            ):
+                                if ch and not ch.startswith(REASONING_PREFIX):
+                                    buf.append(ch)
+                            _res["text"] = "".join(buf).strip()
+                        except Exception as exc:  # noqa: BLE001 — caption is non-fatal
+                            _res["err"] = exc
+
+                    _t_cap = _th_cap.Thread(target=_work, daemon=True)
+                    _t_cap.start()
+                    _t_cap.join(timeout=timeout_s)
+                    txt = (_res.get("text") or "").strip()
+                    if not txt:
+                        return ""
+                    # Strip stray <think> blocks from reasoning models.
+                    txt = _re_cap.sub(
+                        r"<think>.*?</think>", "", txt, flags=_re_cap.DOTALL
+                    ).strip()
+                    return txt[:300]
+
+                def _image_chat_bridge():
+                    """Forward anime-pipeline ap_* frames into the chat SSE,
+                    then stream caption + complete. Returns True if it handled
+                    the turn, False to fall back to the normal chat path."""
+                    import queue as _q_ap
+                    import re as _re_ap
+                    import threading as _th_ap
+
+                    from core import anime_pipeline_service as _aps
+
+                    # Build the pipeline request from the chat body. Image
+                    # options come from the chat mode-card (PR3); default
+                    # safely if absent so the bridge also works pre-PR3.
+                    _img_data: dict = {
+                        "prompt": message,
+                        "thinking_mode": thinking_mode,
+                        "session_id": session_id or "",
+                        "conversation_id": conversation_id or "",
+                        "character_key": (data.get("character_key") or "").strip(),
+                        "image_only": bool(data.get("image_only", False)),
+                        "batch_size": int(data.get("batch_size") or 1),
+                        "preset": data.get("preset") or "anime_quality",
+                    }
+                    for _k in ("width", "height"):
+                        _v = data.get(_k)
+                        if isinstance(_v, (int, float)) and _v:
+                            _img_data[_k] = int(_v)
+                    if data.get("references"):
+                        _img_data["references"] = data.get("references")
+                    if data.get("reference_images"):
+                        _img_data["reference_images"] = data.get("reference_images")
+
+                    _req, _verr = _aps.validate_request(_img_data)
+                    if _verr or _req is None:
+                        logger.info(
+                            "[SSE:%s] image bridge skipped (validate: %s)",
+                            request_id,
+                            _verr,
+                        )
+                        return False
+
+                    logger.info(
+                        "[SSE:%s] image bridge engaged intent=%s mode=%s",
+                        request_id,
+                        route_decision.intent,
+                        thinking_mode,
+                    )
+
+                    # Drain stream_pipeline() in a worker thread so its
+                    # blocking GPU-semaphore wait (sleep loop) never stalls
+                    # the Flask SSE generator / keepalive.
+                    _frame_q: _q_ap.Queue = _q_ap.Queue()
+                    _AP_DONE = "__APBRIDGE_DONE__"
+                    _AP_ERR = "__APBRIDGE_ERR__"
+
+                    def _drain():
+                        try:
+                            for _frame in _aps.stream_pipeline(_req):
+                                _frame_q.put(_frame)
+                            _frame_q.put((_AP_DONE, None))
+                        except Exception as exc:  # noqa: BLE001
+                            _frame_q.put((_AP_ERR, exc))
+
+                    _worker = _th_ap.Thread(target=_drain, daemon=True)
+                    _worker.start()
+
+                    _evt_re = _re_ap.compile(r"^event:\s*(\S+)", _re_ap.MULTILINE)
+                    _ok = False
+                    _cancelled = False
+                    _failed = False
+
+                    while True:
+                        try:
+                            _item = _frame_q.get(timeout=15)
+                        except _q_ap.Empty:
+                            yield ": keepalive\n\n"
+                            continue
+                        if isinstance(_item, tuple):
+                            if _item[0] == _AP_DONE:
+                                break
+                            if _item[0] == _AP_ERR:
+                                _failed = True
+                                logger.error(
+                                    "[SSE:%s] image bridge pipeline error: %s",
+                                    request_id,
+                                    _item[1],
+                                )
+                                break
+                        # _item is a pre-formatted SSE string from _sse_line();
+                        # forward verbatim — do NOT rename ap_* events.
+                        yield _item
+                        _m = _evt_re.search(_item)
+                        _name = _m.group(1) if _m else ""
+                        if _name == "ap_result":
+                            _ok = True
+                        elif _name == "ap_cancelled":
+                            _cancelled = True
+                        elif _name == "ap_error":
+                            _failed = True
+
+                    _worker.join(timeout=5)
+
+                    # ── Caption + complete (finalize the chat turn) ──
+                    # Caption only on success; its failure must NOT fail the
+                    # image turn (ap_done ≠ complete: chat finalizes here).
+                    if _ok and not _cancelled and not _failed:
+                        _caption = _caption_with_timeout(message) or "Ảnh đã được tạo xong."
+                    elif _cancelled:
+                        _caption = "Đã hủy tạo ảnh."
+                    else:
+                        _caption = "Tạo ảnh thất bại. Hãy thử lại."
+
+                    _cc = 0
+                    for _i in range(0, len(_caption), 80):
+                        _cc += 1
+                        yield _emit(
+                            "chunk",
+                            {"content": _caption[_i : _i + 80], "chunk_index": _cc},
+                        )
+
+                    _payload = _build_complete_event_payload(
+                        full_response=_caption,
+                        model=model,
+                        context=context,
+                        deep_thinking=deep_thinking,
+                        thinking_mode=thinking_mode,
+                        chunk_count=_cc,
+                        thinking_summary="",
+                        thinking_steps_text=[],
+                        thinking_duration=0,
+                        elapsed_time=time.time() - thinking_start,
+                        tokens=max(1, len(_caption)),
+                        max_tokens=512,
+                        request_id=request_id,
+                    )
+                    _payload["has_image"] = _ok
+                    try:
+                        trace.finish()
+                        TRACE_STORE.save(trace)
+                    except Exception:  # noqa: BLE001
+                        pass
+                    yield StreamEvent(
+                        event="complete",
+                        data=json.dumps(_payload, ensure_ascii=False),
+                    ).format()
+                    return True
+
+                _bridge_on = (
+                    os.getenv("IMAGE_PIPELINE_CHAT_BRIDGE", "false").lower() == "true"
+                )
+                _image_tool_active = "image-generation" in (tools or [])
+                _image_intent = route_decision.intent in ("image_anime", "image_general")
+                # Frontend (main.js) sets force_image_bridge when it decides a
+                # prompt is an image request under bridge mode — the explicit,
+                # mismatch-proof signal (its ImageGenV2 heuristic may diverge
+                # from the backend keyword router).
+                _force_bridge = bool(data.get("force_image_bridge"))
+                if _bridge_on and (
+                    _force_bridge
+                    or _image_tool_active
+                    or (_image_intent and route_decision.confidence >= 0.85)
+                ):
+                    _handled = yield from _image_chat_bridge()
+                    if _handled:
+                        return
+
                 # ── Thinking Phase ──
                 # Real AI reasoning via <think> tags or native reasoning_content
                 category = detect_category(message)
