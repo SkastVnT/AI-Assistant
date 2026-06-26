@@ -7554,17 +7554,71 @@ def external_health():
 
 # Main entry point
 if __name__ == "__main__":
+    import glob as _glob
+    import threading as _threading
+    import time as _time_watch
+
     debug_mode = os.getenv("DEBUG", "0") == "1"
     host = os.getenv("HOST", "0.0.0.0")  # nosec B104  # Intentional: service needs external access
     port = int(os.getenv("CHATBOT_PORT", "5000"))
 
-    logger.info(f"ðŸš€ Starting ChatBot on {host}:{port} (debug={debug_mode})")
+    logger.info(f"\U0001f680 Starting ChatBot on {host}:{port} (debug={debug_mode})")
+
+    _is_electron = bool(os.getenv("ELECTRON_DESKTOP"))
     # On Windows, the watchdog reloader causes WinError 10038 (socket closed before
     # new one is ready).  Use the stat reloader instead, which polls rather than
     # watching inotify/FSEvents.  When spawned by Electron, disable the reloader
-    # entirely — Electron handles restarts via the Backend menu.
-    _use_reloader = debug_mode and not bool(os.getenv("ELECTRON_DESKTOP"))
+    # entirely — Werkzeug's respawn would orphan the process from Electron's handle.
+    _use_reloader = debug_mode and not _is_electron
     _reloader_type = "stat" if os.name == "nt" else "auto"
+
+    # Collect all Python files in the project so Werkzeug watches them even
+    # when they haven't been imported yet (lazily-loaded modules like image_pipeline
+    # are not in sys.modules at startup and would be missed without this).
+    _svc_root = Path(__file__).parent
+    _proj_root = _svc_root.parent.parent
+    _watch_dirs = [
+        str(_svc_root),
+        str(_proj_root / "app" / "image_pipeline"),
+    ]
+    _extra_files: list[str] = []
+    if _use_reloader:
+        for _d in _watch_dirs:
+            _extra_files.extend(_glob.glob(f"{_d}/**/*.py", recursive=True))
+        logger.info("[dev] Stat reloader watching %d files", len(_extra_files))
+
+    # Electron mode + DEBUG=1: run a background thread that polls for file
+    # changes and prints a clear notice (Werkzeug reloader can't be used here
+    # because respawning would orphan the process from Electron's PID handle).
+    if _is_electron and debug_mode:
+        def _electron_dev_watcher():
+            _mtimes: dict[str, float] = {}
+            for _d in _watch_dirs:
+                for _f in _glob.glob(f"{_d}/**/*.py", recursive=True):
+                    try:
+                        _mtimes[_f] = Path(_f).stat().st_mtime
+                    except OSError:
+                        pass
+            logger.info("[dev-watcher] Electron mode: watching %d files", len(_mtimes))
+            while True:
+                _time_watch.sleep(1)
+                for _path, _old in list(_mtimes.items()):
+                    try:
+                        _new = Path(_path).stat().st_mtime
+                    except OSError:
+                        continue
+                    if _new != _old:
+                        _mtimes[_path] = _new
+                        logger.warning(
+                            "[dev-watcher] CHANGED: %s  →  restart backend via Electron menu to reload",
+                            _path,
+                        )
+
+        _watcher_thread = _threading.Thread(
+            target=_electron_dev_watcher, daemon=True, name="dev-watcher"
+        )
+        _watcher_thread.start()
+
     app.run(
         debug=debug_mode,
         host=host,
@@ -7572,4 +7626,5 @@ if __name__ == "__main__":
         threaded=True,
         use_reloader=_use_reloader,
         reloader_type=_reloader_type,
+        extra_files=_extra_files or None,
     )

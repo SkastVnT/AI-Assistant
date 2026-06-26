@@ -2234,9 +2234,11 @@ export class MessageRenderer {
      * Navigate to specific version
      */
     navigateVersion(messageDiv, newIndex) {
+        if (document.body.dataset.streaming === 'true') return;
+
         const messageId = messageDiv.dataset.messageId;
         const history = this.getMessageHistory(messageId);
-        
+
         if (newIndex < 0 || newIndex >= history.length) return;
 
         const oldIndex = parseInt(messageDiv.dataset.currentVersion || '0');
@@ -2284,10 +2286,15 @@ export class MessageRenderer {
                 assistantTextDiv.style.transform = `translateX(${direction * -18}px)`;
 
                 setTimeout(() => {
-                    assistantTextDiv.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(history[newIndex].assistantResponse) : history[newIndex].assistantResponse;
+                    const _rawMd = history[newIndex].assistantResponse;
+                    const _html = typeof marked !== 'undefined' ? marked.parse(_rawMd) : _rawMd;
+                    assistantTextDiv.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(_html) : _html;
                     if (typeof hljs !== 'undefined') {
                         assistantTextDiv.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
                     }
+                    this.enhanceCodeBlocks(assistantTextDiv);
+                    this.enhanceMarkdownTables(assistantTextDiv);
+                    if (window.lucide) lucide.createIcons({ nodes: [assistantMsg] });
                     assistantTextDiv.style.transform = `translateX(${direction * 18}px)`;
                     void assistantTextDiv.offsetWidth;
                     assistantTextDiv.style.opacity = '1';

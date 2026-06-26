@@ -450,11 +450,18 @@ class OpenAICompatibleChat(BaseModelChat):
             "temperature": temperature,
             "max_tokens": max_tokens,
             "stream": True,
+            "stream_options": {"include_usage": True},
         }
         if top_p is not None:
             kwargs["top_p"] = top_p
         stream = self.client.chat.completions.create(**kwargs)
+        input_tokens = 0
+        output_tokens = 0
         for chunk in stream:
+            # Capture real token counts from the final usage chunk.
+            if hasattr(chunk, "usage") and chunk.usage:
+                input_tokens = getattr(chunk.usage, "prompt_tokens", 0) or 0
+                output_tokens = getattr(chunk.usage, "completion_tokens", 0) or 0
             if chunk.choices:
                 delta = chunk.choices[0].delta
                 # Capture reasoning_content from models that support it
@@ -466,6 +473,10 @@ class OpenAICompatibleChat(BaseModelChat):
                     yield f"{REASONING_PREFIX}{reasoning}"
                 if delta.content:
                     yield delta.content
+        if input_tokens or output_tokens:
+            from core.thinking_generator import USAGE_SENTINEL
+
+            yield f"{USAGE_SENTINEL}{input_tokens}:{output_tokens}"
 
 
 class QwenChat(BaseModelChat):
@@ -528,6 +539,8 @@ class QwenChat(BaseModelChat):
         )
 
         if response.status_code == 200:
+            input_tokens = 0
+            output_tokens = 0
             for line in response.iter_lines():
                 if line:
                     line = line.decode("utf-8")
@@ -538,6 +551,10 @@ class QwenChat(BaseModelChat):
                                 import json
 
                                 chunk = json.loads(data)
+                                usage = chunk.get("usage") or {}
+                                if usage:
+                                    input_tokens = usage.get("prompt_tokens", 0) or 0
+                                    output_tokens = usage.get("completion_tokens", 0) or 0
                                 delta = chunk.get("choices", [{}])[0].get("delta", {})
                                 reasoning = delta.get("reasoning_content", "")
                                 if reasoning:
@@ -550,6 +567,10 @@ class QwenChat(BaseModelChat):
                             except Exception:
                                 # Skip invalid JSON chunks during streaming
                                 pass
+            if input_tokens or output_tokens:
+                from core.thinking_generator import USAGE_SENTINEL
+
+                yield f"{USAGE_SENTINEL}{input_tokens}:{output_tokens}"
 
 
 class BloomVNChat(BaseModelChat):

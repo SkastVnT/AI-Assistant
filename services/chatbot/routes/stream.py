@@ -44,6 +44,7 @@ from core.stream_metrics import (
 from core.streaming import StreamEvent
 from core.thinking_generator import (
     REASONING_PREFIX,
+    USAGE_SENTINEL,
     ThinkTagParser,
     detect_category,
     generate_thinking_summary,
@@ -1116,6 +1117,8 @@ def chat_stream():
                 full_response = ""
                 chunk_count = 0
                 fallback_used = False
+                _api_input_tokens = 0
+                _api_output_tokens = 0
 
                 # ── 4-Agents Coordinated Reasoning ──
                 if is_multi_thinking:
@@ -1276,6 +1279,17 @@ def chat_stream():
                         if not chunk:
                             continue
 
+                        # Capture real token usage from the API layer sentinel.
+                        if chunk.startswith(USAGE_SENTINEL):
+                            try:
+                                raw = chunk[len(USAGE_SENTINEL):]
+                                _in, _out = raw.split(":", 1)
+                                _api_input_tokens = int(_in)
+                                _api_output_tokens = int(_out)
+                            except Exception:
+                                pass
+                            continue
+
                         # Handle native reasoning_content (DeepSeek R1, etc.)
                         if chunk.startswith(REASONING_PREFIX):
                             reasoning_text = chunk[len(REASONING_PREFIX) :]
@@ -1397,7 +1411,8 @@ def chat_stream():
 
                 # Send complete event
                 _elapsed = time.time() - thinking_start
-                _est_tokens = max(1, int(len(full_response) * 0.75))
+                # Prefer real API-reported output tokens; fall back to character estimate.
+                _est_tokens = _api_output_tokens or max(1, int(len(full_response) * 0.75))
                 if is_multi_thinking:
                     _max_tokens = 4096
                 else:
@@ -1409,28 +1424,26 @@ def chat_stream():
                         if _mc
                         else 2000
                     )
+                _complete_payload = _build_complete_event_payload(
+                    full_response=full_response,
+                    model=model,
+                    context=context,
+                    deep_thinking=deep_thinking,
+                    thinking_mode=thinking_mode,
+                    chunk_count=chunk_count,
+                    thinking_summary=thinking_summary,
+                    thinking_steps_text=thinking_steps_text,
+                    thinking_duration=thinking_duration,
+                    elapsed_time=_elapsed,
+                    tokens=_est_tokens,
+                    max_tokens=_max_tokens,
+                    request_id=request_id,
+                )
+                if _api_input_tokens:
+                    _complete_payload["input_tokens"] = _api_input_tokens
                 yield StreamEvent(
                     event="complete",
-                    data=json.dumps(
-                        _with_rag_citations(
-                            _build_complete_event_payload(
-                                full_response=full_response,
-                                model=model,
-                                context=context,
-                                deep_thinking=deep_thinking,
-                                thinking_mode=thinking_mode,
-                                chunk_count=chunk_count,
-                                thinking_summary=thinking_summary,
-                                thinking_steps_text=thinking_steps_text,
-                                thinking_duration=thinking_duration,
-                                elapsed_time=_elapsed,
-                                tokens=_est_tokens,
-                                max_tokens=_max_tokens,
-                                request_id=request_id,
-                            ),
-                            rag_citations,
-                        )
-                    ),
+                    data=json.dumps(_with_rag_citations(_complete_payload, rag_citations)),
                 ).format()
                 record_stream_complete(
                     backend=stream_backend,

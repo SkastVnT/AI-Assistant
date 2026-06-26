@@ -710,13 +710,17 @@ def chat_suggestions():
 
     try:
         chatbot = get_chatbot()
+        # Resolve a safe model for suggestions: prefer the user's requested model if
+        # it's a real chat model; fall back to the chatbot default ("grok").
+        # Never pass None — that bypasses the default parameter and breaks handler lookup.
+        _sugg_model = model if model and chatbot.registry.is_available(model) else None
         response = chatbot.chat(
             message=prompt,
-            model=None,  # always use default chat model — user's current model may be image-gen/local
+            **({"model": _sugg_model} if _sugg_model else {}),
             context="casual",
             deep_thinking=False,
         )
-        raw = response.get("text", "") if isinstance(response, dict) else str(response)
+        raw = response.get("response", "") if isinstance(response, dict) else str(response)
         lines = [
             ln.strip().lstrip("•-–—").strip()
             for ln in raw.strip().splitlines()
