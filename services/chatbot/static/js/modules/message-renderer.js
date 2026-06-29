@@ -1432,6 +1432,11 @@ export class MessageRenderer {
                     window.chatApp.uiUtils.formatTimestamp(new Date())
                 );
             }
+        }).finally(() => {
+            // Clear the in-flight controller so stream-guard lifts the streaming
+            // lock. Otherwise body[data-streaming] stays "true" and the version-nav
+            // buttons remain pointer-events:none / guarded until a page refresh.
+            if (window.chatApp) window.chatApp.currentAbortController = null;
         });
     }
 
@@ -1679,6 +1684,10 @@ export class MessageRenderer {
             headerIcon.textContent = '❌';
             headerIcon.classList.remove('spinning');
             addStep('❌', error.message || 'Unknown error', 'fail');
+        } finally {
+            // Lift the stream-guard lock so version-nav works after regen
+            // (see regenerateResponse — same controller-leak fix).
+            if (window.chatApp) window.chatApp.currentAbortController = null;
         }
     }
 

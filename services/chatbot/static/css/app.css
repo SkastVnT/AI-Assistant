@@ -1,21 +1,23 @@
 /* Chat UI CSS manifest. Keep import order aligned with the original app.css cascade. */
-@import url('./chat/00-tokens.css');
-@import url('./chat/01-base.css');
-@import url('./chat/02-layout.css');
-@import url('./chat/03-sidebar.css');
-@import url('./chat/04-topbar.css');
-@import url('./chat/05-right-sidebar.css');
-@import url('./chat/06-chat-area.css');
-@import url('./chat/07-messages-markdown.css');
-@import url('./chat/08-thinking.css');
-@import url('./chat/09-composer.css');
-@import url('./chat/10-tools-skill.css');
-@import url('./chat/11-modals-shared.css');
-@import url('./chat/12-gallery-media.css');
-@import url('./chat/90-responsive.css');
-@import url('./chat/13-utilities-compat.css');
-@import url('./chat/14-message-actions.css');
-@import url('./chat/15-file-table-preview.css');
-@import url('./chat/16-inline-image-gen.css');
-@import url('./chat/17-table-markdown.css');
-@import url('./chat/99-utilities-overrides.css');
+/* Version query (?v=) on each import busts the browser cache when the manifest's
+   own ?v in _head_assets.html bumps — @import'd files are otherwise cached by URL. */
+@import url('./chat/00-tokens.css?v=20260626a');
+@import url('./chat/01-base.css?v=20260626a');
+@import url('./chat/02-layout.css?v=20260626a');
+@import url('./chat/03-sidebar.css?v=20260626a');
+@import url('./chat/04-topbar.css?v=20260626a');
+@import url('./chat/05-right-sidebar.css?v=20260626a');
+@import url('./chat/06-chat-area.css?v=20260626a');
+@import url('./chat/07-messages-markdown.css?v=20260626a');
+@import url('./chat/08-thinking.css?v=20260626a');
+@import url('./chat/09-composer.css?v=20260626a');
+@import url('./chat/10-tools-skill.css?v=20260626a');
+@import url('./chat/11-modals-shared.css?v=20260626a');
+@import url('./chat/12-gallery-media.css?v=20260626a');
+@import url('./chat/90-responsive.css?v=20260626a');
+@import url('./chat/13-utilities-compat.css?v=20260626a');
+@import url('./chat/14-message-actions.css?v=20260626a');
+@import url('./chat/15-file-table-preview.css?v=20260626a');
+@import url('./chat/16-inline-image-gen.css?v=20260626a');
+@import url('./chat/17-table-markdown.css?v=20260626a');
+@import url('./chat/99-utilities-overrides.css?v=20260626a');

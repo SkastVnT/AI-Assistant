@@ -15,11 +15,11 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  background: var(--bg-primary);
+  background: linear-gradient(180deg, var(--bg-secondary), var(--bg-primary));
   border-bottom: 1px solid var(--border-secondary);
   flex-shrink: 0;
   z-index: 30;
-  min-height: 52px;
+  min-height: 58px;
 }
 
 .topbar__left {
@@ -55,13 +55,13 @@
   position: relative;
 }
 #thinkingModeContainer[data-thinking-mode="thinking"] .topbar__btn {
-  color: var(--info, #6366f1);
+  color: var(--cyan);
 }
 #thinkingModeContainer[data-thinking-mode="thinking"] .topbar__btn:hover {
-  background: rgba(99, 102, 241, 0.12);
+  background: var(--cyan-soft);
 }
 #thinkingModeContainer[data-thinking-mode="multi-thinking"] .topbar__btn {
-  color: var(--accent, #7c6cf0);
+  color: var(--accent);
 }
 #thinkingModeContainer[data-thinking-mode="multi-thinking"] .topbar__btn:hover {
   background: var(--accent-soft);
@@ -69,37 +69,43 @@
 
 /* Visual accent on the thinking-mode button based on active mode */
 #thinkingModeContainer[data-thinking-mode="thinking"] #thinkingModeBtn {
-  color: var(--info, #6366f1);
+  color: var(--cyan);
 }
 #thinkingModeContainer[data-thinking-mode="thinking"] #thinkingModeBtn svg,
 #thinkingModeContainer[data-thinking-mode="thinking"] #thinkingModeBtn .lucide {
-  color: var(--info, #6366f1);
+  color: var(--cyan);
 }
 #thinkingModeContainer[data-thinking-mode="multi-thinking"] #thinkingModeBtn {
-  color: var(--accent, #7c6cf0);
+  color: var(--accent);
 }
 #thinkingModeContainer[data-thinking-mode="multi-thinking"] #thinkingModeBtn svg,
 #thinkingModeContainer[data-thinking-mode="multi-thinking"] #thinkingModeBtn .lucide {
-  color: var(--accent, #7c6cf0);
+  color: var(--accent);
 }
 
 .topbar__model-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  border: none;
-  background: transparent;
+  padding: 7px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-tertiary);
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 600;
+  letter-spacing: -0.01em;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: background var(--transition), border-color var(--transition);
 }
 
 .topbar__model-btn:hover {
   background: var(--bg-hover);
+  border-color: var(--accent-soft);
+}
+.topbar__model-btn.open {
+  background: var(--bg-hover);
+  border-color: var(--border-focus);
 }
 
 .topbar__model-btn svg {
@@ -200,12 +206,12 @@
 }
 
 .model-dropdown__item-badge.free {
-  background: rgba(46,204,113,0.15);
+  background: rgba(34, 197, 94, 0.15);
   color: var(--success);
 }
 
 .model-dropdown__item-badge.pro {
-  background: rgba(124,108,240,0.15);
+  background: rgba(167, 139, 250, 0.15);
   color: var(--accent);
 }
 
@@ -295,11 +301,19 @@
 /* ── Topbar — labelled button (used by Tools dropdown trigger) ─── */
 .topbar__btn--labelled {
   width: auto;
+  height: 36px;
   padding: 0 12px;
   gap: 6px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+}
+.topbar__btn--labelled:hover {
+  border-color: var(--accent-soft);
 }
 .topbar__btn--labelled .lucide {
   width: 16px;

@@ -35,20 +35,25 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 10px 14px;
+  padding: 9px 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-primary);
-  background: transparent;
+  background: var(--bg-tertiary);
   color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: background var(--transition), border-color var(--transition), transform var(--transition);
 }
 
 .sidebar__new-chat:hover {
   background: var(--bg-hover);
+  border-color: var(--accent-soft);
+  transform: translateY(-1px);
 }
+.sidebar__new-chat:active { transform: scale(0.985); }
+.sidebar__new-chat svg { color: var(--accent-text); }
 
 .sidebar__new-chat svg {
   width: 18px;
@@ -181,13 +186,13 @@
 }
 
 .sidebar__chat-item.active {
-  background: linear-gradient(135deg,
-    rgba(124, 108, 240, 0.08),
-    rgba(124, 108, 240, 0.04)
-  );
+  background: var(--accent-faint);
   color: var(--text-primary);
-  border-left: 3px solid var(--accent, #7c6cf0);
-  padding-left: 9px;
+  border-left: 2px solid var(--accent);
+  padding-left: 10px;
+}
+.sidebar__chat-item.active:hover {
+  background: var(--accent-soft);
 }
 
 .sidebar__chat-title {
@@ -367,7 +372,7 @@
   color: var(--error);
 }
 .chat-ctx-item--danger:hover {
-  background: rgba(231,76,60,0.1);
+  background: rgba(239,68,68,0.1);
 }
 .chat-ctx-divider {
   height: 1px;
@@ -487,7 +492,7 @@
 }
 .split-pane__close:hover {
   color: var(--error);
-  background: rgba(231,76,60,0.1);
+  background: rgba(239,68,68,0.1);
 }
 .split-divider {
   width: 4px;
@@ -538,19 +543,21 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  border: none;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
   background: transparent;
   color: var(--text-secondary);
   font-size: 13px;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
   width: 100%;
   text-align: left;
 }
 
 .sidebar__footer-btn:hover {
-  background: var(--bg-hover);
+  background: var(--bg-tertiary);
+  border-color: var(--border-secondary);
   color: var(--text-primary);
 }
+.sidebar__footer-btn:active { transform: scale(0.99); }

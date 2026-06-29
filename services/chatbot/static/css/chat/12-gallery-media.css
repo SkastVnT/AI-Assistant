@@ -86,9 +86,9 @@
 }
 
 .gallery-filter-btn.active {
-  background: var(--accent-bg, rgba(99,102,241,0.12));
+  background: var(--accent-soft);
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 600;
 }
 
@@ -118,7 +118,7 @@
 .gallery-item:hover {
   transform: scale(1.025);
   box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-  border-color: rgba(99,102,241,0.3);
+  border-color: rgba(167, 139, 250, 0.3);
   z-index: 2;
 }
 
@@ -291,9 +291,66 @@
 }
 
 .gallery-load-more:hover {
-  background: var(--accent-bg, rgba(99,102,241,0.08));
+  background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--text-primary);
+}
+
+/* ── Pagination footer (pinned below the scrolling grid) ──────── */
+.gallery-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-secondary);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+.gallery-pagination:empty { display: none; }
+
+.gallery-page-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition),
+              color var(--transition), transform var(--transition);
+}
+.gallery-page-btn:hover:not(:disabled):not(.active) {
+  background: var(--bg-hover);
+  border-color: var(--accent-soft);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+.gallery-page-btn:active:not(:disabled) { transform: scale(0.94); }
+.gallery-page-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+  cursor: default;
+}
+.gallery-page-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.gallery-page-dot {
+  min-width: 16px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  user-select: none;
 }
 
 .gallery-info-modal {
@@ -548,10 +605,10 @@
   white-space: nowrap;
 }
 .vg-tag--img {
-  background: rgba(168, 85, 247, 0.15);
-  color: #a855f7;
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 .vg-tag--txt {
-  background: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
+  background: var(--cyan-soft);
+  color: var(--cyan);
 }

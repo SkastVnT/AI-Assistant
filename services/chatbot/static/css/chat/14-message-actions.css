@@ -63,18 +63,18 @@
 }
 
 .message-action-btn.edit-btn {
-  background: rgba(124, 108, 240, 0.08);
-  border: 1px solid rgba(124, 108, 240, 0.22);
+  background: rgba(167, 139, 250, 0.08);
+  border: 1px solid rgba(167, 139, 250, 0.22);
   color: color-mix(in srgb, var(--accent) 80%, var(--text-primary));
 }
 
 .message-action-btn.edit-btn:hover {
-  background: rgba(124, 108, 240, 0.16);
-  border-color: rgba(124, 108, 240, 0.34);
-  box-shadow: 0 6px 16px rgba(124, 108, 240, 0.25);
+  background: rgba(167, 139, 250, 0.16);
+  border-color: rgba(167, 139, 250, 0.34);
+  box-shadow: 0 6px 16px rgba(167, 139, 250, 0.25);
 }
 
-/* ── User bubble overrides: white-based palette on purple gradient ── */
+/* ── User bubble overrides: light-on-graphite action palette ── */
 .message.user .message-actions {
   background: rgba(0, 0, 0, 0.22);
   border-color: rgba(255, 255, 255, 0.12);
@@ -208,7 +208,7 @@
   border-radius: 8px;
   border: 1px solid var(--border-primary, rgba(255,255,255,0.15));
   background: var(--bg-secondary, #1e1e2e);
-  color: var(--accent, #7c6cf0);
+  color: var(--accent, #a78bfa);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -217,7 +217,7 @@
   transition: all 0.15s ease;
 }
 .select-reply-btn:hover {
-  background: var(--accent, #7c6cf0);
+  background: var(--accent, #a78bfa);
   color: #fff;
 }
 
@@ -228,7 +228,7 @@
   gap: 8px;
   padding: 8px 14px;
   margin: 0 0 4px;
-  background: rgba(124, 108, 240, 0.08);
+  background: rgba(167, 139, 250, 0.08);
   border-radius: 10px;
   animation: fadeInUp 0.2s ease-out;
 }
@@ -236,7 +236,7 @@
   width: 3px;
   min-height: 20px;
   align-self: stretch;
-  background: var(--accent, #7c6cf0);
+  background: var(--accent, #a78bfa);
   border-radius: 2px;
   flex-shrink: 0;
 }
@@ -320,8 +320,8 @@
               color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .suggestion-chip:hover {
-  background: rgba(124, 108, 240, 0.08);
-  border-color: rgba(124, 108, 240, 0.35);
+  background: rgba(167, 139, 250, 0.08);
+  border-color: rgba(167, 139, 250, 0.35);
   color: var(--text-primary, #e8e8f0);
   transform: translateY(-1px);
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
@@ -337,18 +337,18 @@
 .suggestion-chip--think {
   padding: 5px 11px 5px 9px;
   gap: 5px;
-  border-color: rgba(124, 108, 240, 0.22);
-  background: rgba(124, 108, 240, 0.06);
+  border-color: rgba(167, 139, 250, 0.22);
+  background: rgba(167, 139, 250, 0.06);
   color: rgba(162, 148, 255, 0.9);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.01em;
 }
 .suggestion-chip--think:hover {
-  background: rgba(124, 108, 240, 0.14);
-  border-color: rgba(124, 108, 240, 0.5);
-  color: #b8abff;
-  box-shadow: 0 0 0 3px rgba(124, 108, 240, 0.08), 0 3px 10px rgba(124, 108, 240, 0.15);
+  background: rgba(167, 139, 250, 0.14);
+  border-color: rgba(167, 139, 250, 0.5);
+  color: #c4b5fd;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.08), 0 3px 10px rgba(167, 139, 250, 0.15);
   transform: translateY(-1px);
 }
 .suggestion-chip--think .lucide {

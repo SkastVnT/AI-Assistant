@@ -6,7 +6,7 @@
 import { ChatManager } from './modules/chat-manager.js?v=20260422';
 import { APIService } from './modules/api-service.js?v=20260624a';
 import { UIUtils } from './modules/ui-utils.js';
-import { MessageRenderer } from './modules/message-renderer.js?v=20260509a';
+import { MessageRenderer } from './modules/message-renderer.js?v=20260629a';
 import { FileHandler } from './modules/file-handler.js';
 import { MemoryManager } from './modules/memory-manager.js';
 import { ImageGeneration } from './modules/image-gen.js';
@@ -3498,21 +3498,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     };
 
-    // Gallery state
-    let _galleryPage = 1;
-    let _galleryTotal = 0;
-    let _galleryTotalPages = 1;
+    // Gallery state — load the full set once, then paginate on the client.
+    let _galleryPage = 1;            // current display page (1-based)
     let _galleryLoading = false;
-    let _galleryItems = [];
+    let _galleryItems = [];          // ALL fetched images (full dataset)
     let _gallerySearchTerm = '';
     let _gallerySourceFilter = 'all';
     let _galleryInited = false;
-    const GALLERY_PER_PAGE = 48;
+    const GALLERY_PER_PAGE = 24;     // images shown per page (a comfortable screenful)
+    const GALLERY_FETCH_CAP = 1000;  // max images pulled into memory in one shot
 
     const _buildGalleryItem = (img) => {
         const rawFilename = img.filename || (img.path || '').split('/').pop() || '';
-        const displayUrl  = img.cloud_url || img.path || img.url || '';
-        const fallbackUrl = img.local_path && img.local_path !== displayUrl ? img.local_path : '';
+        // Priority: local (display_url from backend) -> cloud/ImgBB -> drive
+        const displayUrl  = img.display_url || img.cloud_url || img.path || img.url || '';
+        const fallbackUrl = img.cloud_url && img.cloud_url !== displayUrl ? img.cloud_url
+                          : img.drive_url && img.drive_url !== displayUrl ? img.drive_url : '';
         const isCloud = !!img.cloud_url;
         const hasDrive = !!img.drive_url;
         const prompt = img.prompt || '';
@@ -3520,7 +3521,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const createdLabel = created ? (() => { try { return new Date(created).toLocaleDateString('vi-VN'); } catch(_){return created;} })() : '';
         const imageDataStr = encodeURIComponent(JSON.stringify({
             id: img.id || '', filename: rawFilename,
-            path: img.cloud_url || img.path || img.url || '',
+            path: displayUrl,
             cloud_url: img.cloud_url || '', drive_url: img.drive_url || '',
             share_url: img.share_url || img.drive_url || img.cloud_url || img.path || img.url || '',
             created: created, creator: img.creator || '',
@@ -3647,15 +3648,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return div;
     };
 
-    const _galleryRender = () => {
-        const grid = document.getElementById('galleryGrid');
-        if (!grid) return;
-
-        // Save & remove load-more button
-        const loadMoreBtn = grid.querySelector('.gallery-load-more');
-        if (loadMoreBtn) loadMoreBtn.remove();
-
-        // Apply filters
+    // Apply current search + source filter against the full dataset.
+    const _galleryFiltered = () => {
         let filtered = _galleryItems;
         if (_gallerySearchTerm) {
             const term = _gallerySearchTerm.toLowerCase();
@@ -3663,12 +3657,61 @@ document.addEventListener('DOMContentLoaded', () => {
                 (img.prompt || '').toLowerCase().includes(term) ||
                 (img.filename || '').toLowerCase().includes(term));
         }
-        if (_gallerySourceFilter === 'cloud') filtered = filtered.filter(img => !!img.cloud_url);
-        if (_gallerySourceFilter === 'local') filtered = filtered.filter(img => !img.cloud_url);
+        if (_gallerySourceFilter === 'cloud') filtered = filtered.filter(img => !!(img.cloud_url || img.drive_url));
+        if (_gallerySourceFilter === 'local') filtered = filtered.filter(img => !(img.cloud_url || img.drive_url));
+        return filtered;
+    };
 
-        // Update filter button labels with counts
-        const cloudCount = _galleryItems.filter(img => !!img.cloud_url).length;
-        const localCount = _galleryItems.filter(img => !img.cloud_url).length;
+    const _galleryRenderPagination = (totalPages) => {
+        const bar = document.getElementById('galleryPagination');
+        if (!bar) return;
+        bar.innerHTML = '';
+        if (totalPages <= 1) { bar.style.display = 'none'; return; }
+        bar.style.display = 'flex';
+
+        const mkBtn = (label, target, opts = {}) => {
+            const b = document.createElement('button');
+            b.className = 'gallery-page-btn' + (opts.active ? ' active' : '');
+            b.textContent = label;
+            if (opts.disabled) b.disabled = true;
+            else b.onclick = () => { _galleryPage = target; _galleryRender(); };
+            return b;
+        };
+
+        bar.appendChild(mkBtn('‹', _galleryPage - 1, { disabled: _galleryPage <= 1 }));
+
+        // Compact window of page numbers: 1 … (n-1) n (n+1) … last
+        const out = [];
+        for (let p = 1; p <= totalPages; p++) {
+            if (p === 1 || p === totalPages || (p >= _galleryPage - 1 && p <= _galleryPage + 1)) {
+                out.push(p);
+            } else if (out[out.length - 1] !== '…') {
+                out.push('…');
+            }
+        }
+        out.forEach(p => {
+            if (p === '…') {
+                const dot = document.createElement('span');
+                dot.className = 'gallery-page-dot';
+                dot.textContent = '…';
+                bar.appendChild(dot);
+            } else {
+                bar.appendChild(mkBtn(String(p), p, { active: p === _galleryPage }));
+            }
+        });
+
+        bar.appendChild(mkBtn('›', _galleryPage + 1, { disabled: _galleryPage >= totalPages }));
+    };
+
+    const _galleryRender = () => {
+        const grid = document.getElementById('galleryGrid');
+        if (!grid) return;
+
+        const filtered = _galleryFiltered();
+
+        // Update filter button labels with global counts (full dataset)
+        const cloudCount = _galleryItems.filter(img => !!(img.cloud_url || img.drive_url)).length;
+        const localCount = _galleryItems.filter(img => !(img.cloud_url || img.drive_url)).length;
         const allBtn   = document.getElementById('galleryFilterAll');
         const cloudBtn = document.getElementById('galleryFilterCloud');
         const localBtn = document.getElementById('galleryFilterLocal');
@@ -3676,8 +3719,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (cloudBtn) cloudBtn.textContent = `☁️ Cloud (${cloudCount})`;
         if (localBtn) localBtn.textContent = `💾 Local (${localCount})`;
 
-        grid.innerHTML = '';
+        // Clamp the page into range, then slice the current page
+        const totalPages = Math.max(1, Math.ceil(filtered.length / GALLERY_PER_PAGE));
+        if (_galleryPage > totalPages) _galleryPage = totalPages;
+        if (_galleryPage < 1) _galleryPage = 1;
+        const start = (_galleryPage - 1) * GALLERY_PER_PAGE;
+        const pageItems = filtered.slice(start, start + GALLERY_PER_PAGE);
 
+        grid.innerHTML = '';
         if (filtered.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'gallery-empty';
@@ -3685,25 +3734,17 @@ document.addEventListener('DOMContentLoaded', () => {
             grid.appendChild(empty);
         } else {
             const frag = document.createDocumentFragment();
-            filtered.forEach(img => frag.appendChild(_buildGalleryItem(img)));
+            pageItems.forEach(img => frag.appendChild(_buildGalleryItem(img)));
             grid.appendChild(frag);
         }
 
-        // Re-attach load-more if there are more pages to fetch
-        if (_galleryPage < _galleryTotalPages) {
-            const remaining = _galleryTotal - _galleryPage * GALLERY_PER_PAGE;
-            const btn = document.createElement('button');
-            btn.className = 'gallery-load-more';
-            btn.textContent = `Tải thêm${remaining > 0 ? ` (còn ${remaining})` : ''}`;
-            btn.onclick = async () => {
-                _galleryPage++;
-                await _galleryLoadPage(_galleryPage, true);
-            };
-            grid.appendChild(btn);
-        }
+        _galleryRenderPagination(totalPages);
+        grid.scrollTop = 0; // jump to top of the grid on every page change
     };
 
-    const _galleryLoadPage = async (page, append = false) => {
+    // Fetch the whole gallery once; pagination is then done client-side so
+    // search/filter span the full set and page switches are instant.
+    const _galleryLoadAll = async () => {
         if (_galleryLoading) return;
         _galleryLoading = true;
 
@@ -3711,27 +3752,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const stats = document.getElementById('galleryStats');
         if (!grid || !stats) { _galleryLoading = false; return; }
 
-        if (!append) {
-            grid.innerHTML = '<div class="gallery-empty">⏳ Đang tải ảnh…</div>';
-        }
+        grid.innerHTML = '<div class="gallery-empty">⏳ Đang tải ảnh…</div>';
 
         try {
-            const resp = await fetch(`/api/gallery/images?all=true&page=${page}&per_page=${GALLERY_PER_PAGE}`);
+            const resp = await fetch(`/api/gallery/images?all=true&page=1&per_page=${GALLERY_FETCH_CAP}`);
             const data = await resp.json();
             if (!data.success) throw new Error(data.error || 'Load failed');
 
-            _galleryTotal      = data.total || 0;
-            _galleryTotalPages = data.total_pages || 1;
-
-            if (!append) _galleryItems = [];
-            if (data.images && data.images.length > 0) {
-                _galleryItems.push(...data.images);
-            }
-
+            _galleryItems = Array.isArray(data.images) ? data.images : [];
+            const total = data.total || _galleryItems.length;
             const srcIcon = (data.source || '').includes('mongodb') ? '☁️' : '💾';
-            const pageInfo = _galleryTotalPages > 1 ? ` — trang ${page}/${_galleryTotalPages}` : '';
-            stats.textContent = `📊 ${_galleryTotal} ảnh ${srcIcon}${pageInfo}`;
+            const capped = total > _galleryItems.length ? ` (hiển thị ${_galleryItems.length})` : '';
+            stats.textContent = `📊 ${total} ảnh ${srcIcon}${capped}`;
 
+            _galleryPage = 1;
             _galleryRender();
         } catch (err) {
             console.error('[Gallery] Load error:', err);
@@ -3752,6 +3786,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearTimeout(_searchTimer);
                 _searchTimer = setTimeout(() => {
                     _gallerySearchTerm = searchInput.value.trim().toLowerCase();
+                    _galleryPage = 1;
                     _galleryRender();
                 }, 240);
             });
@@ -3762,6 +3797,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 _gallerySourceFilter = btn.dataset.filter || 'all';
                 document.querySelectorAll('.gallery-filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
+                _galleryPage = 1;
                 _galleryRender();
             });
         });
@@ -3781,7 +3817,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (allBtn) allBtn.classList.add('active');
         const searchInput = document.getElementById('gallerySearchInput');
         if (searchInput) searchInput.value = '';
-        await _galleryLoadPage(1, false);
+        await _galleryLoadAll();
     };
 
     window.toggleGalleryMode = () => { openGallery(); };
@@ -4025,7 +4061,9 @@ document.addEventListener('DOMContentLoaded', () => {
             img.src = imagePath;
             // Store path for download
             img.dataset.downloadUrl = imagePath;
-            modal.classList.add('active');
+            // CSS reveals .image-preview-overlay on `.open` (closeImagePreview removes
+            // `.open`). `.active` is ignored — using it left the lightbox invisible.
+            modal.classList.add('open');
             document.body.style.overflow = 'hidden';
             
             if (info && metadata) {

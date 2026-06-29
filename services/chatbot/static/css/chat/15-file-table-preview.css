@@ -27,11 +27,11 @@
   border-color: var(--accent, #007bff);
 }
 .file-staging__card--table {
-  border-color: rgba(124, 108, 240, 0.5);
+  border-color: rgba(167, 139, 250, 0.5);
 }
 .file-staging__card--table:hover {
   border-color: var(--accent, #7c6cf0);
-  background: var(--accent-soft, rgba(124,108,240,0.08));
+  background: var(--accent-soft, rgba(167,139,250,0.08));
 }
 .file-staging__card-preview {
   width: 36px;
@@ -330,11 +330,11 @@
 
 /* ── Table file cards ────────────────────────────────────── */
 .file-attachment-card--table {
-  border-color: rgba(124, 108, 240, 0.5);
+  border-color: rgba(167, 139, 250, 0.5);
 }
 .file-attachment-card--table:hover {
   border-color: var(--accent-hover, #9488f4);
-  background: var(--accent-soft, rgba(124,108,240,0.08));
+  background: var(--accent-soft, rgba(167,139,250,0.08));
 }
 .file-attachment-icon--table {
   font-size: 22px;
@@ -346,7 +346,7 @@
   font-size: 10px;
   font-weight: 600;
   color: var(--accent, #7c6cf0);
-  background: var(--accent-soft, rgba(124,108,240,0.12));
+  background: var(--accent-soft, rgba(167,139,250,0.12));
   border: 1px solid var(--accent, #7c6cf0);
   border-radius: 99px;
   padding: 1px 6px;
@@ -650,7 +650,7 @@
 
 .csv-page-active {
   background: var(--accent) !important;
-  color: #fff !important;
+  color: var(--text-inverse) !important;
   border-color: var(--accent) !important;
 }
 
@@ -845,7 +845,7 @@
   color: var(--text-primary);
 }
 .sidebar__select-btn.active {
-  background: rgba(124, 138, 255, 0.15);
+  background: rgba(167, 139, 250, 0.15);
   color: var(--accent, #7c8aff);
 }
 
@@ -919,8 +919,8 @@
   background: var(--bg-hover);
 }
 .sidebar__chat-item.selected {
-  background: rgba(124, 138, 255, 0.1);
-  border-color: rgba(124, 138, 255, 0.25);
+  background: rgba(167, 139, 250, 0.1);
+  border-color: rgba(167, 139, 250, 0.25);
 }
 .storage__label {
   display: none; /* redundant with storage-text, hide it */
@@ -1039,7 +1039,7 @@
 
 .edit-chat-tool .edit-save-btn {
   background: var(--accent-gradient);
-  color: #fff;
+  color: var(--text-inverse);
 }
 
 .edit-chat-tool .edit-cancel-btn {

@@ -132,7 +132,7 @@
   border-radius: var(--radius-sm);
   background: var(--bg-input, #14161c);
 }
-.right-sidebar__jobs-cell--running { background: rgba(99, 102, 241, 0.15); }
+.right-sidebar__jobs-cell--running { background: rgba(103, 232, 249, 0.15); }
 .right-sidebar__jobs-cell--queued  { background: rgba(245, 158, 11, 0.12); }
 .right-sidebar__jobs-cell--completed { background: rgba(34, 197, 94, 0.12); }
 .right-sidebar__jobs-cell--failed  { background: rgba(239, 68, 68, 0.15); }

@@ -8,10 +8,10 @@
 }
 
 .chat-area__messages {
-  max-width: 768px;
+  max-width: 960px;
   width: 100%;
   margin: 0 auto;
-  padding: 24px 16px 100px;
+  padding: 28px 24px 120px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -44,9 +44,10 @@
 .welcome__title {
   font-size: 28px;
   font-weight: 700;
+  letter-spacing: -0.02em;
   margin-bottom: 8px;
   color: var(--accent);
-  background: linear-gradient(135deg, #7c6cf0, #9488f4);
+  background: linear-gradient(135deg, #c4b5fd, #a78bfa 55%, #8bd6ee);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -69,24 +70,25 @@
 
 .welcome__suggestion {
   padding: 16px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-primary);
-  background: transparent;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-secondary);
+  background: var(--bg-tertiary);
   cursor: pointer;
   text-align: left;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
   color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.5;
 }
 
 .welcome__suggestion:hover {
-  background: var(--bg-hover);
-  border-color: rgba(124, 108, 240, 0.3);
+  background: var(--bg-elevated);
+  border-color: var(--accent-soft);
   color: var(--text-primary);
-  transform: translateY(-4px);
-  box-shadow: 0 12px 30px rgba(124, 108, 240, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
+.welcome__suggestion:active { transform: scale(0.99); }
 
 .welcome__suggestion-title {
   font-weight: 600;

@@ -1,6 +1,8 @@
 """
-Google Drive upload service using Service Account.
-Direct upload without needing OAuth or webhook.
+Google Drive upload service.
+Supports two auth modes (tried in order):
+  1. OAuth 2.0 (real user account) — set GOOGLE_DRIVE_OAUTH_TOKEN_PATH
+  2. Service Account — set GOOGLE_DRIVE_SA_JSON_PATH (limited: no quota on personal Drive)
 """
 
 import importlib
@@ -13,15 +15,18 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+_DRIVE_SCOPES = ["https://www.googleapis.com/auth/drive"]
+
 
 class GoogleDriveService:
-    """Google Drive upload service using Service Account"""
+    """Google Drive upload service (OAuth or Service Account)"""
 
     _instance = None
     _service = None
     _folder_id = None
     _media_upload_cls = None
     _quota_exceeded = False  # set after first storageQuotaExceeded — stops log spam
+    _auth_mode = None  # "oauth" | "service_account"
 
     def __new__(cls):
         if cls._instance is None:
@@ -33,36 +38,82 @@ class GoogleDriveService:
             self._initialize()
 
     def _initialize(self):
-        """Initialize Google Drive service with Service Account"""
+        """Try OAuth first, fall back to Service Account."""
         try:
-            service_account = importlib.import_module("google.oauth2.service_account")
-            discovery = importlib.import_module("googleapiclient.discovery")
-            http_mod = importlib.import_module("googleapiclient.http")
+            importlib.import_module("googleapiclient.discovery")
         except ImportError:
-            logger.warning("[GoogleDrive] google-auth library not available")
+            logger.warning("[GoogleDrive] google-api-python-client not available")
             return
 
-        sa_path = os.getenv("GOOGLE_DRIVE_SA_JSON_PATH", "")
         chatbot_root = Path(__file__).resolve().parents[1]
+
+        if self._try_oauth(chatbot_root):
+            return
+        self._try_service_account(chatbot_root)
+
+    def _try_oauth(self, chatbot_root: Path) -> bool:
+        """Load OAuth 2.0 credentials from token file. Returns True on success."""
+        token_path_raw = os.getenv("GOOGLE_DRIVE_OAUTH_TOKEN_PATH", "")
+        if not token_path_raw:
+            return False
+
+        token_path = Path(token_path_raw)
+        if not token_path.is_absolute():
+            token_path = (chatbot_root / token_path).resolve()
+
+        if not token_path.exists():
+            logger.debug(f"[GoogleDrive] OAuth token not found at {token_path} — skipping")
+            return False
+
+        try:
+            google_oauth2 = importlib.import_module("google.oauth2.credentials")
+            google_auth_req = importlib.import_module("google.auth.transport.requests")
+            discovery = importlib.import_module("googleapiclient.discovery")
+            http_mod = importlib.import_module("googleapiclient.http")
+
+            creds = google_oauth2.Credentials.from_authorized_user_file(
+                str(token_path), _DRIVE_SCOPES
+            )
+
+            if creds.expired and creds.refresh_token:
+                creds.refresh(google_auth_req.Request())
+                token_path.write_text(creds.to_json(), encoding="utf-8")
+                logger.info("[GoogleDrive] OAuth token refreshed and saved")
+
+            self._service = discovery.build("drive", "v3", credentials=creds)
+            self._media_upload_cls = http_mod.MediaIoBaseUpload
+            self._auth_mode = "oauth"
+            logger.info("[GoogleDrive] Initialized with OAuth (real user account)")
+            return True
+        except Exception as e:
+            logger.error(f"[GoogleDrive] OAuth init failed: {e}")
+            return False
+
+    def _try_service_account(self, chatbot_root: Path):
+        """Load Service Account credentials (fallback)."""
+        sa_path = os.getenv("GOOGLE_DRIVE_SA_JSON_PATH", "")
         resolved = Path(sa_path)
         if not resolved.is_absolute():
             resolved = (chatbot_root / resolved).resolve()
 
         if not sa_path or not resolved.exists():
-            logger.warning(
-                f"[GoogleDrive] Service account JSON not found at {resolved}"
-            )
+            logger.warning(f"[GoogleDrive] Service account JSON not found at {resolved}")
             return
 
         try:
+            service_account = importlib.import_module("google.oauth2.service_account")
+            discovery = importlib.import_module("googleapiclient.discovery")
+            http_mod = importlib.import_module("googleapiclient.http")
+
             credentials = service_account.Credentials.from_service_account_file(
                 str(resolved), scopes=["https://www.googleapis.com/auth/drive.file"]
             )
             self._service = discovery.build("drive", "v3", credentials=credentials)
             self._media_upload_cls = http_mod.MediaIoBaseUpload
-            logger.info("[GoogleDrive] Service initialized successfully")
+            self._auth_mode = "service_account"
+            logger.info("[GoogleDrive] Initialized with Service Account (no personal quota)")
         except Exception as e:
-            logger.error(f"[GoogleDrive] Failed to initialize: {e}")
+            logger.error(f"[GoogleDrive] Service Account init failed: {e}")
             self._service = None
 
     def set_folder_id(self, folder_id: str):
