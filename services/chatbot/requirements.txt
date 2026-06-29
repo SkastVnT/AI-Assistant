@@ -22,7 +22,7 @@ pymongo>=4.17.0
 dnspython>=2.4.0  # Required for MongoDB SRV connection
 
 # ============= RAG =============
-chromadb>=0.5.0
+chromadb>=1.5.9
 sqlalchemy[asyncio]>=2.0.50
 alembic>=1.13.0
 pgvector>=0.4.2
