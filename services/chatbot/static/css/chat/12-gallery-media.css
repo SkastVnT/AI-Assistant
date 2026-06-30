@@ -95,9 +95,9 @@
 /* ── Grid ─────────────────────────────────────────────────── */
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
-  gap: 8px;
-  padding: 10px 14px 14px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  padding: 12px 16px 16px;
   overflow-y: auto;
   flex: 1;
   min-height: 0;
@@ -274,28 +274,6 @@
   font-size: 14px;
 }
 
-/* ── Load more ────────────────────────────────────────────── */
-.gallery-load-more {
-  grid-column: 1 / -1;
-  padding: 8px 24px;
-  margin: 4px auto 8px;
-  border: 1px solid var(--border-primary);
-  border-radius: 8px;
-  background: var(--bg-secondary, #1a1a2e);
-  color: var(--text-secondary);
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-  display: block;
-  width: fit-content;
-}
-
-.gallery-load-more:hover {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--text-primary);
-}
-
 /* ── Pagination footer (pinned below the scrolling grid) ──────── */
 .gallery-pagination {
   display: flex;
@@ -456,13 +434,14 @@
 }
 
 /* ── Image Lightbox ────────────────────────────────────────── */
+/* z-index 10200 > titlebar 10000 — lightbox covers everything when open */
 .image-preview-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.88);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  z-index: 9000;
+  z-index: 10200;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -477,42 +456,54 @@
   visibility: visible;
 }
 
-/* Control bar */
+/* Control bar — sits below the 36px Electron titlebar */
 .lightbox-controls {
   position: fixed;
-  top: 14px;
-  right: 14px;
+  top: 52px; /* 36px titlebar + 16px gap */
+  right: 16px;
   display: flex;
   align-items: center;
   gap: 6px;
-  z-index: 9100;
+  z-index: 10300;
+}
+
+/* In browser (no titlebar), move controls back up */
+body.is-browser .lightbox-controls {
+  top: 16px;
 }
 
 .lightbox-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border: none;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  border-radius: 10px;
+  background: rgba(30, 32, 40, 0.85);
+  color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, transform 0.1s;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  -webkit-app-region: no-drag;
 }
 
 .lightbox-btn:hover {
-  background: rgba(255, 255, 255, 0.24);
+  background: rgba(60, 65, 80, 0.95);
+  transform: scale(1.05);
+}
+
+.lightbox-btn:active {
+  transform: scale(0.96);
 }
 
 .lightbox-btn--close {
-  background: rgba(220, 50, 50, 0.35);
+  background: rgba(180, 40, 40, 0.75);
 }
 
 .lightbox-btn--close:hover {
-  background: rgba(220, 50, 50, 0.6);
+  background: rgba(210, 50, 50, 0.95);
 }
 
 /* Image wrap — captures wheel/swipe events */
@@ -528,7 +519,7 @@
 
 .lightbox-wrap img {
   max-width: 92vw;
-  max-height: 88vh;
+  max-height: 86vh;
   object-fit: contain;
   border-radius: 6px;
   cursor: default;
@@ -538,17 +529,53 @@
   -webkit-user-drag: none;
 }
 
-/* Dimension meta */
+/* Meta bar — compact info at the bottom */
 .lightbox-meta {
   position: fixed;
-  bottom: 14px;
+  bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 12px;
-  letter-spacing: 0.03em;
+  z-index: 10300;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(720px, 90vw);
+  background: rgba(10, 12, 18, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 6px 14px;
   pointer-events: none;
-  z-index: 9100;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.lb-prompt {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 480px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lb-chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.lb-chip {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
 }
 
 /* Chat images: show zoom cursor so users know they're clickable */
