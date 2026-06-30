@@ -28,3 +28,26 @@
     font-family: monospace;
     margin: 0.5rem 0;
 }
+
+/* Over Reviewers: when 3+ charts appear consecutively, lay them out in a 3-column grid */
+.message-text:has(.chart-block ~ .chart-block) .chart-block {
+    max-width: 100%;
+}
+
+@media (min-width: 900px) {
+    .message-text:has(.chart-block ~ .chart-block) {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 0.75rem;
+        align-items: start;
+    }
+
+    /* Non-chart siblings (text, headings, sources) span full width */
+    .message-text:has(.chart-block ~ .chart-block) > *:not(.chart-block) {
+        grid-column: 1 / -1;
+    }
+
+    .message-text:has(.chart-block ~ .chart-block) .chart-block canvas {
+        height: 240px !important;
+    }
+}

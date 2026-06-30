@@ -93,6 +93,33 @@
         const configBtn = document.getElementById('configAgentBtn');
         if (configBtn) configBtn.addEventListener('click', () => { closeToolsMenu(); openConfigAgentModal(); });
 
+        // Over Reviewers: standalone toggle (not in activeTools, not sent to backend as a tool)
+        const overReviewersBtn = document.getElementById('overReviewersBtn');
+        if (overReviewersBtn) {
+            // Restore state across page loads
+            window.overReviewersEnabled = localStorage.getItem('overReviewersEnabled') === 'true';
+            if (window.overReviewersEnabled) overReviewersBtn.classList.add('active');
+            overReviewersBtn.addEventListener('click', () => {
+                window.overReviewersEnabled = !window.overReviewersEnabled;
+                localStorage.setItem('overReviewersEnabled', window.overReviewersEnabled);
+                overReviewersBtn.classList.toggle('active', window.overReviewersEnabled);
+                if (window.gsap) {
+                    gsap.fromTo(overReviewersBtn,
+                        { scale: window.overReviewersEnabled ? 1.1 : 0.9 },
+                        { scale: 1, duration: 0.22, ease: 'elastic.out(1.2,0.5)' }
+                    );
+                }
+                if (window.showToast) {
+                    window.showToast(
+                        window.overReviewersEnabled
+                            ? 'Over Reviewers ON — AI sẽ tạo 3 chart type tốt nhất'
+                            : 'Over Reviewers OFF',
+                        window.overReviewersEnabled ? 'success' : 'info'
+                    );
+                }
+            });
+        }
+
         _thinkingModeBeforeDeepResearch = null;
 
         // All toggle-able tools — derived from toolBtnMap for DRY

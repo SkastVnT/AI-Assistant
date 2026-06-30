@@ -669,23 +669,51 @@ def chat_stream():
                 if search_results:
                     _search_performed = True
                     _chart_instruction = ""
+                    _over_reviewers = bool(data.get("over_reviewers", False))
                     if _wants_chart(_raw_user_msg):
-                        _chart_instruction = (
-                            "\n4. QUAN TRỌNG — Người dùng yêu cầu biểu đồ/chart. "
-                            "Bắt buộc phải output một ```chart block với DỮ LIỆU THỰC (không được để 0 hoặc null).\n"
-                            "Nếu dữ liệu web không có số liệu cụ thể → dùng kiến thức training của bạn "
-                            "(benchmark scores, market share, v.v. đã biết). Ưu tiên: web data > training knowledge > ước tính có ghi chú.\n"
-                            "Format bắt buộc (JSON hợp lệ, đặt trong code block ```chart):\n"
-                            "```chart\n"
-                            '{"type":"bar","data":{"labels":[...],"datasets":[{"label":"Benchmark","data":[87.2,88.0,83.7],'
-                            '"backgroundColor":["rgba(99,179,237,0.8)","rgba(154,117,234,0.8)","rgba(72,187,120,0.8)"],'
-                            '"borderColor":["rgba(99,179,237,1)","rgba(154,117,234,1)","rgba(72,187,120,1)"],"borderWidth":1}]},'
-                            '"options":{"plugins":{"title":{"display":true,"text":"Tiêu đề chart"},'
-                            '"legend":{"display":true}},"scales":{"y":{"beginAtZero":false,"min":70}}}}\n'
-                            "```\n"
-                            "Quy tắc: (a) data[] phải là số thực dương; (b) labels[] và data[] phải cùng độ dài; "
-                            "(c) chỉ output đúng một ```chart block; (d) nếu có nhiều metrics → dùng nhiều datasets."
-                        )
+                        if _over_reviewers:
+                            _chart_instruction = (
+                                "\n4. OVER REVIEWERS MODE — Người dùng muốn xem 3 cách visualize tốt nhất cho dữ liệu này.\n"
+                                "Phân tích dữ liệu, hiểu ngữ cảnh (benchmark, market share, trend, comparison, v.v.) rồi "
+                                "output CHÍNH XÁC 3 ```chart blocks với 3 loại biểu đồ KHÁC NHAU và PHÙ HỢP NHẤT.\n\n"
+                                "NGUYÊN TẮC chọn chart type:\n"
+                                "- So sánh điểm số/giá trị giữa nhiều thực thể → bar, radar, horizontalBar\n"
+                                "- Phân phối/tỷ lệ phần trăm → pie, doughnut, polarArea\n"
+                                "- Xu hướng theo thời gian → line, bar (grouped)\n"
+                                "- Đa chiều / nhiều metric → radar, scatter\n"
+                                "Chọn 3 type khác nhau phù hợp nhất với dữ liệu cụ thể.\n\n"
+                                "Mỗi chart bắt buộc:\n"
+                                "- DỮ LIỆU THỰC (không được để 0 hoặc null) — dùng web data > training knowledge\n"
+                                "- options.plugins.title.text mô tả rõ loại (ví dụ: 'Bar Chart — So sánh trực tiếp')\n"
+                                "- Màu sắc dark-theme phù hợp (rgba với alpha 0.7–0.9)\n"
+                                "- labels[] và data[] cùng độ dài\n\n"
+                                "Format: 3 khối ```chart riêng biệt, mỗi khối JSON hoàn chỉnh hợp lệ.\n"
+                                "Ví dụ format một khối:\n"
+                                "```chart\n"
+                                '{"type":"bar","data":{"labels":["A","B","C"],"datasets":[{"label":"Score",'
+                                '"data":[85,90,78],"backgroundColor":["rgba(99,179,237,0.8)","rgba(154,117,234,0.8)",'
+                                '"rgba(72,187,120,0.8)"],"borderWidth":1}]},'
+                                '"options":{"plugins":{"title":{"display":true,"text":"Bar Chart — So sánh"}}}}\n'
+                                "```\n"
+                                "Sau đó là 2 khối chart khác tương tự với type khác nhau."
+                            )
+                        else:
+                            _chart_instruction = (
+                                "\n4. QUAN TRỌNG — Người dùng yêu cầu biểu đồ/chart. "
+                                "Bắt buộc phải output một ```chart block với DỮ LIỆU THỰC (không được để 0 hoặc null).\n"
+                                "Nếu dữ liệu web không có số liệu cụ thể → dùng kiến thức training của bạn "
+                                "(benchmark scores, market share, v.v. đã biết). Ưu tiên: web data > training knowledge > ước tính có ghi chú.\n"
+                                "Format bắt buộc (JSON hợp lệ, đặt trong code block ```chart):\n"
+                                "```chart\n"
+                                '{"type":"bar","data":{"labels":[...],"datasets":[{"label":"Benchmark","data":[87.2,88.0,83.7],'
+                                '"backgroundColor":["rgba(99,179,237,0.8)","rgba(154,117,234,0.8)","rgba(72,187,120,0.8)"],'
+                                '"borderColor":["rgba(99,179,237,1)","rgba(154,117,234,1)","rgba(72,187,120,1)"],"borderWidth":1}]},'
+                                '"options":{"plugins":{"title":{"display":true,"text":"Tiêu đề chart"},'
+                                '"legend":{"display":true}},"scales":{"y":{"beginAtZero":false,"min":70}}}}\n'
+                                "```\n"
+                                "Quy tắc: (a) data[] phải là số thực dương; (b) labels[] và data[] phải cùng độ dài; "
+                                "(c) chỉ output đúng một ```chart block; (d) nếu có nhiều metrics → dùng nhiều datasets."
+                            )
                     message = (
                         f"{message}\n\n"
                         f"---\n"
@@ -701,7 +729,7 @@ def chat_stream():
                     logger.info(
                         "[Stream] Auto web search triggered for: %s%s",
                         _raw_user_msg[:60],
-                        " [+chart]" if _chart_instruction else "",
+                        " [+chart×3]" if (_chart_instruction and _over_reviewers) else (" [+chart]" if _chart_instruction else ""),
                     )
             except Exception as e:
                 logger.warning(f"[Stream] Web search failed: {e}")

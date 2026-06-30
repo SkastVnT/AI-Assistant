@@ -127,6 +127,8 @@ export class APIService {
             // this as an image request, so the backend bridge engages reliably
             // regardless of its own keyword router.
             force_image_bridge: params.forceImageBridge || false,
+            // Over-Reviewers: generate 3 chart types instead of 1
+            over_reviewers: params.overReviewers || false,
         };
 
         // Forward image-bridge run options (mode-card) into the pipeline request.

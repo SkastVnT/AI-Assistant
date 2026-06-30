@@ -4,7 +4,7 @@
  */
 
 import { ChatManager } from './modules/chat-manager.js?v=20260422';
-import { APIService } from './modules/api-service.js?v=20260624a';
+import { APIService } from './modules/api-service.js?v=20260630c';
 import { UIUtils } from './modules/ui-utils.js?v=20260630a';
 import { MessageRenderer } from './modules/message-renderer.js?v=20260630b';
 import { FileHandler } from './modules/file-handler.js';
