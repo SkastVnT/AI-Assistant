@@ -9,8 +9,8 @@
                     </svg>
                 </button>
 
-                <!-- Model Selector -->
-                <div class="topbar__model-selector" id="modelSelectorContainer">
+                <!-- Model Selector (hidden — model auto-selected, accessible via JS) -->
+                <div class="topbar__model-selector" id="modelSelectorContainer" style="display:none">
                     <button class="topbar__model-btn" id="modelSelectorBtn">
                         <span id="modelSelectorLabel">Grok-3 Mini</span>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -256,7 +256,6 @@
                 <!-- Desktop-only: ComfyUI terminal monitor; shown by comfyui-monitor.js when desktopAPI is present -->
                 <button class="topbar__btn" id="comfyuiMonitorBtn" title="ComfyUI Terminal" style="display:none;"><i data-lucide="terminal" class="lucide"></i></button>
                 <button class="topbar__btn" id="rightSidebarToggleBtn" title="Status panel"><i data-lucide="panel-right" class="lucide"></i></button>
-                <button class="topbar__btn" id="mcpToggleBtn" title="MCP Context"><i data-lucide="message-square-code" class="lucide"></i></button>
                 <button class="topbar__btn" id="darkModeBtn" title="Toggle theme (Dark / Eye Comfort)"><i data-lucide="sun-dim" class="lucide" id="darkModeIcon"></i></button>
 
                 <!-- More menu -->

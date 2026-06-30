@@ -29,19 +29,10 @@ class MCPController {
         this.selectedFileList = document.getElementById('selectedFileList');
         this.selectedFileCount = document.getElementById('selectedFileCount');
         this.sidebar = document.getElementById('mcpSidebar');
-        this.toggleBtn = document.getElementById('mcpToggleBtn');
         this.ocrBtn = document.getElementById('mcpOcrBtn');
         this.warmCacheBtn = document.getElementById('mcpWarmCacheBtn');
         this.isOpen = false; // Start collapsed
         
-        // Log để debug
-        console.log('MCP UI Elements:', {
-            checkbox: this.checkbox,
-            selectBtn: this.selectBtn,
-            statusSpan: this.statusSpan,
-            sidebar: this.sidebar,
-            toggleBtn: this.toggleBtn
-        });
     }
 
     setupEventListeners() {
@@ -62,11 +53,6 @@ class MCPController {
         // File Search
         this.fileSearch.addEventListener('input', (e) => {
             this.filterFiles(e.target.value);
-        });
-
-        // Toggle Sidebar
-        this.toggleBtn.addEventListener('click', () => {
-            this.toggleSidebar();
         });
 
         // OCR selected files via MCP
@@ -93,6 +79,11 @@ class MCPController {
             });
         }
 
+        // Escape key closes sidebar
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isOpen) this.closeSidebar();
+        });
+
         // Set up source tabs (folder picker, URL fetch, file upload)
         this.setupSourceTabs();
     }
@@ -100,20 +91,19 @@ class MCPController {
     closeSidebar() {
         this.isOpen = false;
         this.sidebar.classList.remove('open');
-        this.toggleBtn.classList.remove('sidebar-open');
-        this.toggleBtn.textContent = '▶';
-        this.toggleBtn.title = 'Mở rộng MCP';
+    }
+
+    openSidebar() {
+        if (this.isOpen) return;
+        this.isOpen = true;
+        this.sidebar.classList.add('open');
     }
 
     toggleSidebar() {
-        this.isOpen = !this.isOpen;
         if (this.isOpen) {
-            this.sidebar.classList.add('open');
-            this.toggleBtn.classList.add('sidebar-open');
-            this.toggleBtn.textContent = '◀';
-            this.toggleBtn.title = 'Thu gọn MCP';
-        } else {
             this.closeSidebar();
+        } else {
+            this.openSidebar();
         }
     }
 
@@ -132,6 +122,7 @@ class MCPController {
                 this.fileSearch.disabled = false;
                 this.updateStatus('active', '🟢 Enabled');
                 this.showNotification('✅ MCP Enabled', 'success');
+                this.openSidebar();
                 // Enable tab buttons
                 ['mcpTabFolder', 'mcpTabUrl', 'mcpTabUpload'].forEach(id => {
                     const tab = document.getElementById(id);
@@ -641,12 +632,16 @@ class MCPController {
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 if (tab.disabled) return;
+                const source = tab.dataset.source;
+                if (source === 'url' || source === 'upload') {
+                    this.showNotification('🚧 Tính năng đang phát triển', 'info');
+                    return;
+                }
                 tabs.forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
-                const source = tab.dataset.source;
                 if (folderSource) folderSource.style.display = source === 'folder' ? 'block' : 'none';
-                if (urlSource) urlSource.style.display = source === 'url' ? 'block' : 'none';
-                if (uploadSource) uploadSource.style.display = source === 'upload' ? 'block' : 'none';
+                if (urlSource) urlSource.style.display = 'none';
+                if (uploadSource) uploadSource.style.display = 'none';
             });
         });
 
@@ -712,6 +707,7 @@ class MCPController {
 
                 this.updateFileListDisplay();
                 this.updateIndicator();
+                this.openSidebar();
             } catch (error) {
                 console.error('[MCP] Folder read error:', error);
                 alert('Lỗi đọc folder');

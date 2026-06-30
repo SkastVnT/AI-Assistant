@@ -8,13 +8,14 @@
             const saved = JSON.parse(localStorage.getItem(ACTIVE_TOOLS_KEY));
             if (Array.isArray(saved)) return new Set(saved);
         } catch (_) {}
-        return new Set(['google-search']); // first-run default
+        return new Set([]); // google-search is always-on; no default active tools
     }
     function saveActiveTools() {
         localStorage.setItem(ACTIVE_TOOLS_KEY, JSON.stringify([...activeTools]));
     }
     let activeTools = loadActiveTools();
     let _thinkingModeBeforeDeepResearch = null;
+    let _menuIsOpen = false;
 
     // Map tool name → button element ID (shared by setupToolItemClicks + removeTool)
     // NOTE: 'reverse-image' is a virtual UI slug that toggles BOTH
@@ -22,7 +23,6 @@
     const toolBtnMap = {
         'image-generation':    'imageGenToolBtn',
         'img2img':             'img2imgToolBtn',
-        'google-search':       'googleSearchBtn',
         'github':              'githubBtn',
         'deep-research':       'deepResearchToolBtn',
         'serpapi-images':      'serpapiImagesBtn',
@@ -39,16 +39,20 @@
         const dropdown = document.getElementById('toolsMenuDropdown');
         if (!btn || !dropdown) return;
 
+        // GSAP takes ownership of visibility/opacity/transform
+        if (window.gsap) {
+            gsap.set(dropdown, { autoAlpha: 0, y: 10, scale: 0.96, transformOrigin: 'bottom left' });
+        }
+
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            dropdown.classList.toggle('open');
+            _menuIsOpen ? closeToolsMenu() : _openToolsMenu(dropdown);
         });
 
-        document.addEventListener('click', () => dropdown.classList.remove('open'));
+        document.addEventListener('click', () => { if (_menuIsOpen) closeToolsMenu(); });
         dropdown.addEventListener('click', (e) => e.stopPropagation());
 
         setupToolItemClicks();
-        // Sync button active classes with restored tool state
         activeTools.forEach(tool => {
             const btnId = toolBtnMap[tool];
             if (btnId) {
@@ -57,13 +61,39 @@
             }
         });
         updateActiveToolsDisplay();
+
+        // Stagger-in quick-tools on load
+        if (window.gsap) {
+            gsap.from('.quick-tool', { opacity: 0, y: 5, stagger: 0.07, duration: 0.32, ease: 'power2.out', delay: 0.25 });
+            // Hover microinteractions
+            document.querySelectorAll('.quick-tool').forEach(el => {
+                el.addEventListener('mouseenter', () => gsap.to(el, { scale: 1.12, duration: 0.13, ease: 'power2.out' }));
+                el.addEventListener('mouseleave', () => gsap.to(el, { scale: 1, duration: 0.11, ease: 'power2.in' }));
+            });
+            // + button pulse when opened (handled by rotation), but add subtle scale-in on hover
+            const menuBtn = document.getElementById('toolsMenuBtn');
+            if (menuBtn) {
+                menuBtn.addEventListener('mouseenter', () => { if (!_menuIsOpen) gsap.to(menuBtn, { scale: 1.05, duration: 0.13, ease: 'power2.out' }); });
+                menuBtn.addEventListener('mouseleave', () => gsap.to(menuBtn, { scale: 1, duration: 0.11, ease: 'power2.in' }));
+            }
+        }
+    }
+
+    function _openToolsMenu(dropdown) {
+        if (_menuIsOpen) return;
+        _menuIsOpen = true;
+        if (!window.gsap) { dropdown.classList.add('open'); return; }
+        const items = dropdown.querySelectorAll('.tools-list__item');
+        gsap.to(dropdown, { autoAlpha: 1, y: 0, scale: 1, duration: 0.22, ease: 'power3.out' });
+        gsap.from(items, { opacity: 0, y: 7, stagger: 0.028, duration: 0.17, ease: 'power2.out', delay: 0.05 });
+        gsap.to('#toolsMenuBtn svg', { rotation: 45, duration: 0.2, ease: 'back.out(2)' });
     }
 
     function setupToolItemClicks() {
         const configBtn = document.getElementById('configAgentBtn');
         if (configBtn) configBtn.addEventListener('click', () => { closeToolsMenu(); openConfigAgentModal(); });
 
-        let _thinkingModeBeforeDeepResearch = null;
+        _thinkingModeBeforeDeepResearch = null;
 
         // All toggle-able tools — derived from toolBtnMap for DRY
         Object.entries(toolBtnMap).forEach(([tool, id]) => {
@@ -75,11 +105,6 @@
                     if (activeTools.has('deep-research')) {
                         // Activating — save current mode then switch to multi-thinking
                         _thinkingModeBeforeDeepResearch = window.getThinkingMode ? window.getThinkingMode() : 'instant';
-                        const gsBtn = document.getElementById('googleSearchBtn');
-                        if (gsBtn && !activeTools.has('google-search')) {
-                            activeTools.add('google-search');
-                            gsBtn.classList.add('active');
-                        }
                         if (typeof selectThinkingMode === 'function') {
                             selectThinkingMode('multi-thinking', 'layers', '4-Agents');
                         }
@@ -107,9 +132,11 @@
         if (activeTools.has(name)) {
             activeTools.delete(name);
             btn.classList.remove('active');
+            if (window.gsap) gsap.fromTo(btn, { scale: 0.9 }, { scale: 1, duration: 0.18, ease: 'back.out(2)' });
         } else {
             activeTools.add(name);
             btn.classList.add('active');
+            if (window.gsap) gsap.fromTo(btn, { scale: 1.1 }, { scale: 1, duration: 0.22, ease: 'elastic.out(1.2, 0.5)' });
         }
         saveActiveTools();
         updateActiveToolsDisplay();
@@ -133,7 +160,7 @@
             'last30days-research': 'Social',
         };
         // Tools that run silently in the background — don't show a badge
-        const hiddenTools = new Set(['google-search', 'serpapi-images', 'last30days-research', 'github']);
+        const hiddenTools = new Set(['serpapi-images', 'last30days-research', 'github']);
         activeTools.forEach(tool => {
             if (hiddenTools.has(tool)) return;
             const badge = document.createElement('span');
@@ -157,7 +184,7 @@
     // Expand virtual tools (e.g. 'reverse-image' → ['serpapi-reverse-image','saucenao'])
     // before sending to the backend, so existing dispatchers keep working.
     window.getActiveTools = () => {
-        const out = [];
+        const out = ['google-search']; // always-on
         activeTools.forEach(t => {
             if (toolExpansionMap[t]) {
                 out.push(...toolExpansionMap[t]);
@@ -169,8 +196,13 @@
     };
 
     function closeToolsMenu() {
+        if (!_menuIsOpen) return;
+        _menuIsOpen = false;
         const d = document.getElementById('toolsMenuDropdown');
-        if (d) d.classList.remove('open');
+        if (!d) return;
+        if (!window.gsap) { d.classList.remove('open'); return; }
+        gsap.to(d, { autoAlpha: 0, y: 10, scale: 0.96, duration: 0.16, ease: 'power3.in' });
+        gsap.to('#toolsMenuBtn svg', { rotation: 0, duration: 0.14, ease: 'power2.out' });
     }
 
     // ════════════════════════════════════════════════════════════

@@ -80,190 +80,26 @@ export function initOverlayActions() {
     if (!window.__igv2OverlayDelegationBound) {
         window.__igv2OverlayDelegationBound = true;
         document.addEventListener('click', (event) => {
+            // Handle igv2 overlay action buttons (download / info / save)
             const actionBtn = event.target.closest('.igv2-img-btn[data-igv2-action]');
-            if (actionBtn) {
-                event.preventDefault();
-                event.stopPropagation();
+            if (!actionBtn) return;
 
-                const action = actionBtn.getAttribute('data-igv2-action');
-                const imageId = actionBtn.getAttribute('data-image-id') || '';
-                const imgSrc = actionBtn.getAttribute('data-img-src') || '';
+            event.preventDefault();
+            event.stopPropagation();
 
-                if (action === 'download') {
-                    _igv2Download(imgSrc, imageId);
-                } else if (action === 'info') {
-                    _igv2Info(imageId, actionBtn);
-                } else if (action === 'save') {
-                    _igv2Save(imageId, actionBtn);
-                }
-                return;
-            }
+            const action  = actionBtn.getAttribute('data-igv2-action');
+            const imageId = actionBtn.getAttribute('data-image-id') || '';
+            const imgSrc  = actionBtn.getAttribute('data-img-src') || '';
 
-            const imageEl = event.target.closest('.igv2-chat-image img[data-igv2-open]');
-            if (imageEl) {
-                event.preventDefault();
-                event.stopPropagation();
-                // Open in the existing in-page lightbox (#imagePreviewModal)
-                // instead of a new browser tab. Falls back to window.open
-                // only if the lightbox wrapper hasn't been initialised yet.
-                if (typeof window.openImagePreview === 'function') {
-                    window.openImagePreview(imageEl);
-                } else {
-                    const targetUrl = imageEl.getAttribute('data-igv2-open');
-                    if (targetUrl) window.open(targetUrl, '_blank', 'noopener');
-                }
+            if (action === 'download') {
+                _igv2Download(imgSrc, imageId);
+            } else if (action === 'info') {
+                _igv2Info(imageId, actionBtn);
+            } else if (action === 'save') {
+                _igv2Save(imageId, actionBtn);
             }
         });
     }
 }
 
-/**
- * Initialize lightbox zoom, pinch-to-zoom, swipe-to-close,
- * and image preview window globals.
- * Call from DOMContentLoaded after modules are ready.
- */
-export function initLightbox(messageRenderer) {
-    // Image preview wrappers
-    const openImagePreview = (img) => messageRenderer.openImagePreview(img);
-    const closeImagePreview = () => messageRenderer.closeImagePreview();
-    const downloadPreviewImage = () => messageRenderer.downloadPreviewImage();
-
-    // Keep openImagePreview global — called dynamically from rendered messages
-    window.openImagePreview = openImagePreview;
-    window.closeImagePreview = closeImagePreview;
-    window.downloadPreviewImage = downloadPreviewImage;
-
-    // Image preview zoom state
-    let currentZoom = 1.0;
-
-    const zoomPreviewImage = (delta) => {
-        const previewImg = document.getElementById('imagePreviewContent');
-        if (previewImg) {
-            currentZoom = Math.max(0.5, Math.min(5.0, currentZoom + delta));
-            previewImg.style.transform = `scale(${currentZoom})`;
-        }
-    };
-
-    const resetPreviewZoom = () => {
-        const previewImg = document.getElementById('imagePreviewContent');
-        if (previewImg) {
-            currentZoom = 1.0;
-            previewImg.style.transform = 'scale(1)';
-        }
-    };
-
-    // Keep resetPreviewZoom global — called from gallery viewGalleryImage
-    window.resetPreviewZoom = resetPreviewZoom;
-    window.zoomPreviewImage = zoomPreviewImage;
-
-    // Pinch-to-zoom on mobile for lightbox
-    const wrap = document.getElementById('lightboxImageWrap');
-    if (wrap) {
-        let startDist = 0;
-        let startZoom = 1;
-        wrap.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) {
-                startDist = Math.hypot(
-                    e.touches[0].clientX - e.touches[1].clientX,
-                    e.touches[0].clientY - e.touches[1].clientY
-                );
-                startZoom = currentZoom;
-            }
-        }, { passive: true });
-        wrap.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2) {
-                const dist = Math.hypot(
-                    e.touches[0].clientX - e.touches[1].clientX,
-                    e.touches[0].clientY - e.touches[1].clientY
-                );
-                const scale = dist / startDist;
-                currentZoom = Math.max(0.5, Math.min(5.0, startZoom * scale));
-                const img = document.getElementById('imagePreviewContent');
-                if (img) img.style.transform = `scale(${currentZoom})`;
-            }
-        }, { passive: true });
-        // Double-tap to toggle zoom
-        let lastTap = 0;
-        wrap.addEventListener('touchend', (e) => {
-            if (e.touches.length > 0) return;
-            const now = Date.now();
-            if (now - lastTap < 300) {
-                // Double tap
-                if (currentZoom > 1.1) {
-                    resetPreviewZoom();
-                } else {
-                    zoomPreviewImage(1.5);
-                }
-            }
-            lastTap = now;
-        });
-        // Mouse wheel zoom
-        wrap.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            zoomPreviewImage(e.deltaY < 0 ? 0.2 : -0.2);
-        }, { passive: false });
-
-        // === Swipe-down to close lightbox ===
-        let swipeStartY = 0;
-        let swipeDeltaY = 0;
-        let isSwiping = false;
-        const modal = document.getElementById('imagePreviewModal');
-        const lightboxEl = modal ? modal.querySelector('.lightbox') : null;
-
-        wrap.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1 && currentZoom <= 1.05) {
-                swipeStartY = e.touches[0].clientY;
-                isSwiping = true;
-                swipeDeltaY = 0;
-            }
-        }, { passive: true });
-
-        wrap.addEventListener('touchmove', (e) => {
-            if (!isSwiping || e.touches.length !== 1) return;
-            swipeDeltaY = e.touches[0].clientY - swipeStartY;
-            if (swipeDeltaY > 0 && lightboxEl) {
-                const progress = Math.min(swipeDeltaY / 200, 1);
-                lightboxEl.style.transform = `translateY(${swipeDeltaY}px)`;
-                lightboxEl.style.opacity = 1 - progress * 0.5;
-            }
-        }, { passive: true });
-
-        wrap.addEventListener('touchend', () => {
-            if (!isSwiping) return;
-            isSwiping = false;
-            if (swipeDeltaY > 120) {
-                // Swipe far enough → close
-                if (lightboxEl) {
-                    lightboxEl.style.transition = 'transform 0.2s, opacity 0.2s';
-                    lightboxEl.style.transform = 'translateY(100%)';
-                    lightboxEl.style.opacity = '0';
-                }
-                setTimeout(() => {
-                    closeImagePreview();
-                    if (lightboxEl) {
-                        lightboxEl.style.transition = '';
-                        lightboxEl.style.transform = '';
-                        lightboxEl.style.opacity = '';
-                    }
-                }, 200);
-            } else if (lightboxEl) {
-                // Snap back
-                lightboxEl.style.transition = 'transform 0.2s, opacity 0.2s';
-                lightboxEl.style.transform = '';
-                lightboxEl.style.opacity = '';
-                setTimeout(() => { lightboxEl.style.transition = ''; }, 200);
-            }
-            swipeDeltaY = 0;
-        });
-
-        // === Tap background (outside image) to close ===
-        wrap.addEventListener('click', (e) => {
-            if (e.target === wrap && currentZoom <= 1.05) {
-                closeImagePreview();
-            }
-        });
-    }
-
-    // Return functions for delegation registration
-    return { openImagePreview, closeImagePreview, downloadPreviewImage, zoomPreviewImage, resetPreviewZoom };
-}
+// initLightbox removed — lightbox is now fully managed by global-image-viewer.js

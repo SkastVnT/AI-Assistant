@@ -63,6 +63,8 @@ class ChatBotApp {
         window.appConfirm = (m, opts) => this.uiUtils.showConfirmAsync(m, opts);
         window.appPrompt  = (m, defVal, opts) => this.uiUtils.showPromptAsync(m, defVal, opts);
         window.appAlert   = (m, type) => this.uiUtils.showAlert(m, type);
+        window.showToast  = (m, t) => this.uiUtils.showToast(m, t);
+        window.overlayManager = { toggle: toggleOverlay, open: openOverlay, close: closeOverlay, isOpen };
         
         // State — no tools active by default
         this.activeTools = new Set();
@@ -684,18 +686,13 @@ class ChatBotApp {
                 });
             }
             
-            // Reattach event listeners
+            // Reattach event listeners (image clicks handled by global-image-viewer.js)
             this.messageRenderer.reattachEventListeners(
                 elements.chatContainer,
                 null,
                 null,
-                (img) => this.openImagePreview(img)
+                null
             );
-            
-            // Make images clickable (with retry)
-            const makeClickable = () => this.messageRenderer.makeImagesClickable((img) => this.openImagePreview(img));
-            setTimeout(makeClickable, 200);
-            setTimeout(makeClickable, 600);
         } else {
             this.uiUtils.clearChat();
             this.uiUtils.showWelcomeScreen();
@@ -1381,6 +1378,7 @@ class ChatBotApp {
                         streamTextDiv.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
                     }
                     this.messageRenderer.enhanceCodeBlocks(streamTextDiv);
+                    this.messageRenderer._initChartBlocks(streamTextDiv);
                     // Enhance tables with interactive viewer
                     this.messageRenderer.enhanceMarkdownTables(streamTextDiv);
                     // Add action buttons to streaming message
@@ -1469,11 +1467,6 @@ class ChatBotApp {
                 window.logChatToFirebase(message, formValues.model, fullResponse, []);
             }
             
-            // Make images clickable (with retry for dynamically loaded images)
-            const makeClickable = () => this.messageRenderer.makeImagesClickable((img) => this.openImagePreview(img));
-            setTimeout(makeClickable, 100);
-            setTimeout(makeClickable, 500);
-
             // ── Follow-up suggestions + Think Harder ──
             if (!streamFailed && this.messageRenderer.features?.suggestionChips !== false) {
                 renderSuggestions(this, {
@@ -1602,11 +1595,6 @@ class ChatBotApp {
             
             // Save session
             this.saveCurrentSession(true);
-            
-            // Make images clickable (with retry)
-            const makeClickable = () => this.messageRenderer.makeImagesClickable((img) => this.openImagePreview(img));
-            setTimeout(makeClickable, 100);
-            setTimeout(makeClickable, 500);
             
         } catch (error) {
             if (error.name !== 'AbortError') {
@@ -1908,14 +1896,8 @@ class ChatBotApp {
             }
         });
 
-        // Re-attach actions after DOM restore.
-        this.messageRenderer.reattachEventListeners(
-            chatContainer,
-            null,
-            null,
-            (img) => this.openImagePreview(img)
-        );
-        this.messageRenderer.makeImagesClickable((img) => this.openImagePreview(img));
+        // Re-attach actions after DOM restore (image clicks handled by global-image-viewer.js).
+        this.messageRenderer.reattachEventListeners(chatContainer, null, null, null);
 
         // Persist selected branch immediately (without bumping updatedAt order).
         this.saveCurrentSession(false);
@@ -3093,10 +3075,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // Expose message rendering functions
-    window.openImagePreview = (img) => app.messageRenderer.openImagePreview(img);
-    window.closeImagePreview = () => app.messageRenderer.closeImagePreview();
-    window.downloadPreviewImage = () => app.messageRenderer.downloadPreviewImage();
+    // window.openImagePreview / closeImagePreview / downloadPreviewImage /
+    // zoomPreviewImage / resetPreviewZoom are set by global-image-viewer.js
+    // (auto-inits as a module). No duplicate wiring needed here.
 
     // 2026-04-28: lightbox "Upscale" button removed by user request
     // ("quá nặng"). Image-Gen V2 modal now exposes orientation

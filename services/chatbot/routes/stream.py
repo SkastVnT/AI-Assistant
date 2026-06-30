@@ -652,22 +652,39 @@ def chat_stream():
 
         if _needs_web_search(data.get("message", message), tools):
             try:
-                search_results = _run_web_search(data.get("message", message))
+                _raw_user_msg = data.get("message", message)
+                # For chart requests, build a more targeted search query
+                _search_query = _raw_user_msg
+                if _wants_chart(_raw_user_msg):
+                    import re as _re_q
+                    # Strip UI instruction words to get the data topic
+                    _clean = _re_q.sub(
+                        r'\b(tạo|vẽ|tạo ra|cho tôi|giúp tôi|create|make|draw|generate|plot)\b',
+                        '', _raw_user_msg, flags=_re_q.IGNORECASE
+                    ).strip()
+                    _clean = _re_q.sub(r'\b(biểu đồ|chart|graph|visualization)\b', '', _clean, flags=_re_q.IGNORECASE).strip()
+                    _search_query = f"{_clean} benchmark comparison 2025" if _clean else _raw_user_msg
+                    logger.info("[Stream] Chart search query refined: %r", _search_query[:80])
+                search_results = _run_web_search(_search_query)
                 if search_results:
                     _search_performed = True
-                    _raw_user_msg = data.get("message", message)
                     _chart_instruction = ""
                     if _wants_chart(_raw_user_msg):
                         _chart_instruction = (
                             "\n4. QUAN TRỌNG — Người dùng yêu cầu biểu đồ/chart. "
-                            "Sau khi giải thích ngắn gọn, hãy output Chart.js JSON trong code block:\n"
+                            "Bắt buộc phải output một ```chart block với DỮ LIỆU THỰC (không được để 0 hoặc null).\n"
+                            "Nếu dữ liệu web không có số liệu cụ thể → dùng kiến thức training của bạn "
+                            "(benchmark scores, market share, v.v. đã biết). Ưu tiên: web data > training knowledge > ước tính có ghi chú.\n"
+                            "Format bắt buộc (JSON hợp lệ, đặt trong code block ```chart):\n"
                             "```chart\n"
-                            '{ "type": "bar", "data": { "labels": [...], "datasets": [{ "label": "Tên", "data": [...], "backgroundColor": [...] }] }, '
-                            '"options": { "plugins": { "title": { "display": true, "text": "Tiêu đề chart" } } } }\n'
+                            '{"type":"bar","data":{"labels":[...],"datasets":[{"label":"Benchmark","data":[87.2,88.0,83.7],'
+                            '"backgroundColor":["rgba(99,179,237,0.8)","rgba(154,117,234,0.8)","rgba(72,187,120,0.8)"],'
+                            '"borderColor":["rgba(99,179,237,1)","rgba(154,117,234,1)","rgba(72,187,120,1)"],"borderWidth":1}]},'
+                            '"options":{"plugins":{"title":{"display":true,"text":"Tiêu đề chart"},'
+                            '"legend":{"display":true}},"scales":{"y":{"beginAtZero":false,"min":70}}}}\n'
                             "```\n"
-                            "Đảm bảo JSON hoàn toàn hợp lệ. Chỉ output đúng một ```chart block. "
-                            "Dùng màu sắc đẹp cho backgroundColor (rgba). "
-                            "Bao gồm đủ datasets cho từng model/đối tượng cần so sánh."
+                            "Quy tắc: (a) data[] phải là số thực dương; (b) labels[] và data[] phải cùng độ dài; "
+                            "(c) chỉ output đúng một ```chart block; (d) nếu có nhiều metrics → dùng nhiều datasets."
                         )
                     message = (
                         f"{message}\n\n"

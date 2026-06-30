@@ -299,10 +299,19 @@
     padding: 8px;
   }
 
-  /* ── Image preview ── */
-  .image-preview-overlay img {
-    max-width: 95%;
-    max-height: 80%;
+  /* ── Image lightbox ── */
+  .lightbox-wrap img {
+    max-width: 98vw;
+    max-height: 75vh;
+  }
+  .lightbox-controls {
+    top: 8px;
+    right: 8px;
+    gap: 4px;
+  }
+  .lightbox-btn {
+    width: 30px;
+    height: 30px;
   }
 
   /* ── Split view: disabled on mobile ── */

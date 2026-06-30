@@ -1249,6 +1249,7 @@ export function finalizeAssistantRender(app, ctx) {
             streamTextDiv.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
         }
         app.messageRenderer.enhanceCodeBlocks(streamTextDiv);
+        app.messageRenderer._initChartBlocks(streamTextDiv);
         app.messageRenderer.enhanceMarkdownTables(streamTextDiv);
         app.messageRenderer.addMessageButtons(streamContentDiv, responseContent, false, streamMsgDiv);
 

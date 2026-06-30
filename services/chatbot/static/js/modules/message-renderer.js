@@ -43,6 +43,7 @@ export class MessageRenderer {
         };
 
         this.messageHistory = new Map(); // Store message edit history
+        this._chartSpecStore = new Map(); // chart-id → JSON string, for ```chart blocks
         this.features = this._resolveFeatureFlags();
         this._quotedContext = null; // Selected text for reply context
         this.initMarked();
@@ -346,7 +347,71 @@ export class MessageRenderer {
                     return code;
                 }
             });
+
+            // Intercept ```chart / ```chartjs code blocks — render as Chart.js canvas.
+            // marked v5+ passes a token object {text, lang, ...}; older versions
+            // pass positional args (code, lang). Handle both.
+            const _self = this;
+            marked.use({
+                renderer: {
+                    code(codeOrToken, langArg) {
+                        let rawCode, cleanLang;
+                        if (codeOrToken && typeof codeOrToken === 'object') {
+                            rawCode = codeOrToken.text || '';
+                            cleanLang = (codeOrToken.lang || '').toLowerCase().trim();
+                        } else {
+                            rawCode = String(codeOrToken || '');
+                            cleanLang = (langArg || '').toLowerCase().trim();
+                        }
+                        if (cleanLang === 'chart' || cleanLang === 'chartjs') {
+                            try {
+                                JSON.parse(rawCode); // validate JSON early
+                                const chartId = 'chart-' + Math.random().toString(36).slice(2, 10);
+                                _self._chartSpecStore.set(chartId, rawCode);
+                                return `<div class="chart-block" data-chart-id="${chartId}"></div>`;
+                            } catch (e) {
+                                return `<div class="chart-error"><strong>Chart JSON error:</strong> ${e.message}</div>`;
+                            }
+                        }
+                        return false; // fall back to default marked renderer
+                    }
+                }
+            });
         }
+    }
+
+    /**
+     * Initialize Chart.js inside any .chart-block[data-chart-id] elements found in container.
+     * Called after markdown render + DOMPurify sanitize, alongside enhanceCodeBlocks().
+     */
+    _initChartBlocks(container) {
+        if (typeof Chart === 'undefined') return;
+        container.querySelectorAll('.chart-block[data-chart-id]:not([data-chart-init])').forEach(block => {
+            const id = block.dataset.chartId;
+            const specJson = this._chartSpecStore.get(id);
+            if (!specJson) return;
+            block.dataset.chartInit = '1';
+            try {
+                const spec = JSON.parse(specJson);
+                const canvas = document.createElement('canvas');
+                block.appendChild(canvas);
+                // Default Chart.js options for dark theme
+                if (!spec.options) spec.options = {};
+                if (!spec.options.plugins) spec.options.plugins = {};
+                if (!spec.options.plugins.legend) spec.options.plugins.legend = { labels: { color: '#ccc' } };
+                if (!spec.options.plugins.title) spec.options.plugins.title = {};
+                if (!spec.options.plugins.title.color) spec.options.plugins.title.color = '#eee';
+                if (!spec.options.scales && (spec.type === 'bar' || spec.type === 'line')) {
+                    spec.options.scales = {
+                        x: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.08)' } }
+                    };
+                }
+                new Chart(canvas, spec);
+            } catch (e) {
+                block.innerHTML = `<div class="chart-error"><strong>Chart render error:</strong> ${e.message}</div>`;
+            }
+        });
     }
 
     /**
@@ -475,7 +540,8 @@ export class MessageRenderer {
                     });
                 }
                 this.enhanceCodeBlocks(textDiv);
-                
+                this._initChartBlocks(textDiv);
+
                 // Enhance tables with interactive viewer
                 this.enhanceMarkdownTables(textDiv);
             } else {
@@ -1357,9 +1423,10 @@ export class MessageRenderer {
         // Get selected memories
         const selectedMemories = window.chatApp.memoryManager.getSelectedMemories();
         
-        // Create new AbortController
+        // Create new AbortController — capture reference for ownership check in finally.
         window.chatApp.currentAbortController = new AbortController();
-        
+        const _regenAbort = window.chatApp.currentAbortController;
+
         // Send API request
         window.chatApp.apiService.sendMessage(
             userText,
@@ -1433,10 +1500,11 @@ export class MessageRenderer {
                 );
             }
         }).finally(() => {
-            // Clear the in-flight controller so stream-guard lifts the streaming
-            // lock. Otherwise body[data-streaming] stays "true" and the version-nav
-            // buttons remain pointer-events:none / guarded until a page refresh.
-            if (window.chatApp) window.chatApp.currentAbortController = null;
+            // Clear only if we still own the controller; a concurrent regen
+            // may have replaced it while this one was in-flight.
+            if (window.chatApp && window.chatApp.currentAbortController === _regenAbort) {
+                window.chatApp.currentAbortController = null;
+            }
         });
     }
 
@@ -1546,11 +1614,12 @@ export class MessageRenderer {
         };
 
         window.chatApp.currentAbortController = new AbortController();
+        const _regenImageAbort = window.chatApp.currentAbortController;
         let providerStep = null;
 
         try {
             const result = await window.chatApp.imageGenV2.generateFromChatStream(
-                userPrompt, conversationId, window.chatApp.currentAbortController.signal,
+                userPrompt, conversationId, _regenImageAbort.signal,
                 {
                     onStatus: (data) => {
                         if (data.phase === 'enhance') {
@@ -1685,9 +1754,11 @@ export class MessageRenderer {
             headerIcon.classList.remove('spinning');
             addStep('❌', error.message || 'Unknown error', 'fail');
         } finally {
-            // Lift the stream-guard lock so version-nav works after regen
-            // (see regenerateResponse — same controller-leak fix).
-            if (window.chatApp) window.chatApp.currentAbortController = null;
+            // Lift the stream-guard lock so version-nav works after regen.
+            // Ownership check prevents clearing a concurrent regen's controller.
+            if (window.chatApp && window.chatApp.currentAbortController === _regenImageAbort) {
+                window.chatApp.currentAbortController = null;
+            }
         }
     }
 
@@ -2087,6 +2158,9 @@ export class MessageRenderer {
             if (modelSelect.value) messageDiv.dataset.model = modelSelect.value;
             if (agentSelect.value) messageDiv.dataset.context = agentSelect.value;
 
+            // Always close the form — model/agent changes above are already applied
+            editForm.remove();
+
             if (newContent && newContent !== originalContent) {
                 const previousVersion = parseInt(messageDiv.dataset.currentVersion || '0', 10);
                 if (window.chatApp && typeof window.chatApp.syncConversationBranches === 'function' && !Number.isNaN(previousVersion)) {
@@ -2100,31 +2174,28 @@ export class MessageRenderer {
                     nextMsg = nextMsg.nextElementSibling;
                 }
                 const oldResponse = nextMsg ? nextMsg.querySelector('.message-text')?.innerHTML : '';
-                
+
                 // Save new version with empty response (will be filled after regeneration)
                 this.addMessageVersion(messageId, newContent, '', new Date().toISOString());
                 if (window.chatManager) {
                     window.chatManager.saveMessageVersion(messageId, newContent, '', new Date().toISOString());
                 }
-                
+
                 // Update message content
                 const textDiv = messageDiv.querySelector('.message-text');
                 textDiv.textContent = newContent;
-                
+
                 // Update version indicator
                 const history = this.getMessageHistory(messageId);
                 const currentIdx = history.length - 1;
                 messageDiv.dataset.currentVersion = currentIdx.toString();
                 this.updateVersionIndicator(messageDiv);
-                
-                // Remove edit form
-                editForm.remove();
-                
+
                 // Find and remove subsequent assistant message
                 if (nextMsg) {
                     nextMsg.remove();
                 }
-                
+
                 // Regenerate response with edited message
                 if (this.onEditSave) {
                     this.onEditSave(messageDiv, newContent, originalContent);
@@ -2302,6 +2373,7 @@ export class MessageRenderer {
                         assistantTextDiv.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
                     }
                     this.enhanceCodeBlocks(assistantTextDiv);
+                    this._initChartBlocks(assistantTextDiv);
                     this.enhanceMarkdownTables(assistantTextDiv);
                     if (window.lucide) lucide.createIcons({ nodes: [assistantMsg] });
                     assistantTextDiv.style.transform = `translateX(${direction * 18}px)`;
@@ -2458,10 +2530,7 @@ export class MessageRenderer {
             }
         });
         
-        // Make images clickable
-        if (onImageClick) {
-            this.makeImagesClickable(onImageClick);
-        }
+        // Image clicks are handled by the delegated listener in global-image-viewer.js
     }
 
     /**

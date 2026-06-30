@@ -91,6 +91,12 @@
                                             <button class="tools-list__item" id="img2imgToolBtn" title="Img2Img + DeepDanbooru">
                                                 <i data-lucide="scan-eye" class="lucide"></i><span>Img2Img</span>
                                             </button>
+                                            <button class="tools-list__item is-proxy" data-proxy="animePipelineBtn" title="Layered Anime Pipeline">
+                                                <i data-lucide="layers" class="lucide"></i><span>Anime Pipeline</span>
+                                            </button>
+                                            <button class="tools-list__item is-proxy" data-proxy="videoGenBtn" title="Video Sora2">
+                                                <i data-lucide="video" class="lucide"></i><span>Video Gen</span>
+                                            </button>
                                         </div>
                                     </div>
 
@@ -111,7 +117,6 @@
 
                                     <!-- Hidden originals — kept so existing main.js bindings keep working without surfacing duplicate buttons -->
                                     <div class="tools-dropdown__actions" hidden aria-hidden="true">
-                                        <button class="tools-list__item" id="googleSearchBtn" tabindex="-1"></button>
                                         <button class="tools-list__item" id="serpapiImagesBtn" tabindex="-1"></button>
                                         <button class="tools-list__item" id="last30daysBtn" tabindex="-1"></button>
                                         <button class="tools-list__item" id="githubBtn" tabindex="-1"></button>
@@ -137,6 +142,9 @@
                                 </button>
                                 <button class="quick-tool" type="button" data-target="uploadFilesBtn" title="Upload Files" aria-label="Upload Files">
                                     <i data-lucide="paperclip" class="lucide"></i>
+                                </button>
+                                <button class="quick-tool" type="button" data-target="branchConversationBtn" title="Branch Conversation" aria-label="Branch Conversation">
+                                    <i data-lucide="git-branch" class="lucide"></i>
                                 </button>
                             </div>
 

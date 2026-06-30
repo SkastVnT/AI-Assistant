@@ -1115,4 +1115,22 @@ export class UIUtils {
             container.style.display = 'flex';
         }
     }
+
+    /**
+     * Show a brief toast notification.
+     * @param {string} msg - Message text
+     * @param {string} [type='info'] - 'info' | 'success' | 'error' | 'warning'
+     * @param {number} [duration=3000] - Visible duration in ms
+     */
+    showToast(msg, type = 'info', duration = 3000) {
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.3s';
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    }
 }

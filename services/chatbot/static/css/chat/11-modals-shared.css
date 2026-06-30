@@ -185,21 +185,7 @@
 .badge--warning { background: rgba(245,158,11,0.12); color: var(--warning); }
 .badge--error { background: rgba(239,68,68,0.12); color: var(--error); }
 
-/* ── MCP Sidebar ───────────────────────────────────────────── */
-.mcp-panel {
-  width: 320px;
-  min-width: 320px;
-  background: var(--bg-secondary);
-  border-left: 1px solid var(--border-secondary);
-  display: none;
-  flex-direction: column;
-  overflow-y: auto;
-  transition: all var(--transition-slow);
-}
-
-.mcp-panel.open {
-  display: flex;
-}
+/* ── MCP Sidebar — styles moved to 18-mcp-panel.css ─────────── */
 
 /* ── Memory Panel ──────────────────────────────────────────── */
 .memory-panel {
