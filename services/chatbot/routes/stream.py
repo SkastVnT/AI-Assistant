@@ -400,6 +400,11 @@ def chat_stream():
             rag_collection_ids = []
         rag_tenant_id = str(data.get("rag_tenant_id") or "default")
 
+        # Preserve the raw user message before normalization appends
+        # asset-context (previously generated images). route_request() must
+        # classify the user's actual words, not the augmented string.
+        raw_message = message
+
         # ── Shared request normalization ──────────────────────────────
         # Conversation id extract+validate+bind, image context injection,
         # and history bounding live in core/request_normalizer.py so that
@@ -441,7 +446,7 @@ def chat_stream():
         if applied.was_applied:
             logger.info(f"[SSE:{request_id}] Skill applied: {applied.skill_id}")
 
-        route_decision = route_request(message)
+        route_decision = route_request(raw_message)
         trace = RequestTrace(
             conversation_id=conversation_id or "",
             message_id=(data.get("message_id") or "").strip()
@@ -1006,6 +1011,27 @@ def chat_stream():
                             request_id,
                             _verr,
                         )
+                        # When the caller forced the bridge (frontend explicitly
+                        # signaled image intent), tell the user why it failed
+                        # instead of silently falling through to the text path.
+                        if bool(data.get("force_image_bridge")):
+                            _err_msg = f"Không thể tạo ảnh: {_verr or 'pipeline không sẵn sàng'}."
+                            yield _emit("chunk", {"content": _err_msg, "chunk_index": 1})
+                            _ep = _build_complete_event_payload(
+                                full_response=_err_msg,
+                                model=model, context=context,
+                                deep_thinking=False, thinking_mode=thinking_mode,
+                                chunk_count=1, thinking_summary="",
+                                thinking_steps_text=[], thinking_duration=0,
+                                elapsed_time=0.0,
+                                tokens=max(1, len(_err_msg)), max_tokens=512,
+                                request_id=request_id, has_image=False,
+                            )
+                            yield StreamEvent(
+                                event="complete",
+                                data=json.dumps(_ep, ensure_ascii=False),
+                            ).format()
+                            return True
                         return False
 
                     logger.info(
@@ -1027,8 +1053,9 @@ def chat_stream():
                             for _frame in _aps.stream_pipeline(_req):
                                 _frame_q.put(_frame)
                             _frame_q.put((_AP_DONE, None))
-                        except Exception as exc:  # noqa: BLE001
+                        except BaseException as exc:  # catches KeyboardInterrupt/SystemExit too
                             _frame_q.put((_AP_ERR, exc))
+                            raise
 
                     _worker = _th_ap.Thread(target=_drain, daemon=True)
                     _worker.start()
@@ -1038,34 +1065,80 @@ def chat_stream():
                     _cancelled = False
                     _failed = False
 
-                    while True:
-                        try:
-                            _item = _frame_q.get(timeout=15)
-                        except _q_ap.Empty:
-                            yield ": keepalive\n\n"
-                            continue
-                        if isinstance(_item, tuple):
-                            if _item[0] == _AP_DONE:
-                                break
-                            if _item[0] == _AP_ERR:
+                    # JobQueue tracking: capture job_id from first ap_status frame.
+                    from core.job_queue import get_queue as _get_queue_ap
+
+                    _jid: str = ""
+                    _jq = _get_queue_ap()
+
+                    try:
+                        while True:
+                            try:
+                                _item = _frame_q.get(timeout=15)
+                            except _q_ap.Empty:
+                                yield ": keepalive\n\n"
+                                continue
+                            if isinstance(_item, tuple):
+                                if _item[0] == _AP_DONE:
+                                    break
+                                if _item[0] == _AP_ERR:
+                                    _failed = True
+                                    logger.error(
+                                        "[SSE:%s] image bridge pipeline error: %s",
+                                        request_id,
+                                        _item[1],
+                                    )
+                                    break
+                            # _item is a pre-formatted SSE string; forward verbatim.
+                            yield _item
+                            _m = _evt_re.search(_item)
+                            _name = _m.group(1) if _m else ""
+                            # Parse JSON payload for job_id and queue transitions.
+                            _data_j: dict = {}
+                            for _ln in _item.split("\n"):
+                                if _ln.startswith("data:"):
+                                    try:
+                                        _data_j = json.loads(_ln.split(":", 1)[1].strip())
+                                    except Exception:
+                                        pass
+                                    break
+                            if _name == "ap_status" and not _jid:
+                                _jid = str(_data_j.get("job_id") or "")
+                                if _jid:
+                                    if _jq.get(_jid) is None:
+                                        _jq.create(job_id=_jid, prompt=raw_message[:500])
+                                    _jq.transition(_jid, "queued")
+                                    _jq.transition(_jid, "running")
+                            elif _name == "ap_result":
+                                _ok = True
+                                if _jid:
+                                    _jq.transition(_jid, "completed", progress_pct=100.0)
+                            elif _name == "ap_cancelled":
+                                _cancelled = True
+                                if _jid:
+                                    _jq.transition(_jid, "cancelled")
+                            elif _name == "ap_error":
                                 _failed = True
-                                logger.error(
-                                    "[SSE:%s] image bridge pipeline error: %s",
-                                    request_id,
-                                    _item[1],
-                                )
-                                break
-                        # _item is a pre-formatted SSE string from _sse_line();
-                        # forward verbatim — do NOT rename ap_* events.
-                        yield _item
-                        _m = _evt_re.search(_item)
-                        _name = _m.group(1) if _m else ""
-                        if _name == "ap_result":
-                            _ok = True
-                        elif _name == "ap_cancelled":
-                            _cancelled = True
-                        elif _name == "ap_error":
-                            _failed = True
+                                if _jid:
+                                    _jq.transition(
+                                        _jid, "failed",
+                                        error=str(_data_j.get("error", "pipeline error")),
+                                    )
+                    except GeneratorExit:
+                        # Client disconnected: cancel job and interrupt ComfyUI GPU.
+                        if _jid:
+                            _rec = _jq.get(_jid)
+                            if _rec and _rec.state in ("queued", "running"):
+                                _jq.request_cancel(_jid)
+                                try:
+                                    from routes.anime_pipeline import (
+                                        _interrupt_comfyui as _ic,
+                                    )
+                                    _ic()
+                                except Exception:
+                                    pass
+                        _worker.join(timeout=5)
+                        raise
 
                     _worker.join(timeout=5)
 
