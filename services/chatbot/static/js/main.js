@@ -1377,8 +1377,8 @@ class ChatBotApp {
                     if (typeof hljs !== 'undefined') {
                         streamTextDiv.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
                     }
+                    this.messageRenderer._initChartBlocks(streamTextDiv); // must run before enhanceCodeBlocks
                     this.messageRenderer.enhanceCodeBlocks(streamTextDiv);
-                    this.messageRenderer._initChartBlocks(streamTextDiv);
                     // Enhance tables with interactive viewer
                     this.messageRenderer.enhanceMarkdownTables(streamTextDiv);
                     // Add action buttons to streaming message
@@ -3486,7 +3486,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let _gallerySearchTerm = '';
     let _gallerySourceFilter = 'all';
     let _galleryInited = false;
-    const GALLERY_PER_PAGE = 24;     // images shown per page (a comfortable screenful)
+    const GALLERY_PER_PAGE = 12;     // images shown per page
     const GALLERY_FETCH_CAP = 1000;  // max images pulled into memory in one shot
 
     const _buildGalleryItem = (img) => {
@@ -4047,38 +4047,22 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.classList.add('open');
             document.body.style.overflow = 'hidden';
             
-            if (info && metadata) {
-                const m = metadata;
-                const metaItems = [
-                    m.model && { label: 'Model', value: m.model },
-                    m.sampler && { label: 'Sampler', value: m.sampler },
-                    m.steps && { label: 'Steps', value: m.steps },
-                    m.cfg_scale && { label: 'CFG', value: m.cfg_scale },
-                    (m.width && m.height) && { label: 'Size', value: `${m.width}×${m.height}` },
-                    m.denoising_strength && { label: 'Denoise', value: m.denoising_strength },
-                    m.vae && { label: 'VAE', value: m.vae },
-                    m.seed && { label: 'Seed', value: m.seed },
+            if (info) {
+                const m = metadata || {};
+                const sizeStr = (m.width && m.height) ? `${m.width}×${m.height}` : '';
+                const chips = [
+                    m.model && m.model,
+                    sizeStr,
+                    m.steps && `${m.steps} steps`,
+                    m.seed && `seed ${m.seed}`,
                 ].filter(Boolean);
-
-                const loraStr = m.lora_models
-                    ? (typeof m.lora_models === 'string' ? m.lora_models : JSON.stringify(m.lora_models))
-                    : '';
-
-                info.innerHTML = `
-                    ${m.prompt ? `<div class="lightbox__prompt"><span class="lightbox__meta-label">Prompt</span><br>${escapeHtml(m.prompt)}</div>` : ''}
-                    ${m.negative_prompt ? `<div class="lightbox__prompt" style="opacity:0.7;font-size:11px;"><span class="lightbox__meta-label">Negative</span><br>${escapeHtml(m.negative_prompt)}</div>` : ''}
-                    <div class="lightbox__meta-grid">
-                        ${metaItems.map(i => `
-                            <div class="lightbox__meta-item">
-                                <span class="lightbox__meta-label">${escapeHtml(i.label)}</span>
-                                <span class="lightbox__meta-value">${escapeHtml(i.value)}</span>
-                            </div>
-                        `).join('')}
-                        ${loraStr ? `<div class="lightbox__meta-item" style="grid-column:1/-1"><span class="lightbox__meta-label">LoRA</span><span class="lightbox__meta-value">${escapeHtml(loraStr)}</span></div>` : ''}
-                    </div>
-                `;
-            } else if (info) {
-                info.innerHTML = '';
+                // Truncate prompt — avoid dumping web-search context into the UI
+                const promptRaw = (m.prompt || '').replace(/\s+/g, ' ').trim();
+                const promptShort = promptRaw.length > 120 ? promptRaw.slice(0, 120) + '…' : promptRaw;
+                info.innerHTML = [
+                    promptShort && `<span class="lb-prompt">${escapeHtml(promptShort)}</span>`,
+                    chips.length && `<span class="lb-chips">${chips.map(c => `<span class="lb-chip">${escapeHtml(String(c))}</span>`).join('')}</span>`,
+                ].filter(Boolean).join(' ');
             }
         }
     };

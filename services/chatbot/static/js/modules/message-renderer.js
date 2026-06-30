@@ -348,70 +348,63 @@ export class MessageRenderer {
                 }
             });
 
-            // Intercept ```chart / ```chartjs code blocks — render as Chart.js canvas.
-            // marked v5+ passes a token object {text, lang, ...}; older versions
-            // pass positional args (code, lang). Handle both.
-            const _self = this;
-            marked.use({
-                renderer: {
-                    code(codeOrToken, langArg) {
-                        let rawCode, cleanLang;
-                        if (codeOrToken && typeof codeOrToken === 'object') {
-                            rawCode = codeOrToken.text || '';
-                            cleanLang = (codeOrToken.lang || '').toLowerCase().trim();
-                        } else {
-                            rawCode = String(codeOrToken || '');
-                            cleanLang = (langArg || '').toLowerCase().trim();
-                        }
-                        if (cleanLang === 'chart' || cleanLang === 'chartjs') {
-                            try {
-                                JSON.parse(rawCode); // validate JSON early
-                                const chartId = 'chart-' + Math.random().toString(36).slice(2, 10);
-                                _self._chartSpecStore.set(chartId, rawCode);
-                                return `<div class="chart-block" data-chart-id="${chartId}"></div>`;
-                            } catch (e) {
-                                return `<div class="chart-error"><strong>Chart JSON error:</strong> ${e.message}</div>`;
-                            }
-                        }
-                        return false; // fall back to default marked renderer
-                    }
-                }
-            });
+            // ```chart / ```chartjs blocks: let marked render them as regular
+            // <pre><code class="language-chart"> blocks. _initChartBlocks() reads
+            // the JSON from textContent (survives DOMPurify + hljs) and converts
+            // them to Chart.js canvases. No data-* attribute dependency.
         }
     }
 
     /**
-     * Initialize Chart.js inside any .chart-block[data-chart-id] elements found in container.
-     * Called after markdown render + DOMPurify sanitize, alongside enhanceCodeBlocks().
+     * Convert ```chart / ```chartjs code blocks to Chart.js canvases.
+     * MUST be called BEFORE enhanceCodeBlocks() so the <pre> elements are
+     * replaced before copy-button headers are added.
+     *
+     * Strategy: read JSON from codeEl.textContent — survives DOMPurify
+     * sanitization and hljs highlighting without needing data-* attributes.
      */
     _initChartBlocks(container) {
         if (typeof Chart === 'undefined') return;
-        container.querySelectorAll('.chart-block[data-chart-id]:not([data-chart-init])').forEach(block => {
-            const id = block.dataset.chartId;
-            const specJson = this._chartSpecStore.get(id);
-            if (!specJson) return;
-            block.dataset.chartInit = '1';
+        container.querySelectorAll(
+            'pre:not([data-chart-init]) code.language-chart, pre:not([data-chart-init]) code.language-chartjs'
+        ).forEach(codeEl => {
+            const pre = codeEl.parentElement;
+            if (!pre || pre.dataset.chartInit) return;
+            pre.dataset.chartInit = '1';
+            const specJson = codeEl.textContent || '';
             try {
-                const spec = JSON.parse(specJson);
-                const canvas = document.createElement('canvas');
-                block.appendChild(canvas);
-                // Default Chart.js options for dark theme
-                if (!spec.options) spec.options = {};
-                if (!spec.options.plugins) spec.options.plugins = {};
-                if (!spec.options.plugins.legend) spec.options.plugins.legend = { labels: { color: '#ccc' } };
-                if (!spec.options.plugins.title) spec.options.plugins.title = {};
-                if (!spec.options.plugins.title.color) spec.options.plugins.title.color = '#eee';
-                if (!spec.options.scales && (spec.type === 'bar' || spec.type === 'line')) {
-                    spec.options.scales = {
-                        x: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                        y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.08)' } }
-                    };
-                }
-                new Chart(canvas, spec);
+                JSON.parse(specJson); // validate before replacing DOM
             } catch (e) {
-                block.innerHTML = `<div class="chart-error"><strong>Chart render error:</strong> ${e.message}</div>`;
+                return; // invalid JSON — leave as code block
             }
+            const chartDiv = document.createElement('div');
+            chartDiv.className = 'chart-block';
+            chartDiv.dataset.chartInit = '1';
+            pre.parentNode.replaceChild(chartDiv, pre);
+            this._renderChart(chartDiv, specJson);
         });
+    }
+
+    _renderChart(block, specJson) {
+        try {
+            const spec = JSON.parse(specJson);
+            const canvas = document.createElement('canvas');
+            block.appendChild(canvas);
+            if (!spec.options) spec.options = {};
+            if (!spec.options.plugins) spec.options.plugins = {};
+            if (!spec.options.plugins.legend) spec.options.plugins.legend = { labels: { color: '#ccc' } };
+            if (!spec.options.plugins.title) spec.options.plugins.title = {};
+            if (!spec.options.plugins.title.color) spec.options.plugins.title.color = '#eee';
+            if (!spec.options.scales && (spec.type === 'bar' || spec.type === 'line')) {
+                spec.options.scales = {
+                    x: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.08)' } }
+                };
+            }
+            new Chart(canvas, spec);
+        } catch (e) {
+            block.innerHTML = `<div class="chart-error"><strong>Chart render error:</strong> ${e.message}</div>`;
+        }
     }
 
     /**
@@ -539,8 +532,8 @@ export class MessageRenderer {
                         hljs.highlightElement(block);
                     });
                 }
+                this._initChartBlocks(textDiv); // must run before enhanceCodeBlocks
                 this.enhanceCodeBlocks(textDiv);
-                this._initChartBlocks(textDiv);
 
                 // Enhance tables with interactive viewer
                 this.enhanceMarkdownTables(textDiv);
@@ -2372,8 +2365,8 @@ export class MessageRenderer {
                     if (typeof hljs !== 'undefined') {
                         assistantTextDiv.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
                     }
+                    this._initChartBlocks(assistantTextDiv); // must run before enhanceCodeBlocks
                     this.enhanceCodeBlocks(assistantTextDiv);
-                    this._initChartBlocks(assistantTextDiv);
                     this.enhanceMarkdownTables(assistantTextDiv);
                     if (window.lucide) lucide.createIcons({ nodes: [assistantMsg] });
                     assistantTextDiv.style.transform = `translateX(${direction * 18}px)`;
