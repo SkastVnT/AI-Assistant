@@ -403,7 +403,10 @@ def _start_character_select_if_needed() -> None:
     # First-run install: SAA ships a package.json but no node_modules; without
     # Electron installed, `npm start` immediately fails with
     # "'electron' is not recognized". Install once on first launch.
-    needs_install = not (saa_path / "node_modules" / "electron").exists()
+    # On Windows check for the exact exe; on other platforms check the directory.
+    electron_exe = saa_path / "node_modules" / "electron" / "dist" / "electron.exe"
+    _electron_marker = electron_exe if os.name == "nt" else saa_path / "node_modules" / "electron"
+    needs_install = not _electron_marker.exists()
 
     # Build env for SAA process — inherit current env and add SHOW_ELECTRON_SAA.
     # Default false: SAA runs as a headless webserver (no Electron window) unless
@@ -416,24 +419,21 @@ def _start_character_select_if_needed() -> None:
     if needs_install:
         # Headless: chain install → start in one shell so the spawned
         # process tree stays attached to the same log file.
+        # Note: install still needs a shell; this branch only runs once on first boot.
         shell_cmd = f"{npm_cmd} install && {npm_cmd} start"
-        if os.name == "nt":
-            _spawn_background_process(
-                ["cmd.exe", "/c", shell_cmd],
-                saa_path,
-                "character-select-autostart.log",
-                env=saa_env,
-            )
-        else:
-            _spawn_background_process(
-                ["sh", "-c", shell_cmd],
-                saa_path,
-                "character-select-autostart.log",
-                env=saa_env,
-            )
-    else:
+        shell = ["cmd.exe", "/c"] if os.name == "nt" else ["sh", "-c"]
         _spawn_background_process(
-            [npm_cmd, "start"],
+            [*shell, shell_cmd],
+            saa_path,
+            "character-select-autostart.log",
+            env=saa_env,
+        )
+    else:
+        # On Windows invoke electron.exe directly — bypasses npm.cmd (a batch file)
+        # which would force a visible cmd.exe console window to appear.
+        start_cmd = [str(electron_exe), "."] if os.name == "nt" else [npm_cmd, "start"]
+        _spawn_background_process(
+            start_cmd,
             saa_path,
             "character-select-autostart.log",
             env=saa_env,
