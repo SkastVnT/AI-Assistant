@@ -404,7 +404,6 @@ def _start_character_select_if_needed() -> None:
     # Electron installed, `npm start` immediately fails with
     # "'electron' is not recognized". Install once on first launch.
     needs_install = not (saa_path / "node_modules" / "electron").exists()
-    install_clause = f"{npm_cmd} install && " if needs_install else ""
 
     # Build env for SAA process — inherit current env and add SHOW_ELECTRON_SAA.
     # Default false: SAA runs as a headless webserver (no Electron window) unless
@@ -412,14 +411,9 @@ def _start_character_select_if_needed() -> None:
     saa_env = dict(os.environ)
     saa_env["SHOW_ELECTRON_SAA"] = os.getenv("SHOW_ELECTRON_SAA", "false")
 
-    if (
-        os.name == "nt"
-        and _env_flag("IMAGE_SERVICE_VISIBLE_WINDOWS", "true")
-        and _env_flag("SHOW_ELECTRON_SAA", "false")
-    ):
-        command_line = f'cd /d "{saa_path}" && {install_clause}{npm_cmd} start'
-        _spawn_windows_terminal(command_line, saa_path, f"Character Select {port}")
-    elif needs_install:
+    # SAA is a background webserver — never open a visible terminal regardless of
+    # IMAGE_SERVICE_VISIBLE_WINDOWS.  Logs go to character-select-autostart.log.
+    if needs_install:
         # Headless: chain install → start in one shell so the spawned
         # process tree stays attached to the same log file.
         shell_cmd = f"{npm_cmd} install && {npm_cmd} start"
