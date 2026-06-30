@@ -5,25 +5,25 @@
 
 import { ChatManager } from './modules/chat-manager.js?v=20260422';
 import { APIService } from './modules/api-service.js?v=20260624a';
-import { UIUtils } from './modules/ui-utils.js';
-import { MessageRenderer } from './modules/message-renderer.js?v=20260629a';
+import { UIUtils } from './modules/ui-utils.js?v=20260630a';
+import { MessageRenderer } from './modules/message-renderer.js?v=20260630a';
 import { FileHandler } from './modules/file-handler.js';
 import { MemoryManager } from './modules/memory-manager.js';
 import { ImageGeneration } from './modules/image-gen.js';
-import { ImageGenV2 } from './modules/image-gen-v2.js';
+import { ImageGenV2 } from './modules/image-gen-v2.js?v=20260630a';
 import { VideoGen } from './modules/video-gen.js';
 import { ExportHandler } from './modules/export-handler.js';
 import { SplitViewManager } from './modules/split-view.js';
 import { initLanguage } from './language-switcher.js';
-import { AnimePipeline } from './modules/anime-pipeline.js?v=20260624a';
-import { initOverlayActions } from './modules/overlay-actions.js';
+import { AnimePipeline } from './modules/anime-pipeline.js?v=20260630a';
+import { initOverlayActions } from './modules/overlay-actions.js?v=20260630a';
 import { initOverlayManager, registerOverlay, enablePanelMode, openOverlay, closeOverlay, toggleOverlay, isOpen } from './modules/overlay-manager.js?v=20260508';
 import { domToStructured, legacyHtmlToStructured } from './modules/message-model.js';
 import { buildHistoryFromTimeline } from './modules/timeline.js';
 // Electron bridge: side-effect import — tags <body class="is-desktop"|"is-browser">,
 // wires custom titlebar buttons, mirrors job count to system tray badge.
 import './modules/electron-bridge.js';
-import { renderSuggestions } from './modules/send-message-helpers.js';
+import { renderSuggestions } from './modules/send-message-helpers.js?v=20260630a';
 
 class ChatBotApp {
     constructor() {
