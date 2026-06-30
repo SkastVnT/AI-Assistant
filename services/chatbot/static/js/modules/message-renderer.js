@@ -411,21 +411,195 @@ export class MessageRenderer {
     }
 
     _renderChart(block, specJson) {
+        // Consistent color palette for dark theme
+        const PALETTE = [
+            'rgba(99,179,237,0.85)',   // blue
+            'rgba(154,117,234,0.85)',  // purple
+            'rgba(72,187,120,0.85)',   // green
+            'rgba(245,158,11,0.85)',   // amber
+            'rgba(236,72,153,0.85)',   // pink
+            'rgba(56,189,248,0.85)',   // sky
+            'rgba(251,113,133,0.85)',  // rose
+            'rgba(52,211,153,0.85)',   // emerald
+        ];
+        const PALETTE_BORDER = PALETTE.map(c => c.replace(/0\.85\)/, '1)'));
+
         try {
             const spec = JSON.parse(specJson);
-            const canvas = document.createElement('canvas');
-            block.appendChild(canvas);
+
+            // Chart.js 4.x: 'horizontalBar' removed
+            if (spec.type === 'horizontalBar') {
+                spec.type = 'bar';
+                if (!spec.options) spec.options = {};
+                spec.options.indexAxis = 'y';
+            }
+
+            // Auto-fill missing colors on datasets
+            (spec.data?.datasets || []).forEach((ds, i) => {
+                const baseColor = PALETTE[i % PALETTE.length];
+                const borderColor = PALETTE_BORDER[i % PALETTE_BORDER.length];
+                // For bar/polarArea: backgroundColor can be array-per-bar
+                if ((spec.type === 'bar' || spec.type === 'polarArea' || spec.type === 'pie' || spec.type === 'doughnut') && !ds.backgroundColor) {
+                    if (spec.type === 'bar' && (spec.data?.labels?.length || 0) > 1 && (spec.data?.datasets?.length || 0) === 1) {
+                        ds.backgroundColor = spec.data.labels.map((_, j) => PALETTE[j % PALETTE.length]);
+                        ds.borderColor = spec.data.labels.map((_, j) => PALETTE_BORDER[j % PALETTE_BORDER.length]);
+                    } else {
+                        ds.backgroundColor = PALETTE.slice(0, spec.data?.labels?.length || PALETTE.length);
+                        ds.borderColor = PALETTE_BORDER.slice(0, spec.data?.labels?.length || PALETTE.length);
+                    }
+                }
+                if (!ds.backgroundColor && spec.type !== 'bar') {
+                    ds.backgroundColor = spec.type === 'line'
+                        ? baseColor.replace('0.85)', '0.15)')
+                        : baseColor;
+                }
+                if (!ds.borderColor) ds.borderColor = borderColor;
+            });
+
+            // Ensure options object
             if (!spec.options) spec.options = {};
+            spec.options.responsive = true;
+            spec.options.maintainAspectRatio = false;
+            if (!spec.options.animation) spec.options.animation = { duration: 600, easing: 'easeOutQuart' };
+
+            // Plugins
             if (!spec.options.plugins) spec.options.plugins = {};
-            if (!spec.options.plugins.legend) spec.options.plugins.legend = { labels: { color: '#ccc' } };
-            if (!spec.options.plugins.title) spec.options.plugins.title = {};
-            if (!spec.options.plugins.title.color) spec.options.plugins.title.color = '#eee';
-            if (!spec.options.scales && (spec.type === 'bar' || spec.type === 'line')) {
-                spec.options.scales = {
-                    x: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.08)' } }
+
+            // Legend
+            const leg = spec.options.plugins.legend || {};
+            spec.options.plugins.legend = {
+                ...leg,
+                labels: {
+                    color: '#b0bec5',
+                    font: { size: 12, family: 'Inter, sans-serif' },
+                    padding: 18,
+                    usePointStyle: true,
+                    pointStyleWidth: 10,
+                    ...(leg.labels || {}),
+                },
+            };
+
+            // Title
+            const ttl = spec.options.plugins.title || {};
+            spec.options.plugins.title = {
+                display: true,
+                color: '#e2e8f0',
+                font: { size: 14, weight: '600', family: 'Inter, sans-serif' },
+                padding: { top: 4, bottom: 16 },
+                ...ttl,
+            };
+
+            // Tooltip
+            if (!spec.options.plugins.tooltip) {
+                spec.options.plugins.tooltip = {
+                    backgroundColor: 'rgba(10,12,20,0.92)',
+                    titleColor: '#e2e8f0',
+                    bodyColor: '#90a4ae',
+                    borderColor: 'rgba(255,255,255,0.12)',
+                    borderWidth: 1,
+                    padding: { x: 14, y: 10 },
+                    cornerRadius: 10,
+                    displayColors: true,
+                    boxPadding: 4,
                 };
             }
+
+            // Per-type scale + dataset styling
+            if (spec.type === 'bar') {
+                (spec.data?.datasets || []).forEach(ds => {
+                    if (ds.borderRadius === undefined) ds.borderRadius = 7;
+                    if (ds.borderSkipped === undefined) ds.borderSkipped = false;
+                    if (ds.borderWidth === undefined) ds.borderWidth = 0;
+                });
+                if (!spec.options.scales) {
+                    spec.options.scales = {
+                        x: {
+                            ticks: { color: '#78909c', font: { size: 11 } },
+                            grid: { display: false },
+                            border: { display: false },
+                        },
+                        y: {
+                            ticks: { color: '#78909c', font: { size: 11 } },
+                            grid: { color: 'rgba(255,255,255,0.06)', drawBorder: false },
+                            border: { display: false },
+                        },
+                    };
+                }
+            }
+
+            if (spec.type === 'line') {
+                (spec.data?.datasets || []).forEach((ds, i) => {
+                    if (ds.tension === undefined) ds.tension = 0.42;
+                    if (ds.pointRadius === undefined) ds.pointRadius = 5;
+                    if (ds.pointHoverRadius === undefined) ds.pointHoverRadius = 8;
+                    if (ds.pointBorderWidth === undefined) ds.pointBorderWidth = 2;
+                    if (ds.pointBackgroundColor === undefined) ds.pointBackgroundColor = PALETTE[i % PALETTE.length];
+                    if (ds.borderWidth === undefined) ds.borderWidth = 2.5;
+                    if (ds.fill === undefined) ds.fill = false;
+                });
+                if (!spec.options.scales) {
+                    spec.options.scales = {
+                        x: { ticks: { color: '#78909c', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { display: false } },
+                        y: { ticks: { color: '#78909c', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.07)' }, border: { display: false } },
+                    };
+                }
+            }
+
+            if (spec.type === 'radar') {
+                (spec.data?.datasets || []).forEach((ds, i) => {
+                    const base = PALETTE[i % PALETTE.length];
+                    if (!ds.backgroundColor) ds.backgroundColor = base.replace('0.85)', '0.18)');
+                    if (!ds.borderColor) ds.borderColor = PALETTE_BORDER[i % PALETTE_BORDER.length];
+                    if (ds.borderWidth === undefined) ds.borderWidth = 2.5;
+                    if (ds.pointRadius === undefined) ds.pointRadius = 5;
+                    if (ds.pointHoverRadius === undefined) ds.pointHoverRadius = 8;
+                    if (!ds.pointBackgroundColor) ds.pointBackgroundColor = PALETTE_BORDER[i % PALETTE_BORDER.length];
+                    if (!ds.pointBorderColor) ds.pointBorderColor = '#1a1d2e';
+                    if (ds.pointBorderWidth === undefined) ds.pointBorderWidth = 2;
+                });
+                if (!spec.options.scales) spec.options.scales = {};
+                if (!spec.options.scales.r) {
+                    const allVals = (spec.data?.datasets || [])
+                        .flatMap(d => Array.isArray(d.data) ? d.data : [])
+                        .filter(v => typeof v === 'number');
+                    const minVal = allVals.length ? Math.min(...allVals) : 0;
+                    spec.options.scales.r = {
+                        suggestedMin: minVal > 50 ? Math.floor(minVal * 0.88) : 0,
+                        ticks: { color: '#607d8b', backdropColor: 'transparent', font: { size: 9 }, stepSize: 5 },
+                        grid: { color: 'rgba(255,255,255,0.09)' },
+                        pointLabels: { color: '#b0bec5', font: { size: 12, family: 'Inter, sans-serif' } },
+                        angleLines: { color: 'rgba(255,255,255,0.12)' },
+                    };
+                }
+            }
+
+            if (spec.type === 'pie' || spec.type === 'doughnut') {
+                (spec.data?.datasets || []).forEach(ds => {
+                    if (ds.borderWidth === undefined) ds.borderWidth = 3;
+                    if (!ds.borderColor) ds.borderColor = '#0f1117';
+                    if (ds.hoverOffset === undefined) ds.hoverOffset = 10;
+                });
+                if (spec.type === 'doughnut' && !spec.options.cutout) spec.options.cutout = '58%';
+            }
+
+            if (spec.type === 'polarArea') {
+                (spec.data?.datasets || []).forEach(ds => {
+                    if (!ds.backgroundColor) ds.backgroundColor = PALETTE.slice(0, spec.data?.labels?.length || 8).map(c => c.replace('0.85)', '0.7)'));
+                    if (ds.borderWidth === undefined) ds.borderWidth = 2;
+                    if (!ds.borderColor) ds.borderColor = '#0f1117';
+                });
+                if (!spec.options.scales) spec.options.scales = {};
+                if (!spec.options.scales.r) {
+                    spec.options.scales.r = {
+                        ticks: { color: '#607d8b', backdropColor: 'transparent', font: { size: 9 } },
+                        grid: { color: 'rgba(255,255,255,0.09)' },
+                        pointLabels: { color: '#b0bec5' },
+                    };
+                }
+            }
+
+            const canvas = document.createElement('canvas');
+            block.appendChild(canvas);
             new Chart(canvas, spec);
         } catch (e) {
             block.innerHTML = `<div class="chart-error"><strong>Chart render error:</strong> ${e.message}</div>`;
