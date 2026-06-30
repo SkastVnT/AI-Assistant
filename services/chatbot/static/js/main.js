@@ -2737,13 +2737,7 @@ if (!window.__igv2OverlayDelegationBound) {
             return;
         }
 
-        const imageEl = event.target.closest('.igv2-chat-image img[data-igv2-open]');
-        if (imageEl) {
-            const targetUrl = imageEl.getAttribute('data-igv2-open');
-            if (targetUrl) {
-                window.open(targetUrl, '_blank', 'noopener');
-            }
-        }
+        // Image click handled by global-image-viewer.js delegated listener
     });
 }
 
