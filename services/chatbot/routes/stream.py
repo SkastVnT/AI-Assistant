@@ -104,6 +104,12 @@ _REALTIME_PATTERNS_VI = [
     "release",
     "công bố",
     "thông báo",
+    "biểu đồ",
+    "chart",
+    "benchmark",
+    "xếp hạng model",
+    "so sánh model",
+    "hiệu năng model",
 ]
 _REALTIME_PATTERNS_EN = [
     "price",
@@ -133,7 +139,28 @@ _REALTIME_PATTERNS_EN = [
     "result",
     "ranking",
     "trending",
+    "chart",
+    "graph",
+    "benchmark",
+    "model comparison",
+    "leaderboard",
 ]
+
+# Chart intent detection — triggers chart output instruction when search results injected
+_CHART_PATTERNS_VI = [
+    "biểu đồ", "chart", "vẽ chart", "tạo chart", "vẽ biểu đồ", "tạo biểu đồ",
+    "bar chart", "line chart", "pie chart", "so sánh.*chart", "chart.*so sánh",
+]
+_CHART_PATTERNS_EN = [
+    "chart", "graph", "plot", "bar chart", "line chart", "pie chart",
+    "create chart", "make a chart", "draw chart", "visualize", "visualization",
+]
+
+
+def _wants_chart(message: str) -> bool:
+    """Return True when the user explicitly asked for a chart/graph."""
+    msg_lower = message.lower()
+    return any(p in msg_lower for p in _CHART_PATTERNS_VI + _CHART_PATTERNS_EN)
 _SEARCH_KEYWORDS = [
     "tìm",
     "search",
@@ -162,6 +189,7 @@ def _build_complete_event_payload(
     tokens: int,
     max_tokens: int,
     request_id: str | None = None,
+    has_image: bool | None = None,
 ) -> dict:
     """Compatibility wrapper around shared contract helper."""
     return build_complete_event_payload(
@@ -178,6 +206,7 @@ def _build_complete_event_payload(
         tokens=tokens,
         max_tokens=max_tokens,
         request_id=request_id,
+        has_image=has_image,
     )
 
 
@@ -621,6 +650,20 @@ def chat_stream():
                 search_results = _run_web_search(data.get("message", message))
                 if search_results:
                     _search_performed = True
+                    _raw_user_msg = data.get("message", message)
+                    _chart_instruction = ""
+                    if _wants_chart(_raw_user_msg):
+                        _chart_instruction = (
+                            "\n4. QUAN TRỌNG — Người dùng yêu cầu biểu đồ/chart. "
+                            "Sau khi giải thích ngắn gọn, hãy output Chart.js JSON trong code block:\n"
+                            "```chart\n"
+                            '{ "type": "bar", "data": { "labels": [...], "datasets": [{ "label": "Tên", "data": [...], "backgroundColor": [...] }] }, '
+                            '"options": { "plugins": { "title": { "display": true, "text": "Tiêu đề chart" } } } }\n'
+                            "```\n"
+                            "Đảm bảo JSON hoàn toàn hợp lệ. Chỉ output đúng một ```chart block. "
+                            "Dùng màu sắc đẹp cho backgroundColor (rgba). "
+                            "Bao gồm đủ datasets cho từng model/đối tượng cần so sánh."
+                        )
                     message = (
                         f"{message}\n\n"
                         f"---\n"
@@ -631,9 +674,12 @@ def chat_stream():
                         f"1. Dẫn thông tin từ dữ liệu web trên.\n"
                         f"2. Ghi rõ link nguồn (🔗 URL) ngay sau thông tin liên quan HOẶC gom lại trong mục **Nguồn:** ở cuối — KHÔNG chỉ nhắc tên site.\n"
                         f"3. Nếu dữ liệu có ngày/giờ cụ thể, hãy trích dẫn chính xác."
+                        f"{_chart_instruction}"
                     )
                     logger.info(
-                        f"[Stream] Auto web search triggered for: {data.get('message', '')[:60]}"
+                        "[Stream] Auto web search triggered for: %s%s",
+                        _raw_user_msg[:60],
+                        " [+chart]" if _chart_instruction else "",
                     )
             except Exception as e:
                 logger.warning(f"[Stream] Web search failed: {e}")
@@ -1055,8 +1101,8 @@ def chat_stream():
                         tokens=max(1, len(_caption)),
                         max_tokens=512,
                         request_id=request_id,
+                        has_image=_ok,
                     )
-                    _payload["has_image"] = _ok
                     try:
                         trace.finish()
                         TRACE_STORE.save(trace)
@@ -1438,12 +1484,16 @@ def chat_stream():
                     tokens=_est_tokens,
                     max_tokens=_max_tokens,
                     request_id=request_id,
+                    has_image=False,
                 )
                 if _api_input_tokens:
                     _complete_payload["input_tokens"] = _api_input_tokens
                 yield StreamEvent(
                     event="complete",
-                    data=json.dumps(_with_rag_citations(_complete_payload, rag_citations)),
+                    data=json.dumps(
+                        _with_rag_citations(_complete_payload, rag_citations),
+                        ensure_ascii=False,
+                    ),
                 ).format()
                 record_stream_complete(
                     backend=stream_backend,

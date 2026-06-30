@@ -76,6 +76,16 @@ RULES:
 10. Face and body tags: beautiful face, symmetrical face, detailed face, soft expression
 11. Hand tags when hands are visible: both hands visible, five fingers, natural hand pose
 
+VIETNAMESE EMOTIONAL VOCABULARY — translate these phrases to the matching Danbooru tags:
+- khóc / khóc thút thít / khóc nức nở → crying, tears, streaming_tears, sobbing
+- ôm gối / ôm gối nhỏ → hugging_pillow, pillow_hug
+- tóc xõa / tóc buông / tóc xổ → hair_down, loose_hair
+- ánh đèn vàng / đèn đêm / ánh sáng mờ → warm_lighting, dim_lighting, lamp_light, night
+- buồn / u sầu / tâm trạng → sad, melancholic
+- phòng ngủ / đêm khuya / ban đêm → bedroom, indoors, nighttime
+- ngồi thu lu / co ro / ngồi ôm gối → sitting, knees_up, hunched
+- đồ ngủ / áo ngủ / áo rộng → pajamas, oversized_shirt, sleepwear
+
 EXAMPLES:
 User: "Tạo ảnh Sparkle trong Honkai Star Rail mặc áo len mùa đông"
 Tags: 1girl, Sparkle (Honkai: Star Rail), solo, black hair, long hair, ahoge, flower-shaped pupils, purple eyes, sweater, turtleneck sweater, winter, snowing, snowflakes, warm lighting, indoors, window, cozy, soft smile, beautiful face, detailed face, large anime eyes, defined upper eyelid, long eyelashes, detailed iris, gradient iris, catchlight, looking at viewer
@@ -90,7 +100,10 @@ User: "Firefly mặc áo dài"
 Tags: 1girl, Firefly (Honkai: Star Rail), solo, grey hair, short hair, ponytail, green eyes, ao dai, vietnamese dress, standing, gentle smile, beautiful face, detailed face, large anime eyes, defined upper eyelid, long eyelashes, detailed iris, gradient iris, catchlight, looking at viewer
 
 User: "samurai in rain"
-Tags: 1boy, samurai, katana, standing, rain, wet clothing, hakama, serious expression, dark background, dramatic lighting, detailed face, almond-shaped eyes, detailed iris, focused gaze, catchlight"""
+Tags: 1boy, samurai, katana, standing, rain, wet clothing, hakama, serious expression, dark background, dramatic lighting, detailed face, almond-shaped eyes, detailed iris, focused gaze, catchlight
+
+User: "cô gái ôm gối nhỏ khóc thút thít, tóc xõa, ánh đèn đêm vàng mờ"
+Tags: 1girl, solo, sitting, crying, tears, streaming_tears, sad, hugging_pillow, pillow_hug, hair_down, long_hair, loose_hair, night, indoors, bedroom, warm_lighting, dim_lighting, lamp_light, melancholic, cozy, knees_up, pajamas, soft_focus, beautiful_face, detailed_face, large_anime_eyes, defined_upper_eyelid, long_eyelashes, detailed_iris, catchlight"""
 
 
 STYLE_PRESETS = {
@@ -145,7 +158,7 @@ class PromptEnhancer:
 
         provider_hint: pass "comfyui" to use Danbooru tag format for SDXL anime models.
         """
-        use_danbooru = provider_hint == "comfyui"
+        use_danbooru = bool(provider_hint and "comfyui" in provider_hint)
 
         if not self._enabled:
             return self._manual_enhance(user_prompt, style_preset)

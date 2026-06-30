@@ -35,6 +35,7 @@ def build_complete_event_payload(
     max_tokens: int,
     request_id: str | None = None,
     time_to_first_chunk: float | None = None,
+    has_image: bool | None = None,
 ) -> dict[str, Any]:
     """Build the stable SSE `complete` payload consumed by frontend clients."""
     payload: dict[str, Any] = {
@@ -54,4 +55,6 @@ def build_complete_event_payload(
     }
     if time_to_first_chunk is not None:
         payload["time_to_first_chunk"] = round(time_to_first_chunk, 3)
+    if has_image is not None:
+        payload["has_image"] = has_image
     return with_request_id(payload, request_id)

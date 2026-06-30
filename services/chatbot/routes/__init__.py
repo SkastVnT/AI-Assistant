@@ -56,6 +56,7 @@ REGISTERED_BLUEPRINTS = [
     ("routes.characters", "characters_bp", None),
     ("routes.jobs", "jobs_bp", None),
     ("routes.video", "video_bp", None),
+    ("routes.auth", "auth_bp", None),
 ]
 
 

@@ -709,11 +709,15 @@ def chat_suggestions():
         )
 
     try:
-        chatbot = get_chatbot()
+        from core.chatbot_v2 import get_chatbot as _get_chatbot_v2
+
+        chatbot = _get_chatbot_v2(session.get("session_id"))
         # Resolve a safe model for suggestions: prefer the user's requested model if
         # it's a real chat model; fall back to the chatbot default ("grok").
         # Never pass None — that bypasses the default parameter and breaks handler lookup.
-        _sugg_model = model if model and chatbot.registry.is_available(model) else None
+        _sugg_model = (
+            model if model and chatbot.registry and chatbot.registry.is_available(model) else None
+        )
         response = chatbot.chat(
             message=prompt,
             **({"model": _sugg_model} if _sugg_model else {}),
