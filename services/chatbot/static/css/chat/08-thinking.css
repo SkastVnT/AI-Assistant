@@ -382,30 +382,6 @@
   color: #ef4444;
 }
 
-/* ── Tool status chips ── */
-.tool-status-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.tool-status-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 10px;
-  background: var(--cyan-soft);
-  border: 1px solid color-mix(in srgb, var(--cyan) 22%, transparent);
-  border-radius: 10px;
-  font-size: 12px;
-  font-family: var(--font-mono);
-  color: var(--text-secondary);
-  animation: toolChipIn 0.2s ease-out;
-}
-@keyframes toolChipIn {
-  from { opacity: 0; transform: scale(0.9) translateY(2px); }
-  to   { opacity: 1; transform: none; }
-}
 
 .loading-bar {
   position: absolute;

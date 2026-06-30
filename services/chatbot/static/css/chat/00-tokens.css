@@ -152,6 +152,11 @@
   --input-height: auto;
   --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
   --transition-slow: 0.35s cubic-bezier(0.4,0,0.2,1);
+
+  /* Alias tokens — keep callers from referencing undefined vars */
+  --border: var(--border-primary);
+  --border-color: var(--border-primary);
+  --text-muted: var(--text-tertiary);
 }
 
 /* Light theme */
