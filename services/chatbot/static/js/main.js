@@ -6,7 +6,7 @@
 import { ChatManager } from './modules/chat-manager.js?v=20260422';
 import { APIService } from './modules/api-service.js?v=20260624a';
 import { UIUtils } from './modules/ui-utils.js?v=20260630a';
-import { MessageRenderer } from './modules/message-renderer.js?v=20260630a';
+import { MessageRenderer } from './modules/message-renderer.js?v=20260630b';
 import { FileHandler } from './modules/file-handler.js';
 import { MemoryManager } from './modules/memory-manager.js';
 import { ImageGeneration } from './modules/image-gen.js';
@@ -23,7 +23,7 @@ import { buildHistoryFromTimeline } from './modules/timeline.js';
 // Electron bridge: side-effect import — tags <body class="is-desktop"|"is-browser">,
 // wires custom titlebar buttons, mirrors job count to system tray badge.
 import './modules/electron-bridge.js';
-import { renderSuggestions } from './modules/send-message-helpers.js?v=20260630a';
+import { renderSuggestions } from './modules/send-message-helpers.js?v=20260630b';
 
 class ChatBotApp {
     constructor() {
@@ -1176,6 +1176,7 @@ class ChatBotApp {
                         conversationId: _conversationId,
                         generatedImages: _recentGenImages,
                         forceImageBridge: _forceImageBridge,
+                        overReviewers: window.overReviewersEnabled === true,
                         ...window.getAdvancedModelParams(),
                     },
                     this.currentAbortController.signal,
