@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import tempfile
 from pathlib import Path
 
@@ -26,6 +27,9 @@ _MAX_PROMPT = 4000
 _MAX_IMAGES = 5
 _ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 _MAX_IMAGE_BYTES = 20 * 1024 * 1024  # 20 MB
+
+# Allowlist for job_id path segment — rejects traversal, SQL, XSS payloads.
+_VALID_JOB_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
 
 def _import_vg():
@@ -155,7 +159,7 @@ def generate():
 @video_bp.route("/status/<job_id>", methods=["GET"])
 def status(job_id: str):
     """Poll job status from OpenAI, falling back to local cache."""
-    if not job_id or len(job_id) > 128:
+    if not job_id or not _VALID_JOB_ID_RE.match(job_id):
         return jsonify({"error": "invalid job_id"}), 400
 
     _, poll_video, _, _, get_job_status, _ = _import_vg()
@@ -179,7 +183,7 @@ def status(job_id: str):
 @video_bp.route("/cancel/<job_id>", methods=["POST"])
 def cancel(job_id: str):
     """Cancel an in-progress or queued video job."""
-    if not job_id or len(job_id) > 128:
+    if not job_id or not _VALID_JOB_ID_RE.match(job_id):
         return jsonify({"error": "invalid job_id"}), 400
 
     _, _, cancel_video, *_ = _import_vg()
@@ -222,7 +226,7 @@ def list_recent():
 @video_bp.route("/download/<job_id>", methods=["GET"])
 def download(job_id: str):
     """Download the completed .mp4 for a video job."""
-    if not job_id or len(job_id) > 128:
+    if not job_id or not _VALID_JOB_ID_RE.match(job_id):
         return jsonify({"error": "invalid job_id"}), 400
 
     _, _, _, download_video, get_job_status, _ = _import_vg()
@@ -231,10 +235,13 @@ def download(job_id: str):
     try:
         from src.video_generation import VIDEO_STORAGE_DIR
 
-        local = VIDEO_STORAGE_DIR / f"{job_id}.mp4"
+        local = (VIDEO_STORAGE_DIR / f"{job_id}.mp4").resolve()
+        # Path traversal guard: resolved path must stay inside storage root.
+        if not str(local).startswith(str(VIDEO_STORAGE_DIR.resolve())):
+            return jsonify({"error": "invalid job_id"}), 400
         if not local.exists():
             download_video(job_id)
-            local = VIDEO_STORAGE_DIR / f"{job_id}.mp4"
+            local = (VIDEO_STORAGE_DIR / f"{job_id}.mp4").resolve()
         if not local.exists():
             return jsonify({"error": "video file not found after download"}), 404
     except Exception as e:

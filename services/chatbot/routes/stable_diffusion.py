@@ -6,6 +6,7 @@ import base64
 import json
 import os
 import sys
+import threading
 import time as _time
 from datetime import datetime
 from functools import wraps
@@ -74,6 +75,7 @@ _RATE_MAX_REQUESTS = 10  # per window per session
 
 # Per-session sliding window
 _request_log: dict = {}  # session_id -> list of timestamps
+_request_log_lock = threading.Lock()
 
 
 def _validate_gen_params(data: dict) -> str | None:
@@ -130,16 +132,20 @@ def _rate_limit_check() -> str | None:
     now = _time.time()
     window_start = now - _RATE_WINDOW
 
-    log = _request_log.setdefault(sid, [])
-    # Purge old entries
-    _request_log[sid] = [t for t in log if t > window_start]
-    log = _request_log[sid]
+    with _request_log_lock:
+        log = _request_log.setdefault(sid, [])
+        # Purge old entries
+        _request_log[sid] = [t for t in log if t > window_start]
+        log = _request_log[sid]
 
-    if len(log) >= _RATE_MAX_REQUESTS:
-        wait = int(log[0] - window_start) + 1
-        return f"Rate limited. Try again in {wait}s (max {_RATE_MAX_REQUESTS} requests/{_RATE_WINDOW}s)"
+        if len(log) >= _RATE_MAX_REQUESTS:
+            wait = int(log[0] - window_start) + 1
+            return f"Rate limited. Try again in {wait}s (max {_RATE_MAX_REQUESTS} requests/{_RATE_WINDOW}s)"
 
-    log.append(now)
+        log.append(now)
+        # Evict expired sessions to prevent unbounded growth
+        for key in [k for k, v in list(_request_log.items()) if not any(t > window_start for t in v)]:
+            del _request_log[key]
     return None
 
 

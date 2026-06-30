@@ -416,18 +416,40 @@ def chat_async_stream():
                 full_response = ""
                 chunk_count = 0
 
-                # Run async generator in sync context
-                async def get_chunks():
-                    chunks = []
-                    async for chunk in agent.chat_stream(
-                        model, ctx, get_system_prompts
-                    ):
-                        chunks.append(chunk)
-                    return chunks
+                # Bridge async generator → sync Flask generator via queue.
+                # Minimal fix: yield chunks incrementally instead of collecting
+                # all to a list. Event-loop/singleton-client hardening deferred
+                # to a separate spike (see B4/R5 in FIX-PLAN).
+                import queue as _q_async
+                import threading as _th_async
 
-                chunks = run_async(get_chunks())
+                _aq: _q_async.Queue = _q_async.Queue()
+                _AQ_DONE = object()
 
-                for chunk in chunks:
+                def _run_gen():
+                    async def _inner():
+                        try:
+                            async for chunk in agent.chat_stream(
+                                model, ctx, get_system_prompts
+                            ):
+                                _aq.put(chunk)
+                        except Exception as exc:
+                            _aq.put(exc)
+                        finally:
+                            _aq.put(_AQ_DONE)
+
+                    asyncio.run(_inner())
+
+                _ath = _th_async.Thread(target=_run_gen, daemon=True)
+                _ath.start()
+
+                while True:
+                    item = _aq.get()
+                    if item is _AQ_DONE:
+                        break
+                    if isinstance(item, Exception):
+                        raise item
+                    chunk = item
                     if chunk:
                         full_response += chunk
                         chunk_count += 1
@@ -437,6 +459,8 @@ def chat_async_stream():
                                 {"content": chunk, "chunk_index": chunk_count}
                             ),
                         ).format()
+
+                _ath.join(timeout=5)
 
                 # Send complete event
                 yield StreamEvent(
