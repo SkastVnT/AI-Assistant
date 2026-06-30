@@ -292,8 +292,8 @@ def list_images():
 def delete_image(filename):
     """Delete saved image from local disk and MongoDB"""
     try:
-        # Validate filename
-        if not re.match(r"^[a-zA-Z0-9_\-\.]+$", filename):
+        # Validate filename — also reject ".." sequences to block path traversal
+        if not re.match(r"^[a-zA-Z0-9_\-\.]+$", filename) or ".." in filename:
             return jsonify({"error": "Invalid filename"}), 400
 
         filepath = IMAGE_STORAGE_DIR / filename
@@ -618,7 +618,7 @@ def get_image_info():
     """Get full metadata and database status for one image."""
     try:
         filename = request.args.get("filename", "").strip()
-        if not filename or not re.match(r"^[a-zA-Z0-9_\-\.]+$", filename):
+        if not filename or not re.match(r"^[a-zA-Z0-9_\-\.]+$", filename) or ".." in filename:
             return jsonify({"error": "Invalid filename"}), 400
 
         filepath, local_payload = _load_local_image_record(filename)
@@ -713,7 +713,7 @@ def upload_image_to_db():
     try:
         data = request.get_json(silent=True) or {}
         filename = str(data.get("filename", "")).strip()
-        if not filename or not re.match(r"^[a-zA-Z0-9_\-\.]+$", filename):
+        if not filename or not re.match(r"^[a-zA-Z0-9_\-\.]+$", filename) or ".." in filename:
             return jsonify({"error": "Invalid filename"}), 400
 
         filepath, local_payload = _load_local_image_record(filename)
