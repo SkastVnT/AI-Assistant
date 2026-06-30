@@ -664,7 +664,12 @@ class ChatBotApp {
             this.uiUtils.hideWelcomeScreen();
             const joined = session.messages.join('');
             elements.chatContainer.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(joined) : joined;
-            
+
+            // Re-initialize charts — canvas state is not persisted in localStorage,
+            // so chart-block divs restored from HTML need their canvas redrawn from
+            // the embedded .chart-spec-data element.
+            if (this.messageRenderer) this.messageRenderer._initChartBlocks(elements.chatContainer);
+
             // Restore message version history from session
             if (session.messageVersions) {
                 Object.keys(session.messageVersions).forEach(messageId => {
@@ -1373,11 +1378,11 @@ class ChatBotApp {
                         const rawHtml = marked.parse(responseContent);
                         streamTextDiv.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
                     }
+                    this.messageRenderer._initChartBlocks(streamTextDiv); // before hljs — see message-renderer.js
                     // Highlight code blocks
                     if (typeof hljs !== 'undefined') {
                         streamTextDiv.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
                     }
-                    this.messageRenderer._initChartBlocks(streamTextDiv); // must run before enhanceCodeBlocks
                     this.messageRenderer.enhanceCodeBlocks(streamTextDiv);
                     // Enhance tables with interactive viewer
                     this.messageRenderer.enhanceMarkdownTables(streamTextDiv);
@@ -3473,15 +3478,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     };
 
-    // Gallery state — load the full set once, then paginate on the client.
-    let _galleryPage = 1;            // current display page (1-based)
-    let _galleryLoading = false;
-    let _galleryItems = [];          // ALL fetched images (full dataset)
-    let _gallerySearchTerm = '';
-    let _gallerySourceFilter = 'all';
-    let _galleryInited = false;
-    const GALLERY_PER_PAGE = 12;     // images shown per page
-    const GALLERY_FETCH_CAP = 1000;  // max images pulled into memory in one shot
+    // Gallery state — server-side pagination with client-side page cache.
+    const GALLERY_PER_PAGE = 8;
+    const _gs = {                    // _gs = gallery state (short alias)
+        page: 1,
+        totalCount: 0,
+        totalPages: 1,
+        cache: new Map(),            // pageNum -> items[] | null (error)
+        loading: new Set(),          // pages currently fetching
+        searchTerm: '',
+        sourceFilter: 'all',
+        inited: false,
+    };
 
     const _buildGalleryItem = (img) => {
         const rawFilename = img.filename || (img.path || '').split('/').pop() || '';
@@ -3623,25 +3631,68 @@ document.addEventListener('DOMContentLoaded', () => {
         return div;
     };
 
-    // Apply current search + source filter against the full dataset.
-    const _galleryFiltered = () => {
-        let filtered = _galleryItems;
-        if (_gallerySearchTerm) {
-            const term = _gallerySearchTerm.toLowerCase();
-            filtered = filtered.filter(img =>
-                (img.prompt || '').toLowerCase().includes(term) ||
-                (img.filename || '').toLowerCase().includes(term));
+    // Fetch a single page from the API and cache it.
+    const _galleryFetchPage = async (page) => {
+        if (page < 1) return;
+        if (_gs.totalPages > 1 && page > _gs.totalPages) return;
+        if (_gs.cache.has(page) || _gs.loading.has(page)) return;
+
+        _gs.loading.add(page);
+        try {
+            const resp = await fetch(`/api/gallery/images?page=${page}&per_page=${GALLERY_PER_PAGE}&all=true`);
+            const data = await resp.json();
+            if (!data.success) throw new Error(data.error || 'Load failed');
+
+            _gs.cache.set(page, Array.isArray(data.images) ? data.images : []);
+            _gs.totalCount = data.total || _gs.totalCount;
+            _gs.totalPages = data.total_pages ||
+                Math.max(1, Math.ceil(_gs.totalCount / GALLERY_PER_PAGE));
+
+            const stats = document.getElementById('galleryStats');
+            if (stats && _gs.totalCount) {
+                const src = (data.source || '').includes('mongodb') ? '☁️' : '💾';
+                stats.textContent = `📊 ${_gs.totalCount} ảnh ${src}`;
+            }
+            if (page === _gs.page) _galleryRender();
+        } catch (err) {
+            console.error(`[Gallery] page ${page} error:`, err);
+            _gs.cache.set(page, null);          // null = error marker
+            if (page === _gs.page) _galleryRender();
+        } finally {
+            _gs.loading.delete(page);
         }
-        if (_gallerySourceFilter === 'cloud') filtered = filtered.filter(img => !!(img.cloud_url || img.drive_url));
-        if (_gallerySourceFilter === 'local') filtered = filtered.filter(img => !(img.cloud_url || img.drive_url));
-        return filtered;
     };
 
-    const _galleryRenderPagination = (totalPages) => {
+    // Navigate to page N and pre-fetch adjacent pages.
+    const _galleryGoTo = (page) => {
+        _gs.page = Math.max(1, Math.min(page, _gs.totalPages));
+        _galleryRender();
+        _galleryFetchPage(_gs.page);            // ensure current page is loaded
+        _galleryFetchPage(_gs.page + 1);        // pre-load next
+        if (_gs.page === _gs.totalPages && _gs.page > 1) {
+            _galleryFetchPage(_gs.page - 1);    // pre-load prev when on last page
+        }
+    };
+
+    // Apply client-side search + source filter to an items array.
+    const _galleryFiltered = (items) => {
+        let out = items || [];
+        if (_gs.searchTerm) {
+            const t = _gs.searchTerm;
+            out = out.filter(img =>
+                (img.prompt || '').toLowerCase().includes(t) ||
+                (img.filename || '').toLowerCase().includes(t));
+        }
+        if (_gs.sourceFilter === 'cloud') out = out.filter(img => !!(img.cloud_url || img.drive_url));
+        if (_gs.sourceFilter === 'local') out = out.filter(img => !(img.cloud_url || img.drive_url));
+        return out;
+    };
+
+    const _galleryRenderPagination = () => {
         const bar = document.getElementById('galleryPagination');
         if (!bar) return;
         bar.innerHTML = '';
-        if (totalPages <= 1) { bar.style.display = 'none'; return; }
+        if (_gs.totalPages <= 1) { bar.style.display = 'none'; return; }
         bar.style.display = 'flex';
 
         const mkBtn = (label, target, opts = {}) => {
@@ -3649,16 +3700,15 @@ document.addEventListener('DOMContentLoaded', () => {
             b.className = 'gallery-page-btn' + (opts.active ? ' active' : '');
             b.textContent = label;
             if (opts.disabled) b.disabled = true;
-            else b.onclick = () => { _galleryPage = target; _galleryRender(); };
+            else b.onclick = () => _galleryGoTo(target);
             return b;
         };
 
-        bar.appendChild(mkBtn('‹', _galleryPage - 1, { disabled: _galleryPage <= 1 }));
+        bar.appendChild(mkBtn('‹', _gs.page - 1, { disabled: _gs.page <= 1 }));
 
-        // Compact window of page numbers: 1 … (n-1) n (n+1) … last
         const out = [];
-        for (let p = 1; p <= totalPages; p++) {
-            if (p === 1 || p === totalPages || (p >= _galleryPage - 1 && p <= _galleryPage + 1)) {
+        for (let p = 1; p <= _gs.totalPages; p++) {
+            if (p === 1 || p === _gs.totalPages || (p >= _gs.page - 1 && p <= _gs.page + 1)) {
                 out.push(p);
             } else if (out[out.length - 1] !== '…') {
                 out.push('…');
@@ -3671,88 +3721,64 @@ document.addEventListener('DOMContentLoaded', () => {
                 dot.textContent = '…';
                 bar.appendChild(dot);
             } else {
-                bar.appendChild(mkBtn(String(p), p, { active: p === _galleryPage }));
+                bar.appendChild(mkBtn(String(p), p, { active: p === _gs.page }));
             }
         });
 
-        bar.appendChild(mkBtn('›', _galleryPage + 1, { disabled: _galleryPage >= totalPages }));
+        bar.appendChild(mkBtn('›', _gs.page + 1, { disabled: _gs.page >= _gs.totalPages }));
     };
 
     const _galleryRender = () => {
         const grid = document.getElementById('galleryGrid');
         if (!grid) return;
 
-        const filtered = _galleryFiltered();
+        const cached = _gs.cache.get(_gs.page);
+        const isLoading = _gs.loading.has(_gs.page);
 
-        // Update filter button labels with global counts (full dataset)
-        const cloudCount = _galleryItems.filter(img => !!(img.cloud_url || img.drive_url)).length;
-        const localCount = _galleryItems.filter(img => !(img.cloud_url || img.drive_url)).length;
-        const allBtn   = document.getElementById('galleryFilterAll');
-        const cloudBtn = document.getElementById('galleryFilterCloud');
-        const localBtn = document.getElementById('galleryFilterLocal');
-        if (allBtn)   allBtn.textContent   = `Tất cả (${_galleryItems.length})`;
-        if (cloudBtn) cloudBtn.textContent = `☁️ Cloud (${cloudCount})`;
-        if (localBtn) localBtn.textContent = `💾 Local (${localCount})`;
+        if (cached === null) {
+            grid.innerHTML = '';
+            const errEl = document.createElement('div');
+            errEl.className = 'gallery-empty';
+            errEl.textContent = '❌ Lỗi tải trang này. ';
+            const retryBtn = document.createElement('button');
+            retryBtn.className = 'gallery-retry-btn';
+            retryBtn.textContent = 'Thử lại';
+            retryBtn.onclick = () => { _gs.cache.delete(_gs.page); _galleryGoTo(_gs.page); };
+            errEl.appendChild(retryBtn);
+            grid.appendChild(errEl);
+            _galleryRenderPagination();
+            return;
+        }
 
-        // Clamp the page into range, then slice the current page
-        const totalPages = Math.max(1, Math.ceil(filtered.length / GALLERY_PER_PAGE));
-        if (_galleryPage > totalPages) _galleryPage = totalPages;
-        if (_galleryPage < 1) _galleryPage = 1;
-        const start = (_galleryPage - 1) * GALLERY_PER_PAGE;
-        const pageItems = filtered.slice(start, start + GALLERY_PER_PAGE);
+        if (!cached || isLoading) {
+            grid.innerHTML = '<div class="gallery-empty gallery-loading">⏳ Đang tải…</div>';
+            if (!cached) _galleryFetchPage(_gs.page);
+            _galleryRenderPagination();
+            return;
+        }
+
+        const items = _galleryFiltered(cached);
 
         grid.innerHTML = '';
-        if (filtered.length === 0) {
+        if (items.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'gallery-empty';
-            empty.textContent = _gallerySearchTerm ? '🔍 Không tìm thấy ảnh phù hợp' : '🖼️ Chưa có ảnh nào';
+            empty.textContent = _gs.searchTerm ? '🔍 Không tìm thấy ảnh phù hợp trang này'
+                                               : '🖼️ Chưa có ảnh nào';
             grid.appendChild(empty);
         } else {
             const frag = document.createDocumentFragment();
-            pageItems.forEach(img => frag.appendChild(_buildGalleryItem(img)));
+            items.forEach(img => frag.appendChild(_buildGalleryItem(img)));
             grid.appendChild(frag);
         }
 
-        _galleryRenderPagination(totalPages);
-        grid.scrollTop = 0; // jump to top of the grid on every page change
-    };
-
-    // Fetch the whole gallery once; pagination is then done client-side so
-    // search/filter span the full set and page switches are instant.
-    const _galleryLoadAll = async () => {
-        if (_galleryLoading) return;
-        _galleryLoading = true;
-
-        const grid  = document.getElementById('galleryGrid');
-        const stats = document.getElementById('galleryStats');
-        if (!grid || !stats) { _galleryLoading = false; return; }
-
-        grid.innerHTML = '<div class="gallery-empty">⏳ Đang tải ảnh…</div>';
-
-        try {
-            const resp = await fetch(`/api/gallery/images?all=true&page=1&per_page=${GALLERY_FETCH_CAP}`);
-            const data = await resp.json();
-            if (!data.success) throw new Error(data.error || 'Load failed');
-
-            _galleryItems = Array.isArray(data.images) ? data.images : [];
-            const total = data.total || _galleryItems.length;
-            const srcIcon = (data.source || '').includes('mongodb') ? '☁️' : '💾';
-            const capped = total > _galleryItems.length ? ` (hiển thị ${_galleryItems.length})` : '';
-            stats.textContent = `📊 ${total} ảnh ${srcIcon}${capped}`;
-
-            _galleryPage = 1;
-            _galleryRender();
-        } catch (err) {
-            console.error('[Gallery] Load error:', err);
-            grid.innerHTML = '<div class="gallery-empty">❌ Lỗi tải gallery</div>';
-        } finally {
-            _galleryLoading = false;
-        }
+        _galleryRenderPagination();
+        grid.scrollTop = 0;
     };
 
     const _galleryInitToolbar = () => {
-        if (_galleryInited) return;
-        _galleryInited = true;
+        if (_gs.inited) return;
+        _gs.inited = true;
 
         let _searchTimer;
         const searchInput = document.getElementById('gallerySearchInput');
@@ -3760,8 +3786,8 @@ document.addEventListener('DOMContentLoaded', () => {
             searchInput.addEventListener('input', () => {
                 clearTimeout(_searchTimer);
                 _searchTimer = setTimeout(() => {
-                    _gallerySearchTerm = searchInput.value.trim().toLowerCase();
-                    _galleryPage = 1;
+                    _gs.searchTerm = searchInput.value.trim().toLowerCase();
+                    _gs.page = 1;
                     _galleryRender();
                 }, 240);
             });
@@ -3769,10 +3795,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.querySelectorAll('.gallery-filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                _gallerySourceFilter = btn.dataset.filter || 'all';
+                _gs.sourceFilter = btn.dataset.filter || 'all';
                 document.querySelectorAll('.gallery-filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                _galleryPage = 1;
+                _gs.page = 1;
                 _galleryRender();
             });
         });
@@ -3783,16 +3809,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!modal) return;
         modal.classList.add('active', 'open');
         _galleryInitToolbar();
-        _galleryPage = 1;
-        _galleryItems = [];
-        _gallerySearchTerm = '';
-        _gallerySourceFilter = 'all';
+
+        // Reset state completely on each open
+        _gs.page = 1;
+        _gs.totalCount = 0;
+        _gs.totalPages = 1;
+        _gs.cache.clear();
+        _gs.loading.clear();
+        _gs.searchTerm = '';
+        _gs.sourceFilter = 'all';
+
         document.querySelectorAll('.gallery-filter-btn').forEach(b => b.classList.remove('active'));
         const allBtn = document.getElementById('galleryFilterAll');
         if (allBtn) allBtn.classList.add('active');
         const searchInput = document.getElementById('gallerySearchInput');
         if (searchInput) searchInput.value = '';
-        await _galleryLoadAll();
+
+        _galleryRender();                       // show spinner immediately
+        await _galleryFetchPage(1);             // load page 1 (triggers render on finish)
+        _galleryFetchPage(2);                   // pre-load page 2 in background
     };
 
     window.toggleGalleryMode = () => { openGallery(); };

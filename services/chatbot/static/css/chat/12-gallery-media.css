@@ -95,12 +95,15 @@
 /* ── Grid ─────────────────────────────────────────────────── */
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   padding: 12px 16px 16px;
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+}
+@media (max-width: 640px) {
+  .gallery-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* ── Gallery Item Card ────────────────────────────────────── */
@@ -265,7 +268,7 @@
   overflow: hidden;
 }
 
-/* ── Empty state ──────────────────────────────────────────── */
+/* ── Empty / loading states ───────────────────────────────── */
 .gallery-empty {
   grid-column: 1 / -1;
   text-align: center;
@@ -273,6 +276,18 @@
   color: var(--text-tertiary);
   font-size: 14px;
 }
+.gallery-loading { opacity: 0.7; }
+.gallery-retry-btn {
+  margin-left: 8px;
+  padding: 2px 10px;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.gallery-retry-btn:hover { background: var(--bg-hover); }
 
 /* ── Pagination footer (pinned below the scrolling grid) ──────── */
 .gallery-pagination {

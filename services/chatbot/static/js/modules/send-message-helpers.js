@@ -916,10 +916,10 @@ export function finalizeAssistantRender(app, ctx) {
             const rawHtml = marked.parse(responseContent);
             streamTextDiv.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
         }
+        app.messageRenderer._initChartBlocks(streamTextDiv); // before hljs — see message-renderer.js
         if (typeof hljs !== 'undefined') {
             streamTextDiv.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
         }
-        app.messageRenderer._initChartBlocks(streamTextDiv); // must run before enhanceCodeBlocks
         app.messageRenderer.enhanceCodeBlocks(streamTextDiv);
         app.messageRenderer.enhanceMarkdownTables(streamTextDiv);
         app.messageRenderer.addMessageButtons(streamContentDiv, responseContent, false, streamMsgDiv);

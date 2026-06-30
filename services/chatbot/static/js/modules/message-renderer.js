@@ -365,6 +365,9 @@ export class MessageRenderer {
      */
     _initChartBlocks(container) {
         if (typeof Chart === 'undefined') return;
+
+        // Case 1: Fresh markdown rendering — convert code.language-chart to chart divs.
+        // Must run BEFORE hljs, which may auto-detect and rename the language-chart class.
         container.querySelectorAll(
             'pre:not([data-chart-init]) code.language-chart, pre:not([data-chart-init]) code.language-chartjs'
         ).forEach(codeEl => {
@@ -373,15 +376,37 @@ export class MessageRenderer {
             pre.dataset.chartInit = '1';
             const specJson = codeEl.textContent || '';
             try {
-                JSON.parse(specJson); // validate before replacing DOM
+                JSON.parse(specJson);
             } catch (e) {
-                return; // invalid JSON — leave as code block
+                return;
             }
             const chartDiv = document.createElement('div');
             chartDiv.className = 'chart-block';
-            chartDiv.dataset.chartInit = '1';
+            // Embed spec in a hidden <pre> so outerHTML (saved to localStorage) keeps
+            // the JSON — canvas state is not serializable. On F5/navigation Case 2 below
+            // reads this and re-draws the chart. React-style: chart is always driven by data.
+            const specStore = document.createElement('pre');
+            specStore.className = 'chart-spec-data';
+            specStore.style.display = 'none';
+            specStore.textContent = specJson;
+            chartDiv.appendChild(specStore);
             pre.parentNode.replaceChild(chartDiv, pre);
             this._renderChart(chartDiv, specJson);
+        });
+
+        // Case 2: Restored from localStorage / navigation — chart-block exists but canvas
+        // was serialized as empty HTML (canvas has no content in outerHTML). Re-draw from spec.
+        container.querySelectorAll('.chart-block').forEach(block => {
+            const existingCanvas = block.querySelector('canvas');
+            // Skip only if Chart.js actually registered an instance on this canvas
+            if (existingCanvas && typeof Chart !== 'undefined' && Chart.getChart(existingCanvas)) return;
+            const specPre = block.querySelector('.chart-spec-data');
+            if (!specPre) return;
+            const specJson = specPre.textContent || '';
+            try { JSON.parse(specJson); } catch (e) { return; }
+            // Remove the stale empty canvas from localStorage HTML before drawing fresh
+            if (existingCanvas) existingCanvas.remove();
+            this._renderChart(block, specJson);
         });
     }
 
@@ -526,13 +551,14 @@ export class MessageRenderer {
                     textDiv.textContent = content;
                 }
                 
-                // Highlight code blocks
+                // Charts first — _initChartBlocks removes chart <pre> from DOM so hljs
+                // never sees them (and can't rename their language-chart class).
+                this._initChartBlocks(textDiv);
                 if (typeof hljs !== 'undefined') {
                     textDiv.querySelectorAll('pre code').forEach((block) => {
                         hljs.highlightElement(block);
                     });
                 }
-                this._initChartBlocks(textDiv); // must run before enhanceCodeBlocks
                 this.enhanceCodeBlocks(textDiv);
 
                 // Enhance tables with interactive viewer
@@ -2362,10 +2388,10 @@ export class MessageRenderer {
                     const _rawMd = history[newIndex].assistantResponse;
                     const _html = typeof marked !== 'undefined' ? marked.parse(_rawMd) : _rawMd;
                     assistantTextDiv.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(_html) : _html;
+                    this._initChartBlocks(assistantTextDiv); // before hljs — see addMessage()
                     if (typeof hljs !== 'undefined') {
                         assistantTextDiv.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
                     }
-                    this._initChartBlocks(assistantTextDiv); // must run before enhanceCodeBlocks
                     this.enhanceCodeBlocks(assistantTextDiv);
                     this.enhanceMarkdownTables(assistantTextDiv);
                     if (window.lucide) lucide.createIcons({ nodes: [assistantMsg] });
