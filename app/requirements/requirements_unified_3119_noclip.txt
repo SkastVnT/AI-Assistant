@@ -114,7 +114,7 @@ google-auth-httplib2==0.3.0
 google-genai==1.56.0
 google-generativeai==0.8.6
 googleapis-common-protos==1.72.0
-gradio==6.7.0
+gradio==6.15.0
 gradio_client==2.0.1
 greenlet==3.3.0
 groovy==0.1.2
