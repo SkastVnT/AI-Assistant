@@ -19,6 +19,7 @@ from __future__ import annotations
 import base64
 import ipaddress
 import logging
+import threading
 import time as _time
 from functools import wraps
 from io import BytesIO
@@ -47,6 +48,7 @@ _MAX_STEPS = 150
 _RATE_WINDOW = 60
 _RATE_MAX = 10
 _req_log: dict = {}
+_req_log_lock = threading.Lock()
 
 
 def _validate(data: dict) -> str | None:
@@ -76,15 +78,16 @@ def _validate(data: dict) -> str | None:
 def _rate_check() -> str | None:
     sid = session.get("session_id", request.remote_addr or "anon")
     now = _time.time()
-    recent = [t for t in _req_log.get(sid, []) if t > now - _RATE_WINDOW]
-    if len(recent) >= _RATE_MAX:
+    with _req_log_lock:
+        recent = [t for t in _req_log.get(sid, []) if t > now - _RATE_WINDOW]
+        if len(recent) >= _RATE_MAX:
+            _req_log[sid] = recent
+            return f"Rate limited ({_RATE_MAX} req/{_RATE_WINDOW}s)"
+        recent.append(now)
         _req_log[sid] = recent
-        return f"Rate limited ({_RATE_MAX} req/{_RATE_WINDOW}s)"
-    recent.append(now)
-    _req_log[sid] = recent
-    # Evict expired sessions to prevent unbounded growth
-    for key in [k for k, v in _req_log.items() if not any(t > now - _RATE_WINDOW for t in v)]:
-        del _req_log[key]
+        # Evict expired sessions to prevent unbounded growth
+        for key in [k for k, v in list(_req_log.items()) if not any(t > now - _RATE_WINDOW for t in v)]:
+            del _req_log[key]
     return None
 
 
