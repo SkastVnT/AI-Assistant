@@ -78,6 +78,12 @@ class _FakeQueue:
         self._jobs[job_id] = rec
         return rec
 
+    def list(self, state=None, limit=50):
+        recs = list(self._jobs.values())
+        if state is not None:
+            recs = [r for r in recs if r.state == state]
+        return recs[:limit]
+
 
 # ---------------------------------------------------------------------------
 # /api/anime-pipeline/cancel — endpoint behaviour
@@ -314,3 +320,91 @@ def test_semaphore_timeout_yields_ap_error(monkeypatch):
     assert "event: ap_error" in joined, f"no ap_error frame: {joined!r}"
     assert "queue" in joined.lower()
     assert "event: ap_done" in joined
+
+
+# ---------------------------------------------------------------------------
+# /free VRAM reclaim on cancel (_interrupt_comfyui → vram_manager)
+# ---------------------------------------------------------------------------
+
+
+class _FakeHTTPClient:
+    """Records POSTs; stands in for httpx.Client in _interrupt_comfyui so the
+    /queue-clear + /interrupt calls never touch a real ComfyUI."""
+
+    posts: list[str] = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def post(self, url, **kwargs):
+        _FakeHTTPClient.posts.append(url)
+        return SimpleNamespace(status_code=200)
+
+
+def _patch_interrupt_deps(monkeypatch):
+    """Stub httpx.Client + vram_manager.free_models_between_passes; return a
+    list that records each free_models_between_passes(base) call."""
+    _FakeHTTPClient.posts = []
+    import httpx as _httpx
+
+    monkeypatch.setattr(_httpx, "Client", lambda *a, **k: _FakeHTTPClient())
+
+    free_calls: list[str] = []
+
+    def _rec_free(base_url, unload=True):
+        free_calls.append(base_url)
+        return True
+
+    fake_vram = SimpleNamespace(free_models_between_passes=_rec_free)
+    monkeypatch.setitem(
+        sys.modules, "image_pipeline.anime_pipeline.vram_manager", fake_vram
+    )
+    return free_calls
+
+
+def test_cancel_triggers_free_when_no_other_jobs(cancel_app, monkeypatch):
+    app, fake = cancel_app
+    fake._jobs["solo"] = _FakeRecord("solo", state="running")
+    free_calls = _patch_interrupt_deps(monkeypatch)
+
+    resp = app.test_client().post("/api/anime-pipeline/cancel", json={"job_id": "solo"})
+    assert resp.status_code == 200
+    # /free fired exactly once, after the queue-clear + interrupt POSTs.
+    assert len(free_calls) == 1
+    assert any("/queue" in u for u in _FakeHTTPClient.posts)
+    assert any("/interrupt" in u for u in _FakeHTTPClient.posts)
+
+
+def test_cancel_skips_free_when_other_job_active(cancel_app, monkeypatch):
+    app, fake = cancel_app
+    fake._jobs["target"] = _FakeRecord("target", state="running")
+    # A second, un-cancelled job is still running → /free must be skipped.
+    fake._jobs["other"] = _FakeRecord("other", state="running")
+    free_calls = _patch_interrupt_deps(monkeypatch)
+
+    resp = app.test_client().post(
+        "/api/anime-pipeline/cancel", json={"job_id": "target"}
+    )
+    assert resp.status_code == 200
+    assert free_calls == []  # skipped — other job active
+
+
+def test_free_failure_does_not_break_cancel(cancel_app, monkeypatch):
+    app, fake = cancel_app
+    fake._jobs["solo"] = _FakeRecord("solo", state="running")
+    _patch_interrupt_deps(monkeypatch)
+
+    def _boom(base_url, unload=True):
+        raise RuntimeError("free exploded")
+
+    monkeypatch.setitem(
+        sys.modules,
+        "image_pipeline.anime_pipeline.vram_manager",
+        SimpleNamespace(free_models_between_passes=_boom),
+    )
+    resp = app.test_client().post("/api/anime-pipeline/cancel", json={"job_id": "solo"})
+    assert resp.status_code == 200
+    assert resp.get_json()["ok"] is True

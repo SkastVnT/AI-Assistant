@@ -355,6 +355,14 @@ def test_filter_existing_loras_keeps_present(tmp_path, monkeypatch):
     fake_root.mkdir()
     (fake_root / "Anime_artistic_2.safetensors").write_bytes(b"x")
     monkeypatch.setattr(lora_manager, "_COMFYUI_LORA_ROOT", fake_root)
+    # Also stub the ComfyUI LoraLoader-cache probe so the test is independent of
+    # whether a real ComfyUI is running (a live instance that lacks this LoRA in
+    # its dropdown would otherwise drop it). Mirror the on-disk fixture.
+    monkeypatch.setattr(
+        lora_manager,
+        "lora_known_to_comfyui",
+        lambda name: (fake_root / name).exists(),
+    )
 
     loras = [
         {

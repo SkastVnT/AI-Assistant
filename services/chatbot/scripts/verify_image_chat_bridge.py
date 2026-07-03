@@ -33,6 +33,15 @@ from pathlib import Path
 
 import httpx
 
+# The Windows console defaults to cp1252, which cannot encode the arrows/box
+# characters this script prints. Force UTF-8 (replace on failure) so a print
+# never masks a real PASS as a spurious FAIL.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 _CHATBOT_DIR = Path(__file__).resolve().parents[1]
 _IMAGE_STORAGE_DIR = _CHATBOT_DIR / "Storage" / "Image_Gen"
 
@@ -243,7 +252,7 @@ def _compact(events: list[str]) -> str:
         if e != prev:
             out.append(e)
             prev = e
-    return " → ".join(out)
+    return " -> ".join(out)
 
 
 def _poll(pred, timeout_s: float, label: str) -> bool:
@@ -275,17 +284,17 @@ def _comfy_queue_empty(comfy: str) -> bool:
 
 
 _MANUAL = """
-─────────────────────────────────────────────────────────────────
-Remaining MANUAL checks (need the Electron UI — cannot be scripted):
-  ★ Persistence: generate an image → reload the app → image + caption
+-----------------------------------------------------------------
+Remaining MANUAL checks (need the Electron UI - cannot be scripted):
+  * Persistence: generate an image -> reload the app -> image + caption
     still render in the conversation.
-  • Modal fallback: with IMAGE_PIPELINE_CHAT_BRIDGE=false, an image prompt
+  * Modal fallback: with IMAGE_PIPELINE_CHAT_BRIDGE=false, an image prompt
     opens the legacy modal (visual).
-  • DOM duplicate-save: addGeneratedImage fires once per turn (the
-    backend side — one ap_result, one file — is covered by [happy]).
-  • No caption after Stop: verify the UI shows the cancel message, no
+  * DOM duplicate-save: addGeneratedImage fires once per turn (the
+    backend side - one ap_result, one file - is covered by [happy]).
+  * No caption after Stop: verify the UI shows the cancel message, no
     LLM caption (unobservable server-side once the socket closes).
-─────────────────────────────────────────────────────────────────
+-----------------------------------------------------------------
 """
 
 
