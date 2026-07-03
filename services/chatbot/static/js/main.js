@@ -6,7 +6,7 @@
 import { ChatManager } from './modules/chat-manager.js?v=20260422';
 import { APIService } from './modules/api-service.js?v=20260630c';
 import { UIUtils } from './modules/ui-utils.js?v=20260630a';
-import { MessageRenderer } from './modules/message-renderer.js?v=20260630c';
+import { MessageRenderer } from './modules/message-renderer.js?v=20260703a';
 import { FileHandler } from './modules/file-handler.js';
 import { MemoryManager } from './modules/memory-manager.js';
 import { ImageGeneration } from './modules/image-gen.js';
@@ -1128,6 +1128,7 @@ class ChatBotApp {
             let streamCompleteData = {};
             let streamSuggestions = [];
             let animeUid = null;  // Thinking-with-Images: id of the inline image bubble
+            let imageThinkingBlock = null;  // Phase 1b: collapsible host for the image bubble
             const _streamStartMs = performance.now();
 
             // Prepare streaming message div for progressive rendering
@@ -1246,6 +1247,14 @@ class ChatBotApp {
                         onComplete: (data) => {
                             fullResponse = data.response || fullResponse;
                             streamCompleteData = data;
+                            // Phase 1b: finalize the image thinking-block WITHOUT
+                            // wiping its nested pipeline card; keep it expanded so
+                            // the generated image stays visible.
+                            if (imageThinkingBlock) {
+                                this.messageRenderer.finalizeThinkingKeepContent(
+                                    imageThinkingBlock, { label: 'Đã tạo ảnh' },
+                                );
+                            }
                             // Clean up thinking container if it never got content
                             if (thinkingContainer && !thinkingReceived) {
                                 thinkingContainer.remove();
@@ -1279,14 +1288,27 @@ class ChatBotApp {
                             if (!animeUid) {
                                 animeUid = 'apc-' + ((data && data.job_id) || Date.now().toString(36));
                                 console.log('[bridge] image bubble start, uid=', animeUid);
-                                const bubble = window.animePipeline.beginInlineFromChat(
-                                    animeUid, message,
-                                    { chatContainer: elements.chatContainer },
+                                // Phase 1b: nest the pipeline card inside a collapsible
+                                // "Đang tạo ảnh" thinking-block (Thinking-with-Images).
+                                // Always use a DEDICATED block — never the reasoning
+                                // block, whose standard finalizeThinking() rebuilds
+                                // innerHTML and would wipe the nested card.
+                                imageThinkingBlock = this.messageRenderer.createThinkingSection(
+                                    null, true, 'Đang tạo ảnh',
                                 );
-                                if (streamMsgDiv) streamMsgDiv.style.display = 'none';
-                                if (bubble && streamMsgDiv && streamMsgDiv.parentNode) {
-                                    streamMsgDiv.parentNode.insertBefore(bubble, streamMsgDiv);
+                                if (streamMsgDiv && streamMsgDiv.parentNode) {
+                                    streamMsgDiv.parentNode.insertBefore(imageThinkingBlock, streamMsgDiv);
                                 }
+                                window.animePipeline.beginInlineFromChat(
+                                    animeUid, message,
+                                    {
+                                        chatContainer: elements.chatContainer,
+                                        parentEl: imageThinkingBlock._contentEl,
+                                    },
+                                );
+                                // Hide the caption bubble until the caption chunk arrives
+                                // (it renders below the thinking-block).
+                                if (streamMsgDiv) streamMsgDiv.style.display = 'none';
                             }
                             window.animePipeline.injectSSEEvent(animeUid, name, data);
                         },

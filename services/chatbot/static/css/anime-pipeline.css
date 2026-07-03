@@ -367,3 +367,24 @@
     background: rgba(0, 0, 0, 0.04);
     border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
 }
+
+/* ── Phase 1b: pipeline card nested inside a Thinking-with-Images block ──
+   When the inline bubble is mounted under .thinking-block__content it must
+   drop the redundant message chrome (avatar + outer padding) so it reads as
+   part of the collapsible thinking timeline, not a second assistant bubble. */
+.thinking-block__content .ap-inline-msg {
+    margin: 0;
+    padding: 0;
+    gap: 0;
+    max-width: 100%;
+}
+.thinking-block__content .ap-inline-msg .message__avatar {
+    display: none;
+}
+.thinking-block__content .ap-inline-msg .message__body {
+    margin: 0;
+    max-width: 100%;
+}
+.thinking-block__content .ap-inline-msg .message-content {
+    padding: 0;
+}

@@ -1238,9 +1238,10 @@ export class MessageRenderer {
     /**
      * API-compatible replacement for the old inline thinking block.
      */
-    createThinkingSection(thinkingProcess, isLoading = false) {
+    createThinkingSection(thinkingProcess, isLoading = false, label = null) {
         const block = document.createElement('div');
         block.className = 'thinking-block' + (isLoading ? ' thinking-block--loading' : ' thinking-block--done');
+        block._label = label;  // custom header label (e.g. "Đang tạo ảnh"); null = default
         block._stepsData = [];
         block._startTime = Date.now();
         block._durationMs = 0;
@@ -1259,7 +1260,7 @@ export class MessageRenderer {
             block.innerHTML = `
                 <div class="thinking-block__header">
                     <div class="thinking-block__spinner"></div>
-                    <span class="thinking-block__label">Đang suy nghĩ</span>
+                    <span class="thinking-block__label">${label || 'Đang suy nghĩ'}</span>
                     <span class="thinking-block__sep">·</span>
                     <span class="thinking-block__timer"></span>
                 </div>
@@ -1388,6 +1389,43 @@ export class MessageRenderer {
         if (wasExpanded) container.classList.add('thinking-block--expanded');
 
         if (window.ThinkingPanel) window.ThinkingPanel.onFinalize(container, data);
+    }
+
+    /**
+     * Finalize a thinking-block WITHOUT rebuilding its innerHTML — used for the
+     * "Thinking with images" bridge, whose block hosts a live image-pipeline
+     * card in _contentEl that must survive finalization (the standard
+     * finalizeThinking() replaces innerHTML and would wipe it). Flips
+     * loading→done, stops the timer, updates the label, and keeps the block
+     * EXPANDED so the generated image stays visible.
+     */
+    finalizeThinkingKeepContent(container, { label = null, duration_ms = 0 } = {}) {
+        if (!container) return;
+        if (container._timerInterval) {
+            clearInterval(container._timerInterval);
+            container._timerInterval = null;
+        }
+        container._finalized = true;
+        container._durationMs = duration_ms || (Date.now() - container._startTime);
+        container.classList.remove('thinking-block--loading');
+        container.classList.add('thinking-block--done', 'thinking-block--expanded');
+
+        const spinner = container.querySelector('.thinking-block__spinner');
+        if (spinner) spinner.className = 'thinking-block__dot';
+        const labelEl = container.querySelector('.thinking-block__label');
+        if (labelEl && label) labelEl.textContent = label;
+        const timerEl = container.querySelector('.thinking-block__timer');
+        if (timerEl && container._durationMs) {
+            timerEl.textContent = (container._durationMs / 1000).toFixed(1) + 's';
+        }
+        // Ensure a collapse chevron exists (loading header has none).
+        const header = container.querySelector('.thinking-block__header');
+        if (header && !header.querySelector('.thinking-block__chevron')) {
+            const chev = document.createElement('span');
+            chev.className = 'thinking-block__chevron';
+            chev.textContent = '›';
+            header.appendChild(chev);
+        }
     }
 
     /**
