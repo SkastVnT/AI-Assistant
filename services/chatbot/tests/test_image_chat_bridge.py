@@ -71,7 +71,9 @@ class TestImageChatBridge:
         fake = _FakeChatbot()
         monkeypatch.setenv("IMAGE_PIPELINE_CHAT_BRIDGE", "true")
         monkeypatch.setattr(stream_mod, "get_chatbot", lambda *_a, **_k: fake)
-        monkeypatch.setattr(aps, "stream_pipeline", _fake_stream_success)
+        monkeypatch.setattr(
+            "core.anime_pipeline_service.stream_pipeline", _fake_stream_success
+        )
 
         r = _post_stream(client, "vẽ anime waifu")
         assert r.status_code == 200
@@ -96,7 +98,9 @@ class TestImageChatBridge:
         fake = _FakeChatbot()
         monkeypatch.setenv("IMAGE_PIPELINE_CHAT_BRIDGE", "true")
         monkeypatch.setattr(stream_mod, "get_chatbot", lambda *_a, **_k: fake)
-        monkeypatch.setattr(aps, "stream_pipeline", _fake_stream_cancelled)
+        monkeypatch.setattr(
+            "core.anime_pipeline_service.stream_pipeline", _fake_stream_cancelled
+        )
 
         r = _post_stream(client, "vẽ anime waifu")
         assert r.status_code == 200
@@ -115,7 +119,9 @@ class TestImageChatBridge:
         fake = _FakeChatbot()
         monkeypatch.setenv("IMAGE_PIPELINE_CHAT_BRIDGE", "true")
         monkeypatch.setattr(stream_mod, "get_chatbot", lambda *_a, **_k: fake)
-        monkeypatch.setattr(aps, "stream_pipeline", _fake_stream_success)
+        monkeypatch.setattr(
+            "core.anime_pipeline_service.stream_pipeline", _fake_stream_success
+        )
 
         r = _post_stream(client, "xin chào bạn", force_image_bridge=True)
         assert r.status_code == 200
@@ -133,7 +139,7 @@ class TestImageChatBridge:
             raise AssertionError("stream_pipeline must not run for a non-image prompt")
             yield  # pragma: no cover
 
-        monkeypatch.setattr(aps, "stream_pipeline", _boom)
+        monkeypatch.setattr("core.anime_pipeline_service.stream_pipeline", _boom)
 
         r = _post_stream(client, "xin chào bạn")
         assert r.status_code == 200
@@ -150,7 +156,7 @@ class TestImageChatBridge:
             raise AssertionError("stream_pipeline must not run when flag is off")
             yield  # pragma: no cover
 
-        monkeypatch.setattr(aps, "stream_pipeline", _boom)
+        monkeypatch.setattr("core.anime_pipeline_service.stream_pipeline", _boom)
 
         r = _post_stream(client, "vẽ anime waifu")
         assert r.status_code == 200

@@ -3206,50 +3206,56 @@ class TestStructureLockAgent:
 
 
 class TestStructureLockConfigYaml:
-    """Test that YAML config parsing picks up structure lock settings."""
+    """Test that YAML config parsing picks up structure lock settings.
+
+    Pinned to the ``rtx5070`` profile on purpose so these assertions stay
+    stable even if the default profile (``ANIME_PIPELINE_DEFAULT_PROFILE``)
+    changes. The profile uses the SDXL-native xinsir Union ControlNet, so
+    all structure-lock layers are enabled (unlike the old SD1.5 inventory
+    which was disabled against the SDXL base).
+    """
+
+    @pytest.fixture(autouse=True)
+    def _pin_profile(self, monkeypatch):
+        monkeypatch.delenv("ANIME_PIPELINE_CONFIG", raising=False)
+        monkeypatch.setenv("ANIME_PIPELINE_PROFILE", "rtx5070")
 
     def test_yaml_loads_enabled_field(self):
         from image_pipeline.anime_pipeline.config import load_config
 
         config = load_config()
-        # SD1.5 ControlNet inventory is visible but disabled for the SDXL base.
+        # SDXL Union ControlNet layers are all enabled on the rtx5070 profile.
         layer_map = {lc.layer_type: lc for lc in config.structure_layers}
-        if "lineart_anime" in layer_map:
-            assert layer_map["lineart_anime"].enabled is False
-        if "depth" in layer_map:
-            assert layer_map["depth"].enabled is False
-        if "canny" in layer_map:
-            assert layer_map["canny"].enabled is False
+        assert layer_map["openpose"].enabled is True
+        assert layer_map["lineart_anime"].enabled is True
+        assert layer_map["depth"].enabled is True
+        assert layer_map["canny"].enabled is True
 
     def test_yaml_loads_strength_values(self):
         from image_pipeline.anime_pipeline.config import load_config
 
         config = load_config()
         layer_map = {lc.layer_type: lc for lc in config.structure_layers}
-        if "lineart_anime" in layer_map:
-            assert layer_map["lineart_anime"].strength == 0.85
-        if "depth" in layer_map:
-            assert layer_map["depth"].strength == 0.55
-        if "canny" in layer_map:
-            assert layer_map["canny"].strength == 0.35
+        assert layer_map["openpose"].strength == 0.80
+        assert layer_map["lineart_anime"].strength == 0.72
+        assert layer_map["depth"].strength == 0.50
+        assert layer_map["canny"].strength == 0.35
 
     def test_yaml_loads_priority(self):
         from image_pipeline.anime_pipeline.config import load_config
 
         config = load_config()
         layer_map = {lc.layer_type: lc for lc in config.structure_layers}
-        if "lineart_anime" in layer_map:
-            assert layer_map["lineart_anime"].priority == 1
-        if "depth" in layer_map:
-            assert layer_map["depth"].priority == 2
-        if "canny" in layer_map:
-            assert layer_map["canny"].priority == 3
+        assert layer_map["openpose"].priority == 0
+        assert layer_map["lineart_anime"].priority == 1
+        assert layer_map["depth"].priority == 2
+        assert layer_map["canny"].priority == 3
 
     def test_max_simultaneous_from_yaml(self):
         from image_pipeline.anime_pipeline.config import load_config
 
         config = load_config()
-        assert config.max_simultaneous_layers == 0
+        assert config.max_simultaneous_layers == 1
 
 
 # ═══════════════════════════════════════════════════════════════════════

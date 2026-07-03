@@ -93,8 +93,10 @@ def cancel_app(monkeypatch):
     monkeypatch.setitem(sys.modules, "core.job_queue", fake_module)
 
     # Drop any cached version of routes.anime_pipeline so it re-imports
-    # against the fake job_queue.
-    sys.modules.pop("routes.anime_pipeline", None)
+    # against the fake job_queue. Use monkeypatch.delitem (not a raw pop)
+    # so the ORIGINAL module object is restored at teardown — otherwise a
+    # divergent duplicate leaks into sys.modules and pollutes later tests.
+    monkeypatch.delitem(sys.modules, "routes.anime_pipeline", raising=False)
 
     from flask import Flask
     from routes.anime_pipeline import anime_pipeline_bp
@@ -212,7 +214,7 @@ def test_wrap_stream_handles_ap_cancelled_keeps_state_cancelled(monkeypatch):
         "core.job_queue",
         SimpleNamespace(get_queue=lambda: fake),
     )
-    sys.modules.pop("routes.anime_pipeline", None)
+    monkeypatch.delitem(sys.modules, "routes.anime_pipeline", raising=False)
     from routes.anime_pipeline import _wrap_stream_with_queue
 
     def inner():
@@ -238,12 +240,18 @@ def test_semaphore_timeout_yields_ap_error(monkeypatch):
     """When the GPU semaphore can't be acquired within the timeout,
     stream_pipeline must yield ap_error + ap_done and return cleanly
     instead of spinning forever."""
-    # Force a tiny timeout so the test runs fast.
-    monkeypatch.setenv("ANIME_PIPELINE_QUEUE_TIMEOUT_SEC", "0.5")
-
-    # Re-import the service module so it picks up the new env var.
-    sys.modules.pop("core.anime_pipeline_service", None)
+    # Use the ALREADY-imported module — do NOT delitem+reimport it. A fresh
+    # import creates a duplicate module object and, critically, rebinds the
+    # `core.anime_pipeline_service` attribute on the `core` package to the
+    # duplicate. monkeypatch.delitem only restores sys.modules, not that
+    # package attribute, so patch("core.anime_pipeline_service.X") (which
+    # resolves via the package attribute) would then target the duplicate
+    # while routes resolve the original via sys.modules — the divergence
+    # that broke test_anime_pipeline_integration in the full suite.
+    # The queue timeout is a module global, so patch it directly.
     import core.anime_pipeline_service as svc
+
+    monkeypatch.setattr(svc, "_PIPELINE_QUEUE_TIMEOUT_SEC", 0.5)
 
     # Drain the semaphore so any acquire(blocking=False) returns False.
     while svc._PIPELINE_SEMAPHORE.acquire(blocking=False):

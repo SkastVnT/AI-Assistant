@@ -357,48 +357,46 @@ class TestHealthEndpoint:
 
 
 class TestStreamEndpoint:
-    def test_unavailable_returns_sse_error(self, client):
-        with patch("core.anime_pipeline_service.check_availability") as mock_avail:
-            from core.anime_pipeline_service import AvailabilityResult
+    """The /stream route always returns HTTP 200 and delivers errors as
+    SSE ``ap_error`` frames (deferred-gating design) so the browser's
+    EventSource/fetch resolves before any slow work runs. Availability is
+    gated inside the generator on pipeline_enabled()/comfyui_reachable(),
+    NOT via check_availability (which this route no longer calls)."""
 
-            mock_avail.return_value = AvailabilityResult(
-                available=False, errors=["ComfyUI is not reachable"]
-            )
-            resp = client.post(
-                "/api/anime-pipeline/stream",
-                data=json.dumps({"prompt": "test"}),
-                content_type="application/json",
-            )
-            assert resp.status_code == 503
-            body = resp.get_data(as_text=True)
-            assert "ap_error" in body
+    def test_unavailable_returns_sse_error(self, client, monkeypatch):
+        # Pipeline disabled → 200 + ap_error naming the missing flag.
+        monkeypatch.setenv("IMAGE_PIPELINE_V2", "false")
+        resp = client.post(
+            "/api/anime-pipeline/stream",
+            data=json.dumps({"prompt": "test"}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        assert resp.mimetype == "text/event-stream"
+        body = resp.get_data(as_text=True)
+        assert "ap_error" in body
+        assert "IMAGE_PIPELINE_V2" in body
 
     def test_validation_error_returns_sse(self, client):
-        with patch("core.anime_pipeline_service.check_availability") as mock_avail:
-            from core.anime_pipeline_service import AvailabilityResult
+        # Missing prompt → validation fails inside the generator → 200 + ap_error.
+        resp = client.post(
+            "/api/anime-pipeline/stream",
+            data=json.dumps({}),  # no prompt
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        assert resp.mimetype == "text/event-stream"
+        body = resp.get_data(as_text=True)
+        assert "ap_error" in body
 
-            mock_avail.return_value = AvailabilityResult(
-                available=True, feature_flag=True, comfyui_reachable=True
-            )
-            resp = client.post(
-                "/api/anime-pipeline/stream",
-                data=json.dumps({}),  # no prompt
-                content_type="application/json",
-            )
-            assert resp.status_code == 400
-            body = resp.get_data(as_text=True)
-            assert "ap_error" in body
-
-    def test_successful_stream(self, client):
+    def test_successful_stream(self, client, monkeypatch):
+        monkeypatch.setenv("IMAGE_PIPELINE_V2", "true")
         with (
-            patch("core.anime_pipeline_service.check_availability") as mock_avail,
+            patch(
+                "core.anime_pipeline_service.comfyui_reachable", return_value=True
+            ),
             patch("core.anime_pipeline_service.stream_pipeline") as mock_stream,
         ):
-            from core.anime_pipeline_service import AvailabilityResult
-
-            mock_avail.return_value = AvailabilityResult(
-                available=True, feature_flag=True, comfyui_reachable=True
-            )
             mock_stream.return_value = iter(
                 [
                     'event: ap_status\ndata: {"job_id": "j1"}\n\n',
@@ -412,9 +410,11 @@ class TestStreamEndpoint:
             )
             assert resp.status_code == 200
             assert resp.mimetype == "text/event-stream"
+            # Consume the body INSIDE the patch context — get_data() drives
+            # the generator, which resolves stream_pipeline lazily.
             body = resp.get_data(as_text=True)
-            assert "ap_status" in body
-            assert "ap_done" in body
+        assert "ap_status" in body
+        assert "ap_done" in body
 
 
 class TestGenerateEndpoint:
