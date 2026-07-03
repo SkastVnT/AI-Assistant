@@ -1160,16 +1160,23 @@ export class AnimePipeline {
             case 'ap_result':
                 this._inlineShowResult(bubble, uid, data, prompt, startTime, chatContainer);
                 break;
-            case 'ap_error':
+            case 'ap_error': {
+                // 3-class UX hint (retryable / resource / config_or_workflow).
+                const _hintByClass = {
+                    resource: ' · GPU hết VRAM — thử giảm profile VRAM hoặc đóng bớt ứng dụng dùng GPU rồi chạy lại.',
+                    retryable: ' · Lỗi tạm thời (kết nối ComfyUI) — hãy thử lại sau ít phút.',
+                };
+                const _hint = _hintByClass[data.error_class] || '';
                 if (!data.recoverable) {
-                    this._setInlineError(bubble, uid, data.error || 'Pipeline thất bại');
+                    this._setInlineError(bubble, uid, (data.error || 'Pipeline thất bại') + _hint);
                 } else {
                     if (data.stage) {
                         this._inlineSetStage(uid, data.stage, 'error');
                     }
-                    this._inlineSetCurrent(uid, `⚠️ ${data.stage || ''}: ${data.error}`);
+                    this._inlineSetCurrent(uid, `⚠️ ${data.stage || ''}: ${data.error}${_hint}`);
                 }
                 break;
+            }
         }
     }
 

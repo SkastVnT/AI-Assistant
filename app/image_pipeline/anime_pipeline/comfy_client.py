@@ -40,6 +40,33 @@ _POLL_INTERVAL = 1.5
 _MAX_RETRIES = 3
 _WORKFLOW_VERSION = "2.0.0"
 
+# Substrings (case-insensitive) that mark a ComfyUI execution error as a GPU/
+# resource exhaustion rather than a config/workflow mistake. Used to derive the
+# 3-class error taxonomy (retryable / config_or_workflow / resource) surfaced to
+# the chat UI so the user gets an actionable hint.
+_RESOURCE_ERROR_PATTERNS = (
+    "out of memory",
+    "outofmemoryerror",
+    "allocation on device",
+    "not enough memory",
+    "cuda error",
+)
+
+
+def is_resource_error(text: str) -> bool:
+    """True when the error text looks like GPU/VRAM/CPU-memory exhaustion."""
+    t = (text or "").lower()
+    return any(p in t for p in _RESOURCE_ERROR_PATTERNS)
+
+
+def classify_comfy_error(detail: str) -> str:
+    """Classify a ComfyUI execution-error detail string.
+
+    Returns ``"resource"`` for OOM/CUDA exhaustion (non-recoverable, VRAM hint),
+    else ``"config_or_workflow"`` (bad node/workflow — non-recoverable, show detail).
+    """
+    return "resource" if is_resource_error(detail) else "config_or_workflow"
+
 
 def _is_job_cancel_requested(job_id: str) -> bool:
     """Best-effort check against the chatbot job queue cancel flag.
@@ -92,6 +119,10 @@ class ComfyJobResult:
     workflow_version: str = _WORKFLOW_VERSION
     workflow_file: str = ""  # path to saved workflow JSON (debug mode)
     cancelled: bool = False
+    # 3-class error taxonomy for UX: "retryable" (transient connect/timeout),
+    # "config_or_workflow" (bad node/workflow), "resource" (GPU/VRAM OOM).
+    # None on success or cancellation.
+    error_class: str | None = None
 
 
 class ComfyClient:
@@ -325,6 +356,7 @@ class ComfyClient:
         return ComfyJobResult(
             error=f"All retries failed: {last_error}",
             workflow_file=workflow_file,
+            error_class="retryable",
         )
 
     def cancel(self, prompt_id: str) -> bool:
@@ -512,6 +544,7 @@ class ComfyClient:
                     error=error_msg,
                     validation_error=str(error_body)[:2000],
                     duration_ms=(time.time() - t0) * 1000,
+                    error_class="config_or_workflow",
                 )
 
             body = resp.json()
@@ -654,6 +687,7 @@ class ComfyClient:
                         prompt_id=prompt_id,
                         error=f"ComfyUI error: {detail}",
                         duration_ms=duration,
+                        error_class=classify_comfy_error(detail),
                     )
                 continue
 

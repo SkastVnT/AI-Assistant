@@ -28,6 +28,7 @@ import time
 from pathlib import Path
 from typing import Any, Generator, Optional
 
+from .comfy_client import is_resource_error
 from .config import AnimePipelineConfig, load_config
 from .schemas import AnimePipelineJob, AnimePipelineStatus
 from .vram_manager import free_models_between_passes, log_pass_memory_mode
@@ -386,7 +387,12 @@ class AnimePipelineOrchestrator:
                 return
             if job.status == AnimePipelineStatus.FAILED:
                 yield self._event(
-                    "pipeline_error", {"error": job.error, "job_id": job.job_id}
+                    "pipeline_error",
+                    {
+                        "error": job.error,
+                        "job_id": job.job_id,
+                        "error_class": getattr(job, "error_class", None),
+                    },
                 )
                 return
 
@@ -732,6 +738,8 @@ class AnimePipelineOrchestrator:
                     "job_id": job.job_id,
                     "error": str(e),
                     "has_fallback_image": job.final_image_b64 is not None,
+                    "error_class": getattr(job, "error_class", None)
+                    or ("resource" if is_resource_error(str(e)) else None),
                 },
             )
 
@@ -2153,6 +2161,8 @@ class AnimePipelineOrchestrator:
                 {
                     "stage": stage_name,
                     "error": str(e),
+                    "error_class": getattr(job, "error_class", None)
+                    or ("resource" if is_resource_error(str(e)) else None),
                 },
             )
             raise e
@@ -2164,6 +2174,7 @@ class AnimePipelineOrchestrator:
                 {
                     "stage": stage_name,
                     "error": job.error or f"{stage_name} failed",
+                    "error_class": getattr(job, "error_class", None),
                 },
             )
             return

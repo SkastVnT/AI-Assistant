@@ -15,7 +15,7 @@ import { VideoGen } from './modules/video-gen.js';
 import { ExportHandler } from './modules/export-handler.js';
 import { SplitViewManager } from './modules/split-view.js';
 import { initLanguage } from './language-switcher.js';
-import { AnimePipeline } from './modules/anime-pipeline.js?v=20260630a';
+import { AnimePipeline } from './modules/anime-pipeline.js?v=20260703a';
 import { initOverlayActions } from './modules/overlay-actions.js?v=20260630a';
 import { initOverlayManager, registerOverlay, enablePanelMode, openOverlay, closeOverlay, toggleOverlay, isOpen } from './modules/overlay-manager.js?v=20260508';
 import { domToStructured, legacyHtmlToStructured } from './modules/message-model.js';

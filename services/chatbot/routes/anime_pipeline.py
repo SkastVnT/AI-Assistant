@@ -965,17 +965,35 @@ def cancel_all_pipelines():
     return jsonify({"ok": True, "cancelled": accepted, "count": len(accepted)})
 
 
+def _other_active_jobs() -> bool:
+    """True if any tracked job (besides ones already cancel-requested) is still
+    queued/running — used to skip the VRAM /free after a cancel when another
+    generation is in flight (freeing would just cost it a model reload)."""
+    try:
+        from core.job_queue import get_queue
+
+        for rec in get_queue().list(limit=50):
+            if rec.state in ("queued", "running") and not rec.cancel_requested:
+                return True
+    except Exception:  # pragma: no cover - fail open (worst case: a reload)
+        return False
+    return False
+
+
 def _interrupt_comfyui() -> None:
     """Best-effort halt of the active ComfyUI server.
 
-    Sends two requests in sequence:
+    Sends three requests in sequence:
       1. ``POST /queue`` with ``{"clear": true}`` — drops every queued
          prompt so the queued workflows do not start once the current
          one ends. Without this, the user sees ComfyUI keep printing
          ``got prompt`` for ~30 s after Stop while the queue drains.
       2. ``POST /interrupt`` — aborts the currently running KSampler.
+      3. ``POST /free`` (via vram_manager) — unloads models so the GPU's
+         VRAM is reclaimed after a cancel, but only when no other job is
+         still active (otherwise the next job would pay a reload cost).
 
-    Both calls are best-effort; failures are logged but never raise.
+    All calls are best-effort; failures are logged but never raise.
     Uses the same env vars the pipeline ComfyClient honors so we always
     hit the same instance the orchestrator submitted to.
     """
@@ -1009,3 +1027,20 @@ def _interrupt_comfyui() -> None:
             base,
             resp.status_code,
         )
+
+    # Reclaim VRAM after the job is actually stopped — but not if another job is
+    # still queued/running (it would just have to reload the models).
+    if _other_active_jobs():
+        logger.info("[anime_pipeline] /cancel: skipping /free — other jobs active")
+        return
+    try:
+        from image_pipeline.anime_pipeline.vram_manager import (
+            free_models_between_passes,
+        )
+
+        freed = free_models_between_passes(base)
+        logger.info(
+            "[anime_pipeline] /cancel: comfy /free -> %s (freed=%s)", base, freed
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("[anime_pipeline] /cancel: comfy /free failed: %s", exc)

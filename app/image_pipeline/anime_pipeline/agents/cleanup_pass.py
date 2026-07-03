@@ -219,6 +219,7 @@ class CleanupPassAgent:
                 result.validation_error,
             )
             job.error = f"Cleanup pass failed: {result.error}"
+            job.error_class = getattr(result, "error_class", None)
             job.status = AnimePipelineStatus.FAILED
             return job
 
