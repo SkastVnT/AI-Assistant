@@ -15,7 +15,7 @@ jobs:
     name: Code Quality
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - uses: actions/setup-python@v6
       with:
         python-version: '3.11'
@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - uses: actions/setup-python@v6
       with:
         python-version: '3.11'
@@ -80,7 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - uses: actions/setup-node@v4
       with:
         node-version: '20'
@@ -102,7 +102,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - uses: actions/setup-python@v6
       with:
         python-version: '3.11'
@@ -147,7 +147,7 @@ jobs:
     needs: [test-chatbot, electron-test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - uses: docker/setup-buildx-action@v3
     - name: Build chatbot
       if: hashFiles('services/chatbot/Dockerfile') != ''
