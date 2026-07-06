@@ -34,7 +34,7 @@ beautifulsoup4>=4.15.0
 pymupdf>=1.24.0
 
 # ============= AI APIs =============
-openai>=2.29.0  # Videos API (Sora 2) requires >=2.29
+openai>=2.44.0  # Videos API (Sora 2) requires >=2.29
 google-genai>=1.56.0
 
 # ============= IMAGE PROCESSING =============
