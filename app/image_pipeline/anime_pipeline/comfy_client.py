@@ -68,6 +68,58 @@ def classify_comfy_error(detail: str) -> str:
     return "resource" if is_resource_error(detail) else "config_or_workflow"
 
 
+def ws_preview_enabled() -> bool:
+    """Phase 3 opt-in flag: stream live denoise previews + progress % over the
+    ComfyUI /ws socket. OFF by default — when off, comfy_client never opens a
+    websocket and behaves exactly as before (poll /history only)."""
+    return os.getenv("ANIME_PIPELINE_WS_PREVIEW", "").lower() in ("1", "true", "yes", "on")
+
+
+# ComfyUI binary WS frame layout (see ComfyUI/server.py send_image / protocol.py):
+#   bytes[0:4]  = big-endian uint32 event type (1 = PREVIEW_IMAGE,
+#                                                4 = PREVIEW_IMAGE_WITH_METADATA)
+#   for PREVIEW_IMAGE:               bytes[4:8] = image format (1 = JPEG, 2 = PNG),
+#                                    bytes[8:]  = raw image bytes
+#   for PREVIEW_IMAGE_WITH_METADATA: bytes[4:8] = metadata length,
+#                                    bytes[8:8+len] = json, then raw image bytes
+_WS_EVENT_PREVIEW_IMAGE = 1
+_WS_EVENT_PREVIEW_IMAGE_WITH_METADATA = 4
+
+
+def parse_ws_preview_frame(data: bytes) -> tuple[str, bytes] | None:
+    """Parse a ComfyUI binary WS frame into ``(image_format, image_bytes)``.
+
+    Returns ``("jpeg"|"png", bytes)`` for a preview image, or ``None`` for any
+    frame that is not a decodable preview (unknown event, truncated, etc.).
+    Pure function — safe to unit-test without a live socket.
+    """
+    if not data or len(data) < 8:
+        return None
+    event = int.from_bytes(data[0:4], "big")
+    if event == _WS_EVENT_PREVIEW_IMAGE:
+        fmt_num = int.from_bytes(data[4:8], "big")
+        fmt = "jpeg" if fmt_num == 1 else "png" if fmt_num == 2 else None
+        if fmt is None:
+            return None
+        return fmt, data[8:]
+    if event == _WS_EVENT_PREVIEW_IMAGE_WITH_METADATA:
+        meta_len = int.from_bytes(data[4:8], "big")
+        img_start = 8 + meta_len
+        if img_start > len(data):
+            return None
+        img = data[img_start:]
+        # mimetype lives in the metadata JSON; default to jpeg (ComfyUI's default).
+        fmt = "jpeg"
+        try:
+            meta = json.loads(data[8:img_start].decode("utf-8"))
+            if str(meta.get("image_type", "")).endswith("png"):
+                fmt = "png"
+        except Exception:
+            pass
+        return fmt, img
+    return None
+
+
 def _is_job_cancel_requested(job_id: str) -> bool:
     """Best-effort check against the chatbot job queue cancel flag.
 
@@ -123,6 +175,9 @@ class ComfyJobResult:
     # "config_or_workflow" (bad node/workflow), "resource" (GPU/VRAM OOM).
     # None on success or cancellation.
     error_class: str | None = None
+    # Phase 3: True if ComfyUI served this pass from its execution cache
+    # (observed via the /ws "execution_cached" message). None = unknown.
+    execution_cached: bool | None = None
 
 
 class ComfyClient:
@@ -162,6 +217,18 @@ class ComfyClient:
         self._debug_dir = Path(debug_dir) if debug_dir else STORAGE_DIR / "debug"
         self._cancelled: dict[str, bool] = {}
         self._lock = threading.Lock()
+        # Phase 3 live-preview callbacks (opt-in). Set via set_preview_callbacks();
+        # invoked from a background /ws reader thread during _submit_and_wait.
+        self._on_progress = None  # callable(pct: float) -> None
+        self._on_preview = None   # callable(fmt: str, image_bytes: bytes) -> None
+        self._ws_cached: dict[str, bool] = {}  # prompt_id -> execution_cached seen
+
+    def set_preview_callbacks(self, on_progress=None, on_preview=None) -> None:
+        """Register (or clear, by passing None) the live-preview callbacks used
+        when ANIME_PIPELINE_WS_PREVIEW is enabled. Callbacks fire from a daemon
+        /ws reader thread, so their bodies must be cheap + thread-safe."""
+        self._on_progress = on_progress
+        self._on_preview = on_preview
 
     # ── Public properties ─────────────────────────────────────────────
 
@@ -559,17 +626,120 @@ class ComfyClient:
                 prompt_id,
             )
 
+            # ── Optional /ws live-preview reader (opt-in, best-effort) ──
+            # Enriches the poll below with progress % + denoise previews via
+            # callbacks; polling stays the source of truth for completion.
+            _ws_stop = threading.Event()
+            _ws_thread = self._maybe_start_ws_reader(client_id, prompt_id, _ws_stop)
+
             # ── Poll ──────────────────────────────────────────────
             try:
-                return self._poll_until_done(
+                result = self._poll_until_done(
                     client,
                     prompt_id,
                     job_id,
                     pass_name,
                     t0,
                 )
+                if _ws_thread is not None and self._ws_cached.get(prompt_id):
+                    result.execution_cached = True
+                return result
             finally:
+                _ws_stop.set()
+                if _ws_thread is not None:
+                    _ws_thread.join(timeout=2)
+                self._ws_cached.pop(prompt_id, None)
                 self._cleanup_cancelled(prompt_id)
+
+    def _maybe_start_ws_reader(self, client_id, prompt_id, stop_evt):
+        """Start a daemon /ws reader thread if the feature flag is on, the
+        websocket-client lib is importable, and at least one preview callback is
+        registered. Returns the thread (or None). Never raises — any failure
+        just means no live preview (polling still drives completion)."""
+        if not ws_preview_enabled():
+            return None
+        if self._on_progress is None and self._on_preview is None:
+            return None
+        try:
+            import websocket  # noqa: F401 — presence check
+        except ImportError:
+            logger.info(
+                "[ComfyClient] ANIME_PIPELINE_WS_PREVIEW on but websocket-client "
+                "not installed — falling back to poll-only (pip install websocket-client)."
+            )
+            return None
+        t = threading.Thread(
+            target=self._ws_read_loop,
+            args=(client_id, prompt_id, stop_evt),
+            daemon=True,
+        )
+        t.start()
+        return t
+
+    def _ws_read_loop(self, client_id, prompt_id, stop_evt) -> None:
+        """Consume ComfyUI /ws messages until stop_evt is set. Best-effort:
+        forwards progress % + denoise previews to the registered callbacks and
+        records execution_cached. All exceptions are swallowed so a WS hiccup
+        never affects the polling path that actually resolves the job."""
+        import websocket
+
+        ws_url = (
+            self._base_url.replace("https://", "wss://").replace("http://", "ws://")
+            + f"/ws?clientId={client_id}"
+        )
+        ws = None
+        try:
+            ws = websocket.create_connection(ws_url, timeout=5)
+            while not stop_evt.is_set():
+                try:
+                    ws.settimeout(1.0)
+                    msg = ws.recv()
+                except websocket.WebSocketTimeoutException:
+                    continue
+                except Exception:
+                    break
+                if not msg:
+                    continue
+                if isinstance(msg, (bytes, bytearray)):
+                    if self._on_preview is None:
+                        continue
+                    parsed = parse_ws_preview_frame(bytes(msg))
+                    if parsed is not None:
+                        try:
+                            self._on_preview(parsed[0], parsed[1])
+                        except Exception:
+                            pass
+                    continue
+                # Text (JSON) status messages.
+                try:
+                    data = json.loads(msg)
+                except Exception:
+                    continue
+                mtype = data.get("type")
+                mdata = data.get("data", {}) or {}
+                # Only react to messages for our prompt when a prompt_id is present.
+                if mdata.get("prompt_id") and mdata.get("prompt_id") != prompt_id:
+                    continue
+                if mtype == "progress" and self._on_progress is not None:
+                    value = mdata.get("value")
+                    maximum = mdata.get("max") or 0
+                    if value is not None and maximum:
+                        try:
+                            self._on_progress(max(0.0, min(100.0, 100.0 * value / maximum)))
+                        except Exception:
+                            pass
+                elif mtype == "execution_cached":
+                    nodes = mdata.get("nodes") or []
+                    if nodes:
+                        self._ws_cached[prompt_id] = True
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.debug("[ComfyClient] ws reader stopped: %s", exc)
+        finally:
+            try:
+                if ws is not None:
+                    ws.close()
+            except Exception:
+                pass
 
     def _poll_until_done(
         self,

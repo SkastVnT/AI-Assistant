@@ -251,6 +251,11 @@ def _start_comfyui_if_needed() -> None:
         "--port",
         str(port),
     ]  # nosec B104  # ComfyUI service binding
+    # Phase 3: when the chat live-preview feature is opted in, start ComfyUI with
+    # a preview method so it emits denoise preview frames over /ws (default is
+    # "none", which sends progress but no preview images).
+    if _env_flag("ANIME_PIPELINE_WS_PREVIEW", "false"):
+        comfyui_args += ["--preview-method", "auto"]
     comfyui_cpu_mode = os.getenv("COMFYUI_CPU_MODE", "auto").lower()
     use_cpu = comfyui_cpu_mode == "1" or comfyui_cpu_mode == "true"
     if comfyui_cpu_mode == "auto" and not _python_has_cuda(python_exe):

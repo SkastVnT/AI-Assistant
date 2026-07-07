@@ -1032,13 +1032,18 @@ def _run_pipeline_inner(
                 # Emitted every ~1.5 s while agent.execute() blocks on
                 # ComfyUI sampling. Lets the frontend show elapsed time
                 # ("Composition Pass · 12.3s") instead of freezing.
-                yield _sse_line(
-                    "ap_stage_heartbeat",
-                    {
-                        "stage": edata.get("stage", ""),
-                        "elapsed_s": edata.get("elapsed_s", 0.0),
-                    },
-                )
+                # Phase 3 (opt-in): may also carry a live progress % and a
+                # denoise preview frame from the ComfyUI /ws socket.
+                _hb_out = {
+                    "stage": edata.get("stage", ""),
+                    "elapsed_s": edata.get("elapsed_s", 0.0),
+                }
+                if "progress_pct" in edata:
+                    _hb_out["progress_pct"] = edata["progress_pct"]
+                if edata.get("preview_b64"):
+                    _hb_out["preview_b64"] = edata["preview_b64"]
+                    _hb_out["preview_fmt"] = edata.get("preview_fmt", "jpeg")
+                yield _sse_line("ap_stage_heartbeat", _hb_out)
 
             elif etype == "anime_pipeline_stage_error":
                 _ec = edata.get("error_class")

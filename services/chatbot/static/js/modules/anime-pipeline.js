@@ -670,6 +670,47 @@ export class AnimePipeline {
      *    2. on stage_done  — { local_url: <new image for this stage> }
      *  The same slotId is reused so the card refreshes in place.
      */
+    /**
+     * Phase 3 (opt-in): update the single live denoise-preview frame for a run.
+     * Reuses one <img> slot at the top of the gallery, swapping its data URL as
+     * ComfyUI streams preview JPEGs over /ws. Cheap DOM update (src only).
+     */
+    _inlineSetLivePreview(uid, fmt, b64) {
+        const gallery = document.getElementById(`ap-layers-${uid}`);
+        if (!gallery || !b64) return;
+        gallery.style.display = '';
+        const src = `data:image/${fmt === 'png' ? 'png' : 'jpeg'};base64,${b64}`;
+        let card = document.getElementById(`ap-live-${uid}`);
+        if (!card) {
+            card = document.createElement('div');
+            card.id = `ap-live-${uid}`;
+            card.className = 'ap-live-preview';
+            card.style.cssText = (
+                'margin-bottom:8px; border:1px solid var(--accent-soft,var(--border)); ' +
+                'border-radius:10px; overflow:hidden; position:relative;'
+            );
+            card.innerHTML = `
+                <img class="ap-live-img" alt="Live preview"
+                     style="width:100%; max-height:320px; object-fit:contain; display:block; background:var(--bg-secondary,var(--bg));">
+                <span class="ap-live-badge"
+                      style="position:absolute; top:6px; left:6px; font-size:10px; font-weight:600;
+                             padding:2px 7px; border-radius:999px; background:rgba(0,0,0,.55); color:#fff;">
+                    ● LIVE</span>`;
+            gallery.insertBefore(card, gallery.firstChild);
+        }
+        const img = card.querySelector('.ap-live-img');
+        if (img) img.src = src;
+    }
+
+    /**
+     * Remove the live-preview slot once the final image is in (called from the
+     * result handler); the finished layers/result replace it.
+     */
+    _inlineClearLivePreview(uid) {
+        const card = document.getElementById(`ap-live-${uid}`);
+        if (card) card.remove();
+    }
+
     _inlineAddLayerPreview(uid, data) {
         const gallery = document.getElementById(`ap-layers-${uid}`);
         if (!gallery) return;
@@ -970,8 +1011,15 @@ export class AnimePipeline {
             case 'ap_stage_heartbeat': {
                 // Emitted every ~1.5 s while the backend blocks on ComfyUI
                 // sampling. Shows elapsed time so the pill feels alive.
+                // Phase 3 (opt-in): may also carry a live progress % and a
+                // denoise preview frame from the ComfyUI /ws socket.
                 const stageLabel = bubble.dataset.apCurrentStageLabel || data.stage || '';
-                this._inlineSetCurrent(uid, `${stageLabel} · ${data.elapsed_s}s`);
+                const pctText = (typeof data.progress_pct === 'number')
+                    ? ` · ${Math.round(data.progress_pct)}%` : '';
+                this._inlineSetCurrent(uid, `${stageLabel} · ${data.elapsed_s}s${pctText}`);
+                if (data.preview_b64) {
+                    this._inlineSetLivePreview(uid, data.preview_fmt || 'jpeg', data.preview_b64);
+                }
                 // If ap_stage_start was missed (e.g. SSE buffering), the cell
                 // may still be pending. Promote it to active so the UI reflects
                 // the stage that's actually running.
@@ -1375,6 +1423,8 @@ export class AnimePipeline {
     /** Replace progress block with the final image result. */
     _inlineShowResult(bubble, uid, data, prompt, startTime, chatContainer) {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        // Phase 3: drop the transient live-denoise frame; the final image replaces it.
+        this._inlineClearLivePreview(uid);
 
         // ── Background-tab support ──────────────────────────────────────
         // If the bubble was removed from the DOM because the user switched chat,

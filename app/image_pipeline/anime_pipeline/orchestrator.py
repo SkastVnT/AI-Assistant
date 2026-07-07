@@ -28,7 +28,7 @@ import time
 from pathlib import Path
 from typing import Any, Generator, Optional
 
-from .comfy_client import is_resource_error
+from .comfy_client import is_resource_error, ws_preview_enabled
 from .config import AnimePipelineConfig, load_config
 from .schemas import AnimePipelineJob, AnimePipelineStatus
 from .vram_manager import free_models_between_passes, log_pass_memory_mode
@@ -2126,6 +2126,33 @@ class AnimePipelineOrchestrator:
             },
         )
 
+        # Phase 3 (opt-in): register /ws live-preview callbacks on the agent's
+        # ComfyClient so its background reader can push progress % + denoise
+        # frames onto the job; the heartbeat loop below forwards them. Fully
+        # gated by ANIME_PIPELINE_WS_PREVIEW — when off, nothing here runs and
+        # the stage behaves exactly as before.
+        _ws_client = None
+        if ws_preview_enabled():
+            _ws_client = getattr(agent, "_client", None)
+            if _ws_client is not None and hasattr(_ws_client, "set_preview_callbacks"):
+                job.progress_pct = 0.0
+
+                def _on_progress(pct: float, _job=job) -> None:
+                    _job.progress_pct = pct
+
+                def _on_preview(fmt: str, img: bytes, _job=job) -> None:
+                    import base64 as _b64
+
+                    _job._live_preview = {
+                        "fmt": fmt,
+                        "b64": _b64.b64encode(img).decode("ascii"),
+                        "ts": time.monotonic(),
+                    }
+
+                _ws_client.set_preview_callbacks(_on_progress, _on_preview)
+            else:
+                _ws_client = None
+
         # Run agent in a background thread so we can yield heartbeat events
         # while it blocks on ComfyUI sampling (30+ steps = ~30 s of silence).
         _exc_holder: list[BaseException] = []
@@ -2143,16 +2170,31 @@ class AnimePipelineOrchestrator:
         _t_start = time.monotonic()
         _agent_thread.start()
 
+        _last_preview_ts = 0.0
         while not _done_evt.wait(timeout=1.5):
-            yield self._event(
-                "stage_heartbeat",
-                {
+            _hb = {
                     "stage": stage_name,
                     "elapsed_s": round(time.monotonic() - _t_start, 1),
-                },
-            )
+                }
+            # Phase 3: enrich the heartbeat with live progress % and (throttled
+            # to ~1/1.5s here) the latest denoise preview, when WS preview is on.
+            if _ws_client is not None:
+                _pct = getattr(job, "progress_pct", 0.0)
+                if _pct:
+                    _hb["progress_pct"] = round(_pct, 1)
+                _lp = getattr(job, "_live_preview", None)
+                if _lp and _lp.get("ts", 0.0) > _last_preview_ts:
+                    _last_preview_ts = _lp["ts"]
+                    _hb["preview_b64"] = _lp["b64"]
+                    _hb["preview_fmt"] = _lp["fmt"]
+            yield self._event("stage_heartbeat", _hb)
 
         _agent_thread.join()
+        if _ws_client is not None:
+            try:
+                _ws_client.set_preview_callbacks(None, None)
+            except Exception:
+                pass
         if _exc_holder:
             e = _exc_holder[0]
             logger.error("[AnimePipeline] Stage %s failed: %s", stage_name, e)

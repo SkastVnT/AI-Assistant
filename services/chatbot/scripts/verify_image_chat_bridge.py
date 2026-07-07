@@ -245,6 +245,46 @@ def phase_rollback(base: str, comfy: str) -> bool:
     return True
 
 
+def phase_wspreview(base: str, comfy: str) -> bool:
+    """Phase 3 server-side check: with ANIME_PIPELINE_WS_PREVIEW=true (backend
+    restarted), the ap_stage_heartbeat frames must carry a live progress_pct
+    (and, if ComfyUI runs with a preview method, preview_b64). The visual render
+    is an Electron-only check."""
+    print("[wspreview] waiting for readiness (backend needs "
+          "ANIME_PIPELINE_WS_PREVIEW=true)…")
+    _wait_ready(base, comfy)
+
+    saw_progress = False
+    saw_preview = False
+    got_result = False
+    with httpx.stream(
+        "POST", f"{base}/chat/stream",
+        json=_post_body(), headers={"Accept": "text/event-stream"},
+        timeout=_STREAM_TIMEOUT,
+    ) as resp:
+        assert resp.status_code == 200, f"HTTP {resp.status_code}"
+        for name, data in _iter_sse(resp):
+            if name == "ap_stage_heartbeat":
+                if isinstance(data.get("progress_pct"), (int, float)):
+                    saw_progress = True
+                if data.get("preview_b64"):
+                    saw_preview = True
+            elif name == "ap_result":
+                got_result = True
+            elif name in ("complete", "error"):
+                break
+
+    print(f"[wspreview] progress_pct seen={saw_progress}  preview_b64 seen={saw_preview}  result={got_result}")
+    # Progress % is the load-bearing assertion (always emitted during sampling).
+    # Preview frames require ComfyUI's --preview-method; report but don't fail.
+    assert saw_progress, "no progress_pct in any ap_stage_heartbeat (WS reader not feeding)"
+    if not saw_preview:
+        print("[wspreview] NOTE: no preview_b64 — ensure ComfyUI ran with "
+              "--preview-method (run.py adds it when the flag is on).")
+    print("[wspreview] PASS")
+    return True
+
+
 # ── small utilities ────────────────────────────────────────────────────────
 def _compact(events: list[str]) -> str:
     out, prev = [], None
@@ -300,7 +340,11 @@ Remaining MANUAL checks (need the Electron UI - cannot be scripted):
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="PR4 bridge verification")
-    ap.add_argument("--phase", choices=["happy", "cancel", "rollback", "all"], default="all")
+    ap.add_argument(
+        "--phase",
+        choices=["happy", "cancel", "rollback", "wspreview", "all"],
+        default="all",
+    )
     ap.add_argument("--base", default="http://127.0.0.1:5000")
     ap.add_argument("--comfy", default="http://127.0.0.1:8188")
     args = ap.parse_args()
@@ -309,6 +353,7 @@ def main() -> int:
         "happy": phase_happy,
         "cancel": phase_cancel,
         "rollback": phase_rollback,
+        "wspreview": phase_wspreview,
     }
     to_run = ["happy", "cancel"] if args.phase == "all" else [args.phase]
 
