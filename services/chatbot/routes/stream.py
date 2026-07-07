@@ -1003,9 +1003,23 @@ def chat_stream():
                                 custom_prompt="",
                                 images=[],
                             ):
-                                if ch and not ch.startswith(REASONING_PREFIX):
+                                # Skip reasoning chunks AND the trailing usage
+                                # sentinel ("\x02USAGE\x03<in>:<out>") that every
+                                # provider stream yields as its last chunk — the
+                                # text path strips it, so the caption must too
+                                # (it leaked as "USAGE1570:20" in the chat).
+                                if (
+                                    ch
+                                    and not ch.startswith(REASONING_PREFIX)
+                                    and not ch.startswith(USAGE_SENTINEL)
+                                ):
                                     buf.append(ch)
-                            _res["text"] = "".join(buf).strip()
+                            text = "".join(buf)
+                            # Belt-and-braces: drop anything after a mid-buffer
+                            # sentinel in case a provider merges chunks.
+                            if USAGE_SENTINEL in text:
+                                text = text.split(USAGE_SENTINEL, 1)[0]
+                            _res["text"] = text.strip()
                         except Exception as exc:  # noqa: BLE001 — caption is non-fatal
                             _res["err"] = exc
 
