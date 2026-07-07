@@ -27,6 +27,7 @@ import logging
 import mimetypes
 import os
 import shutil
+import subprocess
 import sys
 import uuid
 from datetime import datetime
@@ -7035,6 +7036,108 @@ def app_chat_suggestions():
         logger.warning("[chat/suggestions] AI call failed: %s", e)
 
     return jsonify({"suggestions": []})
+
+
+@app.route("/openapi.json", methods=["GET"])
+def openapi_json():
+    """Return the static-scan OpenAPI document for backend inspection."""
+    generator_path = ROOT_DIR / "openapi.js"
+    if not generator_path.exists():
+        return jsonify({"error": "openapi.js not found", "path": str(generator_path)}), 404
+
+    try:
+        result = subprocess.run(
+            ["node", str(generator_path)],
+            cwd=str(ROOT_DIR),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=20,
+            check=False,
+        )
+    except FileNotFoundError:
+        return (
+            jsonify(
+                {
+                    "error": "node executable not found",
+                    "message": "Install Node.js or run `node openapi.js > openapi.json` from the repo root.",
+                }
+            ),
+            500,
+        )
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "openapi.js timed out"}), 504
+
+    if result.returncode != 0:
+        return (
+            jsonify(
+                {
+                    "error": "openapi.js failed",
+                    "returncode": result.returncode,
+                    "stderr": result.stderr[-4000:],
+                }
+            ),
+            500,
+        )
+
+    try:
+        spec = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        return (
+            jsonify(
+                {
+                    "error": "openapi.js returned invalid JSON",
+                    "message": str(exc),
+                    "stdout": result.stdout[:1000],
+                }
+            ),
+            500,
+        )
+
+    response = jsonify(spec)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.route("/docs", methods=["GET"])
+@app.route("/docs/", methods=["GET"])
+def swagger_docs():
+    """Swagger UI for the generated backend OpenAPI document."""
+    html = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>AI-Assistant Backend API</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+  <style>
+    body { margin: 0; background: #f7f8fa; }
+    #swagger-ui { min-height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script>
+    window.ui = SwaggerUIBundle({
+      url: "/openapi.json",
+      dom_id: "#swagger-ui",
+      deepLinking: true,
+      docExpansion: "none",
+      filter: true,
+      showExtensions: true,
+      showCommonExtensions: true,
+      displayRequestDuration: true,
+      persistAuthorization: true,
+      layout: "BaseLayout",
+      presets: [
+        SwaggerUIBundle.presets.apis
+      ]
+    });
+  </script>
+</body>
+</html>"""
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
 # Error handlers
