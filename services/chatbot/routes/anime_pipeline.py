@@ -101,10 +101,17 @@ def _enrich_with_character(data: dict) -> dict:
                         " ", "_"
                     ) or None
 
-            rec = _SAARecord(char_key, saa_hit.display_name, saa_hit.series_hint)
+            # Inject the SDXL prompt TAG (e.g. "hoshino (blue archive)"), NOT
+            # the localized display_name (which is Chinese for the WAI DB and
+            # meaningless to waiIllustrious). The tag is the exact token the
+            # checkpoint was trained on and already carries the series in
+            # parentheses.
+            rec = _SAARecord(char_key, saa_hit.tag, saa_hit.series_hint)
             logger.info(
-                "[anime_pipeline] character_key %s resolved via SAA WAI DB (%s)",
+                "[anime_pipeline] character_key %s resolved via SAA WAI DB "
+                "(tag=%s, display=%s)",
                 char_key,
+                saa_hit.tag,
                 saa_hit.display_name,
             )
         else:
@@ -114,9 +121,13 @@ def _enrich_with_character(data: dict) -> dict:
             return data
 
     prompt = (data.get("prompt") or "").strip()
-    qualified = (
-        f"{rec.display_name} in {rec.series}" if rec.series else rec.display_name
-    )
+    # Append " in <series>" only when the name doesn't already carry the series
+    # in parentheses (SAA tags like "hoshino (blue archive)" already do), so we
+    # don't produce redundant "... (blue archive) in blue archive".
+    if rec.series and f"({rec.series.lower()})" not in rec.display_name.lower():
+        qualified = f"{rec.display_name} in {rec.series}"
+    else:
+        qualified = rec.display_name
     # Only prepend if the qualified phrase isn't already present
     if qualified.lower() not in prompt.lower():
         new_prompt = f"{qualified}, {prompt}" if prompt else qualified

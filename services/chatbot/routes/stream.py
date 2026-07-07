@@ -1053,6 +1053,26 @@ def chat_stream():
                     if data.get("reference_images"):
                         _img_data["reference_images"] = data.get("reference_images")
 
+                    # Character resolution parity with the standalone image
+                    # routes (/api/anime-pipeline/stream, /api/image-gen/*):
+                    # auto-derive the character from the message via NLU and/or
+                    # resolve an explicit picker key against the local registry
+                    # + SAA 5149-char DB, prepending a fully-qualified
+                    # "Name in Series" phrase so the pipeline renders the right
+                    # character. The chat bridge previously skipped this, which
+                    # is why in-chat image gen was worse at characters than the
+                    # modal path. Fail-safe: any error leaves _img_data as-is.
+                    try:
+                        from routes.anime_pipeline import _enrich_with_character
+
+                        _img_data = _enrich_with_character(_img_data)
+                    except Exception as _ce:  # pragma: no cover — defensive
+                        logger.debug(
+                            "[SSE:%s] character enrichment skipped: %s",
+                            request_id,
+                            _ce,
+                        )
+
                     _req, _verr = _aps.validate_request(_img_data)
                     if _verr or _req is None:
                         logger.info(
