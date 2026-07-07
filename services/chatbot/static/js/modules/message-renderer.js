@@ -1399,7 +1399,7 @@ export class MessageRenderer {
      * loading→done, stops the timer, updates the label, and keeps the block
      * EXPANDED so the generated image stays visible.
      */
-    finalizeThinkingKeepContent(container, { label = null, duration_ms = 0 } = {}) {
+    finalizeThinkingKeepContent(container, { label = null, duration_ms = 0, collapsed = false } = {}) {
         if (!container) return;
         if (container._timerInterval) {
             clearInterval(container._timerInterval);
@@ -1408,7 +1408,12 @@ export class MessageRenderer {
         container._finalized = true;
         container._durationMs = duration_ms || (Date.now() - container._startTime);
         container.classList.remove('thinking-block--loading');
-        container.classList.add('thinking-block--done', 'thinking-block--expanded');
+        container.classList.add('thinking-block--done');
+        // collapsed=true: the caller moved the important content (e.g. the
+        // generated image) OUT of the block, so it can settle to a one-line
+        // summary; expand-on-click still reveals the kept pipeline card.
+        if (collapsed) container.classList.remove('thinking-block--expanded');
+        else container.classList.add('thinking-block--expanded');
 
         const spinner = container.querySelector('.thinking-block__spinner');
         if (spinner) spinner.className = 'thinking-block__dot';

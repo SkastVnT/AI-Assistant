@@ -368,6 +368,408 @@
     border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   v2 pipeline pill — approved redesign (mockup "pipeline console"):
+   aperture spinner · continuous gradient progress bar · connected
+   stepper with Lucide icons · critique→refine loop panel · pptx-style
+   entrance choreography. Legacy classes above are kept untouched so
+   bubbles restored from localStorage keep rendering.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── header ── */
+.ap-v2 .ap-pipeline-header {
+    gap: 11px;
+    padding: 12px 14px 10px;
+    border-bottom: none;
+}
+.ap-v2[data-open] .ap-pipeline-header { border-bottom: none; }
+
+.ap-aperture {
+    position: relative;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    display: inline-block;
+}
+.ap-aperture__ring,
+.ap-aperture__arc {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid color-mix(in srgb, var(--cyan) 22%, transparent);
+}
+.ap-aperture__arc {
+    border-color: transparent;
+    border-top-color: var(--cyan);
+    border-right-color: var(--accent);
+    animation: ap-spin 1s linear infinite;
+}
+@keyframes ap-spin { to { transform: rotate(360deg); } }
+
+.ap-head-titles {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.ap-v2 .ap-inline-label {
+    flex: none;
+    font-size: 13.5px;
+    font-weight: 620;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+}
+.ap-head-sub {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ap-head-metric {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+    flex-shrink: 0;
+}
+.ap-inline-pct {
+    font-size: 19px;
+    font-weight: 650;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(92deg, var(--cyan), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+.ap-v2-done .ap-inline-pct {
+    background: none;
+    color: #22c55e;
+    -webkit-text-fill-color: #22c55e;
+}
+
+/* ── continuous progress bar ── */
+.ap-progress {
+    height: 4px;
+    margin: 0 14px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-tertiary) 22%, transparent);
+    overflow: hidden;
+}
+.ap-progress__fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--cyan), var(--accent));
+    transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+.ap-progress__fill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    background-size: 60px 100%;
+    animation: ap-shimmer 1.3s linear infinite;
+}
+@keyframes ap-shimmer {
+    from { background-position: -60px 0; }
+    to   { background-position: 260px 0; }
+}
+.ap-v2-done .ap-progress__fill { background: #22c55e; }
+.ap-v2-cancelled .ap-progress__fill { background: #fbbf24; }
+.ap-v2-error .ap-progress__fill { background: #ef4444; }
+.ap-v2-done .ap-progress__fill::after,
+.ap-v2-cancelled .ap-progress__fill::after,
+.ap-v2-error .ap-progress__fill::after { display: none; }
+
+/* done/cancel/error card accents */
+.ap-v2-done { border-color: color-mix(in srgb, #22c55e 45%, var(--border-primary)); }
+.ap-v2-error { border-color: color-mix(in srgb, #ef4444 45%, var(--border-primary)); }
+/* collapsed done-card: keep the settled bar visible under the summary line */
+.ap-v2:not([data-open]) .ap-progress { margin-bottom: 12px; }
+
+/* ── connected stepper (overrides the legacy 4-col grid) ── */
+.ap-inline-stages.ap-stepper {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    padding: 12px 12px 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.ap-inline-stages.ap-stepper::-webkit-scrollbar { display: none; }
+
+.ap-stepper .ap-stage-item {
+    position: relative;
+    flex: 1 0 auto;
+    min-width: 58px;
+    padding: 0 2px;
+    border: none;
+    background: none;
+    gap: 5px;
+    opacity: 1; /* state now encoded in the node, not whole-cell opacity */
+}
+/* connector track behind the nodes */
+.ap-stepper .ap-stage-item::before {
+    content: "";
+    position: absolute;
+    top: 13px;
+    left: -50%;
+    width: 100%;
+    height: 2px;
+    background: var(--border-primary);
+    z-index: 0;
+    transition: background 0.3s;
+}
+.ap-stepper .ap-stage-item:first-child::before { display: none; }
+.ap-stepper .ap-stage-item.active::before,
+.ap-stepper .ap-stage-item.done::before,
+.ap-stepper .ap-stage-item.ap-pass::before,
+.ap-stepper .ap-stage-item.ap-fail::before {
+    background: linear-gradient(90deg, var(--cyan), var(--accent));
+}
+
+.ap-stage-node {
+    width: 27px;
+    height: 27px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    z-index: 1;
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border-primary);
+    color: var(--text-tertiary);
+    transition: border-color 0.25s, color 0.25s, background 0.25s, box-shadow 0.25s;
+}
+.ap-stage-node svg { width: 13px; height: 13px; display: block; }
+
+.ap-stepper .ap-stage-item.pending .ap-stage-node { opacity: 0.55; }
+.ap-stepper .ap-stage-item.queued .ap-stage-node {
+    border-color: #fbbf24;
+    color: #fbbf24;
+    animation: ap-dot-queue 1.3s ease-in-out infinite;
+}
+.ap-stepper .ap-stage-item.active .ap-stage-node {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: color-mix(in srgb, var(--cyan) 16%, var(--bg-secondary));
+    animation: ap-node-pulse 1.5s ease-in-out infinite;
+}
+@keyframes ap-node-pulse {
+    0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--cyan) 22%, transparent); }
+    50%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--cyan) 6%, transparent); }
+}
+.ap-stepper .ap-stage-item.done .ap-stage-node {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: color-mix(in srgb, var(--cyan) 13%, var(--bg-secondary));
+    animation: ap-done-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes ap-done-pop {
+    0% { transform: scale(1); }
+    45% { transform: scale(1.22); }
+    100% { transform: scale(1); }
+}
+.ap-stepper .ap-stage-item.error .ap-stage-node {
+    border-color: #ef4444;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+}
+/* critique verdict tint — survives pending/active/done toggles */
+.ap-stepper .ap-stage-item.ap-fail .ap-stage-node {
+    border-color: #fbbf24;
+    color: #fbbf24;
+    background: color-mix(in srgb, #fbbf24 15%, var(--bg-secondary));
+}
+.ap-stepper .ap-stage-item.ap-pass .ap-stage-node {
+    border-color: #22c55e;
+    color: #22c55e;
+    background: color-mix(in srgb, #22c55e 15%, var(--bg-secondary));
+}
+
+.ap-stepper .ap-stage-label {
+    font-size: 9.5px;
+    max-width: 64px;
+    white-space: normal;
+    line-height: 1.2;
+    text-align: center;
+}
+.ap-stepper .ap-stage-item.active .ap-stage-label {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+.ap-stepper .ap-stage-time { min-height: 11px; }
+
+/* refine-round badge pinned to the critique node */
+.ap-loop-badge {
+    position: absolute;
+    top: -3px;
+    right: calc(50% - 19px);
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    border-radius: 999px;
+    background: #fbbf24;
+    color: #3a2900;
+    font-size: 9px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-variant-numeric: tabular-nums;
+    z-index: 2;
+}
+
+/* full-width layer-plan chip strip (v2 — chips moved out of the stepper column) */
+.ap-layer-chips--strip {
+    flex: none;
+    padding: 2px 14px 6px;
+    animation: ap-fade-up 0.35s ease both;
+}
+
+/* ── critique → refine loop panel ── */
+.ap-refine {
+    margin: 4px 12px 10px;
+    padding: 9px 11px;
+    border-radius: 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: color-mix(in srgb, #fbbf24 9%, var(--bg-secondary));
+    border: 1px solid color-mix(in srgb, #fbbf24 34%, transparent);
+    animation: ap-fade-up 0.35s ease both;
+}
+.ap-refine[hidden] { display: none; }
+.ap-refine--pass {
+    background: color-mix(in srgb, #22c55e 10%, var(--bg-secondary));
+    border-color: color-mix(in srgb, #22c55e 40%, transparent);
+}
+.ap-refine__top {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+.ap-refine__pill {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 999px;
+    color: #3a2900;
+    background: #fbbf24;
+    white-space: nowrap;
+}
+.ap-refine--pass .ap-refine__pill {
+    color: #04231a;
+    background: #22c55e;
+}
+.ap-refine__msg {
+    flex: 1;
+    min-width: 0;
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+.ap-refine__gauge {
+    position: relative;
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-tertiary) 24%, transparent);
+    margin-top: 3px;
+}
+.ap-refine__fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: #fbbf24;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s;
+}
+.ap-refine--pass .ap-refine__fill { background: #22c55e; }
+.ap-refine__target {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    left: 80%;   /* pass threshold 8.0 / 10 */
+    width: 2px;
+    border-radius: 2px;
+    background: var(--text-secondary);
+}
+.ap-refine__target::after {
+    content: "8.0";
+    position: absolute;
+    top: -13px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 8.5px;
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+.ap-refine__trend {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-tertiary);
+}
+.ap-refine__sc {
+    padding: 1px 7px;
+    border-radius: 5px;
+    background: var(--bg-tertiary);
+    border: 1px solid color-mix(in srgb, #fbbf24 40%, transparent);
+    color: #fbbf24;
+    font-weight: 600;
+}
+.ap-refine__sc.pass {
+    color: #22c55e;
+    border-color: color-mix(in srgb, #22c55e 45%, transparent);
+    font-weight: 700;
+}
+.ap-refine__arrow { opacity: 0.45; }
+
+/* ── promoted result message (image moved out of the thinking pill) ── */
+.ap-result-msg .message__body { max-width: 100%; }
+.ap-result-msg .message-content { padding: 0; }
+.ap-result-msg { animation: ap-fade-up 0.4s ease both; }
+
+/* ── pptx-style entrance choreography ── */
+@keyframes ap-card-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.985); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes ap-fade-up {
+    from { opacity: 0; transform: translateY(7px); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes ap-node-in {
+    from { opacity: 0; transform: translateY(6px) scale(0.4); }
+    to   { opacity: 1; transform: none; }
+}
+.ap-v2 { animation: ap-card-in 0.5s cubic-bezier(0.2, 0.75, 0.25, 1) both; }
+.ap-v2 .ap-progress { animation: ap-fade-up 0.4s ease 0.25s both; }
+.ap-stepper .ap-stage-item {
+    animation: ap-node-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation-delay: calc(var(--i, 0) * 55ms + 0.28s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ap-v2,
+    .ap-v2 .ap-progress,
+    .ap-stepper .ap-stage-item,
+    .ap-refine,
+    .ap-result-msg { animation: none !important; }
+    .ap-aperture__arc,
+    .ap-progress__fill::after,
+    .ap-stepper .ap-stage-item.active .ap-stage-node { animation: none !important; }
+}
+
 /* ── Phase 1b: pipeline card nested inside a Thinking-with-Images block ──
    When the inline bubble is mounted under .thinking-block__content it must
    drop the redundant message chrome (avatar + outer padding) so it reads as

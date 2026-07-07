@@ -15,15 +15,29 @@
  *   ap_done         — stream complete sentinel
  */
 
+// Lucide-style inline stroke icons (24x24) — replaces the emoji set so the
+// stepper matches the rest of the app's iconography and never falls back to
+// the OS emoji font.
+const _apSvg = (p) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    + 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>';
+
 const STAGES = [
-    { key: 'vision_analysis',  icon: '👁️',  label: 'Vision Analysis' },
-    { key: 'layer_planning',   icon: '📋',  label: 'Layer Planning' },
-    { key: 'composition_pass', icon: '🎨',  label: 'Composition' },
-    { key: 'structure_lock',   icon: '🔒',  label: 'Structure Lock' },
-    { key: 'beauty_pass',      icon: '✨',  label: 'Beauty Pass' },
-    { key: 'detection_inpaint',icon: '🎯',  label: 'YOLO Detail Fix' },
-    { key: 'critique',         icon: '🔍',  label: 'Critique' },
-    { key: 'upscale',          icon: '📐',  label: 'Upscale' },
+    { key: 'vision_analysis',  icon: '👁️',  label: 'Vision Analysis', vi: 'Phân tích ảnh',
+      svg: _apSvg('<circle cx="12" cy="12" r="3"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/>') },
+    { key: 'layer_planning',   icon: '📋',  label: 'Layer Planning', vi: 'Kế hoạch lớp',
+      svg: _apSvg('<path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/>') },
+    { key: 'composition_pass', icon: '🎨',  label: 'Composition', vi: 'Dựng bố cục',
+      svg: _apSvg('<path d="M9.06 11.9 3 18v3h3l6.1-6.06"/><path d="M14 6l4 4"/><path d="M17.5 3.5a2.12 2.12 0 0 1 3 3L11 16l-4 1 1-4Z"/>') },
+    { key: 'structure_lock',   icon: '🔒',  label: 'Structure Lock', vi: 'Khoá cấu trúc',
+      svg: _apSvg('<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>') },
+    { key: 'beauty_pass',      icon: '✨',  label: 'Beauty Pass', vi: 'Tinh chỉnh đẹp',
+      svg: _apSvg('<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/><circle cx="12" cy="12" r="2.4"/>') },
+    { key: 'detection_inpaint',icon: '🎯',  label: 'YOLO Detail Fix', vi: 'Sửa chi tiết',
+      svg: _apSvg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>') },
+    { key: 'critique',         icon: '🔍',  label: 'Critique', vi: 'Chấm điểm',
+      svg: _apSvg('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>') },
+    { key: 'upscale',          icon: '📐',  label: 'Upscale', vi: 'Phóng nét',
+      svg: _apSvg('<path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3"/>') },
 ];
 
 // Off-DOM full-resolution image cache for layer cards.
@@ -385,11 +399,15 @@ export class AnimePipeline {
      *   └─────────────────────────────────────────┘
      */
     _createInlineBubble(uid, prompt) {
-        const stagesHtml = STAGES.map(s => `
-            <div class="ap-stage-item pending" data-ap-stage="${s.key}" id="ap-stage-${uid}-${s.key}">
-                <span class="ap-stage-dot"></span>
-                <span class="ap-stage-icon">${s.icon}</span>
-                <span class="ap-stage-label">${s.label}</span>
+        // v2 stepper: connected nodes with Lucide-style icons. Keeps the same
+        // ids/classes the event handlers query (`ap-stage-${uid}-${key}`,
+        // `.ap-stage-item`, `.ap-stage-label`, `.ap-stage-time`) so every
+        // existing state toggle keeps working. `--i` drives the staggered
+        // entrance; the critique node carries a loop badge for refine rounds.
+        const stagesHtml = STAGES.map((s, i) => `
+            <div class="ap-stage-item pending" data-ap-stage="${s.key}" id="ap-stage-${uid}-${s.key}" style="--i:${i}">
+                <span class="ap-stage-node">${s.svg}</span>${s.key === 'critique' ? '<span class="ap-loop-badge" style="display:none;"></span>' : ''}
+                <span class="ap-stage-label">${s.vi || s.label}</span>
                 <span class="ap-stage-time"></span>
             </div>`).join('');
 
@@ -397,27 +415,49 @@ export class AnimePipeline {
         div.className = 'message assistant ap-inline-msg';
         div.id = `ap-inline-${uid}`;
         div.setAttribute('data-ap-prompt', prompt);
+        // The aperture spinner ALSO carries the legacy `thinking-pill__dots`
+        // class so every existing `header.querySelector('.thinking-pill__dots')
+        // ?.remove()` finalize path cleans it up without changes.
         div.innerHTML = `
             <div class="message__avatar message__avatar--agent">
                 <img src="/static/icons/app-icon.png" class="avatar-img" alt="" width="36" height="36" draggable="false">
             </div>
             <div class="message__body">
                 <div class="message-content">
-                    <div class="ap-pipeline-card" data-open>
+                    <div class="ap-pipeline-card ap-v2" data-open>
                         <div class="ap-pipeline-header">
-                            <div class="thinking-pill__dots">
-                                <span></span><span></span><span></span>
+                            <span class="ap-aperture thinking-pill__dots" aria-hidden="true">
+                                <span class="ap-aperture__ring"></span>
+                                <span class="ap-aperture__arc"></span>
+                            </span>
+                            <div class="ap-head-titles">
+                                <span class="ap-inline-label" id="ap-headline-${uid}">Khởi động…</span>
+                                <span class="ap-head-sub" id="ap-sub-${uid}">Anime Pipeline</span>
                             </div>
-                            <span class="ap-inline-label" id="ap-headline-${uid}">Khởi động…</span>
-                            <span class="ap-inline-timer" id="ap-timer-${uid}">0.0s</span>
+                            <div class="ap-head-metric">
+                                <span class="ap-inline-pct" id="ap-pct-${uid}">0%</span>
+                                <span class="ap-inline-timer" id="ap-timer-${uid}">0.0s</span>
+                            </div>
                             <button type="button"
                                     class="ap-inline-stop-btn"
                                     id="ap-stop-${uid}"
                                     title="Ngưng pipeline và xuất ảnh hiện tại">⏹ Ngưng &amp; xuất ảnh</button>
                         </div>
+                        <div class="ap-progress" aria-hidden="true"><div class="ap-progress__fill" id="ap-fill-${uid}"></div></div>
                         <div class="ap-pipeline-body">
                             <div class="ap-pipeline-status ap-inline-current" id="ap-current-${uid}">Khởi động…</div>
-                            <div class="ap-inline-stages" id="ap-stages-${uid}">${stagesHtml}</div>
+                            <div class="ap-inline-stages ap-stepper" id="ap-stages-${uid}">${stagesHtml}</div>
+                            <div class="ap-refine" id="ap-refine-${uid}" hidden>
+                                <div class="ap-refine__top">
+                                    <span class="ap-refine__pill" id="ap-refine-pill-${uid}">↺ Vòng 1</span>
+                                    <span class="ap-refine__msg" id="ap-refine-msg-${uid}"></span>
+                                </div>
+                                <div class="ap-refine__gauge" title="Điểm critique so với mục tiêu 8.0">
+                                    <div class="ap-refine__fill" id="ap-refine-fill-${uid}"></div>
+                                    <span class="ap-refine__target"></span>
+                                </div>
+                                <div class="ap-refine__trend" id="ap-refine-trend-${uid}"></div>
+                            </div>
                         </div>
                     </div>
                     <div class="ap-layers-gallery" id="ap-layers-${uid}" style="display:none; margin-top:10px;"></div>
@@ -1006,6 +1046,15 @@ export class AnimePipeline {
                 this._inlineSetCurrent(uid, data.label || data.stage);
                 // Track stage label so heartbeats can append elapsed time.
                 bubble.dataset.apCurrentStageLabel = data.label || data.stage;
+                {
+                    const si = this._stageIdx(data.stage);
+                    if (si >= 0) {
+                        this._setInlineProgress(uid, si / STAGES.length);
+                        if (!bubble.dataset.apRefineRound) {
+                            this._setInlineSub(uid, `Bước ${si + 1} / ${STAGES.length}`);
+                        }
+                    }
+                }
                 break;
             }
             case 'ap_stage_heartbeat': {
@@ -1017,6 +1066,14 @@ export class AnimePipeline {
                 const pctText = (typeof data.progress_pct === 'number')
                     ? ` · ${Math.round(data.progress_pct)}%` : '';
                 this._inlineSetCurrent(uid, `${stageLabel} · ${data.elapsed_s}s${pctText}`);
+                if (typeof data.progress_pct === 'number' && data.stage) {
+                    const si = this._stageIdx(data.stage);
+                    if (si >= 0) {
+                        this._setInlineProgress(
+                            uid, (si + Math.min(100, data.progress_pct) / 100) / STAGES.length,
+                        );
+                    }
+                }
                 if (data.preview_b64) {
                     this._inlineSetLivePreview(uid, data.preview_fmt || 'jpeg', data.preview_b64);
                 }
@@ -1036,6 +1093,10 @@ export class AnimePipeline {
             }
             case 'ap_stage_done': {
                 this._inlineSetStage(uid, data.stage, 'done');
+                {
+                    const si = this._stageIdx(data.stage);
+                    if (si >= 0) this._setInlineProgress(uid, (si + 1) / STAGES.length);
+                }
                 if (data.latency_ms) {
                     const row = document.getElementById(`ap-stage-${uid}-${data.stage}`);
                     if (row) row.querySelector('.ap-stage-time').textContent =
@@ -1051,6 +1112,7 @@ export class AnimePipeline {
                 const row = document.getElementById(`ap-stage-${uid}-critique`);
                 if (!row) break;
                 const passed = data.passed;
+                const scoreNum = Number(data.score) || 0;
                 const scoreText = `${data.score}/10 ${passed ? '\u2705' : '\u21a9\ufe0f'}`;
                 let badge = row.querySelector('.ap-score-badge');
                 if (!badge) {
@@ -1064,28 +1126,80 @@ export class AnimePipeline {
                 badge.className = `ap-score-badge ${passed ? 'ap-score-pass' : 'ap-score-fail'}`;
                 const issues = data.issues || [];
                 if (issues.length) badge.title = issues.slice(0, 3).join(' \u00b7 ');
+                // v2 loop viz: tint the critique node (ap-pass/ap-fail survive
+                // the plain pending/active/done toggles in _inlineSetStage)
+                // and feed the refine panel gauge + convergence trend.
+                row.classList.remove('ap-pass', 'ap-fail');
+                row.classList.add(passed ? 'ap-pass' : 'ap-fail');
+                const rp = document.getElementById(`ap-refine-${uid}`);
+                if (rp && (bubble.dataset.apRefineRound || !passed || !rp.hidden)) {
+                    rp.hidden = false;
+                    rp.classList.toggle('ap-refine--pass', !!passed);
+                    const rf = document.getElementById(`ap-refine-fill-${uid}`);
+                    if (rf) rf.style.width = Math.min(100, scoreNum * 10) + '%';
+                    const trend = document.getElementById(`ap-refine-trend-${uid}`);
+                    if (trend) {
+                        if (trend.childElementCount) {
+                            const ar = document.createElement('span');
+                            ar.className = 'ap-refine__arrow';
+                            ar.textContent = '\u2192';
+                            trend.appendChild(ar);
+                        }
+                        const chip = document.createElement('span');
+                        chip.className = 'ap-refine__sc' + (passed ? ' pass' : '');
+                        chip.textContent = `${data.score}` + (passed ? ' \u2713' : '');
+                        trend.appendChild(chip);
+                    }
+                    if (passed) {
+                        const pill = document.getElementById(`ap-refine-pill-${uid}`);
+                        if (pill) pill.textContent = '\u2713 \u0110\u00e3 \u0111\u1ea1t';
+                        const msg = document.getElementById(`ap-refine-msg-${uid}`);
+                        if (msg) msg.textContent = `\u0110\u1ea1t ${data.score}/10 \u2014 gi\u1eef \u1ea3nh t\u1ed1t nh\u1ea5t.`;
+                        delete bubble.dataset.apRefineRound;
+                    }
+                }
                 break;
             }
             case 'ap_refine': {
                 const round = data.round || 1;
+                const maxRounds = data.max_rounds || 4;
+                bubble.dataset.apRefineRound = String(round);
                 // Reset beauty_pass row for the new round
                 const bpRow = document.getElementById(`ap-stage-${uid}-beauty_pass`);
                 if (bpRow) {
                     bpRow.classList.remove('done', 'error', 'active');
                     bpRow.classList.add('pending');
                     const lbl = bpRow.querySelector('.ap-stage-label');
-                    if (lbl) lbl.textContent = `Beauty Pass (Round ${round + 1})`;
+                    if (lbl) lbl.textContent = `Tinh ch\u1ec9nh (v\u00f2ng ${round + 1})`;
                     const tEl = bpRow.querySelector('.ap-stage-time');
                     if (tEl) tEl.textContent = '';
                 }
-                // Reset critique row
+                // Reset critique row (keep ap-fail tint \u2014 it explains WHY we loop)
                 const crRow = document.getElementById(`ap-stage-${uid}-critique`);
                 if (crRow) {
                     crRow.classList.remove('done', 'error', 'active');
                     crRow.classList.add('pending');
                     crRow.querySelector('.ap-score-badge')?.remove();
+                    const lb = crRow.querySelector('.ap-loop-badge');
+                    if (lb) { lb.textContent = String(round); lb.style.display = ''; }
                 }
-                this._inlineSetCurrent(uid, `\uD83D\uDD04 Refinement round ${round + 1}/${(data.max_rounds || 1) + 1}\u2026`);
+                this._inlineSetCurrent(uid, `\u21ba V\u00f2ng tinh ch\u1ec9nh ${round}/${maxRounds}\u2026`);
+                this._setInlineSub(uid, `V\u00f2ng tinh ch\u1ec9nh ${round} / ${maxRounds}`);
+                // Refine panel: amber "looping" state with the previous score.
+                const rp = document.getElementById(`ap-refine-${uid}`);
+                if (rp) {
+                    rp.hidden = false;
+                    rp.classList.remove('ap-refine--pass');
+                    const pill = document.getElementById(`ap-refine-pill-${uid}`);
+                    if (pill) pill.textContent = `\u21ba V\u00f2ng ${round} / ${maxRounds}`;
+                    const msg = document.getElementById(`ap-refine-msg-${uid}`);
+                    if (msg) {
+                        const prev = Number(data.previous_score) || 0;
+                        msg.textContent = prev > 0
+                            ? `\u0110i\u1ec3m ${prev.toFixed(1)}/10 ch\u01b0a \u0111\u1ea1t ch\u1ec9 ti\u00eau \u2014 tinh ch\u1ec9nh + d\u00f2 chi ti\u1ebft l\u1ea1i\u2026`
+                            : 'Ch\u01b0a \u0111\u1ea1t ch\u1ec9 ti\u00eau \u2014 tinh ch\u1ec9nh + d\u00f2 chi ti\u1ebft l\u1ea1i\u2026';
+                    }
+                }
                 break;
             }
             case 'ap_refine_reasoning': {
@@ -1103,7 +1217,7 @@ export class AnimePipeline {
                     bpR.classList.remove('done', 'error', 'active');
                     bpR.classList.add('pending');
                     const lbl = bpR.querySelector('.ap-stage-label');
-                    if (lbl) lbl.textContent = `Beauty Pass (Restart #${data.restart_num || 1})`;
+                    if (lbl) lbl.textContent = `Tinh chỉnh (restart #${data.restart_num || 1})`;
                     const tEl = bpR.querySelector('.ap-stage-time');
                     if (tEl) tEl.textContent = '';
                 }
@@ -1114,6 +1228,26 @@ export class AnimePipeline {
                     crR.querySelector('.ap-score-badge')?.remove();
                 }
                 this._inlineSetCurrent(uid, `🔁 Full restart #${data.restart_num || 1}: ${data.reason || 'score stagnant'}`);
+                // Refine panel: mark the restart in the trend so the user sees
+                // the "stagnant → new seed" decision, not just a reset.
+                {
+                    const trend = document.getElementById(`ap-refine-trend-${uid}`);
+                    if (trend && !trend.hidden) {
+                        const chip = document.createElement('span');
+                        chip.className = 'ap-refine__sc';
+                        chip.textContent = '↻ seed mới';
+                        chip.title = data.reason || 'score stagnant — full restart';
+                        if (trend.childElementCount) {
+                            const ar = document.createElement('span');
+                            ar.className = 'ap-refine__arrow';
+                            ar.textContent = '→';
+                            trend.appendChild(ar);
+                        }
+                        trend.appendChild(chip);
+                    }
+                    const msg = document.getElementById(`ap-refine-msg-${uid}`);
+                    if (msg) msg.textContent = 'Điểm đình trệ — đổi seed, thử lại từ đầu…';
+                }
                 break;
             }
             case 'ap_vision_status': {
@@ -1262,7 +1396,17 @@ export class AnimePipeline {
         wrapper.className = 'ap-layer-chips';
         wrapper.innerHTML = chips.join('') + extra + resChip;
 
-        // Insert before the time span
+        // v2 stepper: a chip strip does not fit inside a 58px stepper column —
+        // mount it as a full-width strip right below the stepper instead.
+        const stages = document.getElementById(`ap-stages-${uid}`);
+        if (stages && stages.classList.contains('ap-stepper')) {
+            stages.parentNode.querySelector('.ap-layer-chips')?.remove();
+            wrapper.classList.add('ap-layer-chips--strip');
+            stages.insertAdjacentElement('afterend', wrapper);
+            return;
+        }
+
+        // Legacy grid: insert before the time span inside the row.
         const timeEl = row.querySelector('.ap-stage-time');
         if (timeEl) {
             row.insertBefore(wrapper, timeEl);
@@ -1420,6 +1564,32 @@ export class AnimePipeline {
         if (label) label.textContent = text;
     }
 
+    /** Index of a stage key in the canonical STAGES order (-1 if unknown). */
+    _stageIdx(key) {
+        return STAGES.findIndex(s => s.key === key);
+    }
+
+    /** Drive the v2 continuous progress bar + % readout.
+     *  `frac` is 0..1 overall progress. Monotonic: refine rounds re-enter
+     *  earlier stages, so the bar holds its max instead of jumping back. */
+    _setInlineProgress(uid, frac) {
+        const bubble = document.getElementById(`ap-inline-${uid}`);
+        if (!bubble) return;
+        const prev = parseFloat(bubble.dataset.apPct || '0');
+        const pct = Math.max(prev, Math.min(100, Math.round(frac * 100)));
+        bubble.dataset.apPct = String(pct);
+        const fill = document.getElementById(`ap-fill-${uid}`);
+        if (fill) fill.style.width = pct + '%';
+        const pctEl = document.getElementById(`ap-pct-${uid}`);
+        if (pctEl) pctEl.textContent = pct + '%';
+    }
+
+    /** Update the small sub-line under the headline (step counter / round). */
+    _setInlineSub(uid, text) {
+        const el = document.getElementById(`ap-sub-${uid}`);
+        if (el) el.textContent = text;
+    }
+
     /** Replace progress block with the final image result. */
     _inlineShowResult(bubble, uid, data, prompt, startTime, chatContainer) {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -1487,6 +1657,12 @@ export class AnimePipeline {
         const card = bubble.querySelector('.ap-pipeline-card');
         if (card) {
             card.removeAttribute('data-open');
+            card.classList.add(wasCancelled ? 'ap-v2-cancelled' : 'ap-v2-done');
+            // v2: settle the progress bar + % readout (green at 100%).
+            const fillEl = document.getElementById(`ap-fill-${uid}`);
+            if (fillEl && !wasCancelled) fillEl.style.width = '100%';
+            const pctEl = document.getElementById(`ap-pct-${uid}`);
+            if (pctEl && !wasCancelled) pctEl.textContent = '100%';
             const header = card.querySelector('.ap-pipeline-header');
             if (header) {
                 header.querySelector('.thinking-pill__dots')?.remove();
@@ -1505,6 +1681,8 @@ export class AnimePipeline {
                     header.prepend(icon);
                     if (label) label.textContent = `✅ Anime Pipeline · ${elapsed}s`;
                 }
+                const sub = header.querySelector('.ap-head-sub');
+                if (sub) sub.textContent = wasCancelled ? 'Đã ngưng' : 'Hoàn tất';
             }
         }
 
@@ -1650,7 +1828,22 @@ export class AnimePipeline {
             // case. The /api/anime-pipeline/upscale endpoint still
             // exists for power users / CLI consumers.
 
-            msgContent?.appendChild(resultDiv.firstElementChild);
+            // Thinking-with-Images (Phase 1b follow-up): when the bubble lives
+            // inside a collapsible thinking-block, the FINAL image must NOT
+            // stay buried in the pill — promote it to a sibling chat message
+            // right after the block, so collapsing "Đã tạo ảnh" never hides
+            // the output. Listeners survive the move (same DOM nodes).
+            const resultEl = resultDiv.firstElementChild;
+            const tblock = bubble.closest('.thinking-block');
+            if (tblock && tblock.parentNode) {
+                const holder = document.createElement('div');
+                holder.className = 'message assistant ap-result-msg';
+                holder.innerHTML = '<div class="message__body"><div class="message-content"></div></div>';
+                holder.querySelector('.message-content').appendChild(resultEl);
+                tblock.parentNode.insertBefore(holder, tblock.nextSibling);
+            } else {
+                msgContent?.appendChild(resultEl);
+            }
             if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
 
             // Save to session
@@ -1672,6 +1865,8 @@ export class AnimePipeline {
         const card = bubble?.querySelector('.ap-pipeline-card');
         if (card) {
             card.setAttribute('data-open', '');
+            card.classList.add('ap-v2-error');
+            card.querySelector('.thinking-pill__dots')?.remove();  // stop the spinner
             const label = card.querySelector('.ap-inline-label');
             if (label) label.textContent = '❌ ' + message;
             const current = document.getElementById(`ap-current-${uid}`);
@@ -1709,12 +1904,23 @@ export class AnimePipeline {
      * from localStorage.
      */
     recoverInlineBubbles() {
+        // Promoted result messages (image moved OUT of the thinking pill)
+        // lose their button listeners on outerHTML restore — re-wire them.
+        document.querySelectorAll('.ap-result-msg').forEach(holder => {
+            if (holder.querySelector('.igv2-chat-image')) this._rewireInlineButtons(holder);
+        });
+
         const bubbles = document.querySelectorAll('.ap-inline-msg');
         if (!bubbles.length) return;
 
         bubbles.forEach(bubble => {
             const card = bubble.querySelector('.ap-pipeline-card');
             const hasResult = bubble.querySelector('.igv2-chat-image img');
+
+            // Finalized bubble whose image was promoted to a sibling message:
+            // nothing to recover, and it must NOT fall into the "interrupted"
+            // branch just because the image is no longer inside the bubble.
+            if (!hasResult && bubble.dataset.apFinalized === '1') return;
 
             if (hasResult) {
                 // Image exists — collapse progress, re-wire buttons

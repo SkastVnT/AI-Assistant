@@ -6,7 +6,7 @@
 import { ChatManager } from './modules/chat-manager.js?v=20260422';
 import { APIService } from './modules/api-service.js?v=20260707a';
 import { UIUtils } from './modules/ui-utils.js?v=20260630a';
-import { MessageRenderer } from './modules/message-renderer.js?v=20260703a';
+import { MessageRenderer } from './modules/message-renderer.js?v=20260707b';
 import { FileHandler } from './modules/file-handler.js';
 import { MemoryManager } from './modules/memory-manager.js';
 import { ImageGeneration } from './modules/image-gen.js';
@@ -15,7 +15,7 @@ import { VideoGen } from './modules/video-gen.js';
 import { ExportHandler } from './modules/export-handler.js';
 import { SplitViewManager } from './modules/split-view.js';
 import { initLanguage } from './language-switcher.js';
-import { AnimePipeline } from './modules/anime-pipeline.js?v=20260703a';
+import { AnimePipeline } from './modules/anime-pipeline.js?v=20260707b';
 import { initOverlayActions } from './modules/overlay-actions.js?v=20260630a';
 import { initOverlayManager, registerOverlay, enablePanelMode, openOverlay, closeOverlay, toggleOverlay, isOpen } from './modules/overlay-manager.js?v=20260508';
 import { domToStructured, legacyHtmlToStructured } from './modules/message-model.js';
@@ -1253,11 +1253,14 @@ class ChatBotApp {
                             fullResponse = data.response || fullResponse;
                             streamCompleteData = data;
                             // Phase 1b: finalize the image thinking-block WITHOUT
-                            // wiping its nested pipeline card; keep it expanded so
-                            // the generated image stays visible.
+                            // wiping its nested pipeline card. The final image is
+                            // promoted OUT of the block by _inlineShowResult, so
+                            // the pill can collapse to a one-line summary — the
+                            // stage timeline stays inside for anyone who expands.
                             if (imageThinkingBlock) {
                                 this.messageRenderer.finalizeThinkingKeepContent(
-                                    imageThinkingBlock, { label: 'Đã tạo ảnh' },
+                                    imageThinkingBlock,
+                                    { label: 'Đã tạo ảnh', collapsed: true },
                                 );
                             }
                             // Clean up thinking container if it never got content
