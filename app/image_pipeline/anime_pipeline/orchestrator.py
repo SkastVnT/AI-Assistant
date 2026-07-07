@@ -1925,11 +1925,36 @@ class AnimePipelineOrchestrator:
                     },
                 )
             else:
-                logger.info(
-                    "[AnimePipeline] No character LoRA accepted for %s: %s",
-                    research.display_name,
-                    lora_result.rejection_reason,
-                )
+                # WAI-verified characters (Nahida, etc.) are baked into the
+                # waiIllustrious checkpoint and render faithfully from their
+                # danbooru tag alone — exactly how the SAA character picker
+                # uses them. For those, "no LoRA" is EXPECTED, not a
+                # degradation, so surface it as informational rather than a
+                # scary rejection.
+                checkpoint_native = False
+                try:
+                    from .saa_character_db import lookup_character as _saa_lookup
+
+                    _m = _saa_lookup(
+                        research.danbooru_tag or research.display_name or ""
+                    )
+                    checkpoint_native = bool(_m and _m.match_score >= 0.9)
+                except Exception:
+                    checkpoint_native = False
+
+                if checkpoint_native:
+                    logger.info(
+                        "[AnimePipeline] %s is WAI-verified — rendered natively by "
+                        "the checkpoint from its danbooru tag (no LoRA needed, "
+                        "SAA-style)",
+                        research.display_name,
+                    )
+                else:
+                    logger.info(
+                        "[AnimePipeline] No character LoRA accepted for %s: %s",
+                        research.display_name,
+                        lora_result.rejection_reason,
+                    )
                 yield self._event(
                     "stage_complete",
                     {
@@ -1938,6 +1963,7 @@ class AnimePipelineOrchestrator:
                         "total_stages": 9,
                         "latency_ms": latency,
                         "accepted": False,
+                        "checkpoint_native": checkpoint_native,
                         "rejection_reason": lora_result.rejection_reason,
                     },
                 )

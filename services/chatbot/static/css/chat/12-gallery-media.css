@@ -277,6 +277,33 @@
   font-size: 14px;
 }
 .gallery-loading { opacity: 0.7; }
+
+/* Skeleton placeholder cards — shown while a page is fetching so the modal
+   never sits on a lone spinner. One per expected item in the grid. */
+.gallery-skeleton {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  position: relative;
+  overflow: hidden;
+}
+.gallery-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in srgb, var(--text-primary) 7%, transparent) 46%,
+    transparent 72%
+  );
+  animation: galleryShimmer 1.25s ease-in-out infinite;
+}
+@keyframes galleryShimmer { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .gallery-skeleton::after { animation: none; }
+}
 .gallery-retry-btn {
   margin-left: 8px;
   padding: 2px 10px;

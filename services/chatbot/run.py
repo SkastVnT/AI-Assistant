@@ -377,13 +377,9 @@ def _start_character_select_if_needed() -> None:
         print(f">> Character Select SAA already running at {host}:{port}")
         return
 
-    saa_path_str = os.getenv(
-        "CHARACTER_SELECT_PATH",
-        str(app_root / "character_select_stand_alone_app-main"),
-    )
-    saa_path = Path(saa_path_str)
-    if not saa_path.is_absolute():
-        saa_path = (project_root / saa_path).resolve()
+    from services.chatbot.core.project_paths import resolve_character_select_path
+
+    saa_path = resolve_character_select_path()
     if not (saa_path / "package.json").exists():
         print(
             f"[WARN] Character Select SAA not found at {saa_path}. Skipping autostart."

@@ -811,14 +811,14 @@ class ChatBotApp {
                                     <span class="igv2-mode-title">Tạo ảnh (LOCAL)</span>
                                 </div>
                                 <div class="igv2-mode-cards">
-                                    <div class="igv2-mode-card" data-mode="refine" tabindex="0">
+                                    <div class="igv2-mode-card" data-mode="refine" role="button" tabindex="0" aria-pressed="false" aria-label="Tạo tinh chỉnh — đầy đủ pipeline, trả về 1 ảnh tốt nhất">
                                         <span class="igv2-mode-card-icon">✨</span>
                                         <div class="igv2-mode-card-body">
                                             <span class="igv2-mode-card-name">Tạo tinh chỉnh</span>
                                             <span class="igv2-mode-card-hint">Đầy đủ pipeline, trả về 1 ảnh tốt nhất</span>
                                         </div>
                                     </div>
-                                    <div class="igv2-mode-card" data-mode="imageonly" tabindex="0">
+                                    <div class="igv2-mode-card" data-mode="imageonly" role="button" tabindex="0" aria-pressed="false" aria-label="Không tinh chỉnh — bỏ qua tinh chỉnh, trả về nhiều ảnh">
                                         <span class="igv2-mode-card-icon">🎨</span>
                                         <div class="igv2-mode-card-body">
                                             <span class="igv2-mode-card-name">Không tinh chỉnh</span>
@@ -831,7 +831,7 @@ class ChatBotApp {
                                             <button type="button" class="igv2-bc" data-batch="6">6</button>
                                         </div>
                                     </div>
-                                    <div class="igv2-mode-card" data-mode="continuous" tabindex="0">
+                                    <div class="igv2-mode-card" data-mode="continuous" role="button" tabindex="0" aria-pressed="false" aria-label="Tạo liên tục — giữ nguyên prompt, đổi nhân vật mỗi lượt">
                                         <span class="igv2-mode-card-icon">🔁</span>
                                         <div class="igv2-mode-card-body">
                                             <span class="igv2-mode-card-name">Tạo liên tục</span>
@@ -843,6 +843,7 @@ class ChatBotApp {
                                         </div>
                                     </div>
                                 </div>
+                                <div class="igv2-mode-foot">👆 Chọn một chế độ để bắt đầu tạo ảnh</div>
                             </div>
                         </div>
                     </div>
@@ -874,10 +875,13 @@ class ChatBotApp {
                 const finalize = (card) => {
                     if (_resolved) return;
                     _resolved = true;
+                    panelEl.querySelector('.igv2-mode-panel')?.classList.add('is-done');
                     panelEl.querySelectorAll('.igv2-mode-card').forEach(c => {
                         c.style.pointerEvents = 'none';
-                        if (c === card) c.classList.add('igv2-mode-card--selected');
-                        else c.classList.add('igv2-mode-card--dimmed');
+                        const isSel = c === card;
+                        c.classList.toggle('igv2-mode-card--selected', isSel);
+                        c.classList.toggle('igv2-mode-card--dimmed', !isSel);
+                        c.setAttribute('aria-pressed', isSel ? 'true' : 'false');
                     });
                     const mode = card.dataset.mode;
                     if (mode === 'refine') {
@@ -3515,12 +3519,17 @@ document.addEventListener('DOMContentLoaded', () => {
         page: 1,
         totalCount: 0,
         totalPages: 1,
-        cache: new Map(),            // pageNum -> items[] | null (error)
-        loading: new Set(),          // pages currently fetching
+        cache: new Map(),            // cacheKey -> items[] | null (error)
+        loading: new Set(),          // cacheKeys currently fetching
         searchTerm: '',
         sourceFilter: 'all',
         inited: false,
     };
+
+    // Cache/loading key is scoped to the active filter + search so each view
+    // keeps its own paginated cache. Source + search are resolved server-side
+    // now, so a page of results is only valid for the filter that fetched it.
+    const _cacheKey = (page) => `${_gs.sourceFilter}|${_gs.searchTerm}|${page}`;
 
     const _buildGalleryItem = (img) => {
         const rawFilename = img.filename || (img.path || '').split('/').pop() || '';
@@ -3666,31 +3675,42 @@ document.addEventListener('DOMContentLoaded', () => {
     const _galleryFetchPage = async (page) => {
         if (page < 1) return;
         if (_gs.totalPages > 1 && page > _gs.totalPages) return;
-        if (_gs.cache.has(page) || _gs.loading.has(page)) return;
+        const key = _cacheKey(page);
+        if (_gs.cache.has(key) || _gs.loading.has(key)) return;
 
-        _gs.loading.add(page);
+        _gs.loading.add(key);
         try {
-            const resp = await fetch(`/api/gallery/images?page=${page}&per_page=${GALLERY_PER_PAGE}&all=true`);
+            const params = new URLSearchParams({
+                page: page,
+                per_page: GALLERY_PER_PAGE,
+                all: 'true',
+                source: _gs.sourceFilter,
+            });
+            if (_gs.searchTerm) params.set('q', _gs.searchTerm);
+            const resp = await fetch(`/api/gallery/images?${params.toString()}`);
             const data = await resp.json();
             if (!data.success) throw new Error(data.error || 'Load failed');
 
-            _gs.cache.set(page, Array.isArray(data.images) ? data.images : []);
-            _gs.totalCount = data.total || _gs.totalCount;
+            _gs.cache.set(key, Array.isArray(data.images) ? data.images : []);
+            _gs.totalCount = typeof data.total === 'number' ? data.total : _gs.totalCount;
             _gs.totalPages = data.total_pages ||
                 Math.max(1, Math.ceil(_gs.totalCount / GALLERY_PER_PAGE));
 
             const stats = document.getElementById('galleryStats');
-            if (stats && _gs.totalCount) {
+            if (stats) {
                 const src = (data.source || '').includes('mongodb') ? '☁️' : '💾';
-                stats.textContent = `📊 ${_gs.totalCount} ảnh ${src}`;
+                const label = _gs.sourceFilter === 'local' ? ' · 💾 Local'
+                            : _gs.sourceFilter === 'cloud' ? ' · ☁️ Cloud' : '';
+                stats.textContent = `📊 ${_gs.totalCount} ảnh ${src}${label}`;
             }
-            if (page === _gs.page) _galleryRender();
+            // Only re-render if this response is still for the active view.
+            if (key === _cacheKey(_gs.page)) _galleryRender();
         } catch (err) {
             console.error(`[Gallery] page ${page} error:`, err);
-            _gs.cache.set(page, null);          // null = error marker
-            if (page === _gs.page) _galleryRender();
+            _gs.cache.set(key, null);           // null = error marker
+            if (key === _cacheKey(_gs.page)) _galleryRender();
         } finally {
-            _gs.loading.delete(page);
+            _gs.loading.delete(key);
         }
     };
 
@@ -3705,19 +3725,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Apply client-side search + source filter to an items array.
-    const _galleryFiltered = (items) => {
-        let out = items || [];
-        if (_gs.searchTerm) {
-            const t = _gs.searchTerm;
-            out = out.filter(img =>
-                (img.prompt || '').toLowerCase().includes(t) ||
-                (img.filename || '').toLowerCase().includes(t));
-        }
-        if (_gs.sourceFilter === 'cloud') out = out.filter(img => !!(img.cloud_url || img.drive_url));
-        if (_gs.sourceFilter === 'local') out = out.filter(img => !(img.cloud_url || img.drive_url));
-        return out;
-    };
+    // Source + search are resolved server-side, so a cached page is already
+    // the final filtered set — no client-side re-filtering needed.
+    const _galleryFiltered = (items) => items || [];
 
     const _galleryRenderPagination = () => {
         const bar = document.getElementById('galleryPagination');
@@ -3763,8 +3773,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const grid = document.getElementById('galleryGrid');
         if (!grid) return;
 
-        const cached = _gs.cache.get(_gs.page);
-        const isLoading = _gs.loading.has(_gs.page);
+        const key = _cacheKey(_gs.page);
+        const cached = _gs.cache.get(key);
 
         if (cached === null) {
             grid.innerHTML = '';
@@ -3774,16 +3784,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const retryBtn = document.createElement('button');
             retryBtn.className = 'gallery-retry-btn';
             retryBtn.textContent = 'Thử lại';
-            retryBtn.onclick = () => { _gs.cache.delete(_gs.page); _galleryGoTo(_gs.page); };
+            retryBtn.onclick = () => { _gs.cache.delete(key); _galleryGoTo(_gs.page); };
             errEl.appendChild(retryBtn);
             grid.appendChild(errEl);
             _galleryRenderPagination();
             return;
         }
 
-        if (!cached || isLoading) {
-            grid.innerHTML = '<div class="gallery-empty gallery-loading">⏳ Đang tải…</div>';
-            if (!cached) _galleryFetchPage(_gs.page);
+        // Skeleton only while there's NO data for this view yet. We must NOT
+        // gate on isLoading here: _galleryFetchPage() calls _galleryRender()
+        // right after caching results but BEFORE its finally-block clears the
+        // loading flag, so gating on isLoading would re-show the skeleton and
+        // swallow the just-fetched items (the "stuck on Đang tải…" bug).
+        if (!cached) {
+            grid.innerHTML = '';
+            const skel = document.createDocumentFragment();
+            for (let i = 0; i < GALLERY_PER_PAGE; i++) {
+                const sk = document.createElement('div');
+                sk.className = 'gallery-skeleton';
+                skel.appendChild(sk);
+            }
+            grid.appendChild(skel);
+            _galleryFetchPage(_gs.page);
             _galleryRenderPagination();
             return;
         }
@@ -3794,8 +3816,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (items.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'gallery-empty';
-            empty.textContent = _gs.searchTerm ? '🔍 Không tìm thấy ảnh phù hợp trang này'
-                                               : '🖼️ Chưa có ảnh nào';
+            empty.textContent = _gs.searchTerm
+                ? `🔍 Không tìm thấy ảnh cho "${_gs.searchTerm}"`
+                : _gs.sourceFilter === 'local' ? '💾 Chưa có ảnh Local nào'
+                : _gs.sourceFilter === 'cloud' ? '☁️ Chưa có ảnh Cloud nào'
+                : '🖼️ Chưa có ảnh nào';
             grid.appendChild(empty);
         } else {
             const frag = document.createDocumentFragment();
@@ -3819,7 +3844,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 _searchTimer = setTimeout(() => {
                     _gs.searchTerm = searchInput.value.trim().toLowerCase();
                     _gs.page = 1;
-                    _galleryRender();
+                    _gs.totalCount = 0;
+                    _gs.totalPages = 1;
+                    _galleryRender();               // spinner, then fetch fires
+                    _galleryFetchPage(2);           // warm next page for the new view
                 }, 240);
             });
         }
@@ -3830,7 +3858,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.querySelectorAll('.gallery-filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 _gs.page = 1;
-                _galleryRender();
+                _gs.totalCount = 0;
+                _gs.totalPages = 1;
+                _galleryRender();                   // spinner, then fetch fires
+                _galleryFetchPage(2);               // warm next page for the new filter
             });
         });
     };

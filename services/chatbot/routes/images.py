@@ -333,6 +333,10 @@ def get_gallery():
         page = int(request.args.get("page", 1))
         per_page = int(request.args.get("per_page", 8))
         show_all = request.args.get("all", "false").lower() == "true"
+        # Server-side filters (so pagination/counts reflect the filtered set,
+        # instead of the old client-side filter that only saw one 8-item page).
+        source_filter = (request.args.get("source", "all") or "all").lower()
+        query_text = (request.args.get("q", "") or "").strip()
 
         current_session_id = get_session_id()
         skip = (page - 1) * per_page
@@ -346,6 +350,16 @@ def get_gallery():
             drive_url = doc.get("drive_url")
             local_path = doc.get("local_path", "")
             filename = doc.get("filename", "")
+            # Local docs sometimes store an empty local_path; fall back to a
+            # servable route so the thumbnail still resolves (the frontend
+            # hides it via onerror if the file is truly gone).
+            if not local_path and filename:
+                image_id = doc.get("image_id")
+                local_path = (
+                    f"/api/image-gen/images/{image_id}"
+                    if image_id
+                    else f"/storage/images/{filename}"
+                )
             display_url = cloud_url if cloud_url else local_path
             return {
                 "id": doc_id,
@@ -388,15 +402,37 @@ def get_gallery():
             from core.image_storage import images_collection
 
             if images_collection is not None:
-                mongo_query = {}
+                # A doc counts as "cloud" when any of these URL fields is a
+                # non-empty string; "local" is the negation. Mirrors the
+                # display logic in _fmt_mongo (cloud_url = cloud_url or url).
+                cloud_fields = [
+                    {f: {"$exists": True, "$nin": [None, ""]}}
+                    for f in ("cloud_url", "url", "drive_url")
+                ]
+
+                filters = []
                 if not show_all:
-                    mongo_query = {
+                    filters.append({
                         "$or": [
                             {"session_id": current_session_id},
                             {"session_id": {"$exists": False}},
                             {"session_id": ""},
                         ]
-                    }
+                    })
+                if source_filter == "cloud":
+                    filters.append({"$or": cloud_fields})
+                elif source_filter == "local":
+                    filters.append({"$nor": cloud_fields})
+                if query_text:
+                    rgx = {"$regex": re.escape(query_text), "$options": "i"}
+                    filters.append({"$or": [{"prompt": rgx}, {"filename": rgx}]})
+
+                if len(filters) > 1:
+                    mongo_query = {"$and": filters}
+                elif filters:
+                    mongo_query = filters[0]
+                else:
+                    mongo_query = {}
 
                 total = images_collection.count_documents(mongo_query)
                 if total > 0:
@@ -416,6 +452,24 @@ def get_gallery():
                         "page": page,
                         "per_page": per_page,
                         "total_pages": total_pages,
+                        "session_id": current_session_id,
+                        "showing_all": show_all,
+                        "source": "mongodb",
+                    })
+
+                # Mongo is reachable but the current filter matched nothing.
+                # If the collection has any docs at all, a 0 here means "no
+                # matches for this filter" — return empty instead of kicking
+                # off a slow full-disk scan (the whole point when there are
+                # "too many" local files).
+                if images_collection.estimated_document_count() > 0:
+                    return jsonify({
+                        "success": True,
+                        "images": [],
+                        "total": 0,
+                        "page": page,
+                        "per_page": per_page,
+                        "total_pages": 1,
                         "session_id": current_session_id,
                         "showing_all": show_all,
                         "source": "mongodb",
@@ -486,6 +540,20 @@ def get_gallery():
 
         if local_added:
             source = "local"
+
+        # Apply the same source/search filters as the fast path so counts and
+        # pagination stay consistent regardless of which path served the data.
+        if source_filter == "cloud":
+            images = [im for im in images if (im.get("cloud_url") or im.get("drive_url"))]
+        elif source_filter == "local":
+            images = [im for im in images if not (im.get("cloud_url") or im.get("drive_url"))]
+        if query_text:
+            ql = query_text.lower()
+            images = [
+                im for im in images
+                if ql in (im.get("prompt", "") or "").lower()
+                or ql in (im.get("filename", "") or "").lower()
+            ]
 
         images.sort(key=lambda x: x.get("created_at", ""), reverse=True)
         total = len(images)
