@@ -4,7 +4,7 @@
  */
 
 import { ChatManager } from './modules/chat-manager.js?v=20260422';
-import { APIService } from './modules/api-service.js?v=20260630c';
+import { APIService } from './modules/api-service.js?v=20260707a';
 import { UIUtils } from './modules/ui-utils.js?v=20260630a';
 import { MessageRenderer } from './modules/message-renderer.js?v=20260703a';
 import { FileHandler } from './modules/file-handler.js';
@@ -1177,6 +1177,11 @@ class ChatBotApp {
                         conversationId: _conversationId,
                         generatedImages: _recentGenImages,
                         forceImageBridge: _forceImageBridge,
+                        // Character picker selection (deterministic path). When
+                        // empty the backend auto-derives the character from the
+                        // message via NLU. Mirrors anime-pipeline.js / image-gen-v2.js.
+                        characterKey: (window.selectedCharacter && window.selectedCharacter.key)
+                            || document.body.getAttribute('data-character-key') || '',
                         overReviewers: window.overReviewersEnabled === true,
                         ...window.getAdvancedModelParams(),
                     },

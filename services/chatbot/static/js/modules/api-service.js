@@ -127,6 +127,10 @@ export class APIService {
             // this as an image request, so the backend bridge engages reliably
             // regardless of its own keyword router.
             force_image_bridge: params.forceImageBridge || false,
+            // Character picker selection. The bridge (stream.py) reads this and
+            // resolves it via _enrich_with_character (registry + SAA 5149-char DB);
+            // empty → backend auto-derives the character from the message.
+            character_key: params.characterKey || '',
             // Over-Reviewers: generate 3 chart types instead of 1
             over_reviewers: params.overReviewers || false,
         };
