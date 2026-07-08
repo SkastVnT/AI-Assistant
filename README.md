@@ -2,6 +2,8 @@
 
 AI-Assistant is a local-first AI workspace that combines a Python chatbot service, multi-provider LLM routing, RAG, MCP tools, image and video generation, ComfyUI/edit-image integration, and an Electron desktop shell.
 
+**Version:** 0.2.0 — Thinking-with-Images chat bridge (phase 1a) + anime pipeline ControlNet/critique fixes.
+
 ## Capabilities
 
 - Streaming chatbot UI with conversations, memory, web search, OCR, STT, and MCP file tools.
