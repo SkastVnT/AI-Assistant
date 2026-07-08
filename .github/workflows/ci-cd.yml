@@ -15,8 +15,8 @@ jobs:
     name: Code Quality
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
+    - uses: actions/checkout@v7
+    - uses: actions/setup-python@v6
       with:
         python-version: '3.11'
     - run: pip install flake8
@@ -43,8 +43,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
+    - uses: actions/checkout@v7
+    - uses: actions/setup-python@v6
       with:
         python-version: '3.11'
         cache: 'pip'
@@ -80,7 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - uses: actions/setup-node@v4
       with:
         node-version: '20'
@@ -102,8 +102,8 @@ jobs:
       contents: read
       security-events: write
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
+    - uses: actions/checkout@v7
+    - uses: actions/setup-python@v6
       with:
         python-version: '3.11'
     - run: pip install bandit pip-audit
@@ -134,7 +134,7 @@ jobs:
       if: always() && hashFiles('trivy-results.sarif') != ''
       with:
         sarif_file: 'trivy-results.sarif'
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       if: always()
       with:
         name: security-reports-${{ github.sha }}
@@ -147,11 +147,11 @@ jobs:
     needs: [test-chatbot, electron-test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - uses: docker/setup-buildx-action@v3
     - name: Build chatbot
       if: hashFiles('services/chatbot/Dockerfile') != ''
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v7
       with:
         context: .
         file: ./services/chatbot/Dockerfile

@@ -6,7 +6,7 @@
 
 # ============= WEB FRAMEWORK =============
 flask==3.1.3
-flask-cors==6.0.2  # Updated from 4.0.0 - Security fix (5 vulnerabilities patched)
+flask-cors==6.0.5  # Updated from 4.0.0 - Security fix (5 vulnerabilities patched)
 python-dotenv==1.2.2
 websocket-client>=1.6  # ComfyUI /ws live-preview reader (Phase 3, opt-in via ANIME_PIPELINE_WS_PREVIEW)
 
@@ -14,7 +14,7 @@ websocket-client>=1.6  # ComfyUI /ws live-preview reader (Phase 3, opt-in via AN
 fastapi>=0.136.3
 uvicorn[standard]>=0.30.0
 python-multipart>=0.0.9  # Required for UploadFile
-pydantic>=2.0.0
+pydantic>=2.13.4
 werkzeug>=3.0.0
 
 # ============= PERFORMANCE & CACHING (Phase 1) =============
@@ -23,8 +23,8 @@ pymongo>=4.17.0
 dnspython>=2.4.0  # Required for MongoDB SRV connection
 
 # ============= RAG =============
-chromadb>=0.5.0
-sqlalchemy[asyncio]>=2.0.50
+chromadb>=1.5.9
+sqlalchemy[asyncio]>=2.0.51
 alembic>=1.13.0
 pgvector>=0.4.2
 psycopg2-binary>=2.9.12
@@ -35,7 +35,7 @@ beautifulsoup4>=4.15.0
 pymupdf>=1.24.0
 
 # ============= AI APIs =============
-openai>=2.29.0  # Videos API (Sora 2) requires >=2.29
+openai>=2.44.0  # Videos API (Sora 2) requires >=2.29
 google-genai>=1.56.0
 
 # ============= IMAGE PROCESSING =============
@@ -48,15 +48,15 @@ sentence-transformers>=3.0.0
 
 # Scientific computing
 scipy>=1.17.1
-scikit-learn>=1.8.0
+scikit-learn>=1.9.0
 
 # ============= LOCAL MODEL SUPPORT =============
 # PyTorch (CUDA 11.8) - Install from https://pytorch.org/get-started/locally/
 numpy<3.0.0  # Required for PyTorch compatibility
 torch>=2.0.0
-torchaudio>=2.0.0
+torchaudio>=2.11.0
 transformers>=4.37.0
-accelerate>=1.13.0
+accelerate>=1.14.0
 sentencepiece>=0.1.99
 protobuf>=5.29.0
 
@@ -80,5 +80,5 @@ aiofiles>=25.1.0
 google-auth>=2.40.0
 google-auth-httplib2>=0.4.0
 google-auth-oauthlib>=1.4.0
-google-api-python-client>=2.108.0
+google-api-python-client>=2.198.0
 firebase-admin>=7.0.0

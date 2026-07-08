@@ -7,7 +7,7 @@ torchvision
 torchaudio
 numpy>=1.25.0
 einops
-transformers>=5.9.0
+transformers>=5.13.0
 tokenizers>=0.13.3
 sentencepiece
 safetensors>=0.4.2
@@ -26,4 +26,4 @@ av>=14.2.0
 kornia>=0.7.1
 spandrel
 pydantic~=2.0
-pydantic-settings~=2.0
+pydantic-settings~=2.14

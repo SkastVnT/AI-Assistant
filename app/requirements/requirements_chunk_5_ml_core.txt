@@ -1,7 +1,7 @@
 # Chunk 5: ML Core (HuggingFace & Transformers)
 # Install after PyTorch is installed
 
-transformers>=5.0.0rc3,<5.1
+transformers>=5.13.0,<5.14
 accelerate>=0.27.0
 sentencepiece>=0.2.0
 safetensors>=0.4.0
