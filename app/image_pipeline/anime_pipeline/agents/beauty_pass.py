@@ -252,6 +252,7 @@ class BeautyPassAgent:
                 result.validation_error,
             )
             job.error = f"Beauty pass failed: {result.error}"
+            job.error_class = getattr(result, "error_class", None)
             job.status = AnimePipelineStatus.FAILED
             return job
 

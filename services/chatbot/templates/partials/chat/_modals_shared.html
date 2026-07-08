@@ -103,17 +103,30 @@
     </div>
 </div>
 
-<!-- ═══ Image Preview (Discord‑style) ═══ -->
+<!-- ═══ Image Preview Lightbox ═══ -->
+<!-- JS creates this if absent; listed here for progressive enhancement -->
 <div class="image-preview-overlay" id="imagePreviewModal">
-    <div class="image-preview-controls" style="position: fixed; top: 16px; right: 16px; display: flex; gap: 4px; z-index: 310; align-items: center;">
-        <button class="btn btn--secondary btn--sm" onclick="downloadPreviewImage()" title="Download"><i data-lucide="download" class="lucide" style="width:15px;height:15px;"></i></button>
-        <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(-0.2)" title="Zoom out"><i data-lucide="zoom-out" class="lucide" style="width:15px;height:15px;"></i></button>
-        <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(0.2)" title="Zoom in"><i data-lucide="zoom-in" class="lucide" style="width:15px;height:15px;"></i></button>
-        <button class="btn btn--secondary btn--sm" onclick="resetPreviewZoom()" title="Reset zoom"><i data-lucide="rotate-ccw" class="lucide" style="width:15px;height:15px;"></i></button>
-        <button class="btn btn--secondary btn--sm" onclick="closeImagePreview()" title="Close"><i data-lucide="x" class="lucide" style="width:16px;height:16px;"></i></button>
+    <div class="lightbox-controls" id="lightboxControls">
+        <button class="lightbox-btn" onclick="downloadPreviewImage()" title="Tải xuống">
+            <i data-lucide="download" class="lucide" style="width:15px;height:15px;"></i>
+        </button>
+        <button class="lightbox-btn" onclick="zoomPreviewImage(-0.25)" title="Thu nhỏ">
+            <i data-lucide="zoom-out" class="lucide" style="width:15px;height:15px;"></i>
+        </button>
+        <button class="lightbox-btn" onclick="zoomPreviewImage(0.25)" title="Phóng to">
+            <i data-lucide="zoom-in" class="lucide" style="width:15px;height:15px;"></i>
+        </button>
+        <button class="lightbox-btn" onclick="resetPreviewZoom()" title="Đặt lại">
+            <i data-lucide="rotate-ccw" class="lucide" style="width:15px;height:15px;"></i>
+        </button>
+        <button class="lightbox-btn lightbox-btn--close" onclick="closeImagePreview()" title="Đóng">
+            <i data-lucide="x" class="lucide" style="width:16px;height:16px;"></i>
+        </button>
     </div>
-    <img id="imagePreviewContent" src="" alt="Preview" style="max-width: 90%; max-height: 90%;">
-    <div id="imagePreviewInfo" style="position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); color: white; font-size: 13px; z-index: 310;"></div>
+    <div class="lightbox-wrap" id="lightboxImageWrap">
+        <img id="imagePreviewContent" src="" alt="Preview">
+    </div>
+    <div class="lightbox-meta" id="imagePreviewInfo"></div>
 </div>
 
 <!-- ═══ Edit History Modal ═══ -->
@@ -152,6 +165,7 @@
             </div>
         </div>
         <div id="galleryGrid" class="gallery-grid"></div>
+        <div id="galleryPagination" class="gallery-pagination"></div>
     </div>
 </div>
 

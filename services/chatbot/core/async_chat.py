@@ -32,7 +32,7 @@ class AsyncRetryHandler:
         """Execute async function with retry logic"""
         last_error = None
 
-        for attempt in range(self.config.max_retries):
+        for attempt in range(max(1, self.config.max_retries)):
             try:
                 return await coro_func(*args, **kwargs)
             except self.config.retryable_errors as e:
@@ -50,7 +50,9 @@ class AsyncRetryHandler:
             except Exception:
                 raise
 
-        raise last_error
+        if last_error:
+            raise last_error
+        raise RuntimeError("execute_with_retry: exhausted retries with no error recorded")
 
 
 class AsyncOpenAICompatibleChat:

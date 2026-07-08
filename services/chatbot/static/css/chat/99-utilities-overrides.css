@@ -12,7 +12,7 @@
   }
   .input-area__send.ready {
     animation: none;
-    box-shadow: 0 0 5px rgba(124, 108, 240, 0.3);
+    box-shadow: 0 2px 12px rgba(167, 139, 250, 0.28);
   }
   .loading-dot {
     animation: none;
@@ -253,30 +253,56 @@
   margin-bottom: 6px;
 }
 
-/* ── User message bubble ──────────────────────────────────── */
+/* ── User message bubble — graphite surface, muted violet edge ── */
 .message.user .message-content {
-  background: linear-gradient(135deg, #7c6cf0 0%, #6366f1 50%, #8b5cf6 100%);
-  color: #fff;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
   padding: 12px 16px;
+  border: 1px solid var(--accent-soft);
   border-radius: 18px 18px 4px 18px;
-  box-shadow: 0 4px 15px rgba(124, 108, 240, 0.25);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.32);
 }
 
-.message.user .message-content a { color: #c4b5fd; }
+.message.user .message-content a { color: var(--accent-text); }
 
 .message.user .message-content code:not(pre code) {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+/* ── Conversation rhythm: user right-aligned, assistant left ──── */
+.message.user { flex-direction: row-reverse; }
+.message.user .message__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.message.user .message-content { max-width: 64%; }
+
+/* Assistant: nested card surface, readable markdown, hairline border */
+.message.assistant .message-content {
+  max-width: 80%;
+  background: rgba(255, 255, 255, 0.016);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+}
+@media (max-width: 768px) {
+  .message.user .message-content { max-width: 88%; }
+  .message.assistant .message-content {
+    max-width: 100%;
+    padding: 12px 14px;
+  }
 }
 
 /* ── Code blocks ──────────────────────────────────────────── */
 .message-text pre {
-  background: #1a1a2e;
-  border-radius: 12px;
+  background: #0c1018;
+  border-radius: var(--radius-md);
   margin: 14px 0;
   padding: 0;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-secondary);
   position: relative;
 }
 

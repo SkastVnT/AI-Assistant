@@ -190,12 +190,12 @@
 
 /* Code blocks */
 .message__content pre {
-  background: #1a1a2e;
-  border-radius: 12px;
+  background: #0c1018;
+  border-radius: var(--radius-md);
   margin: 12px 0;
   padding: 0;
   overflow: visible;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-secondary);
   position: relative;
 }
 
@@ -284,16 +284,17 @@ body.light-mode .message__content pre {
 /* Message actions */
 /* ── Message Bubble Styles ── */
 .message.user .message__content {
-  background: linear-gradient(135deg, #7c6cf0 0%, #6366f1 50%, #8b5cf6 100%);
-  color: #fff;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
   padding: 12px 16px;
+  border: 1px solid var(--accent-soft);
   border-radius: 18px 18px 4px 18px;
-  box-shadow: 0 4px 15px rgba(124, 108, 240, 0.25);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.32);
 }
-.message.user .message__content a { color: #c4b5fd; }
+.message.user .message__content a { color: var(--accent-text); }
 .message.user .message__content code:not(pre code) {
-  background: rgba(255,255,255,0.15);
-  color: #fff;
+  background: rgba(255,255,255,0.08);
+  color: var(--text-primary);
 }
 
 .message.assistant .message__content {

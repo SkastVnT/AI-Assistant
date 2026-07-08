@@ -87,6 +87,24 @@ _PIPELINE_WAITING_COUNT = 0
 # permit. Override via ANIME_PIPELINE_QUEUE_TIMEOUT_SEC env var.
 _PIPELINE_QUEUE_TIMEOUT_SEC = float(os.getenv("ANIME_PIPELINE_QUEUE_TIMEOUT_SEC", "60"))
 
+# Maps the 3-class error taxonomy (from comfy_client.ComfyJobResult.error_class,
+# threaded through the orchestrator events) to the UI `recoverable` flag. A
+# "retryable" transient failure keeps the bubble in a soft-warning state; a
+# "resource"/"config_or_workflow" failure is terminal (hard error card). Frames
+# without a class fall back to the per-event default (backward compatible).
+_RECOVERABLE_BY_CLASS = {
+    "retryable": True,
+    "resource": False,
+    "config_or_workflow": False,
+}
+
+
+def _derive_recoverable(error_class: str | None, default: bool) -> bool:
+    """Derive the `recoverable` UI flag from an error_class, else the default."""
+    if error_class in _RECOVERABLE_BY_CLASS:
+        return _RECOVERABLE_BY_CLASS[error_class]
+    return default
+
 
 def pipeline_enabled() -> bool:
     """Return True when the anime pipeline feature flag is on.
@@ -692,6 +710,7 @@ def stream_pipeline(req: PipelineRequest) -> Generator[str, None, None]:
                 "stage": "init",
                 "error": f"Pipeline init failed: {_orch_exc}",
                 "recoverable": False,
+                "error_class": "config_or_workflow",
             },
         )
         yield _sse_line("ap_done", {"job_id": job.job_id})
@@ -745,7 +764,11 @@ def stream_pipeline(req: PipelineRequest) -> Generator[str, None, None]:
                         f"Pipeline đang bận — không xin được GPU sau "
                         f"{int(_PIPELINE_QUEUE_TIMEOUT_SEC)}s. Hãy thử lại sau."
                     ),
+                    # Terminal frame, but the failure is transient — the class
+                    # gives the UI a "try again" hint without flipping recoverable
+                    # (a recoverable terminal frame would strand the bubble).
                     "recoverable": False,
+                    "error_class": "retryable",
                 },
             )
             yield _sse_line("ap_done", {"job_id": job.job_id})
@@ -1009,21 +1032,30 @@ def _run_pipeline_inner(
                 # Emitted every ~1.5 s while agent.execute() blocks on
                 # ComfyUI sampling. Lets the frontend show elapsed time
                 # ("Composition Pass · 12.3s") instead of freezing.
-                yield _sse_line(
-                    "ap_stage_heartbeat",
-                    {
-                        "stage": edata.get("stage", ""),
-                        "elapsed_s": edata.get("elapsed_s", 0.0),
-                    },
-                )
+                # Phase 3 (opt-in): may also carry a live progress % and a
+                # denoise preview frame from the ComfyUI /ws socket.
+                _hb_out = {
+                    "stage": edata.get("stage", ""),
+                    "elapsed_s": edata.get("elapsed_s", 0.0),
+                }
+                if "progress_pct" in edata:
+                    _hb_out["progress_pct"] = edata["progress_pct"]
+                if edata.get("preview_b64"):
+                    _hb_out["preview_b64"] = edata["preview_b64"]
+                    _hb_out["preview_fmt"] = edata.get("preview_fmt", "jpeg")
+                yield _sse_line("ap_stage_heartbeat", _hb_out)
 
             elif etype == "anime_pipeline_stage_error":
+                _ec = edata.get("error_class")
                 yield _sse_line(
                     "ap_error",
                     {
                         "stage": edata.get("stage", ""),
                         "error": edata.get("error", "Unknown error"),
-                        "recoverable": True,
+                        # A classified stage error (resource/config) is terminal;
+                        # an unclassified one keeps the legacy soft-warning path.
+                        "recoverable": _derive_recoverable(_ec, True),
+                        "error_class": _ec,
                     },
                 )
 
@@ -1034,6 +1066,7 @@ def _run_pipeline_inner(
                         "error": edata.get("error", "Pipeline failed"),
                         "recoverable": False,
                         "has_fallback": edata.get("has_fallback_image", False),
+                        "error_class": edata.get("error_class"),
                     },
                 )
 

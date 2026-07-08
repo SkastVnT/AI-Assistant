@@ -141,6 +141,24 @@ class ImageStorage:
                 meta = json.loads(meta_path.read_text(encoding="utf-8"))
                 if conversation_id and meta.get("conversation_id") != conversation_id:
                     continue
+
+                # Resolve display_url: local -> cloud (ImgBB) -> drive
+                image_id   = meta.get("image_id", "")
+                local_path = meta.get("local_path", "")
+                cloud_url  = meta.get("cloud_url", "")
+                drive_url  = meta.get("drive_url", "")
+                local_serve = f"/api/image-gen/images/{image_id}" if image_id else ""
+
+                local_ok = bool(local_path) and Path(local_path).exists()
+                if local_ok:
+                    meta["display_url"] = local_serve
+                elif cloud_url:
+                    meta["display_url"] = cloud_url
+                elif drive_url:
+                    meta["display_url"] = drive_url
+                else:
+                    meta["display_url"] = local_serve
+
                 all_meta.append(meta)
             except Exception:
                 continue

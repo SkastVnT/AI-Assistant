@@ -15,15 +15,29 @@
  *   ap_done         — stream complete sentinel
  */
 
+// Lucide-style inline stroke icons (24x24) — replaces the emoji set so the
+// stepper matches the rest of the app's iconography and never falls back to
+// the OS emoji font.
+const _apSvg = (p) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    + 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>';
+
 const STAGES = [
-    { key: 'vision_analysis',  icon: '👁️',  label: 'Vision Analysis' },
-    { key: 'layer_planning',   icon: '📋',  label: 'Layer Planning' },
-    { key: 'composition_pass', icon: '🎨',  label: 'Composition' },
-    { key: 'structure_lock',   icon: '🔒',  label: 'Structure Lock' },
-    { key: 'beauty_pass',      icon: '✨',  label: 'Beauty Pass' },
-    { key: 'detection_inpaint',icon: '🎯',  label: 'YOLO Detail Fix' },
-    { key: 'critique',         icon: '🔍',  label: 'Critique' },
-    { key: 'upscale',          icon: '📐',  label: 'Upscale' },
+    { key: 'vision_analysis',  icon: '👁️',  label: 'Vision Analysis', vi: 'Phân tích ảnh',
+      svg: _apSvg('<circle cx="12" cy="12" r="3"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/>') },
+    { key: 'layer_planning',   icon: '📋',  label: 'Layer Planning', vi: 'Kế hoạch lớp',
+      svg: _apSvg('<path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/>') },
+    { key: 'composition_pass', icon: '🎨',  label: 'Composition', vi: 'Dựng bố cục',
+      svg: _apSvg('<path d="M9.06 11.9 3 18v3h3l6.1-6.06"/><path d="M14 6l4 4"/><path d="M17.5 3.5a2.12 2.12 0 0 1 3 3L11 16l-4 1 1-4Z"/>') },
+    { key: 'structure_lock',   icon: '🔒',  label: 'Structure Lock', vi: 'Khoá cấu trúc',
+      svg: _apSvg('<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>') },
+    { key: 'beauty_pass',      icon: '✨',  label: 'Beauty Pass', vi: 'Tinh chỉnh đẹp',
+      svg: _apSvg('<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/><circle cx="12" cy="12" r="2.4"/>') },
+    { key: 'detection_inpaint',icon: '🎯',  label: 'YOLO Detail Fix', vi: 'Sửa chi tiết',
+      svg: _apSvg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>') },
+    { key: 'critique',         icon: '🔍',  label: 'Critique', vi: 'Chấm điểm',
+      svg: _apSvg('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>') },
+    { key: 'upscale',          icon: '📐',  label: 'Upscale', vi: 'Phóng nét',
+      svg: _apSvg('<path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3"/>') },
 ];
 
 // Off-DOM full-resolution image cache for layer cards.
@@ -56,6 +70,15 @@ export class AnimePipeline {
         this._continuousMode = false;
         /** UID of the generation currently being streamed. */
         this._runningUid = null;
+
+        /**
+         * Per-uid run state for bubbles driven by the CHAT SSE stream
+         * (the "Thinking with Images" bridge), keyed by uid:
+         *   { bubble, prompt, startTime, chatContainer, timerInterval, savedImage }
+         * Separate from _runningUid so a chat-bridged image turn never
+         * collides with this module's own /api/anime-pipeline/stream runs.
+         */
+        this._chatBridgeRuns = new Map();
 
         // F5 / tab-close orphan-job cleanup. Without this the backend
         // pipeline keeps running (and eats GPU + the 60s queue slot)
@@ -133,17 +156,7 @@ export class AnimePipeline {
             }
             return;
         }
-        // Fallback: open modal
-        const el = document.getElementById('animePipelineModal');
-        if (!el) return;
-        el.classList.add('active', 'open');
-        this._resetUI();
-        const promptEl = document.getElementById('apPrompt');
-        if (promptEl && prompt) promptEl.value = prompt;
-        const statusEl = document.getElementById('apStatus');
-        if (statusEl) statusEl.textContent = '🎨 Đang khởi động pipeline…';
-        this._showSection('progress');
-        setTimeout(() => this.generate(), 30);
+        // #chatContainer is always present — no fallback needed.
     }
 
     /**
@@ -386,11 +399,15 @@ export class AnimePipeline {
      *   └─────────────────────────────────────────┘
      */
     _createInlineBubble(uid, prompt) {
-        const stagesHtml = STAGES.map(s => `
-            <div class="ap-stage-item pending" data-ap-stage="${s.key}" id="ap-stage-${uid}-${s.key}">
-                <span class="ap-stage-dot"></span>
-                <span class="ap-stage-icon">${s.icon}</span>
-                <span class="ap-stage-label">${s.label}</span>
+        // v2 stepper: connected nodes with Lucide-style icons. Keeps the same
+        // ids/classes the event handlers query (`ap-stage-${uid}-${key}`,
+        // `.ap-stage-item`, `.ap-stage-label`, `.ap-stage-time`) so every
+        // existing state toggle keeps working. `--i` drives the staggered
+        // entrance; the critique node carries a loop badge for refine rounds.
+        const stagesHtml = STAGES.map((s, i) => `
+            <div class="ap-stage-item pending" data-ap-stage="${s.key}" id="ap-stage-${uid}-${s.key}" style="--i:${i}">
+                <span class="ap-stage-node">${s.svg}</span>${s.key === 'critique' ? '<span class="ap-loop-badge" style="display:none;"></span>' : ''}
+                <span class="ap-stage-label">${s.vi || s.label}</span>
                 <span class="ap-stage-time"></span>
             </div>`).join('');
 
@@ -398,27 +415,49 @@ export class AnimePipeline {
         div.className = 'message assistant ap-inline-msg';
         div.id = `ap-inline-${uid}`;
         div.setAttribute('data-ap-prompt', prompt);
+        // The aperture spinner ALSO carries the legacy `thinking-pill__dots`
+        // class so every existing `header.querySelector('.thinking-pill__dots')
+        // ?.remove()` finalize path cleans it up without changes.
         div.innerHTML = `
             <div class="message__avatar message__avatar--agent">
                 <img src="/static/icons/app-icon.png" class="avatar-img" alt="" width="36" height="36" draggable="false">
             </div>
             <div class="message__body">
                 <div class="message-content">
-                    <div class="ap-pipeline-card" data-open>
+                    <div class="ap-pipeline-card ap-v2" data-open>
                         <div class="ap-pipeline-header">
-                            <div class="thinking-pill__dots">
-                                <span></span><span></span><span></span>
+                            <span class="ap-aperture thinking-pill__dots" aria-hidden="true">
+                                <span class="ap-aperture__ring"></span>
+                                <span class="ap-aperture__arc"></span>
+                            </span>
+                            <div class="ap-head-titles">
+                                <span class="ap-inline-label" id="ap-headline-${uid}">Khởi động…</span>
+                                <span class="ap-head-sub" id="ap-sub-${uid}">Anime Pipeline</span>
                             </div>
-                            <span class="ap-inline-label" id="ap-headline-${uid}">Khởi động…</span>
-                            <span class="ap-inline-timer" id="ap-timer-${uid}">0.0s</span>
+                            <div class="ap-head-metric">
+                                <span class="ap-inline-pct" id="ap-pct-${uid}">0%</span>
+                                <span class="ap-inline-timer" id="ap-timer-${uid}">0.0s</span>
+                            </div>
                             <button type="button"
                                     class="ap-inline-stop-btn"
                                     id="ap-stop-${uid}"
                                     title="Ngưng pipeline và xuất ảnh hiện tại">⏹ Ngưng &amp; xuất ảnh</button>
                         </div>
+                        <div class="ap-progress" aria-hidden="true"><div class="ap-progress__fill" id="ap-fill-${uid}"></div></div>
                         <div class="ap-pipeline-body">
                             <div class="ap-pipeline-status ap-inline-current" id="ap-current-${uid}">Khởi động…</div>
-                            <div class="ap-inline-stages" id="ap-stages-${uid}">${stagesHtml}</div>
+                            <div class="ap-inline-stages ap-stepper" id="ap-stages-${uid}">${stagesHtml}</div>
+                            <div class="ap-refine" id="ap-refine-${uid}" hidden>
+                                <div class="ap-refine__top">
+                                    <span class="ap-refine__pill" id="ap-refine-pill-${uid}">↺ Vòng 1</span>
+                                    <span class="ap-refine__msg" id="ap-refine-msg-${uid}"></span>
+                                </div>
+                                <div class="ap-refine__gauge" title="Điểm critique so với mục tiêu 8.0">
+                                    <div class="ap-refine__fill" id="ap-refine-fill-${uid}"></div>
+                                    <span class="ap-refine__target"></span>
+                                </div>
+                                <div class="ap-refine__trend" id="ap-refine-trend-${uid}"></div>
+                            </div>
                         </div>
                     </div>
                     <div class="ap-layers-gallery" id="ap-layers-${uid}" style="display:none; margin-top:10px;"></div>
@@ -502,6 +541,103 @@ export class AnimePipeline {
         return div;
     }
 
+    // ── Thinking-with-Images bridge (chat-stream driven) ─────────────────
+    //
+    // These two public methods let the CHAT SSE stream (api-service.js)
+    // drive the inline bubble instead of this module's own
+    // /api/anime-pipeline/stream consumer. The backend bridge in
+    // routes/stream.py forwards the pipeline's ap_* frames verbatim into
+    // /chat/stream; send-message-helpers.js calls beginInlineFromChat()
+    // once, then injectSSEEvent() for every ap_* frame. No new renderer is
+    // built — we reuse _createInlineBubble + _handleInlineEvent wholesale.
+
+    /**
+     * Create + mount an inline image bubble that will be fed by the chat
+     * SSE stream. Returns the bubble element (so the caller can reposition
+     * it, e.g. above the caption message div). Does NOT fetch anything.
+     *
+     * @param {string} uid   stable id for this chat-bridged image turn
+     * @param {string} prompt original user prompt (for result metadata)
+     * @param {object} opts   { chatContainer?, parentEl? }
+     *                        parentEl reserved for Phase 1b (nest under a
+     *                        thinking-section); defaults to chatContainer.
+     */
+    beginInlineFromChat(uid, prompt, opts = {}) {
+        const chatContainer = opts.chatContainer
+            || document.getElementById('chatContainer')
+            || document.querySelector('.chat-container');
+        if (!chatContainer) return null;
+        const parentEl = opts.parentEl || chatContainer;
+
+        const bubble = this._createInlineBubble(uid, prompt || '');
+        parentEl.appendChild(bubble);
+        try { chatContainer.scrollTop = chatContainer.scrollHeight; } catch (_) { /* noop */ }
+
+        const startTime = Date.now();
+        const timerEl = document.getElementById(`ap-timer-${uid}`);
+        const timerInterval = setInterval(() => {
+            if (!timerEl || !timerEl.isConnected) { clearInterval(timerInterval); return; }
+            timerEl.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+        }, 200);
+
+        this._chatBridgeRuns.set(uid, {
+            bubble,
+            prompt: prompt || '',
+            startTime,
+            chatContainer,
+            timerInterval,
+            savedImage: false,
+        });
+        return bubble;
+    }
+
+    /**
+     * Push a single pre-parsed SSE event (forwarded from the chat stream)
+     * into the inline bubble renderer. Drives the full _handleInlineEvent
+     * dispatch so a chat-bridged bubble behaves exactly like a native run
+     * (ap_status job_id capture, ap_queued, ap_preview, ap_refine,
+     * ap_result, ap_error, …).
+     *
+     * Duplicate-save guard: only the FIRST ap_result registers the image
+     * asset (addGeneratedImage) / finalizes; the chat `complete` event also
+     * persists the turn, so a re-entrant ap_result must not double-add.
+     */
+    injectSSEEvent(uid, name, data) {
+        const run = this._chatBridgeRuns.get(uid);
+        if (!run) { console.warn('[bridge] injectSSEEvent: no run for uid', uid, name); return; }
+        const bubble = document.getElementById(`ap-inline-${uid}`) || run.bubble;
+        if (!bubble) { console.warn('[bridge] injectSSEEvent: no bubble for uid', uid); return; }
+        if (name === 'ap_result') {
+            console.log('[bridge] ap_result: connected=', bubble.isConnected,
+                'local_url=', !!(data && data.local_url),
+                'image_b64=', !!(data && data.image_b64),
+                'images=', Array.isArray(data && data.images) ? data.images.length : 0);
+        }
+
+        if (name === 'ap_result') {
+            if (run.savedImage) return;  // guard: finalize/persist once
+            run.savedImage = true;
+        }
+
+        try {
+            this._handleInlineEvent(
+                name, data, bubble, uid, run.prompt, run.startTime, run.chatContainer,
+            );
+        } catch (e) {
+            // eslint-disable-next-line no-console
+            console.error('[anime-pipeline] injectSSEEvent failed:', e?.message || e);
+        }
+
+        // Terminal pipeline events: stop the timer; release run state on
+        // ap_done / ap_error (ap_done always trails ap_result from the bridge).
+        if (name === 'ap_result' || name === 'ap_error' || name === 'ap_done') {
+            clearInterval(run.timerInterval);
+        }
+        if (name === 'ap_done' || name === 'ap_error') {
+            this._chatBridgeRuns.delete(uid);
+        }
+    }
+
     /** Forcefully finalize the bubble as "stopped + exported best layer"
      *  when the backend stops responding after Stop is pressed. Uses the
      *  most recent layer thumbnail (gallery card) as the export.
@@ -574,6 +710,47 @@ export class AnimePipeline {
      *    2. on stage_done  — { local_url: <new image for this stage> }
      *  The same slotId is reused so the card refreshes in place.
      */
+    /**
+     * Phase 3 (opt-in): update the single live denoise-preview frame for a run.
+     * Reuses one <img> slot at the top of the gallery, swapping its data URL as
+     * ComfyUI streams preview JPEGs over /ws. Cheap DOM update (src only).
+     */
+    _inlineSetLivePreview(uid, fmt, b64) {
+        const gallery = document.getElementById(`ap-layers-${uid}`);
+        if (!gallery || !b64) return;
+        gallery.style.display = '';
+        const src = `data:image/${fmt === 'png' ? 'png' : 'jpeg'};base64,${b64}`;
+        let card = document.getElementById(`ap-live-${uid}`);
+        if (!card) {
+            card = document.createElement('div');
+            card.id = `ap-live-${uid}`;
+            card.className = 'ap-live-preview';
+            card.style.cssText = (
+                'margin-bottom:8px; border:1px solid var(--accent-soft,var(--border)); ' +
+                'border-radius:10px; overflow:hidden; position:relative;'
+            );
+            card.innerHTML = `
+                <img class="ap-live-img" alt="Live preview"
+                     style="width:100%; max-height:320px; object-fit:contain; display:block; background:var(--bg-secondary,var(--bg));">
+                <span class="ap-live-badge"
+                      style="position:absolute; top:6px; left:6px; font-size:10px; font-weight:600;
+                             padding:2px 7px; border-radius:999px; background:rgba(0,0,0,.55); color:#fff;">
+                    ● LIVE</span>`;
+            gallery.insertBefore(card, gallery.firstChild);
+        }
+        const img = card.querySelector('.ap-live-img');
+        if (img) img.src = src;
+    }
+
+    /**
+     * Remove the live-preview slot once the final image is in (called from the
+     * result handler); the finished layers/result replace it.
+     */
+    _inlineClearLivePreview(uid) {
+        const card = document.getElementById(`ap-live-${uid}`);
+        if (card) card.remove();
+    }
+
     _inlineAddLayerPreview(uid, data) {
         const gallery = document.getElementById(`ap-layers-${uid}`);
         if (!gallery) return;
@@ -869,13 +1046,37 @@ export class AnimePipeline {
                 this._inlineSetCurrent(uid, data.label || data.stage);
                 // Track stage label so heartbeats can append elapsed time.
                 bubble.dataset.apCurrentStageLabel = data.label || data.stage;
+                {
+                    const si = this._stageIdx(data.stage);
+                    if (si >= 0) {
+                        this._setInlineProgress(uid, si / STAGES.length);
+                        if (!bubble.dataset.apRefineRound) {
+                            this._setInlineSub(uid, `Bước ${si + 1} / ${STAGES.length}`);
+                        }
+                    }
+                }
                 break;
             }
             case 'ap_stage_heartbeat': {
                 // Emitted every ~1.5 s while the backend blocks on ComfyUI
                 // sampling. Shows elapsed time so the pill feels alive.
+                // Phase 3 (opt-in): may also carry a live progress % and a
+                // denoise preview frame from the ComfyUI /ws socket.
                 const stageLabel = bubble.dataset.apCurrentStageLabel || data.stage || '';
-                this._inlineSetCurrent(uid, `${stageLabel} · ${data.elapsed_s}s`);
+                const pctText = (typeof data.progress_pct === 'number')
+                    ? ` · ${Math.round(data.progress_pct)}%` : '';
+                this._inlineSetCurrent(uid, `${stageLabel} · ${data.elapsed_s}s${pctText}`);
+                if (typeof data.progress_pct === 'number' && data.stage) {
+                    const si = this._stageIdx(data.stage);
+                    if (si >= 0) {
+                        this._setInlineProgress(
+                            uid, (si + Math.min(100, data.progress_pct) / 100) / STAGES.length,
+                        );
+                    }
+                }
+                if (data.preview_b64) {
+                    this._inlineSetLivePreview(uid, data.preview_fmt || 'jpeg', data.preview_b64);
+                }
                 // If ap_stage_start was missed (e.g. SSE buffering), the cell
                 // may still be pending. Promote it to active so the UI reflects
                 // the stage that's actually running.
@@ -892,6 +1093,10 @@ export class AnimePipeline {
             }
             case 'ap_stage_done': {
                 this._inlineSetStage(uid, data.stage, 'done');
+                {
+                    const si = this._stageIdx(data.stage);
+                    if (si >= 0) this._setInlineProgress(uid, (si + 1) / STAGES.length);
+                }
                 if (data.latency_ms) {
                     const row = document.getElementById(`ap-stage-${uid}-${data.stage}`);
                     if (row) row.querySelector('.ap-stage-time').textContent =
@@ -907,6 +1112,7 @@ export class AnimePipeline {
                 const row = document.getElementById(`ap-stage-${uid}-critique`);
                 if (!row) break;
                 const passed = data.passed;
+                const scoreNum = Number(data.score) || 0;
                 const scoreText = `${data.score}/10 ${passed ? '\u2705' : '\u21a9\ufe0f'}`;
                 let badge = row.querySelector('.ap-score-badge');
                 if (!badge) {
@@ -920,28 +1126,80 @@ export class AnimePipeline {
                 badge.className = `ap-score-badge ${passed ? 'ap-score-pass' : 'ap-score-fail'}`;
                 const issues = data.issues || [];
                 if (issues.length) badge.title = issues.slice(0, 3).join(' \u00b7 ');
+                // v2 loop viz: tint the critique node (ap-pass/ap-fail survive
+                // the plain pending/active/done toggles in _inlineSetStage)
+                // and feed the refine panel gauge + convergence trend.
+                row.classList.remove('ap-pass', 'ap-fail');
+                row.classList.add(passed ? 'ap-pass' : 'ap-fail');
+                const rp = document.getElementById(`ap-refine-${uid}`);
+                if (rp && (bubble.dataset.apRefineRound || !passed || !rp.hidden)) {
+                    rp.hidden = false;
+                    rp.classList.toggle('ap-refine--pass', !!passed);
+                    const rf = document.getElementById(`ap-refine-fill-${uid}`);
+                    if (rf) rf.style.width = Math.min(100, scoreNum * 10) + '%';
+                    const trend = document.getElementById(`ap-refine-trend-${uid}`);
+                    if (trend) {
+                        if (trend.childElementCount) {
+                            const ar = document.createElement('span');
+                            ar.className = 'ap-refine__arrow';
+                            ar.textContent = '\u2192';
+                            trend.appendChild(ar);
+                        }
+                        const chip = document.createElement('span');
+                        chip.className = 'ap-refine__sc' + (passed ? ' pass' : '');
+                        chip.textContent = `${data.score}` + (passed ? ' \u2713' : '');
+                        trend.appendChild(chip);
+                    }
+                    if (passed) {
+                        const pill = document.getElementById(`ap-refine-pill-${uid}`);
+                        if (pill) pill.textContent = '\u2713 \u0110\u00e3 \u0111\u1ea1t';
+                        const msg = document.getElementById(`ap-refine-msg-${uid}`);
+                        if (msg) msg.textContent = `\u0110\u1ea1t ${data.score}/10 \u2014 gi\u1eef \u1ea3nh t\u1ed1t nh\u1ea5t.`;
+                        delete bubble.dataset.apRefineRound;
+                    }
+                }
                 break;
             }
             case 'ap_refine': {
                 const round = data.round || 1;
+                const maxRounds = data.max_rounds || 4;
+                bubble.dataset.apRefineRound = String(round);
                 // Reset beauty_pass row for the new round
                 const bpRow = document.getElementById(`ap-stage-${uid}-beauty_pass`);
                 if (bpRow) {
                     bpRow.classList.remove('done', 'error', 'active');
                     bpRow.classList.add('pending');
                     const lbl = bpRow.querySelector('.ap-stage-label');
-                    if (lbl) lbl.textContent = `Beauty Pass (Round ${round + 1})`;
+                    if (lbl) lbl.textContent = `Tinh ch\u1ec9nh (v\u00f2ng ${round + 1})`;
                     const tEl = bpRow.querySelector('.ap-stage-time');
                     if (tEl) tEl.textContent = '';
                 }
-                // Reset critique row
+                // Reset critique row (keep ap-fail tint \u2014 it explains WHY we loop)
                 const crRow = document.getElementById(`ap-stage-${uid}-critique`);
                 if (crRow) {
                     crRow.classList.remove('done', 'error', 'active');
                     crRow.classList.add('pending');
                     crRow.querySelector('.ap-score-badge')?.remove();
+                    const lb = crRow.querySelector('.ap-loop-badge');
+                    if (lb) { lb.textContent = String(round); lb.style.display = ''; }
                 }
-                this._inlineSetCurrent(uid, `\uD83D\uDD04 Refinement round ${round + 1}/${(data.max_rounds || 1) + 1}\u2026`);
+                this._inlineSetCurrent(uid, `\u21ba V\u00f2ng tinh ch\u1ec9nh ${round}/${maxRounds}\u2026`);
+                this._setInlineSub(uid, `V\u00f2ng tinh ch\u1ec9nh ${round} / ${maxRounds}`);
+                // Refine panel: amber "looping" state with the previous score.
+                const rp = document.getElementById(`ap-refine-${uid}`);
+                if (rp) {
+                    rp.hidden = false;
+                    rp.classList.remove('ap-refine--pass');
+                    const pill = document.getElementById(`ap-refine-pill-${uid}`);
+                    if (pill) pill.textContent = `\u21ba V\u00f2ng ${round} / ${maxRounds}`;
+                    const msg = document.getElementById(`ap-refine-msg-${uid}`);
+                    if (msg) {
+                        const prev = Number(data.previous_score) || 0;
+                        msg.textContent = prev > 0
+                            ? `\u0110i\u1ec3m ${prev.toFixed(1)}/10 ch\u01b0a \u0111\u1ea1t ch\u1ec9 ti\u00eau \u2014 tinh ch\u1ec9nh + d\u00f2 chi ti\u1ebft l\u1ea1i\u2026`
+                            : 'Ch\u01b0a \u0111\u1ea1t ch\u1ec9 ti\u00eau \u2014 tinh ch\u1ec9nh + d\u00f2 chi ti\u1ebft l\u1ea1i\u2026';
+                    }
+                }
                 break;
             }
             case 'ap_refine_reasoning': {
@@ -959,7 +1217,7 @@ export class AnimePipeline {
                     bpR.classList.remove('done', 'error', 'active');
                     bpR.classList.add('pending');
                     const lbl = bpR.querySelector('.ap-stage-label');
-                    if (lbl) lbl.textContent = `Beauty Pass (Restart #${data.restart_num || 1})`;
+                    if (lbl) lbl.textContent = `Tinh chỉnh (restart #${data.restart_num || 1})`;
                     const tEl = bpR.querySelector('.ap-stage-time');
                     if (tEl) tEl.textContent = '';
                 }
@@ -970,6 +1228,26 @@ export class AnimePipeline {
                     crR.querySelector('.ap-score-badge')?.remove();
                 }
                 this._inlineSetCurrent(uid, `🔁 Full restart #${data.restart_num || 1}: ${data.reason || 'score stagnant'}`);
+                // Refine panel: mark the restart in the trend so the user sees
+                // the "stagnant → new seed" decision, not just a reset.
+                {
+                    const trend = document.getElementById(`ap-refine-trend-${uid}`);
+                    if (trend && !trend.hidden) {
+                        const chip = document.createElement('span');
+                        chip.className = 'ap-refine__sc';
+                        chip.textContent = '↻ seed mới';
+                        chip.title = data.reason || 'score stagnant — full restart';
+                        if (trend.childElementCount) {
+                            const ar = document.createElement('span');
+                            ar.className = 'ap-refine__arrow';
+                            ar.textContent = '→';
+                            trend.appendChild(ar);
+                        }
+                        trend.appendChild(chip);
+                    }
+                    const msg = document.getElementById(`ap-refine-msg-${uid}`);
+                    if (msg) msg.textContent = 'Điểm đình trệ — đổi seed, thử lại từ đầu…';
+                }
                 break;
             }
             case 'ap_vision_status': {
@@ -1064,16 +1342,23 @@ export class AnimePipeline {
             case 'ap_result':
                 this._inlineShowResult(bubble, uid, data, prompt, startTime, chatContainer);
                 break;
-            case 'ap_error':
+            case 'ap_error': {
+                // 3-class UX hint (retryable / resource / config_or_workflow).
+                const _hintByClass = {
+                    resource: ' · GPU hết VRAM — thử giảm profile VRAM hoặc đóng bớt ứng dụng dùng GPU rồi chạy lại.',
+                    retryable: ' · Lỗi tạm thời (kết nối ComfyUI) — hãy thử lại sau ít phút.',
+                };
+                const _hint = _hintByClass[data.error_class] || '';
                 if (!data.recoverable) {
-                    this._setInlineError(bubble, uid, data.error || 'Pipeline thất bại');
+                    this._setInlineError(bubble, uid, (data.error || 'Pipeline thất bại') + _hint);
                 } else {
                     if (data.stage) {
                         this._inlineSetStage(uid, data.stage, 'error');
                     }
-                    this._inlineSetCurrent(uid, `⚠️ ${data.stage || ''}: ${data.error}`);
+                    this._inlineSetCurrent(uid, `⚠️ ${data.stage || ''}: ${data.error}${_hint}`);
                 }
                 break;
+            }
         }
     }
 
@@ -1111,7 +1396,17 @@ export class AnimePipeline {
         wrapper.className = 'ap-layer-chips';
         wrapper.innerHTML = chips.join('') + extra + resChip;
 
-        // Insert before the time span
+        // v2 stepper: a chip strip does not fit inside a 58px stepper column —
+        // mount it as a full-width strip right below the stepper instead.
+        const stages = document.getElementById(`ap-stages-${uid}`);
+        if (stages && stages.classList.contains('ap-stepper')) {
+            stages.parentNode.querySelector('.ap-layer-chips')?.remove();
+            wrapper.classList.add('ap-layer-chips--strip');
+            stages.insertAdjacentElement('afterend', wrapper);
+            return;
+        }
+
+        // Legacy grid: insert before the time span inside the row.
         const timeEl = row.querySelector('.ap-stage-time');
         if (timeEl) {
             row.insertBefore(wrapper, timeEl);
@@ -1269,9 +1564,37 @@ export class AnimePipeline {
         if (label) label.textContent = text;
     }
 
+    /** Index of a stage key in the canonical STAGES order (-1 if unknown). */
+    _stageIdx(key) {
+        return STAGES.findIndex(s => s.key === key);
+    }
+
+    /** Drive the v2 continuous progress bar + % readout.
+     *  `frac` is 0..1 overall progress. Monotonic: refine rounds re-enter
+     *  earlier stages, so the bar holds its max instead of jumping back. */
+    _setInlineProgress(uid, frac) {
+        const bubble = document.getElementById(`ap-inline-${uid}`);
+        if (!bubble) return;
+        const prev = parseFloat(bubble.dataset.apPct || '0');
+        const pct = Math.max(prev, Math.min(100, Math.round(frac * 100)));
+        bubble.dataset.apPct = String(pct);
+        const fill = document.getElementById(`ap-fill-${uid}`);
+        if (fill) fill.style.width = pct + '%';
+        const pctEl = document.getElementById(`ap-pct-${uid}`);
+        if (pctEl) pctEl.textContent = pct + '%';
+    }
+
+    /** Update the small sub-line under the headline (step counter / round). */
+    _setInlineSub(uid, text) {
+        const el = document.getElementById(`ap-sub-${uid}`);
+        if (el) el.textContent = text;
+    }
+
     /** Replace progress block with the final image result. */
     _inlineShowResult(bubble, uid, data, prompt, startTime, chatContainer) {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        // Phase 3: drop the transient live-denoise frame; the final image replaces it.
+        this._inlineClearLivePreview(uid);
 
         // ── Background-tab support ──────────────────────────────────────
         // If the bubble was removed from the DOM because the user switched chat,
@@ -1334,6 +1657,12 @@ export class AnimePipeline {
         const card = bubble.querySelector('.ap-pipeline-card');
         if (card) {
             card.removeAttribute('data-open');
+            card.classList.add(wasCancelled ? 'ap-v2-cancelled' : 'ap-v2-done');
+            // v2: settle the progress bar + % readout (green at 100%).
+            const fillEl = document.getElementById(`ap-fill-${uid}`);
+            if (fillEl && !wasCancelled) fillEl.style.width = '100%';
+            const pctEl = document.getElementById(`ap-pct-${uid}`);
+            if (pctEl && !wasCancelled) pctEl.textContent = '100%';
             const header = card.querySelector('.ap-pipeline-header');
             if (header) {
                 header.querySelector('.thinking-pill__dots')?.remove();
@@ -1352,6 +1681,8 @@ export class AnimePipeline {
                     header.prepend(icon);
                     if (label) label.textContent = `✅ Anime Pipeline · ${elapsed}s`;
                 }
+                const sub = header.querySelector('.ap-head-sub');
+                if (sub) sub.textContent = wasCancelled ? 'Đã ngưng' : 'Hoàn tất';
             }
         }
 
@@ -1497,7 +1828,22 @@ export class AnimePipeline {
             // case. The /api/anime-pipeline/upscale endpoint still
             // exists for power users / CLI consumers.
 
-            msgContent?.appendChild(resultDiv.firstElementChild);
+            // Thinking-with-Images (Phase 1b follow-up): when the bubble lives
+            // inside a collapsible thinking-block, the FINAL image must NOT
+            // stay buried in the pill — promote it to a sibling chat message
+            // right after the block, so collapsing "Đã tạo ảnh" never hides
+            // the output. Listeners survive the move (same DOM nodes).
+            const resultEl = resultDiv.firstElementChild;
+            const tblock = bubble.closest('.thinking-block');
+            if (tblock && tblock.parentNode) {
+                const holder = document.createElement('div');
+                holder.className = 'message assistant ap-result-msg';
+                holder.innerHTML = '<div class="message__body"><div class="message-content"></div></div>';
+                holder.querySelector('.message-content').appendChild(resultEl);
+                tblock.parentNode.insertBefore(holder, tblock.nextSibling);
+            } else {
+                msgContent?.appendChild(resultEl);
+            }
             if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
 
             // Save to session
@@ -1519,6 +1865,8 @@ export class AnimePipeline {
         const card = bubble?.querySelector('.ap-pipeline-card');
         if (card) {
             card.setAttribute('data-open', '');
+            card.classList.add('ap-v2-error');
+            card.querySelector('.thinking-pill__dots')?.remove();  // stop the spinner
             const label = card.querySelector('.ap-inline-label');
             if (label) label.textContent = '❌ ' + message;
             const current = document.getElementById(`ap-current-${uid}`);
@@ -1533,479 +1881,6 @@ export class AnimePipeline {
             }
         });
     }
-
-    closeModal() {
-        const el = document.getElementById('animePipelineModal');
-        if (!el) return;
-        el.classList.remove('active', 'open');
-        this.cancel();
-    }
-
-    cancel() {
-        if (this._abort) {
-            this._abort.abort();
-            this._abort = null;
-        }
-        this._running = false;
-        this._setGenerateEnabled(true);
-    }
-
-    // ── Health check ────────────────────────────────────────────────
-
-    async _checkHealth() {
-        const statusEl = document.getElementById('apStatus');
-        try {
-            const resp = await fetch('/api/anime-pipeline/health');
-            const data = await resp.json();
-            this._available = data;
-            if (data.available) {
-                if (statusEl) statusEl.textContent = '✅ Pipeline ready';
-            } else {
-                // Show warning but keep button enabled — user gets a real error on generate.
-                const msg = (data.errors || []).join('; ') || 'Pipeline unavailable';
-                if (statusEl) statusEl.textContent = '⚠️ ' + msg;
-            }
-        } catch (e) {
-            if (statusEl) statusEl.textContent = '⚠️ Health check failed — try generating anyway';
-        }
-        // Always enable the button; failure is surfaced when the stream starts.
-        this._setGenerateEnabled(true);
-    }
-
-    // ── Generate (SSE) ──────────────────────────────────────────────
-
-    async generate() {
-        if (this._running) return;
-
-        const prompt = (document.getElementById('apPrompt')?.value || '').trim();
-        if (!prompt) {
-            this._showError('Please enter a prompt.');
-            return;
-        }
-
-        this._running = true;
-        this._setGenerateEnabled(false);
-        this._resetProgress();
-        this._showSection('progress');
-
-        const preset = document.getElementById('apPreset')?.value || 'anime_quality';
-        const quality = document.getElementById('apQuality')?.value || 'quality';
-        this._debug = document.getElementById('apDebug')?.checked || false;
-
-        const body = {
-            prompt,
-            preset,
-            quality_mode: quality,
-            debug: this._debug,
-            model_base:    document.getElementById('apModelBase')?.value || '',
-            model_cleanup: document.getElementById('apModelCleanup')?.value || '',
-            model_final:   document.getElementById('apModelFinal')?.value || '',
-        };
-
-        // Collect reference images
-        const refInput = document.getElementById('apReferenceInput');
-        if (refInput?.files?.length) {
-            body.reference_images = await this._filesToB64(refInput.files);
-        }
-
-        this._abort = new AbortController();
-
-        // Abort on F5 / page unload to avoid stuck connections
-        const onUnload = () => this._abort?.abort();
-        window.addEventListener('beforeunload', onUnload);
-
-        try {
-            const resp = await fetch('/api/anime-pipeline/stream', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-                signal: this._abort.signal,
-            });
-
-            if (!resp.ok && !resp.headers.get('content-type')?.includes('text/event-stream')) {
-                const err = await resp.json().catch(() => ({ error: 'Request failed' }));
-                this._showError(err.error || `HTTP ${resp.status}`);
-                return;
-            }
-
-            await this._consumeSSE(resp);
-
-        } catch (e) {
-            if (e.name === 'AbortError') return;
-            this._showError(e.message || 'Connection lost');
-        } finally {
-            window.removeEventListener('beforeunload', onUnload);
-            this._running = false;
-            this._setGenerateEnabled(true);
-        }
-    }
-
-    // ── SSE consumer ────────────────────────────────────────────────
-
-    async _consumeSSE(resp) {
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        let currentEvent = '';
-        let gotResult = false;
-
-        // Timeout: if no event received for 120s, treat as connection lost
-        const SSE_TIMEOUT_MS = 120_000;
-        let timeoutId = setTimeout(() => {
-            if (!gotResult) {
-                reader.cancel();
-                this._onError({ error: 'Mất kết nối (timeout 120s)', recoverable: false });
-            }
-        }, SSE_TIMEOUT_MS);
-
-        const resetTimeout = () => {
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => {
-                if (!gotResult) {
-                    reader.cancel();
-                    this._onError({ error: 'Mất kết nối (timeout 120s)', recoverable: false });
-                }
-            }, SSE_TIMEOUT_MS);
-        };
-
-        try {
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                resetTimeout();
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    if (line.startsWith('event: ')) {
-                        currentEvent = line.slice(7).trim();
-                    } else if (line.startsWith('data: ')) {
-                        try {
-                            const data = JSON.parse(line.slice(6));
-                            if (currentEvent === 'ap_result' || currentEvent === 'ap_done') {
-                                gotResult = true;
-                            }
-                            this._handleEvent(currentEvent, data);
-                        } catch { /* ignore malformed */ }
-                    }
-                }
-            }
-        } finally {
-            clearTimeout(timeoutId);
-        }
-
-        // If stream ended without ap_result, show error
-        if (!gotResult) {
-            this._onError({ error: 'Stream kết thúc bất ngờ — không nhận được kết quả', recoverable: false });
-        }
-    }
-
-    _handleEvent(event, data) {
-        switch (event) {
-            case 'ap_status':
-                this._onStatus(data);
-                break;
-            case 'ap_stage_start':
-                this._onStageStart(data);
-                break;
-            case 'ap_stage_done':
-                this._onStageDone(data);
-                break;
-            case 'ap_preview':
-                this._onPreview(data);
-                break;
-            case 'ap_critique_result':
-                this._onCritiqueResult(data);
-                break;
-            case 'ap_refine':
-                this._onRefine(data);
-                break;
-            case 'ap_refine_reasoning':
-                this._onRefineReasoning(data);
-                break;
-            case 'ap_full_restart':
-                this._onFullRestart(data);
-                break;
-            case 'ap_result':
-                this._onResult(data);
-                break;
-            case 'ap_error':
-                this._onError(data);
-                break;
-            case 'ap_done':
-                // stream complete — nothing more to do
-                break;
-        }
-    }
-
-    // ── Event handlers ──────────────────────────────────────────────
-
-    _onStatus(data) {
-        const el = document.getElementById('apCurrentAction');
-        if (el) el.textContent = data.message || 'Initialising…';
-    }
-
-    _onStageStart(data) {
-        const { stage, label, stage_num, total_stages } = data;
-        this._setStageState(stage, 'active');
-
-        const el = document.getElementById('apCurrentAction');
-        if (el) el.textContent = label || stage;
-
-        const pct = Math.round(((stage_num - 1) / total_stages) * 100);
-        this._setProgressPercent(pct);
-    }
-
-    _onStageDone(data) {
-        const { stage, stage_num, total_stages, latency_ms } = data;
-        this._setStageState(stage, 'done');
-
-        const pct = Math.round((stage_num / (total_stages || 7)) * 100);
-        this._setProgressPercent(pct);
-
-        // Update latency display
-        const row = document.querySelector(`[data-ap-stage="${stage}"] .ap-stage-time`);
-        if (row && latency_ms) {
-            row.textContent = `${(latency_ms / 1000).toFixed(1)}s`;
-        }
-    }
-
-    _onPreview(data) {
-        if (!this._debug || !data.image_b64) return;
-
-        const container = document.getElementById('apDebugPreviews');
-        if (!container) return;
-
-        container.style.display = '';
-
-        const wrap = document.createElement('div');
-        wrap.className = 'ap-debug-preview';
-        wrap.innerHTML = `
-            <div class="ap-debug-preview__label">${data.stage}</div>
-            <img src="data:image/png;base64,${data.image_b64}" alt="${data.stage}">
-        `;
-        container.querySelector('.ap-debug-preview__grid')?.appendChild(wrap);
-    }
-
-    _onRefine(data) {
-        const el = document.getElementById('apCurrentAction');
-        if (el) {
-            el.textContent = `Refining (round ${data.round}/${data.max_rounds}, score: ${(data.previous_score || 0).toFixed(1)})…`;
-        }
-        // Reset loop stages: beauty → YOLO → critique
-        this._setStageState('beauty_pass', 'pending');
-        this._setStageState('detection_inpaint', 'pending');
-        this._setStageState('critique', 'pending');
-    }
-
-    _onRefineReasoning(data) {
-        // Show reasoning details in progress view
-        const el = document.getElementById('apCurrentAction');
-        if (el) {
-            const dims = (data.worst_dimensions || []).slice(0, 3).join(', ');
-            const actionCount = (data.actions || []).length;
-            el.textContent = `🧠 Reasoning: ${dims || 'general'} — applying ${actionCount} fix(es)`;
-        }
-    }
-
-    _onFullRestart(data) {
-        const el = document.getElementById('apCurrentAction');
-        if (el) {
-            el.textContent = `🔄 Full restart #${data.restart_num} (best score: ${(data.best_score || 0).toFixed(1)}) — regenerating from scratch`;
-        }
-        // Reset all stages
-        STAGES.forEach(s => this._setStageState(s.key, 'pending'));
-    }
-
-    _onCritiqueResult(data) {
-        // Show score chip on the critique stage row in the modal
-        const row = document.querySelector('[data-ap-stage="critique"]');
-        if (!row) return;
-        const passed = data.passed;
-        const scoreText = `${data.score}/10 ${passed ? '\u2705' : '\u21a9\ufe0f'}`;
-        let badge = row.querySelector('.ap-score-badge');
-        if (!badge) {
-            badge = document.createElement('span');
-            badge.className = 'ap-score-badge';
-            const timeEl = row.querySelector('.ap-stage-time');
-            if (timeEl) row.insertBefore(badge, timeEl);
-            else row.appendChild(badge);
-        }
-        badge.textContent = scoreText;
-        badge.className = `ap-score-badge ${passed ? 'ap-score-pass' : 'ap-score-fail'}`;
-        const issues = data.issues || [];
-        if (issues.length) badge.title = issues.slice(0, 3).join(' \u00b7 ');
-    }
-
-    _onResult(data) {
-        this._setProgressPercent(100);
-        this._showSection('result');
-
-        const statusEl = document.getElementById('apStatus');
-        if (statusEl) statusEl.textContent = '✅ Hoàn thành!';
-
-        const imgEl = document.getElementById('apResultImage');
-        if (imgEl) {
-            // Prefer local_url (survives localStorage quota stripping)
-            // then cloud_url, then base64 as last resort
-            const src = data.local_url || data.cloud_url || (data.image_b64 ? 'data:image/png;base64,' + data.image_b64 : '');
-            if (src) {
-                imgEl.src = src;
-                imgEl.style.display = '';
-            } else {
-                imgEl.style.display = 'none';
-            }
-        }
-
-        // Populate manifest summary
-        const metaEl = document.getElementById('apResultMeta');
-        if (metaEl) {
-            const lines = [];
-            if (data.total_latency_ms) lines.push(`⏱️ ${(data.total_latency_ms / 1000).toFixed(1)}s`);
-            if (data.refine_rounds) lines.push(`🔄 ${data.refine_rounds} vòng tinh chỉnh`);
-            if (data.models_used?.length) lines.push(`🧠 ${data.models_used.join(', ')}`);
-            if (data.stages_executed?.length) lines.push(`📋 ${data.stages_executed.length} stages`);
-            metaEl.innerHTML = lines.join(' &nbsp;·&nbsp; ');
-        }
-
-        // Store result for download / send-to-chat
-        this._lastResult = data;
-    }
-
-    _onError(data) {
-        if (data.recoverable) {
-            // Non-fatal: show inline warning in progress view
-            const el = document.getElementById('apCurrentAction');
-            if (el) el.textContent = `⚠️ ${data.stage || ''}: ${data.error}`;
-        } else {
-            // Fatal: show error without jumping to form
-            const statusEl = document.getElementById('apStatus');
-            if (statusEl) statusEl.textContent = '❌ Thất bại';
-            const errEl = document.getElementById('apErrorBox');
-            if (errEl) {
-                errEl.textContent = data.error || 'Pipeline thất bại';
-                errEl.style.display = '';
-            }
-            const actionEl = document.getElementById('apCurrentAction');
-            if (actionEl) actionEl.textContent = '❌ ' + (data.error || 'Pipeline thất bại');
-        }
-    }
-
-    /**
-     * Insert the generated image into the chat conversation.
-     * Uses window.chatApp (set by main.js) to access messageRenderer.
-     */
-    sendToChat() {
-        const result = this._lastResult;
-        if (!result) return;
-        const app = window.chatApp;
-        if (!app) return;
-
-        const chatContainer = document.getElementById('chat-container');
-        if (!chatContainer) return;
-
-        const prompt = (document.getElementById('apPrompt')?.value || '').trim();
-        const latency = result.total_latency_ms
-            ? `${(result.total_latency_ms / 1000).toFixed(1)}s` : '';
-        const meta = `🎨 Anime Pipeline${latency ? ' · ' + latency : ''}`;
-        // Prefer local_url / cloud_url to avoid localStorage quota issues
-        const imgSrc = result.local_url || result.cloud_url || (result.image_b64 ? 'data:image/png;base64,' + result.image_b64 : '');
-        if (!imgSrc) return;
-        const promptAttr = prompt.replace(/"/g, '&quot;');
-
-        app.messageRenderer.addMessage(
-            chatContainer,
-            `<div class="igv2-chat-image" data-prompt="${promptAttr}">
-                <img src="${imgSrc}" alt="Anime Pipeline result" data-igv2-open="${imgSrc}">
-                <div class="igv2-chat-meta">${meta}</div>
-            </div>`,
-            false,
-            app.currentModel || '',
-            '',
-            app.uiUtils?.formatTimestamp(new Date()) || ''
-        );
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-        app.saveCurrentSession?.(true);
-        this.closeModal();
-    }
-
-    // ── UI helpers ──────────────────────────────────────────────────
-
-    _resetUI() {
-        this._resetProgress();
-        this._showSection('form');
-        const err = document.getElementById('apErrorBox');
-        if (err) err.style.display = 'none';
-        const dbg = document.getElementById('apDebugPreviews');
-        if (dbg) {
-            dbg.style.display = 'none';
-            const grid = dbg.querySelector('.ap-debug-preview__grid');
-            if (grid) grid.innerHTML = '';
-        }
-    }
-
-    _resetProgress() {
-        STAGES.forEach(s => this._setStageState(s.key, 'pending'));
-        this._setProgressPercent(0);
-        const el = document.getElementById('apCurrentAction');
-        if (el) el.textContent = 'Starting…';
-    }
-
-    _showSection(which) {
-        ['form', 'progress', 'result'].forEach(s => {
-            const el = document.getElementById(`apSection_${s}`);
-            if (el) el.style.display = s === which ? '' : 'none';
-        });
-    }
-
-    _setStageState(stageKey, state) {
-        const row = document.querySelector(`[data-ap-stage="${stageKey}"]`);
-        if (!row) return;
-        row.classList.remove('pending', 'active', 'done', 'error');
-        row.classList.add(state);
-    }
-
-    _setProgressPercent(pct) {
-        const bar = document.getElementById('apProgressBar');
-        if (bar) bar.style.width = pct + '%';
-        const lbl = document.getElementById('apProgressLabel');
-        if (lbl) lbl.textContent = pct + '%';
-    }
-
-    _setGenerateEnabled(enabled) {
-        const btn = document.getElementById('apGenerateBtn');
-        if (btn) btn.disabled = !enabled;
-    }
-
-    _showError(msg) {
-        const el = document.getElementById('apErrorBox');
-        if (el) {
-            el.textContent = msg;
-            el.style.display = '';
-        }
-        this._showSection('form');
-    }
-
-    // ── Download result ─────────────────────────────────────────────
-
-    downloadResult() {
-        const result = this._lastResult;
-        if (!result) return;
-        const src = result.local_url || result.cloud_url || (result.image_b64 ? 'data:image/png;base64,' + result.image_b64 : '');
-        if (!src) return;
-
-        const a = document.createElement('a');
-        a.href = src;
-        a.download = `anime_pipeline_${result.job_id || 'result'}.png`;
-        a.click();
-    }
-
-    newGeneration() {
-        this._resetUI();
-    }
-
     // ── File helpers ────────────────────────────────────────────────
 
     async _filesToB64(files) {
@@ -2029,12 +1904,23 @@ export class AnimePipeline {
      * from localStorage.
      */
     recoverInlineBubbles() {
+        // Promoted result messages (image moved OUT of the thinking pill)
+        // lose their button listeners on outerHTML restore — re-wire them.
+        document.querySelectorAll('.ap-result-msg').forEach(holder => {
+            if (holder.querySelector('.igv2-chat-image')) this._rewireInlineButtons(holder);
+        });
+
         const bubbles = document.querySelectorAll('.ap-inline-msg');
         if (!bubbles.length) return;
 
         bubbles.forEach(bubble => {
             const card = bubble.querySelector('.ap-pipeline-card');
             const hasResult = bubble.querySelector('.igv2-chat-image img');
+
+            // Finalized bubble whose image was promoted to a sibling message:
+            // nothing to recover, and it must NOT fall into the "interrupted"
+            // branch just because the image is no longer inside the bubble.
+            if (!hasResult && bubble.dataset.apFinalized === '1') return;
 
             if (hasResult) {
                 // Image exists — collapse progress, re-wire buttons

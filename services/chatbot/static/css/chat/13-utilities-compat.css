@@ -170,9 +170,9 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  border: 1px solid var(--border-primary);
-  border-radius: 10px;
-  background: var(--bg-input);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  background: rgba(0,0,0,0.28);
   color: var(--text-primary);
   font-size: 13px;
   padding: 8px 10px;
@@ -181,7 +181,7 @@
 }
 
 .edit-chat-tool__agent-btn:hover {
-  border-color: color-mix(in srgb, var(--accent) 50%, var(--border-primary));
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 .edit-chat-tool__agent-btn:focus {

@@ -28,6 +28,7 @@ import time
 from pathlib import Path
 from typing import Any, Generator, Optional
 
+from .comfy_client import is_resource_error, ws_preview_enabled
 from .config import AnimePipelineConfig, load_config
 from .schemas import AnimePipelineJob, AnimePipelineStatus
 from .vram_manager import free_models_between_passes, log_pass_memory_mode
@@ -386,7 +387,12 @@ class AnimePipelineOrchestrator:
                 return
             if job.status == AnimePipelineStatus.FAILED:
                 yield self._event(
-                    "pipeline_error", {"error": job.error, "job_id": job.job_id}
+                    "pipeline_error",
+                    {
+                        "error": job.error,
+                        "job_id": job.job_id,
+                        "error_class": getattr(job, "error_class", None),
+                    },
                 )
                 return
 
@@ -732,6 +738,8 @@ class AnimePipelineOrchestrator:
                     "job_id": job.job_id,
                     "error": str(e),
                     "has_fallback_image": job.final_image_b64 is not None,
+                    "error_class": getattr(job, "error_class", None)
+                    or ("resource" if is_resource_error(str(e)) else None),
                 },
             )
 
@@ -810,6 +818,38 @@ class AnimePipelineOrchestrator:
             if beauty_failed:
                 # Reset status so critique can still run using the last available image
                 job.status = AnimePipelineStatus.CRITIQUING
+
+                # Retry beauty with a fresh seed while refine rounds remain.
+                # Without this, a single beauty failure on round 0 broke the
+                # loop and shipped the composition draft as the final image
+                # (observed: ControlNet 400 → refine_rounds=0 despite
+                # retry_recommendation=true). Resource errors (OOM) are not
+                # retried — the same VRAM ceiling fails identically.
+                beauty_error_class = getattr(job, "error_class", None)
+                if round_num < max_rounds and beauty_error_class != "resource":
+                    logger.warning(
+                        "[AnimePipeline] Beauty pass failed on round %d (%s) — "
+                        "retrying with a fresh seed (%d round(s) left)",
+                        round_num,
+                        job.error,
+                        max_rounds - round_num,
+                    )
+                    yield self._event(
+                        "beauty_retry_scheduled",
+                        {
+                            "round": round_num + 1,
+                            "max_rounds": max_rounds,
+                            "error": job.error,
+                            "error_class": beauty_error_class,
+                        },
+                    )
+                    job.error = None
+                    job.error_class = None
+                    job.refine_rounds += 1
+                    if job.layer_plan and job.layer_plan.beauty_pass:
+                        job.layer_plan.beauty_pass.seed = -1  # force new seed
+                    critique_for_next_round = None
+                    continue
 
             # YOLO Detail Fix — runs BEFORE critique so that Critique
             # evaluates the YOLO-enhanced image, not raw beauty output.
@@ -1917,11 +1957,36 @@ class AnimePipelineOrchestrator:
                     },
                 )
             else:
-                logger.info(
-                    "[AnimePipeline] No character LoRA accepted for %s: %s",
-                    research.display_name,
-                    lora_result.rejection_reason,
-                )
+                # WAI-verified characters (Nahida, etc.) are baked into the
+                # waiIllustrious checkpoint and render faithfully from their
+                # danbooru tag alone — exactly how the SAA character picker
+                # uses them. For those, "no LoRA" is EXPECTED, not a
+                # degradation, so surface it as informational rather than a
+                # scary rejection.
+                checkpoint_native = False
+                try:
+                    from .saa_character_db import lookup_character as _saa_lookup
+
+                    _m = _saa_lookup(
+                        research.danbooru_tag or research.display_name or ""
+                    )
+                    checkpoint_native = bool(_m and _m.match_score >= 0.9)
+                except Exception:
+                    checkpoint_native = False
+
+                if checkpoint_native:
+                    logger.info(
+                        "[AnimePipeline] %s is WAI-verified — rendered natively by "
+                        "the checkpoint from its danbooru tag (no LoRA needed, "
+                        "SAA-style)",
+                        research.display_name,
+                    )
+                else:
+                    logger.info(
+                        "[AnimePipeline] No character LoRA accepted for %s: %s",
+                        research.display_name,
+                        lora_result.rejection_reason,
+                    )
                 yield self._event(
                     "stage_complete",
                     {
@@ -1930,6 +1995,7 @@ class AnimePipelineOrchestrator:
                         "total_stages": 9,
                         "latency_ms": latency,
                         "accepted": False,
+                        "checkpoint_native": checkpoint_native,
                         "rejection_reason": lora_result.rejection_reason,
                     },
                 )
@@ -2118,6 +2184,33 @@ class AnimePipelineOrchestrator:
             },
         )
 
+        # Phase 3 (opt-in): register /ws live-preview callbacks on the agent's
+        # ComfyClient so its background reader can push progress % + denoise
+        # frames onto the job; the heartbeat loop below forwards them. Fully
+        # gated by ANIME_PIPELINE_WS_PREVIEW — when off, nothing here runs and
+        # the stage behaves exactly as before.
+        _ws_client = None
+        if ws_preview_enabled():
+            _ws_client = getattr(agent, "_client", None)
+            if _ws_client is not None and hasattr(_ws_client, "set_preview_callbacks"):
+                job.progress_pct = 0.0
+
+                def _on_progress(pct: float, _job=job) -> None:
+                    _job.progress_pct = pct
+
+                def _on_preview(fmt: str, img: bytes, _job=job) -> None:
+                    import base64 as _b64
+
+                    _job._live_preview = {
+                        "fmt": fmt,
+                        "b64": _b64.b64encode(img).decode("ascii"),
+                        "ts": time.monotonic(),
+                    }
+
+                _ws_client.set_preview_callbacks(_on_progress, _on_preview)
+            else:
+                _ws_client = None
+
         # Run agent in a background thread so we can yield heartbeat events
         # while it blocks on ComfyUI sampling (30+ steps = ~30 s of silence).
         _exc_holder: list[BaseException] = []
@@ -2135,16 +2228,31 @@ class AnimePipelineOrchestrator:
         _t_start = time.monotonic()
         _agent_thread.start()
 
+        _last_preview_ts = 0.0
         while not _done_evt.wait(timeout=1.5):
-            yield self._event(
-                "stage_heartbeat",
-                {
+            _hb = {
                     "stage": stage_name,
                     "elapsed_s": round(time.monotonic() - _t_start, 1),
-                },
-            )
+                }
+            # Phase 3: enrich the heartbeat with live progress % and (throttled
+            # to ~1/1.5s here) the latest denoise preview, when WS preview is on.
+            if _ws_client is not None:
+                _pct = getattr(job, "progress_pct", 0.0)
+                if _pct:
+                    _hb["progress_pct"] = round(_pct, 1)
+                _lp = getattr(job, "_live_preview", None)
+                if _lp and _lp.get("ts", 0.0) > _last_preview_ts:
+                    _last_preview_ts = _lp["ts"]
+                    _hb["preview_b64"] = _lp["b64"]
+                    _hb["preview_fmt"] = _lp["fmt"]
+            yield self._event("stage_heartbeat", _hb)
 
         _agent_thread.join()
+        if _ws_client is not None:
+            try:
+                _ws_client.set_preview_callbacks(None, None)
+            except Exception:
+                pass
         if _exc_holder:
             e = _exc_holder[0]
             logger.error("[AnimePipeline] Stage %s failed: %s", stage_name, e)
@@ -2153,6 +2261,8 @@ class AnimePipelineOrchestrator:
                 {
                     "stage": stage_name,
                     "error": str(e),
+                    "error_class": getattr(job, "error_class", None)
+                    or ("resource" if is_resource_error(str(e)) else None),
                 },
             )
             raise e
@@ -2164,6 +2274,7 @@ class AnimePipelineOrchestrator:
                 {
                     "stage": stage_name,
                     "error": job.error or f"{stage_name} failed",
+                    "error_class": getattr(job, "error_class", None),
                 },
             )
             return

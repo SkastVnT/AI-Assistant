@@ -86,21 +86,24 @@
 }
 
 .gallery-filter-btn.active {
-  background: var(--accent-bg, rgba(99,102,241,0.12));
+  background: var(--accent-soft);
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 600;
 }
 
 /* ── Grid ─────────────────────────────────────────────────── */
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
-  gap: 8px;
-  padding: 10px 14px 14px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 12px 16px 16px;
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+}
+@media (max-width: 640px) {
+  .gallery-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* ── Gallery Item Card ────────────────────────────────────── */
@@ -118,7 +121,7 @@
 .gallery-item:hover {
   transform: scale(1.025);
   box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-  border-color: rgba(99,102,241,0.3);
+  border-color: rgba(167, 139, 250, 0.3);
   z-index: 2;
 }
 
@@ -265,7 +268,7 @@
   overflow: hidden;
 }
 
-/* ── Empty state ──────────────────────────────────────────── */
+/* ── Empty / loading states ───────────────────────────────── */
 .gallery-empty {
   grid-column: 1 / -1;
   text-align: center;
@@ -273,27 +276,101 @@
   color: var(--text-tertiary);
   font-size: 14px;
 }
+.gallery-loading { opacity: 0.7; }
 
-/* ── Load more ────────────────────────────────────────────── */
-.gallery-load-more {
-  grid-column: 1 / -1;
-  padding: 8px 24px;
-  margin: 4px auto 8px;
-  border: 1px solid var(--border-primary);
-  border-radius: 8px;
-  background: var(--bg-secondary, #1a1a2e);
-  color: var(--text-secondary);
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-  display: block;
-  width: fit-content;
+/* Skeleton placeholder cards — shown while a page is fetching so the modal
+   never sits on a lone spinner. One per expected item in the grid. */
+.gallery-skeleton {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  position: relative;
+  overflow: hidden;
 }
+.gallery-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in srgb, var(--text-primary) 7%, transparent) 46%,
+    transparent 72%
+  );
+  animation: galleryShimmer 1.25s ease-in-out infinite;
+}
+@keyframes galleryShimmer { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .gallery-skeleton::after { animation: none; }
+}
+.gallery-retry-btn {
+  margin-left: 8px;
+  padding: 2px 10px;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.gallery-retry-btn:hover { background: var(--bg-hover); }
 
-.gallery-load-more:hover {
-  background: var(--accent-bg, rgba(99,102,241,0.08));
-  border-color: var(--accent);
+/* ── Pagination footer (pinned below the scrolling grid) ──────── */
+.gallery-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-secondary);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+.gallery-pagination:empty { display: none; }
+
+.gallery-page-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition),
+              color var(--transition), transform var(--transition);
+}
+.gallery-page-btn:hover:not(:disabled):not(.active) {
+  background: var(--bg-hover);
+  border-color: var(--accent-soft);
   color: var(--text-primary);
+  transform: translateY(-1px);
+}
+.gallery-page-btn:active:not(:disabled) { transform: scale(0.94); }
+.gallery-page-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+  cursor: default;
+}
+.gallery-page-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.gallery-page-dot {
+  min-width: 16px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  user-select: none;
 }
 
 .gallery-info-modal {
@@ -398,20 +475,22 @@
   }
 }
 
-/* ── Image Preview ─────────────────────────────────────────── */
+/* ── Image Lightbox ────────────────────────────────────────── */
+/* z-index 10200 > titlebar 10000 — lightbox covers everything when open */
 .image-preview-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.85);
-  backdrop-filter: blur(8px);
-  z-index: 300;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 10200;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  cursor: zoom-out;
   opacity: 0;
   visibility: hidden;
-  transition: all var(--transition);
+  transition: opacity 0.18s ease, visibility 0.18s ease;
 }
 
 .image-preview-overlay.open {
@@ -419,12 +498,136 @@
   visibility: visible;
 }
 
-.image-preview-overlay img {
-  max-width: 90%;
-  max-height: 90%;
+/* Control bar — sits below the 36px Electron titlebar */
+.lightbox-controls {
+  position: fixed;
+  top: 52px; /* 36px titlebar + 16px gap */
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 10300;
+}
+
+/* In browser (no titlebar), move controls back up */
+body.is-browser .lightbox-controls {
+  top: 16px;
+}
+
+.lightbox-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(30, 32, 40, 0.85);
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  -webkit-app-region: no-drag;
+}
+
+.lightbox-btn:hover {
+  background: rgba(60, 65, 80, 0.95);
+  transform: scale(1.05);
+}
+
+.lightbox-btn:active {
+  transform: scale(0.96);
+}
+
+.lightbox-btn--close {
+  background: rgba(180, 40, 40, 0.75);
+}
+
+.lightbox-btn--close:hover {
+  background: rgba(210, 50, 50, 0.95);
+}
+
+/* Image wrap — captures wheel/swipe events */
+.lightbox-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  cursor: zoom-out;
+}
+
+.lightbox-wrap img {
+  max-width: 92vw;
+  max-height: 86vh;
   object-fit: contain;
-  border-radius: var(--radius-md);
+  border-radius: 6px;
   cursor: default;
+  transform-origin: center center;
+  transition: transform 0.1s ease;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Meta bar — compact info at the bottom */
+.lightbox-meta {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10300;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(720px, 90vw);
+  background: rgba(10, 12, 18, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 6px 14px;
+  pointer-events: none;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.lb-prompt {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 480px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lb-chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.lb-chip {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* Chat images: show zoom cursor so users know they're clickable */
+.message-content img:not(.avatar):not(.emoji):not(.icon):not([data-no-preview]),
+.message-text img:not(.avatar):not(.emoji):not(.icon):not([data-no-preview]),
+.ap-inline-msg img,
+.igv2-chat-image img,
+.igv2-result-img,
+.generated-preview {
+  cursor: zoom-in;
 }
 
 /* ── File message ──────────────────────────────────────────── */
@@ -548,10 +751,10 @@
   white-space: nowrap;
 }
 .vg-tag--img {
-  background: rgba(168, 85, 247, 0.15);
-  color: #a855f7;
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 .vg-tag--txt {
-  background: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
+  background: var(--cyan-soft);
+  color: var(--cyan);
 }

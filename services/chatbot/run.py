@@ -251,6 +251,11 @@ def _start_comfyui_if_needed() -> None:
         "--port",
         str(port),
     ]  # nosec B104  # ComfyUI service binding
+    # Phase 3: when the chat live-preview feature is opted in, start ComfyUI with
+    # a preview method so it emits denoise preview frames over /ws (default is
+    # "none", which sends progress but no preview images).
+    if _env_flag("ANIME_PIPELINE_WS_PREVIEW", "false"):
+        comfyui_args += ["--preview-method", "auto"]
     comfyui_cpu_mode = os.getenv("COMFYUI_CPU_MODE", "auto").lower()
     use_cpu = comfyui_cpu_mode == "1" or comfyui_cpu_mode == "true"
     if comfyui_cpu_mode == "auto" and not _python_has_cuda(python_exe):
@@ -372,13 +377,9 @@ def _start_character_select_if_needed() -> None:
         print(f">> Character Select SAA already running at {host}:{port}")
         return
 
-    saa_path_str = os.getenv(
-        "CHARACTER_SELECT_PATH",
-        str(app_root / "character_select_stand_alone_app-main"),
-    )
-    saa_path = Path(saa_path_str)
-    if not saa_path.is_absolute():
-        saa_path = (project_root / saa_path).resolve()
+    from services.chatbot.core.project_paths import resolve_character_select_path
+
+    saa_path = resolve_character_select_path()
     if not (saa_path / "package.json").exists():
         print(
             f"[WARN] Character Select SAA not found at {saa_path}. Skipping autostart."
@@ -403,8 +404,10 @@ def _start_character_select_if_needed() -> None:
     # First-run install: SAA ships a package.json but no node_modules; without
     # Electron installed, `npm start` immediately fails with
     # "'electron' is not recognized". Install once on first launch.
-    needs_install = not (saa_path / "node_modules" / "electron").exists()
-    install_clause = f"{npm_cmd} install && " if needs_install else ""
+    # On Windows check for the exact exe; on other platforms check the directory.
+    electron_exe = saa_path / "node_modules" / "electron" / "dist" / "electron.exe"
+    _electron_marker = electron_exe if os.name == "nt" else saa_path / "node_modules" / "electron"
+    needs_install = not _electron_marker.exists()
 
     # Build env for SAA process — inherit current env and add SHOW_ELECTRON_SAA.
     # Default false: SAA runs as a headless webserver (no Electron window) unless
@@ -412,34 +415,26 @@ def _start_character_select_if_needed() -> None:
     saa_env = dict(os.environ)
     saa_env["SHOW_ELECTRON_SAA"] = os.getenv("SHOW_ELECTRON_SAA", "false")
 
-    if (
-        os.name == "nt"
-        and _env_flag("IMAGE_SERVICE_VISIBLE_WINDOWS", "true")
-        and _env_flag("SHOW_ELECTRON_SAA", "false")
-    ):
-        command_line = f'cd /d "{saa_path}" && {install_clause}{npm_cmd} start'
-        _spawn_windows_terminal(command_line, saa_path, f"Character Select {port}")
-    elif needs_install:
+    # SAA is a background webserver — never open a visible terminal regardless of
+    # IMAGE_SERVICE_VISIBLE_WINDOWS.  Logs go to character-select-autostart.log.
+    if needs_install:
         # Headless: chain install → start in one shell so the spawned
         # process tree stays attached to the same log file.
+        # Note: install still needs a shell; this branch only runs once on first boot.
         shell_cmd = f"{npm_cmd} install && {npm_cmd} start"
-        if os.name == "nt":
-            _spawn_background_process(
-                ["cmd.exe", "/c", shell_cmd],
-                saa_path,
-                "character-select-autostart.log",
-                env=saa_env,
-            )
-        else:
-            _spawn_background_process(
-                ["sh", "-c", shell_cmd],
-                saa_path,
-                "character-select-autostart.log",
-                env=saa_env,
-            )
-    else:
+        shell = ["cmd.exe", "/c"] if os.name == "nt" else ["sh", "-c"]
         _spawn_background_process(
-            [npm_cmd, "start"],
+            [*shell, shell_cmd],
+            saa_path,
+            "character-select-autostart.log",
+            env=saa_env,
+        )
+    else:
+        # On Windows invoke electron.exe directly — bypasses npm.cmd (a batch file)
+        # which would force a visible cmd.exe console window to appear.
+        start_cmd = [str(electron_exe), "."] if os.name == "nt" else [npm_cmd, "start"]
+        _spawn_background_process(
+            start_cmd,
             saa_path,
             "character-select-autostart.log",
             env=saa_env,

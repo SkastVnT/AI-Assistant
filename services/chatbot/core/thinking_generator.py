@@ -17,6 +17,11 @@ logger = logging.getLogger(__name__)
 # Special prefix for reasoning content from models (Grok, DeepSeek R1, etc.)
 REASONING_PREFIX = "\x02REASON\x03"
 
+# Sentinel to carry actual token usage from the API layer up to stream.py.
+# Format: USAGE_SENTINEL + "<input_tokens>:<output_tokens>"
+# Consumers must filter this out of visible response text.
+USAGE_SENTINEL = "\x02USAGE\x03"
+
 
 class ThinkTagParser:
     """

@@ -292,8 +292,8 @@ def list_images():
 def delete_image(filename):
     """Delete saved image from local disk and MongoDB"""
     try:
-        # Validate filename
-        if not re.match(r"^[a-zA-Z0-9_\-\.]+$", filename):
+        # Validate filename — also reject ".." sequences to block path traversal
+        if not re.match(r"^[a-zA-Z0-9_\-\.]+$", filename) or ".." in filename:
             return jsonify({"error": "Invalid filename"}), 400
 
         filepath = IMAGE_STORAGE_DIR / filename
@@ -328,113 +328,166 @@ def delete_image(filename):
     "/api/gallery/images", methods=["GET"]
 )  # Alias for frontend compatibility
 def get_gallery():
-    """Get image gallery - merge MongoDB and local disk for consistency."""
+    """Get image gallery — MongoDB fast-path, local disk as fallback."""
     try:
         page = int(request.args.get("page", 1))
-        per_page = int(request.args.get("per_page", 50))
+        per_page = int(request.args.get("per_page", 8))
         show_all = request.args.get("all", "false").lower() == "true"
+        # Server-side filters (so pagination/counts reflect the filtered set,
+        # instead of the old client-side filter that only saw one 8-item page).
+        source_filter = (request.args.get("source", "all") or "all").lower()
+        query_text = (request.args.get("q", "") or "").strip()
 
         current_session_id = get_session_id()
+        skip = (page - 1) * per_page
+
+        def _fmt_mongo(doc):
+            doc_id = str(doc.get("_id", ""))
+            created = doc.get("created_at", "")
+            if hasattr(created, "isoformat"):
+                created = created.isoformat()
+            cloud_url = doc.get("cloud_url") or doc.get("url")
+            drive_url = doc.get("drive_url")
+            local_path = doc.get("local_path", "")
+            filename = doc.get("filename", "")
+            # Local docs sometimes store an empty local_path; fall back to a
+            # servable route so the thumbnail still resolves (the frontend
+            # hides it via onerror if the file is truly gone).
+            if not local_path and filename:
+                image_id = doc.get("image_id")
+                local_path = (
+                    f"/api/image-gen/images/{image_id}"
+                    if image_id
+                    else f"/storage/images/{filename}"
+                )
+            display_url = cloud_url if cloud_url else local_path
+            return {
+                "id": doc_id,
+                "filename": filename,
+                "url": display_url,
+                "path": display_url,
+                "display_url": display_url,
+                "cloud_url": cloud_url,
+                "drive_url": drive_url,
+                "share_url": drive_url or cloud_url or local_path,
+                "local_path": local_path,
+                "created_at": created,
+                "created": created,
+                "prompt": doc.get("prompt", "No prompt"),
+                "creator": doc.get("creator") or doc.get("session_id") or "unknown",
+                "db_status": {"mongodb": True, "firebase": bool(doc.get("firebase_id"))},
+                "metadata": {
+                    "prompt": doc.get("prompt", ""),
+                    "negative_prompt": doc.get("negative_prompt", ""),
+                    "model": doc.get("model", ""),
+                    "sampler": doc.get("sampler", ""),
+                    "steps": doc.get("steps", ""),
+                    "cfg_scale": doc.get("cfg_scale", ""),
+                    "width": doc.get("width", ""),
+                    "height": doc.get("height", ""),
+                    "seed": doc.get("seed", ""),
+                    "vae": doc.get("vae", ""),
+                    "lora_models": doc.get("lora_models", ""),
+                    "denoising_strength": doc.get("denoising_strength", ""),
+                    "drive_url": drive_url,
+                    "cloud_url": cloud_url,
+                    "filename": filename,
+                },
+            }
+
+        # ── FAST PATH: MongoDB with skip+limit (no disk scan) ─────────────────
+        # Returns in <50ms for most cases. Only falls through to slow path
+        # when MongoDB is unavailable or has zero images.
+        try:
+            from core.image_storage import images_collection
+
+            if images_collection is not None:
+                # A doc counts as "cloud" when any of these URL fields is a
+                # non-empty string; "local" is the negation. Mirrors the
+                # display logic in _fmt_mongo (cloud_url = cloud_url or url).
+                cloud_fields = [
+                    {f: {"$exists": True, "$nin": [None, ""]}}
+                    for f in ("cloud_url", "url", "drive_url")
+                ]
+
+                filters = []
+                if not show_all:
+                    filters.append({
+                        "$or": [
+                            {"session_id": current_session_id},
+                            {"session_id": {"$exists": False}},
+                            {"session_id": ""},
+                        ]
+                    })
+                if source_filter == "cloud":
+                    filters.append({"$or": cloud_fields})
+                elif source_filter == "local":
+                    filters.append({"$nor": cloud_fields})
+                if query_text:
+                    rgx = {"$regex": re.escape(query_text), "$options": "i"}
+                    filters.append({"$or": [{"prompt": rgx}, {"filename": rgx}]})
+
+                if len(filters) > 1:
+                    mongo_query = {"$and": filters}
+                elif filters:
+                    mongo_query = filters[0]
+                else:
+                    mongo_query = {}
+
+                total = images_collection.count_documents(mongo_query)
+                if total > 0:
+                    cursor = (
+                        images_collection.find(mongo_query)
+                        .sort("created_at", -1)
+                        .skip(skip)
+                        .limit(per_page)
+                    )
+                    page_images = [_fmt_mongo(doc) for doc in cursor]
+                    total_pages = (total + per_page - 1) // per_page
+                    logger.debug(f"[Gallery] fast-path page={page}/{total_pages} ({len(page_images)} items)")
+                    return jsonify({
+                        "success": True,
+                        "images": page_images,
+                        "total": total,
+                        "page": page,
+                        "per_page": per_page,
+                        "total_pages": total_pages,
+                        "session_id": current_session_id,
+                        "showing_all": show_all,
+                        "source": "mongodb",
+                    })
+
+                # Mongo is reachable but the current filter matched nothing.
+                # If the collection has any docs at all, a 0 here means "no
+                # matches for this filter" — return empty instead of kicking
+                # off a slow full-disk scan (the whole point when there are
+                # "too many" local files).
+                if images_collection.estimated_document_count() > 0:
+                    return jsonify({
+                        "success": True,
+                        "images": [],
+                        "total": 0,
+                        "page": page,
+                        "per_page": per_page,
+                        "total_pages": 1,
+                        "session_id": current_session_id,
+                        "showing_all": show_all,
+                        "source": "mongodb",
+                    })
+        except Exception as mongo_err:
+            logger.warning(f"[Gallery] MongoDB fast-path failed: {mongo_err}")
+
+        # ── SLOW PATH: local disk scan + message scan (MongoDB unavailable) ───
         images = []
         source = "local"
-        has_mongodb_images = False
         existing_refs = set()
 
         def _track_ref(value):
             if value:
                 existing_refs.add(str(value))
 
-        # â”€â”€ Try MongoDB first (generated_images collection) â”€â”€
-        try:
-            from core.image_storage import images_collection
-
-            if images_collection is not None:
-                query = {}
-                if not show_all:
-                    query = {
-                        "$or": [
-                            {"session_id": current_session_id},
-                            {"session_id": {"$exists": False}},
-                            {"session_id": ""},
-                        ]
-                    }
-
-                cursor = (
-                    images_collection.find(query)
-                    .sort("created_at", -1)
-                    .limit(per_page * page)
-                )
-                for doc in cursor:
-                    doc_id = str(doc.get("_id", ""))
-                    created = doc.get("created_at", "")
-                    if hasattr(created, "isoformat"):
-                        created = created.isoformat()
-
-                    cloud_url = doc.get("cloud_url") or doc.get("url")
-                    drive_url = doc.get("drive_url")
-                    local_path = doc.get("local_path", "")
-                    filename = doc.get("filename", "")
-
-                    # Use cloud URL (ImgBB CDN) if available, otherwise local
-                    display_url = cloud_url if cloud_url else local_path
-
-                    images.append(
-                        {
-                            "id": doc_id,
-                            "filename": filename,
-                            "url": display_url,
-                            "path": display_url,
-                            "cloud_url": cloud_url,
-                            "drive_url": drive_url,
-                            "share_url": drive_url or cloud_url or local_path,
-                            "local_path": local_path,
-                            "created_at": created,
-                            "created": created,
-                            "prompt": doc.get("prompt", "No prompt"),
-                            "creator": doc.get("creator")
-                            or doc.get("session_id")
-                            or "unknown",
-                            "db_status": {
-                                "mongodb": True,
-                                "firebase": bool(doc.get("firebase_id")),
-                            },
-                            "metadata": {
-                                "prompt": doc.get("prompt", ""),
-                                "negative_prompt": doc.get("negative_prompt", ""),
-                                "model": doc.get("model", ""),
-                                "sampler": doc.get("sampler", ""),
-                                "steps": doc.get("steps", ""),
-                                "cfg_scale": doc.get("cfg_scale", ""),
-                                "width": doc.get("width", ""),
-                                "height": doc.get("height", ""),
-                                "seed": doc.get("seed", ""),
-                                "vae": doc.get("vae", ""),
-                                "lora_models": doc.get("lora_models", ""),
-                                "denoising_strength": doc.get("denoising_strength", ""),
-                                "drive_url": drive_url,
-                                "cloud_url": cloud_url,
-                                "filename": filename,
-                            },
-                        }
-                    )
-                    _track_ref(filename)
-                    _track_ref(display_url)
-                    _track_ref(cloud_url)
-                    _track_ref(local_path)
-
-                if images:
-                    source = "mongodb"
-                    has_mongodb_images = True
-                    logger.info(f"[Gallery] Loaded {len(images)} images from MongoDB")
-        except Exception as mongo_err:
-            logger.warning(
-                f"[Gallery] MongoDB fetch failed, falling back to local: {mongo_err}"
-            )
-
-        # ── Local disk merge (flat + date-based subdirs from image_gen_v2) ──
         local_added = 0
         for img_file in IMAGE_STORAGE_DIR.rglob("*.png"):
-            # Support both flat (.json) and date-based subdirs (.meta.json)
             metadata_file = (
                 img_file.with_suffix(".meta.json")
                 if not img_file.with_suffix(".json").exists()
@@ -454,136 +507,69 @@ def get_gallery():
             ):
                 continue
 
-            # Build a servable URL: image_gen_v2 images served via /api/image-gen/images/<id>
             image_id = metadata.get("image_id", "")
-            if image_id:
-                serve_url = f"/api/image-gen/images/{image_id}"
-            else:
-                serve_url = f"/storage/images/{img_file.name}"
-
+            serve_url = (
+                f"/api/image-gen/images/{image_id}"
+                if image_id
+                else f"/storage/images/{img_file.name}"
+            )
             cloud_url = metadata.get("cloud_url")
             drive_url = metadata.get("drive_url")
             dedupe_keys = [img_file.name, serve_url, cloud_url, drive_url]
             if any(key and str(key) in existing_refs for key in dedupe_keys):
                 continue
 
-            images.append(
-                {
-                    "filename": img_file.name,
-                    "url": serve_url,
-                    "path": serve_url,
-                    "cloud_url": cloud_url,
-                    "drive_url": drive_url,
-                    "share_url": drive_url or cloud_url or serve_url,
-                    "local_path": serve_url,
-                    "created_at": metadata.get("created_at", ""),
-                    "created": metadata.get("created_at", ""),
-                    "prompt": metadata.get("prompt", "No prompt"),
-                    "creator": metadata.get("creator")
-                    or metadata.get("session_id")
-                    or "local-session",
-                    "db_status": metadata.get(
-                        "db_status", {"mongodb": False, "firebase": False}
-                    ),
-                    "metadata": metadata.get("metadata", metadata),
-                }
-            )
+            images.append({
+                "filename": img_file.name,
+                "url": serve_url,
+                "path": serve_url,
+                "cloud_url": cloud_url,
+                "drive_url": drive_url,
+                "share_url": drive_url or cloud_url or serve_url,
+                "local_path": serve_url,
+                "created_at": metadata.get("created_at", ""),
+                "created": metadata.get("created_at", ""),
+                "prompt": metadata.get("prompt", "No prompt"),
+                "creator": metadata.get("creator") or metadata.get("session_id") or "local-session",
+                "db_status": metadata.get("db_status", {"mongodb": False, "firebase": False}),
+                "metadata": metadata.get("metadata", metadata),
+            })
             local_added += 1
             for key in dedupe_keys:
                 _track_ref(key)
 
-        if has_mongodb_images and local_added:
-            source = "mongodb+local"
-        elif has_mongodb_images:
-            source = "mongodb"
-        elif local_added:
+        if local_added:
             source = "local"
 
-        # ── Additional source: AI-generated image URLs from assistant messages ──
-        # (cloud-hosted images, e.g. ImgBB, that never landed in generated_images collection)
-        try:
-            import re as _re
+        # Apply the same source/search filters as the fast path so counts and
+        # pagination stay consistent regardless of which path served the data.
+        if source_filter == "cloud":
+            images = [im for im in images if (im.get("cloud_url") or im.get("drive_url"))]
+        elif source_filter == "local":
+            images = [im for im in images if not (im.get("cloud_url") or im.get("drive_url"))]
+        if query_text:
+            ql = query_text.lower()
+            images = [
+                im for im in images
+                if ql in (im.get("prompt", "") or "").lower()
+                or ql in (im.get("filename", "") or "").lower()
+            ]
 
-            from config.mongodb_config import get_db as _get_mongo_db
-
-            _url_pat = _re.compile(
-                r"https?://\S+\.(?:png|jpg|jpeg|gif|webp)(?:\?\S*)?",
-                _re.IGNORECASE,
-            )
-            _db = _get_mongo_db()
-            if _db is not None:
-                msg_query: dict = {
-                    "role": "assistant",
-                    "content": {"$regex": r"https?://", "$options": "i"},
-                }
-                existing_urls = {
-                    img.get("cloud_url") or img.get("url") or img.get("path")
-                    for img in images
-                }
-                for msg in (
-                    _db.messages.find(msg_query).sort("created_at", -1).limit(500)
-                ):
-                    content = msg.get("content", "")
-                    for url in _url_pat.findall(content):
-                        if url in existing_urls:
-                            continue
-                        # Skip tiny icons / avatars
-                        if any(
-                            skip in url
-                            for skip in ("/favicon", "/icon", "/logo", "/avatar")
-                        ):
-                            continue
-                        existing_urls.add(url)
-                        created = msg.get("created_at", "")
-                        if hasattr(created, "isoformat"):
-                            created = created.isoformat()
-                        images.append(
-                            {
-                                "filename": url.split("/")[-1].split("?")[0],
-                                "url": url,
-                                "path": url,
-                                "cloud_url": url,
-                                "drive_url": None,
-                                "share_url": url,
-                                "local_path": "",
-                                "created_at": created,
-                                "created": created,
-                                "prompt": (
-                                    (content[:80] + "...")
-                                    if len(content) > 80
-                                    else content
-                                ),
-                                "creator": "assistant",
-                                "db_status": {"mongodb": True, "firebase": False},
-                                "metadata": {"source": "message"},
-                            }
-                        )
-            source = source or "messages"
-        except Exception as msg_err:
-            logger.debug(f"[Gallery] Message scan skipped: {msg_err}")
-
-        # Sort all sources by created_at descending
         images.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-
-        # Paginate
         total = len(images)
-        start = (page - 1) * per_page
-        end = start + per_page
-        paginated = images[start:end]
+        paginated = images[skip: skip + per_page]
 
-        return jsonify(
-            {
-                "success": True,
-                "images": paginated,
-                "total": total,
-                "page": page,
-                "per_page": per_page,
-                "total_pages": (total + per_page - 1) // per_page,
-                "session_id": current_session_id,
-                "showing_all": show_all,
-                "source": source,
-            }
-        )
+        return jsonify({
+            "success": True,
+            "images": paginated,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": max(1, (total + per_page - 1) // per_page),
+            "session_id": current_session_id,
+            "showing_all": show_all,
+            "source": source,
+        })
 
     except Exception as e:
         logger.error(f"[Gallery] Error: {e}")
@@ -618,7 +604,7 @@ def get_image_info():
     """Get full metadata and database status for one image."""
     try:
         filename = request.args.get("filename", "").strip()
-        if not filename or not re.match(r"^[a-zA-Z0-9_\-\.]+$", filename):
+        if not filename or not re.match(r"^[a-zA-Z0-9_\-\.]+$", filename) or ".." in filename:
             return jsonify({"error": "Invalid filename"}), 400
 
         filepath, local_payload = _load_local_image_record(filename)
@@ -713,7 +699,7 @@ def upload_image_to_db():
     try:
         data = request.get_json(silent=True) or {}
         filename = str(data.get("filename", "")).strip()
-        if not filename or not re.match(r"^[a-zA-Z0-9_\-\.]+$", filename):
+        if not filename or not re.match(r"^[a-zA-Z0-9_\-\.]+$", filename) or ".." in filename:
             return jsonify({"error": "Invalid filename"}), 400
 
         filepath, local_payload = _load_local_image_record(filename)

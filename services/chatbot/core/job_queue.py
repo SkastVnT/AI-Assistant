@@ -113,7 +113,7 @@ class JobQueue:
             self._persist(rec)
             return rec
 
-    def transition(self, job_id: str, new_state: str, **fields) -> JobRecord | None:
+    def transition(self, job_id: str, new_state: str, **updates) -> JobRecord | None:
         if new_state not in JOB_STATES:
             raise ValueError(f"invalid job state: {new_state}")
         with self._lock:
@@ -132,7 +132,7 @@ class JobQueue:
                 and rec.completed_at is None
             ):
                 rec.completed_at = now
-            for k, v in fields.items():
+            for k, v in updates.items():
                 if hasattr(rec, k):
                     setattr(rec, k, v)
                 else:

@@ -7,11 +7,13 @@ description: "Choose which repository skill to activate for a given task. Use wh
 
 ## Purpose
 
-This skill is a router. It tells you which of the 14 repository skills to activate for a given task. Read this **before** reading any other skill, so you pick the right one (or the right combination) on the first try.
+This skill is a router. It tells you which of the 15 repository skills to activate for a given task. Read this **before** reading any other skill, so you pick the right one (or the right combination) on the first try.
 
 ## Default scope
 
 All skills below target the **core chatbot and tools stack** — `services/chatbot/`, `services/mcp-server/`, `services/shared_env.py`, `app/config/`, `app/src/`. Do not apply these skills to ComfyUI, Stable Diffusion, or image pipeline work unless the task explicitly requires it.
+
+**One sanctioned exception:** **image-chat-bridge** (#15) deliberately spans `services/chatbot/` **and** `app/image_pipeline/` — it is the only skill that reaches into the image pipeline, and only for the code that streams image generation inline into the chat.
 
 **Line-number references:** Several skills cite specific line numbers (e.g., `stream.py` L258). These are approximate landmarks from when the skill was written. Search for the described content or function name rather than jumping to the exact line — the code evolves.
 
@@ -35,6 +37,7 @@ All skills below target the **core chatbot and tools stack** — `services/chatb
 | 12 | **workflow-impact-guard** | CI/CD impact assessment, test assumptions, security scan triggers, env in workflows |
 | 13 | **docs-drift-sync** | README/docs alignment after any runtime behavior change |
 | 14 | **test-impact-mapper** | Map changed files to the smallest sufficient test set |
+| 15 | **image-chat-bridge** | ⚠️ Cross-boundary: ComfyUI anime pipeline streamed inline into `/chat/stream` — `force_image_bridge` gate, verbatim `ap_*` forward, cancel/`/free` on `GeneratorExit`, `error_class` taxonomy, Phase 1b thinking-block nesting, Phase 3 WS live preview |
 
 ---
 
@@ -156,6 +159,19 @@ All skills below target the **core chatbot and tools stack** — `services/chatb
 | Review PR test coverage | test-impact-mapper | workflow-impact-guard |
 | Justify skipping tests | test-impact-mapper | — |
 
+### Image generation in chat (cross-boundary)
+
+The **image-chat-bridge** streams the ComfyUI anime pipeline inline into the chat bubble. It is the only skill that touches `app/image_pipeline/`, so editing that side needs explicit task authorization (`CLAUDE.md` rule).
+
+| Task | Primary skill | Also load |
+|------|--------------|-----------|
+| Change how image gen renders inline in chat | image-chat-bridge | chat-ui-sync |
+| Edit `force_image_bridge` gate or `ap_*` forwarding | image-chat-bridge | core-chatbot-routing-audit, tool-response-contract |
+| Fix image-turn cancel / VRAM leak (`/free` on Stop) | image-chat-bridge | observability-log-hygiene |
+| Debug stalled / double-rendered / wiped image card | image-chat-bridge | chat-ui-sync |
+| WS live-preview or progress-% (Phase 3, flag-gated) | image-chat-bridge | requirements-profile-selection |
+| Pure anime-pipeline internals (orchestrator/agents/profiles), no chat bridge | — (image-pipeline work, none of these 15 apply) | — |
+
 ---
 
 ## Multi-skill escalation
@@ -244,7 +260,8 @@ START → What is the primary object of the change?
 ├── CI workflow / test runner      → workflow-impact-guard
 ├── Documentation / README         → docs-drift-sync
 ├── Test scope decision            → test-impact-mapper
-└── Return shape / payload field   → tool-response-contract
+├── Return shape / payload field   → tool-response-contract
+└── Image gen streamed into chat   → image-chat-bridge (cross-boundary)
 
 THEN → Does the change cross into another domain?
   YES → Load the additional skill(s) from the routing matrix above.
@@ -275,7 +292,7 @@ These skills rarely lead a task but are frequently loaded alongside a primary sk
 
 | Combination | Why not |
 |-------------|---------|
-| Any chatbot skill + image pipeline work | Different venv, different services, different concerns. If the task is image-only, none of these 14 skills apply. |
+| Any chatbot skill + image pipeline work | Different venv, different services, different concerns. If the task is image-only, none of these skills apply — **except image-chat-bridge**, the sanctioned exception for code that streams image gen into chat. |
 | mcp-tool-authoring + thinking-mode-routing | MCP tools and thinking modes are independent systems. A change to one does not affect the other unless the task explicitly bridges them. |
 
 ---

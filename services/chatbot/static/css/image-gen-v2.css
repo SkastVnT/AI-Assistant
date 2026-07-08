@@ -366,7 +366,7 @@
 /* ── Gallery ──────────────────────────────────────────────────── */
 .igv2-gallery-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 12px;
     margin-top: 10px;
 }
@@ -400,42 +400,8 @@
     transform: scale(1.04);
 }
 
-.igv2-gallery-meta {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 8px 10px;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
-    font-size: 0.7rem;
-    transform: translateY(40%);
-    opacity: 0;
-    transition: transform 0.25s ease, opacity 0.25s ease;
-}
-.igv2-gallery-item:hover .igv2-gallery-meta {
-    transform: translateY(0);
-    opacity: 1;
-}
-
-.igv2-gallery-prompt {
-    display: block;
-    color: #fff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-weight: 500;
-}
-
-.igv2-gallery-info {
-    display: block;
-    color: rgba(255, 255, 255, 0.65);
-    font-size: 0.65rem;
-    margin-top: 2px;
-}
-
-/* Shared base for hover-revealed corner buttons (delete + open-in-tab).
-   Click on the gallery card itself opens the in-page lightbox via
-   global-image-viewer.js — these buttons are explicit secondary actions. */
+/* Hover-revealed corner button (delete). Click on the image opens
+   the in-page lightbox via global-image-viewer.js. */
 .igv2-gallery-action,
 .igv2-gallery-delete {
     position: absolute;
@@ -459,7 +425,6 @@
 
 .igv2-gallery-delete,
 .igv2-gallery-action.igv2-gallery-delete { right: 6px; }
-.igv2-gallery-newtab { right: 40px; }
 
 .igv2-gallery-item { cursor: zoom-in; }
 .igv2-gallery-item:hover .igv2-gallery-delete,
@@ -468,7 +433,6 @@
     transform: scale(1);
 }
 .igv2-gallery-delete:hover { background: #ef4444; }
-.igv2-gallery-newtab:hover { background: #2563eb; }
 
 .igv2-gallery-empty {
     text-align: center;
@@ -635,124 +599,258 @@
     font-weight: 400;
 }
 
-/* ── Mode Selector Panel (replaces provider-choice dialog) ─────── */
+/* ══════════════════════════════════════════════════════════════
+   Mode Selector Panel (inline "choose how to generate" card)
+   Aligned to the Obsidian design tokens (violet accent / graphite).
+   Class + data-* hooks are consumed by main.js — keep them stable.
+   ══════════════════════════════════════════════════════════════ */
 .igv2-mode-panel {
-    padding: 14px 16px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: var(--bg-secondary, var(--bg));
+    padding: 16px;
+    border-radius: var(--radius-lg, 16px);
+    border: 1px solid var(--border-primary, rgba(255, 255, 255, 0.1));
+    background:
+        radial-gradient(120% 130% at 0% 0%,
+            color-mix(in srgb, var(--accent, #a78bfa) 10%, transparent), transparent 58%),
+        var(--bg-elevated, var(--bg-secondary, #1b2331));
+    box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.3));
 }
+
+/* ── Header ─────────────────────────────────────────────────── */
 .igv2-mode-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary, var(--text));
+    gap: 9px;
+    margin-bottom: 14px;
 }
-.igv2-mode-icon { font-size: 16px; }
+.igv2-mode-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-sm, 9px);
+    font-size: 16px;
+    line-height: 1;
+    background: color-mix(in srgb, var(--accent, #a78bfa) 16%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, #a78bfa) 30%, transparent);
+}
+.igv2-mode-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    background: var(--accent-gradient, linear-gradient(135deg, #a78bfa, #8b7ff0));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: var(--accent, #a78bfa); /* fallback where background-clip:text unsupported */
+}
+
+/* ── Card grid ──────────────────────────────────────────────── */
+/* Grid (not flex-wrap) so all three cards share one row and stretch
+   to equal height — fixes the old "refine card is shorter" bug. */
 .igv2-mode-cards {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 10px;
-    flex-wrap: wrap;
 }
+
 .igv2-mode-card {
-    flex: 1;
-    min-width: 180px;
-    padding: 14px;
-    border-radius: 10px;
-    border: 1.5px solid var(--border, rgba(255,255,255,0.12));
-    background: transparent;
-    cursor: pointer;
-    transition: border-color 0.18s, background 0.18s, transform 0.15s;
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 10px;
+    padding: 14px 14px 13px;
+    border-radius: var(--radius-md, 12px);
+    border: 1.5px solid var(--border-primary, rgba(255, 255, 255, 0.12));
+    background: color-mix(in srgb, var(--text-primary, #fff) 3%, transparent);
+    cursor: pointer;
     text-align: left;
     outline: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.18s, background 0.18s,
+                transform 0.15s, box-shadow 0.18s, opacity 0.25s, filter 0.25s;
 }
-.igv2-mode-card:hover {
-    border-color: var(--accent, #4a9eff);
-    background: rgba(74, 158, 255, 0.06);
-    transform: translateY(-1px);
-}
-.igv2-mode-card:focus-visible {
-    box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.35);
-}
-.igv2-mode-card--selected {
-    border-color: var(--accent, #4a9eff) !important;
-    background: rgba(74, 158, 255, 0.1) !important;
-}
-.igv2-mode-card--dimmed {
-    opacity: 0.38;
+
+/* Selected check badge (revealed by --selected) */
+.igv2-mode-card::after {
+    content: "✓";
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--accent-gradient, linear-gradient(135deg, #a78bfa, #8b7ff0));
+    opacity: 0;
+    transform: scale(0.5);
+    transition: opacity 0.2s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     pointer-events: none;
 }
-.igv2-mode-card-icon { font-size: 22px; line-height: 1; }
+
+.igv2-mode-card:hover {
+    border-color: color-mix(in srgb, var(--accent, #a78bfa) 55%, transparent);
+    background: color-mix(in srgb, var(--accent, #a78bfa) 8%, transparent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px -10px color-mix(in srgb, var(--accent, #a78bfa) 60%, transparent);
+}
+.igv2-mode-card:focus-visible {
+    border-color: var(--accent, #a78bfa);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #a78bfa) 35%, transparent);
+}
+
+/* Selected: gradient border via padding-box/border-box layering + glow */
+.igv2-mode-card--selected {
+    border-color: transparent !important;
+    background:
+        linear-gradient(color-mix(in srgb, var(--accent, #a78bfa) 12%, var(--bg-elevated, #1b2331)),
+                        color-mix(in srgb, var(--accent, #a78bfa) 12%, var(--bg-elevated, #1b2331))) padding-box,
+        var(--accent-gradient, linear-gradient(135deg, #a78bfa, #8b7ff0)) border-box !important;
+    box-shadow: 0 10px 26px -12px color-mix(in srgb, var(--accent, #a78bfa) 70%, transparent) !important;
+    transform: none;
+}
+.igv2-mode-card--selected::after {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.igv2-mode-card--dimmed {
+    opacity: 0.42;
+    filter: saturate(0.55);
+    pointer-events: none;
+    transform: none;
+    box-shadow: none;
+}
+
+.igv2-mode-card-icon {
+    font-size: 24px;
+    line-height: 1;
+}
+/* body flexes to fill so the sub-config tray sits pinned at the bottom */
 .igv2-mode-card-body {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
+    flex: 1;
 }
 .igv2-mode-card-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary, var(--text));
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-primary, #fff);
 }
 .igv2-mode-card-hint {
-    font-size: 12px;
+    font-size: 11.5px;
+    line-height: 1.45;
     color: var(--text-secondary, #888);
-    line-height: 1.4;
 }
-/* Batch chip row inside the image-only card */
-.igv2-batch-chips {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    margin-top: 6px;
-    flex-wrap: wrap;
-}
-.igv2-batch-label {
-    font-size: 12px;
-    color: var(--text-secondary, #888);
-    margin-right: 2px;
-}
-.igv2-bc {
-    padding: 3px 11px;
-    border-radius: 20px;
-    border: 1px solid var(--border, rgba(255,255,255,0.15));
-    background: transparent;
-    color: var(--text, #ddd);
-    font-size: 12px;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-.igv2-bc:hover { border-color: var(--accent, #4a9eff); }
-.igv2-bc--sel {
-    background: var(--accent, #4a9eff);
-    color: #fff;
-    border-color: var(--accent, #4a9eff);
-}
-/* Continuous config row */
+
+/* ── Sub-config trays (batch chips / continuous inputs) ─────────
+   Shared divider styling so they read as part of their card. */
+.igv2-batch-chips,
 .igv2-cont-config {
     display: flex;
-    gap: 10px;
+    align-items: center;
     flex-wrap: wrap;
-    margin-top: 6px;
-    font-size: 12px;
+    gap: 6px;
+    padding-top: 10px;
+    margin-top: auto;
+    border-top: 1px dashed var(--border-secondary, rgba(255, 255, 255, 0.1));
+}
+.igv2-batch-label {
+    font-size: 11px;
+    color: var(--text-tertiary, #888);
+}
+.igv2-bc {
+    min-width: 30px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full, 999px);
+    border: 1px solid var(--border-primary, rgba(255, 255, 255, 0.15));
+    background: transparent;
+    color: var(--text-secondary, #ccc);
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.12s;
+}
+.igv2-bc:hover {
+    border-color: var(--accent, #a78bfa);
+    color: var(--text-primary, #fff);
+    transform: translateY(-1px);
+}
+.igv2-bc--sel {
+    background: var(--accent-gradient, linear-gradient(135deg, #a78bfa, #8b7ff0));
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 3px 10px -3px color-mix(in srgb, var(--accent, #a78bfa) 70%, transparent);
+}
+
+.igv2-cont-config {
+    font-size: 11.5px;
     color: var(--text-secondary, #888);
 }
 .igv2-cont-config label {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
 }
 .igv2-cont-config input {
-    width: 52px;
-    padding: 3px 6px;
-    border: 1px solid var(--border, rgba(255,255,255,0.15));
-    border-radius: 6px;
-    background: var(--bg-input, rgba(255,255,255,0.05));
-    color: var(--text, #ddd);
+    width: 46px;
+    padding: 4px 6px;
+    border: 1px solid var(--border-primary, rgba(255, 255, 255, 0.15));
+    border-radius: var(--radius-sm, 7px);
+    background: var(--bg-input, rgba(255, 255, 255, 0.05));
+    color: var(--text-primary, #eee);
+    font-family: inherit;
     font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+.igv2-cont-config input:focus {
+    outline: none;
+    border-color: var(--accent, #a78bfa);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent, #a78bfa) 30%, transparent);
+}
+.igv2-cont-config input::-webkit-outer-spin-button,
+.igv2-cont-config input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* ── Footer hint (hidden once a mode is picked, via .is-done) ─── */
+.igv2-mode-foot {
+    margin-top: 12px;
+    font-size: 11.5px;
+    color: var(--text-tertiary, #888);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.igv2-mode-panel.is-done .igv2-mode-foot {
+    display: none;
+}
+
+/* ── Responsive: stack cards on narrow widths ───────────────── */
+@media (max-width: 560px) {
+    .igv2-mode-cards {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .igv2-mode-card,
+    .igv2-mode-card::after,
+    .igv2-bc {
+        transition-duration: 0.01ms !important;
+    }
+    .igv2-mode-card:hover,
+    .igv2-bc:hover { transform: none; }
 }

@@ -13,7 +13,7 @@
 | MCP context panel | `_mcp_sidebar.html` | `mcp.js` |
 | Image generation and SDXL modals | `_modals_image.html` | `modules/image-gen-v2.js`, `modules/image-gen.js`, `style-presets.js` |
 | Video generation modal | `_modals_video.html` | `modules/video-gen.js` |
-| Nano Banana, gallery, preview, Config Agent | `_modals_shared.html` | `modules/nano-banana.js`, `config-agent.js`, `modules/gallery-manager.js` |
+| Nano Banana, gallery, preview, Config Agent | `_modals_shared.html` | `modules/nano-banana.js`, `config-agent.js` |
 | Right status panel, thinking panel, compatibility elements | `_right_sidebar.html` | `modules/right-sidebar.js`, `thinking-panel.js` |
 | Script loading and Jinja-only Firebase logging | `_scripts.html`, `_firebase_logging.html` | files listed in `_scripts.html` |
 

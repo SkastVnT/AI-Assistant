@@ -1,3 +1,99 @@
+"""Focused smoke tests for the standalone LOCAL anime pipeline contract."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[3]
+APP_ROOT = ROOT / "app"
+for path in (ROOT, APP_ROOT, ROOT / "services" / "chatbot"):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
+
+
+def test_pc_policy_blocks_external_generation_and_allows_loopback():
+    from image_pipeline.anime_pipeline.runtime_policy import (
+        PolicyViolation,
+        RuntimePolicy,
+    )
+
+    policy = RuntimePolicy.from_profile("pc_12gb")
+    policy.assert_url("http://127.0.0.1:8188/system_stats", purpose="comfyui")
+
+    with pytest.raises(PolicyViolation, match="Outbound request blocked"):
+        policy.assert_url(
+            "https://api.openai.com/v1/chat/completions",
+            purpose="generation",
+        )
+
+
+def test_laptop_external_validator_requires_sfw_opt_in():
+    from image_pipeline.anime_pipeline.runtime_policy import (
+        PolicyViolation,
+        RuntimePolicy,
+    )
+
+    policy = RuntimePolicy.from_profile(
+        "laptop_6gb",
+        adult_content_policy="request_opt_in",
+    )
+    policy.assert_url(
+        "https://api.openai.com/v1/chat/completions",
+        purpose="external_validation",
+        content_mode="sfw",
+        validator_mode="external_sfw_opt_in",
+    )
+
+    with pytest.raises(PolicyViolation, match="requires local validation"):
+        policy.validate_request(
+            content_mode="adult_only",
+            validator_mode="external_sfw_opt_in",
+            adult_verified=True,
+        )
+
+
+def test_service_request_contract_disables_laptop_adult_content(monkeypatch):
+    from core.anime_pipeline_service import validate_request
+
+    monkeypatch.delenv("ANIME_PIPELINE_CONFIG", raising=False)
+    monkeypatch.setenv("ANIME_PIPELINE_PROFILE", "laptop_6gb")
+    monkeypatch.setenv("ANIME_PIPELINE_ADULT_CONTENT_POLICY", "sfw_only")
+    request, error = validate_request(
+        {
+            "prompt": "original adult character portrait",
+            "content_mode": "adult_only",
+            "adult_verified": True,
+            "deployment_profile": "laptop_6gb",
+        }
+    )
+
+    assert request is None
+    assert "disabled on laptop_6gb" in str(error)
+
+
+def test_service_request_contract_allows_laptop_sfw_validator_opt_in(monkeypatch):
+    from core.anime_pipeline_service import validate_request
+
+    monkeypatch.delenv("ANIME_PIPELINE_CONFIG", raising=False)
+    monkeypatch.setenv("ANIME_PIPELINE_PROFILE", "laptop_6gb")
+    monkeypatch.setenv("ANIME_PIPELINE_ADULT_CONTENT_POLICY", "sfw_only")
+    request, error = validate_request(
+        {
+            "prompt": "anime landscape",
+            "validator_mode": "external_sfw_opt_in",
+            "deployment_profile": "laptop_6gb",
+        }
+    )
+
+    assert error is None
+    assert request is not None
+    assert request.content_mode == "sfw"
+    assert request.validator_mode == "external_sfw_opt_in"
+
+
 # """Focused tests for the standalone LOCAL anime pipeline contract."""
 
 # from __future__ import annotations

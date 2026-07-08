@@ -146,9 +146,19 @@ def list_memories():
                     except Exception as e:
                         logger.error(f"Error loading {memory_file}: {e}")
 
-        memories.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        # Dedup by id — old and new format may both emit the same memory
+        seen: set[str] = set()
+        unique: list = []
+        for m in memories:
+            mid = m.get("id") or m.get("memory_id") or ""
+            if mid and mid in seen:
+                continue
+            if mid:
+                seen.add(mid)
+            unique.append(m)
+        unique.sort(key=lambda x: x.get("created_at", ""), reverse=True)
 
-        return jsonify({"memories": memories})
+        return jsonify({"memories": unique})
 
     except Exception as e:
         logger.error(f"[Memory List] Error: {e}")
@@ -338,9 +348,18 @@ def search_memories():
             except Exception as e:
                 logger.error(f"Error searching {memory_file}: {e}")
 
-        memories.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        seen_s: set[str] = set()
+        unique_s: list = []
+        for m in memories:
+            mid = m.get("id") or m.get("memory_id") or ""
+            if mid and mid in seen_s:
+                continue
+            if mid:
+                seen_s.add(mid)
+            unique_s.append(m)
+        unique_s.sort(key=lambda x: x.get("created_at", ""), reverse=True)
 
-        return jsonify({"memories": memories, "count": len(memories)})
+        return jsonify({"memories": unique_s, "count": len(unique_s)})
 
     except Exception as e:
         logger.error(f"[Search Memory] Error: {e}")

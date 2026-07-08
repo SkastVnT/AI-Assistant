@@ -4,26 +4,26 @@
  */
 
 import { ChatManager } from './modules/chat-manager.js?v=20260422';
-import { APIService } from './modules/api-service.js?v=20260422';
-import { UIUtils } from './modules/ui-utils.js';
-import { MessageRenderer } from './modules/message-renderer.js?v=20260509a';
+import { APIService } from './modules/api-service.js?v=20260707a';
+import { UIUtils } from './modules/ui-utils.js?v=20260630a';
+import { MessageRenderer } from './modules/message-renderer.js?v=20260707b';
 import { FileHandler } from './modules/file-handler.js';
 import { MemoryManager } from './modules/memory-manager.js';
 import { ImageGeneration } from './modules/image-gen.js';
-import { ImageGenV2 } from './modules/image-gen-v2.js';
+import { ImageGenV2 } from './modules/image-gen-v2.js?v=20260630a';
 import { VideoGen } from './modules/video-gen.js';
 import { ExportHandler } from './modules/export-handler.js';
 import { SplitViewManager } from './modules/split-view.js';
 import { initLanguage } from './language-switcher.js';
-import { AnimePipeline } from './modules/anime-pipeline.js?v=20260509a';
-import { initOverlayActions } from './modules/overlay-actions.js';
+import { AnimePipeline } from './modules/anime-pipeline.js?v=20260707b';
+import { initOverlayActions } from './modules/overlay-actions.js?v=20260630a';
 import { initOverlayManager, registerOverlay, enablePanelMode, openOverlay, closeOverlay, toggleOverlay, isOpen } from './modules/overlay-manager.js?v=20260508';
 import { domToStructured, legacyHtmlToStructured } from './modules/message-model.js';
 import { buildHistoryFromTimeline } from './modules/timeline.js';
 // Electron bridge: side-effect import — tags <body class="is-desktop"|"is-browser">,
 // wires custom titlebar buttons, mirrors job count to system tray badge.
 import './modules/electron-bridge.js';
-import { renderSuggestions } from './modules/send-message-helpers.js';
+import { renderSuggestions } from './modules/send-message-helpers.js?v=20260630b';
 
 class ChatBotApp {
     constructor() {
@@ -43,10 +43,28 @@ class ChatBotApp {
         // Expose chatManager and chatApp globally
         window.chatManager = this.chatManager;
         window.chatApp = this;
+        // Expose the anime pipeline instance so the Thinking-with-Images
+        // bridge (and the legacy provider dialog in send-message-helpers.js)
+        // can reach it via window.animePipeline. Without this, the bridge's
+        // window.animePipeline.injectSSEEvent is undefined and image frames
+        // are silently dropped.
+        window.animePipeline = this.animePipeline;
+
+        // Resolve the Thinking-with-Images bridge flag ONCE in the background
+        // so the send path can read it synchronously and never block on a
+        // (slow) health probe. Default false until resolved → safe fallback
+        // to the legacy modal flow for a send fired in the first moment.
+        if (window.__IMAGE_CHAT_BRIDGE === undefined) window.__IMAGE_CHAT_BRIDGE = false;
+        fetch('/api/anime-pipeline/health')
+            .then(r => r.json())
+            .then(d => { window.__IMAGE_CHAT_BRIDGE = !!d.chat_bridge; })
+            .catch(() => { window.__IMAGE_CHAT_BRIDGE = false; });
         window.uiUtils = this.uiUtils;
         window.appConfirm = (m, opts) => this.uiUtils.showConfirmAsync(m, opts);
         window.appPrompt  = (m, defVal, opts) => this.uiUtils.showPromptAsync(m, defVal, opts);
         window.appAlert   = (m, type) => this.uiUtils.showAlert(m, type);
+        window.showToast  = (m, t) => this.uiUtils.showToast(m, t);
+        window.overlayManager = { toggle: toggleOverlay, open: openOverlay, close: closeOverlay, isOpen };
         
         // State — no tools active by default
         this.activeTools = new Set();
@@ -646,7 +664,12 @@ class ChatBotApp {
             this.uiUtils.hideWelcomeScreen();
             const joined = session.messages.join('');
             elements.chatContainer.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(joined) : joined;
-            
+
+            // Re-initialize charts — canvas state is not persisted in localStorage,
+            // so chart-block divs restored from HTML need their canvas redrawn from
+            // the embedded .chart-spec-data element.
+            if (this.messageRenderer) this.messageRenderer._initChartBlocks(elements.chatContainer);
+
             // Restore message version history from session
             if (session.messageVersions) {
                 Object.keys(session.messageVersions).forEach(messageId => {
@@ -668,18 +691,13 @@ class ChatBotApp {
                 });
             }
             
-            // Reattach event listeners
+            // Reattach event listeners (image clicks handled by global-image-viewer.js)
             this.messageRenderer.reattachEventListeners(
                 elements.chatContainer,
                 null,
                 null,
-                (img) => this.openImagePreview(img)
+                null
             );
-            
-            // Make images clickable (with retry)
-            const makeClickable = () => this.messageRenderer.makeImagesClickable((img) => this.openImagePreview(img));
-            setTimeout(makeClickable, 200);
-            setTimeout(makeClickable, 600);
         } else {
             this.uiUtils.clearChat();
             this.uiUtils.showWelcomeScreen();
@@ -740,6 +758,17 @@ class ChatBotApp {
             return;
         }
 
+        // ── Double-click guard ──────────────────────────────────────────
+        // Only catches an accidental rapid double/triple click (< 800ms) so
+        // it never fires two requests at once. Does NOT affect normal sending
+        // (typing + send is always far more than 800ms apart).
+        const _nowMs = performance.now();
+        if (this._lastSendMs && (_nowMs - this._lastSendMs) < 800) {
+            console.warn('[send] ignored accidental double-click');
+            return;
+        }
+        this._lastSendMs = _nowMs;
+
         // Get active tools early — needed for routing
         const activeTools = window.getActiveTools ? window.getActiveTools() : Array.from(this.activeTools);
 
@@ -747,7 +776,19 @@ class ChatBotApp {
         // Route to image gen if: (1) tool is ON, OR (2) message looks like an image request
         const imageGenToolActive = activeTools.includes('image-generation');
         const isImageIntent = message && (imageGenToolActive || ImageGenV2.isImageRequest(message));
-        if (isImageIntent) {
+
+        // ── Thinking-with-Images bridge gate ─────────────────────────────
+        // The flag is resolved ONCE at app init (non-blocking — see the
+        // background fetch in the constructor) and cached on
+        // window.__IMAGE_CHAT_BRIDGE. Read it SYNCHRONOUSLY here. We must NOT
+        // await a health probe in the click path — /api/anime-pipeline/health
+        // runs a slow check_availability(probe_remote=True), and awaiting it
+        // froze the Send button on the first image prompt.
+        const chatBridgeOn = window.__IMAGE_CHAT_BRIDGE === true;
+
+        // Bridge OFF → legacy modal/panel flow (unchanged). Bridge ON → skip
+        // this block and fall through to the normal /chat/stream send.
+        if (isImageIntent && !chatBridgeOn) {
             console.log('[App] Image generation routing:', imageGenToolActive ? 'tool active' : 'intent detected');
             const timestamp = this.uiUtils.formatTimestamp(new Date());
             this.messageRenderer.addMessage(
@@ -770,14 +811,14 @@ class ChatBotApp {
                                     <span class="igv2-mode-title">Tạo ảnh (LOCAL)</span>
                                 </div>
                                 <div class="igv2-mode-cards">
-                                    <div class="igv2-mode-card" data-mode="refine" tabindex="0">
+                                    <div class="igv2-mode-card" data-mode="refine" role="button" tabindex="0" aria-pressed="false" aria-label="Tạo tinh chỉnh — đầy đủ pipeline, trả về 1 ảnh tốt nhất">
                                         <span class="igv2-mode-card-icon">✨</span>
                                         <div class="igv2-mode-card-body">
                                             <span class="igv2-mode-card-name">Tạo tinh chỉnh</span>
                                             <span class="igv2-mode-card-hint">Đầy đủ pipeline, trả về 1 ảnh tốt nhất</span>
                                         </div>
                                     </div>
-                                    <div class="igv2-mode-card" data-mode="imageonly" tabindex="0">
+                                    <div class="igv2-mode-card" data-mode="imageonly" role="button" tabindex="0" aria-pressed="false" aria-label="Không tinh chỉnh — bỏ qua tinh chỉnh, trả về nhiều ảnh">
                                         <span class="igv2-mode-card-icon">🎨</span>
                                         <div class="igv2-mode-card-body">
                                             <span class="igv2-mode-card-name">Không tinh chỉnh</span>
@@ -790,7 +831,7 @@ class ChatBotApp {
                                             <button type="button" class="igv2-bc" data-batch="6">6</button>
                                         </div>
                                     </div>
-                                    <div class="igv2-mode-card" data-mode="continuous" tabindex="0">
+                                    <div class="igv2-mode-card" data-mode="continuous" role="button" tabindex="0" aria-pressed="false" aria-label="Tạo liên tục — giữ nguyên prompt, đổi nhân vật mỗi lượt">
                                         <span class="igv2-mode-card-icon">🔁</span>
                                         <div class="igv2-mode-card-body">
                                             <span class="igv2-mode-card-name">Tạo liên tục</span>
@@ -802,6 +843,7 @@ class ChatBotApp {
                                         </div>
                                     </div>
                                 </div>
+                                <div class="igv2-mode-foot">👆 Chọn một chế độ để bắt đầu tạo ảnh</div>
                             </div>
                         </div>
                     </div>
@@ -833,10 +875,13 @@ class ChatBotApp {
                 const finalize = (card) => {
                     if (_resolved) return;
                     _resolved = true;
+                    panelEl.querySelector('.igv2-mode-panel')?.classList.add('is-done');
                     panelEl.querySelectorAll('.igv2-mode-card').forEach(c => {
                         c.style.pointerEvents = 'none';
-                        if (c === card) c.classList.add('igv2-mode-card--selected');
-                        else c.classList.add('igv2-mode-card--dimmed');
+                        const isSel = c === card;
+                        c.classList.toggle('igv2-mode-card--selected', isSel);
+                        c.classList.toggle('igv2-mode-card--dimmed', !isSel);
+                        c.setAttribute('aria-pressed', isSel ? 'true' : 'false');
                     });
                     const mode = card.dataset.mode;
                     if (mode === 'refine') {
@@ -1034,7 +1079,10 @@ class ChatBotApp {
         // If image-generation tool is active, show inline loading placeholder
         let imageLoadingPlaceholder = null;
         const hasImageTool = activeTools.includes('image-generation');
-        if (hasImageTool) {
+        // In bridge mode the inline image bubble (ap_* renderer) IS the loading
+        // indicator, so skip the legacy "Đang tạo ảnh" placeholder.
+        const _forceImageBridge = isImageIntent && !!chatBridgeOn;
+        if (hasImageTool && !_forceImageBridge) {
             const placeholder = document.createElement('div');
             placeholder.className = 'message assistant';
             placeholder.innerHTML = `
@@ -1083,6 +1131,8 @@ class ChatBotApp {
             let thinkingReceived = false;
             let streamCompleteData = {};
             let streamSuggestions = [];
+            let animeUid = null;  // Thinking-with-Images: id of the inline image bubble
+            let imageThinkingBlock = null;  // Phase 1b: collapsible host for the image bubble
             const _streamStartMs = performance.now();
 
             // Prepare streaming message div for progressive rendering
@@ -1130,6 +1180,13 @@ class ChatBotApp {
                         skill: window.skillManager ? window.skillManager.getActiveSkillId() : '',
                         conversationId: _conversationId,
                         generatedImages: _recentGenImages,
+                        forceImageBridge: _forceImageBridge,
+                        // Character picker selection (deterministic path). When
+                        // empty the backend auto-derives the character from the
+                        // message via NLU. Mirrors anime-pipeline.js / image-gen-v2.js.
+                        characterKey: (window.selectedCharacter && window.selectedCharacter.key)
+                            || document.body.getAttribute('data-character-key') || '',
+                        overReviewers: window.overReviewersEnabled === true,
                         ...window.getAdvancedModelParams(),
                     },
                     this.currentAbortController.signal,
@@ -1199,6 +1256,17 @@ class ChatBotApp {
                         onComplete: (data) => {
                             fullResponse = data.response || fullResponse;
                             streamCompleteData = data;
+                            // Phase 1b: finalize the image thinking-block WITHOUT
+                            // wiping its nested pipeline card. The final image is
+                            // promoted OUT of the block by _inlineShowResult, so
+                            // the pill can collapse to a one-line summary — the
+                            // stage timeline stays inside for anyone who expands.
+                            if (imageThinkingBlock) {
+                                this.messageRenderer.finalizeThinkingKeepContent(
+                                    imageThinkingBlock,
+                                    { label: 'Đã tạo ảnh', collapsed: true },
+                                );
+                            }
                             // Clean up thinking container if it never got content
                             if (thinkingContainer && !thinkingReceived) {
                                 thinkingContainer.remove();
@@ -1217,6 +1285,44 @@ class ChatBotApp {
                         onError: (data) => {
                             console.error('[Stream] Error:', data.error);
                             streamFailed = true;
+                        },
+                        // ── Thinking-with-Images bridge ──────────────────
+                        // The chat stream forwards the anime pipeline's ap_*
+                        // frames. Mount an inline image bubble (above the
+                        // caption text div) on the first frame, then drive it
+                        // via the existing renderer. The short LLM caption
+                        // arrives afterwards as normal `chunk` events.
+                        onAnimeEvent: (name, data) => {
+                            if (!window.animePipeline || !window.animePipeline.injectSSEEvent) {
+                                console.warn('[bridge] injectSSEEvent missing — stale anime-pipeline.js cache?', name);
+                                return;
+                            }
+                            if (!animeUid) {
+                                animeUid = 'apc-' + ((data && data.job_id) || Date.now().toString(36));
+                                console.log('[bridge] image bubble start, uid=', animeUid);
+                                // Phase 1b: nest the pipeline card inside a collapsible
+                                // "Đang tạo ảnh" thinking-block (Thinking-with-Images).
+                                // Always use a DEDICATED block — never the reasoning
+                                // block, whose standard finalizeThinking() rebuilds
+                                // innerHTML and would wipe the nested card.
+                                imageThinkingBlock = this.messageRenderer.createThinkingSection(
+                                    null, true, 'Đang tạo ảnh',
+                                );
+                                if (streamMsgDiv && streamMsgDiv.parentNode) {
+                                    streamMsgDiv.parentNode.insertBefore(imageThinkingBlock, streamMsgDiv);
+                                }
+                                window.animePipeline.beginInlineFromChat(
+                                    animeUid, message,
+                                    {
+                                        chatContainer: elements.chatContainer,
+                                        parentEl: imageThinkingBlock._contentEl,
+                                    },
+                                );
+                                // Hide the caption bubble until the caption chunk arrives
+                                // (it renders below the thinking-block).
+                                if (streamMsgDiv) streamMsgDiv.style.display = 'none';
+                            }
+                            window.animePipeline.injectSSEEvent(animeUid, name, data);
                         },
                     }
                 );
@@ -1307,6 +1413,7 @@ class ChatBotApp {
                         const rawHtml = marked.parse(responseContent);
                         streamTextDiv.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
                     }
+                    this.messageRenderer._initChartBlocks(streamTextDiv); // before hljs — see message-renderer.js
                     // Highlight code blocks
                     if (typeof hljs !== 'undefined') {
                         streamTextDiv.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
@@ -1400,11 +1507,6 @@ class ChatBotApp {
                 window.logChatToFirebase(message, formValues.model, fullResponse, []);
             }
             
-            // Make images clickable (with retry for dynamically loaded images)
-            const makeClickable = () => this.messageRenderer.makeImagesClickable((img) => this.openImagePreview(img));
-            setTimeout(makeClickable, 100);
-            setTimeout(makeClickable, 500);
-
             // ── Follow-up suggestions + Think Harder ──
             if (!streamFailed && this.messageRenderer.features?.suggestionChips !== false) {
                 renderSuggestions(this, {
@@ -1533,11 +1635,6 @@ class ChatBotApp {
             
             // Save session
             this.saveCurrentSession(true);
-            
-            // Make images clickable (with retry)
-            const makeClickable = () => this.messageRenderer.makeImagesClickable((img) => this.openImagePreview(img));
-            setTimeout(makeClickable, 100);
-            setTimeout(makeClickable, 500);
             
         } catch (error) {
             if (error.name !== 'AbortError') {
@@ -1839,14 +1936,8 @@ class ChatBotApp {
             }
         });
 
-        // Re-attach actions after DOM restore.
-        this.messageRenderer.reattachEventListeners(
-            chatContainer,
-            null,
-            null,
-            (img) => this.openImagePreview(img)
-        );
-        this.messageRenderer.makeImagesClickable((img) => this.openImagePreview(img));
+        // Re-attach actions after DOM restore (image clicks handled by global-image-viewer.js).
+        this.messageRenderer.reattachEventListeners(chatContainer, null, null, null);
 
         // Persist selected branch immediately (without bumping updatedAt order).
         this.saveCurrentSession(false);
@@ -2686,13 +2777,7 @@ if (!window.__igv2OverlayDelegationBound) {
             return;
         }
 
-        const imageEl = event.target.closest('.igv2-chat-image img[data-igv2-open]');
-        if (imageEl) {
-            const targetUrl = imageEl.getAttribute('data-igv2-open');
-            if (targetUrl) {
-                window.open(targetUrl, '_blank', 'noopener');
-            }
-        }
+        // Image click handled by global-image-viewer.js delegated listener
     });
 }
 
@@ -3024,10 +3109,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // Expose message rendering functions
-    window.openImagePreview = (img) => app.messageRenderer.openImagePreview(img);
-    window.closeImagePreview = () => app.messageRenderer.closeImagePreview();
-    window.downloadPreviewImage = () => app.messageRenderer.downloadPreviewImage();
+    // window.openImagePreview / closeImagePreview / downloadPreviewImage /
+    // zoomPreviewImage / resetPreviewZoom are set by global-image-viewer.js
+    // (auto-inits as a module). No duplicate wiring needed here.
 
     // 2026-04-28: lightbox "Upscale" button removed by user request
     // ("quá nặng"). Image-Gen V2 modal now exposes orientation
@@ -3429,21 +3513,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     };
 
-    // Gallery state
-    let _galleryPage = 1;
-    let _galleryTotal = 0;
-    let _galleryTotalPages = 1;
-    let _galleryLoading = false;
-    let _galleryItems = [];
-    let _gallerySearchTerm = '';
-    let _gallerySourceFilter = 'all';
-    let _galleryInited = false;
-    const GALLERY_PER_PAGE = 48;
+    // Gallery state — server-side pagination with client-side page cache.
+    const GALLERY_PER_PAGE = 8;
+    const _gs = {                    // _gs = gallery state (short alias)
+        page: 1,
+        totalCount: 0,
+        totalPages: 1,
+        cache: new Map(),            // cacheKey -> items[] | null (error)
+        loading: new Set(),          // cacheKeys currently fetching
+        searchTerm: '',
+        sourceFilter: 'all',
+        inited: false,
+    };
+
+    // Cache/loading key is scoped to the active filter + search so each view
+    // keeps its own paginated cache. Source + search are resolved server-side
+    // now, so a page of results is only valid for the filter that fetched it.
+    const _cacheKey = (page) => `${_gs.sourceFilter}|${_gs.searchTerm}|${page}`;
 
     const _buildGalleryItem = (img) => {
         const rawFilename = img.filename || (img.path || '').split('/').pop() || '';
-        const displayUrl  = img.cloud_url || img.path || img.url || '';
-        const fallbackUrl = img.local_path && img.local_path !== displayUrl ? img.local_path : '';
+        // Priority: local (display_url from backend) -> cloud/ImgBB -> drive
+        const displayUrl  = img.display_url || img.cloud_url || img.path || img.url || '';
+        const fallbackUrl = img.cloud_url && img.cloud_url !== displayUrl ? img.cloud_url
+                          : img.drive_url && img.drive_url !== displayUrl ? img.drive_url : '';
         const isCloud = !!img.cloud_url;
         const hasDrive = !!img.drive_url;
         const prompt = img.prompt || '';
@@ -3451,7 +3544,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const createdLabel = created ? (() => { try { return new Date(created).toLocaleDateString('vi-VN'); } catch(_){return created;} })() : '';
         const imageDataStr = encodeURIComponent(JSON.stringify({
             id: img.id || '', filename: rawFilename,
-            path: img.cloud_url || img.path || img.url || '',
+            path: displayUrl,
             cloud_url: img.cloud_url || '', drive_url: img.drive_url || '',
             share_url: img.share_url || img.drive_url || img.cloud_url || img.path || img.url || '',
             created: created, creator: img.creator || '',
@@ -3578,103 +3671,170 @@ document.addEventListener('DOMContentLoaded', () => {
         return div;
     };
 
+    // Fetch a single page from the API and cache it.
+    const _galleryFetchPage = async (page) => {
+        if (page < 1) return;
+        if (_gs.totalPages > 1 && page > _gs.totalPages) return;
+        const key = _cacheKey(page);
+        if (_gs.cache.has(key) || _gs.loading.has(key)) return;
+
+        _gs.loading.add(key);
+        try {
+            const params = new URLSearchParams({
+                page: page,
+                per_page: GALLERY_PER_PAGE,
+                all: 'true',
+                source: _gs.sourceFilter,
+            });
+            if (_gs.searchTerm) params.set('q', _gs.searchTerm);
+            const resp = await fetch(`/api/gallery/images?${params.toString()}`);
+            const data = await resp.json();
+            if (!data.success) throw new Error(data.error || 'Load failed');
+
+            _gs.cache.set(key, Array.isArray(data.images) ? data.images : []);
+            _gs.totalCount = typeof data.total === 'number' ? data.total : _gs.totalCount;
+            _gs.totalPages = data.total_pages ||
+                Math.max(1, Math.ceil(_gs.totalCount / GALLERY_PER_PAGE));
+
+            const stats = document.getElementById('galleryStats');
+            if (stats) {
+                const src = (data.source || '').includes('mongodb') ? '☁️' : '💾';
+                const label = _gs.sourceFilter === 'local' ? ' · 💾 Local'
+                            : _gs.sourceFilter === 'cloud' ? ' · ☁️ Cloud' : '';
+                stats.textContent = `📊 ${_gs.totalCount} ảnh ${src}${label}`;
+            }
+            // Only re-render if this response is still for the active view.
+            if (key === _cacheKey(_gs.page)) _galleryRender();
+        } catch (err) {
+            console.error(`[Gallery] page ${page} error:`, err);
+            _gs.cache.set(key, null);           // null = error marker
+            if (key === _cacheKey(_gs.page)) _galleryRender();
+        } finally {
+            _gs.loading.delete(key);
+        }
+    };
+
+    // Navigate to page N and pre-fetch adjacent pages.
+    const _galleryGoTo = (page) => {
+        _gs.page = Math.max(1, Math.min(page, _gs.totalPages));
+        _galleryRender();
+        _galleryFetchPage(_gs.page);            // ensure current page is loaded
+        _galleryFetchPage(_gs.page + 1);        // pre-load next
+        if (_gs.page === _gs.totalPages && _gs.page > 1) {
+            _galleryFetchPage(_gs.page - 1);    // pre-load prev when on last page
+        }
+    };
+
+    // Source + search are resolved server-side, so a cached page is already
+    // the final filtered set — no client-side re-filtering needed.
+    const _galleryFiltered = (items) => items || [];
+
+    const _galleryRenderPagination = () => {
+        const bar = document.getElementById('galleryPagination');
+        if (!bar) return;
+        bar.innerHTML = '';
+        if (_gs.totalPages <= 1) { bar.style.display = 'none'; return; }
+        bar.style.display = 'flex';
+
+        const mkBtn = (label, target, opts = {}) => {
+            const b = document.createElement('button');
+            b.className = 'gallery-page-btn' + (opts.active ? ' active' : '');
+            b.textContent = label;
+            if (opts.disabled) b.disabled = true;
+            else b.onclick = () => _galleryGoTo(target);
+            return b;
+        };
+
+        bar.appendChild(mkBtn('‹', _gs.page - 1, { disabled: _gs.page <= 1 }));
+
+        const out = [];
+        for (let p = 1; p <= _gs.totalPages; p++) {
+            if (p === 1 || p === _gs.totalPages || (p >= _gs.page - 1 && p <= _gs.page + 1)) {
+                out.push(p);
+            } else if (out[out.length - 1] !== '…') {
+                out.push('…');
+            }
+        }
+        out.forEach(p => {
+            if (p === '…') {
+                const dot = document.createElement('span');
+                dot.className = 'gallery-page-dot';
+                dot.textContent = '…';
+                bar.appendChild(dot);
+            } else {
+                bar.appendChild(mkBtn(String(p), p, { active: p === _gs.page }));
+            }
+        });
+
+        bar.appendChild(mkBtn('›', _gs.page + 1, { disabled: _gs.page >= _gs.totalPages }));
+    };
+
     const _galleryRender = () => {
         const grid = document.getElementById('galleryGrid');
         if (!grid) return;
 
-        // Save & remove load-more button
-        const loadMoreBtn = grid.querySelector('.gallery-load-more');
-        if (loadMoreBtn) loadMoreBtn.remove();
+        const key = _cacheKey(_gs.page);
+        const cached = _gs.cache.get(key);
 
-        // Apply filters
-        let filtered = _galleryItems;
-        if (_gallerySearchTerm) {
-            const term = _gallerySearchTerm.toLowerCase();
-            filtered = filtered.filter(img =>
-                (img.prompt || '').toLowerCase().includes(term) ||
-                (img.filename || '').toLowerCase().includes(term));
+        if (cached === null) {
+            grid.innerHTML = '';
+            const errEl = document.createElement('div');
+            errEl.className = 'gallery-empty';
+            errEl.textContent = '❌ Lỗi tải trang này. ';
+            const retryBtn = document.createElement('button');
+            retryBtn.className = 'gallery-retry-btn';
+            retryBtn.textContent = 'Thử lại';
+            retryBtn.onclick = () => { _gs.cache.delete(key); _galleryGoTo(_gs.page); };
+            errEl.appendChild(retryBtn);
+            grid.appendChild(errEl);
+            _galleryRenderPagination();
+            return;
         }
-        if (_gallerySourceFilter === 'cloud') filtered = filtered.filter(img => !!img.cloud_url);
-        if (_gallerySourceFilter === 'local') filtered = filtered.filter(img => !img.cloud_url);
 
-        // Update filter button labels with counts
-        const cloudCount = _galleryItems.filter(img => !!img.cloud_url).length;
-        const localCount = _galleryItems.filter(img => !img.cloud_url).length;
-        const allBtn   = document.getElementById('galleryFilterAll');
-        const cloudBtn = document.getElementById('galleryFilterCloud');
-        const localBtn = document.getElementById('galleryFilterLocal');
-        if (allBtn)   allBtn.textContent   = `Tất cả (${_galleryItems.length})`;
-        if (cloudBtn) cloudBtn.textContent = `☁️ Cloud (${cloudCount})`;
-        if (localBtn) localBtn.textContent = `💾 Local (${localCount})`;
+        // Skeleton only while there's NO data for this view yet. We must NOT
+        // gate on isLoading here: _galleryFetchPage() calls _galleryRender()
+        // right after caching results but BEFORE its finally-block clears the
+        // loading flag, so gating on isLoading would re-show the skeleton and
+        // swallow the just-fetched items (the "stuck on Đang tải…" bug).
+        if (!cached) {
+            grid.innerHTML = '';
+            const skel = document.createDocumentFragment();
+            for (let i = 0; i < GALLERY_PER_PAGE; i++) {
+                const sk = document.createElement('div');
+                sk.className = 'gallery-skeleton';
+                skel.appendChild(sk);
+            }
+            grid.appendChild(skel);
+            _galleryFetchPage(_gs.page);
+            _galleryRenderPagination();
+            return;
+        }
+
+        const items = _galleryFiltered(cached);
 
         grid.innerHTML = '';
-
-        if (filtered.length === 0) {
+        if (items.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'gallery-empty';
-            empty.textContent = _gallerySearchTerm ? '🔍 Không tìm thấy ảnh phù hợp' : '🖼️ Chưa có ảnh nào';
+            empty.textContent = _gs.searchTerm
+                ? `🔍 Không tìm thấy ảnh cho "${_gs.searchTerm}"`
+                : _gs.sourceFilter === 'local' ? '💾 Chưa có ảnh Local nào'
+                : _gs.sourceFilter === 'cloud' ? '☁️ Chưa có ảnh Cloud nào'
+                : '🖼️ Chưa có ảnh nào';
             grid.appendChild(empty);
         } else {
             const frag = document.createDocumentFragment();
-            filtered.forEach(img => frag.appendChild(_buildGalleryItem(img)));
+            items.forEach(img => frag.appendChild(_buildGalleryItem(img)));
             grid.appendChild(frag);
         }
 
-        // Re-attach load-more if there are more pages to fetch
-        if (_galleryPage < _galleryTotalPages) {
-            const remaining = _galleryTotal - _galleryPage * GALLERY_PER_PAGE;
-            const btn = document.createElement('button');
-            btn.className = 'gallery-load-more';
-            btn.textContent = `Tải thêm${remaining > 0 ? ` (còn ${remaining})` : ''}`;
-            btn.onclick = async () => {
-                _galleryPage++;
-                await _galleryLoadPage(_galleryPage, true);
-            };
-            grid.appendChild(btn);
-        }
-    };
-
-    const _galleryLoadPage = async (page, append = false) => {
-        if (_galleryLoading) return;
-        _galleryLoading = true;
-
-        const grid  = document.getElementById('galleryGrid');
-        const stats = document.getElementById('galleryStats');
-        if (!grid || !stats) { _galleryLoading = false; return; }
-
-        if (!append) {
-            grid.innerHTML = '<div class="gallery-empty">⏳ Đang tải ảnh…</div>';
-        }
-
-        try {
-            const resp = await fetch(`/api/gallery/images?all=true&page=${page}&per_page=${GALLERY_PER_PAGE}`);
-            const data = await resp.json();
-            if (!data.success) throw new Error(data.error || 'Load failed');
-
-            _galleryTotal      = data.total || 0;
-            _galleryTotalPages = data.total_pages || 1;
-
-            if (!append) _galleryItems = [];
-            if (data.images && data.images.length > 0) {
-                _galleryItems.push(...data.images);
-            }
-
-            const srcIcon = (data.source || '').includes('mongodb') ? '☁️' : '💾';
-            const pageInfo = _galleryTotalPages > 1 ? ` — trang ${page}/${_galleryTotalPages}` : '';
-            stats.textContent = `📊 ${_galleryTotal} ảnh ${srcIcon}${pageInfo}`;
-
-            _galleryRender();
-        } catch (err) {
-            console.error('[Gallery] Load error:', err);
-            grid.innerHTML = '<div class="gallery-empty">❌ Lỗi tải gallery</div>';
-        } finally {
-            _galleryLoading = false;
-        }
+        _galleryRenderPagination();
+        grid.scrollTop = 0;
     };
 
     const _galleryInitToolbar = () => {
-        if (_galleryInited) return;
-        _galleryInited = true;
+        if (_gs.inited) return;
+        _gs.inited = true;
 
         let _searchTimer;
         const searchInput = document.getElementById('gallerySearchInput');
@@ -3682,18 +3842,26 @@ document.addEventListener('DOMContentLoaded', () => {
             searchInput.addEventListener('input', () => {
                 clearTimeout(_searchTimer);
                 _searchTimer = setTimeout(() => {
-                    _gallerySearchTerm = searchInput.value.trim().toLowerCase();
-                    _galleryRender();
+                    _gs.searchTerm = searchInput.value.trim().toLowerCase();
+                    _gs.page = 1;
+                    _gs.totalCount = 0;
+                    _gs.totalPages = 1;
+                    _galleryRender();               // spinner, then fetch fires
+                    _galleryFetchPage(2);           // warm next page for the new view
                 }, 240);
             });
         }
 
         document.querySelectorAll('.gallery-filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                _gallerySourceFilter = btn.dataset.filter || 'all';
+                _gs.sourceFilter = btn.dataset.filter || 'all';
                 document.querySelectorAll('.gallery-filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                _galleryRender();
+                _gs.page = 1;
+                _gs.totalCount = 0;
+                _gs.totalPages = 1;
+                _galleryRender();                   // spinner, then fetch fires
+                _galleryFetchPage(2);               // warm next page for the new filter
             });
         });
     };
@@ -3703,16 +3871,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!modal) return;
         modal.classList.add('active', 'open');
         _galleryInitToolbar();
-        _galleryPage = 1;
-        _galleryItems = [];
-        _gallerySearchTerm = '';
-        _gallerySourceFilter = 'all';
+
+        // Reset state completely on each open
+        _gs.page = 1;
+        _gs.totalCount = 0;
+        _gs.totalPages = 1;
+        _gs.cache.clear();
+        _gs.loading.clear();
+        _gs.searchTerm = '';
+        _gs.sourceFilter = 'all';
+
         document.querySelectorAll('.gallery-filter-btn').forEach(b => b.classList.remove('active'));
         const allBtn = document.getElementById('galleryFilterAll');
         if (allBtn) allBtn.classList.add('active');
         const searchInput = document.getElementById('gallerySearchInput');
         if (searchInput) searchInput.value = '';
-        await _galleryLoadPage(1, false);
+
+        _galleryRender();                       // show spinner immediately
+        await _galleryFetchPage(1);             // load page 1 (triggers render on finish)
+        _galleryFetchPage(2);                   // pre-load page 2 in background
     };
 
     window.toggleGalleryMode = () => { openGallery(); };
@@ -3956,41 +4133,27 @@ document.addEventListener('DOMContentLoaded', () => {
             img.src = imagePath;
             // Store path for download
             img.dataset.downloadUrl = imagePath;
-            modal.classList.add('active');
+            // CSS reveals .image-preview-overlay on `.open` (closeImagePreview removes
+            // `.open`). `.active` is ignored — using it left the lightbox invisible.
+            modal.classList.add('open');
             document.body.style.overflow = 'hidden';
             
-            if (info && metadata) {
-                const m = metadata;
-                const metaItems = [
-                    m.model && { label: 'Model', value: m.model },
-                    m.sampler && { label: 'Sampler', value: m.sampler },
-                    m.steps && { label: 'Steps', value: m.steps },
-                    m.cfg_scale && { label: 'CFG', value: m.cfg_scale },
-                    (m.width && m.height) && { label: 'Size', value: `${m.width}×${m.height}` },
-                    m.denoising_strength && { label: 'Denoise', value: m.denoising_strength },
-                    m.vae && { label: 'VAE', value: m.vae },
-                    m.seed && { label: 'Seed', value: m.seed },
+            if (info) {
+                const m = metadata || {};
+                const sizeStr = (m.width && m.height) ? `${m.width}×${m.height}` : '';
+                const chips = [
+                    m.model && m.model,
+                    sizeStr,
+                    m.steps && `${m.steps} steps`,
+                    m.seed && `seed ${m.seed}`,
                 ].filter(Boolean);
-
-                const loraStr = m.lora_models
-                    ? (typeof m.lora_models === 'string' ? m.lora_models : JSON.stringify(m.lora_models))
-                    : '';
-
-                info.innerHTML = `
-                    ${m.prompt ? `<div class="lightbox__prompt"><span class="lightbox__meta-label">Prompt</span><br>${escapeHtml(m.prompt)}</div>` : ''}
-                    ${m.negative_prompt ? `<div class="lightbox__prompt" style="opacity:0.7;font-size:11px;"><span class="lightbox__meta-label">Negative</span><br>${escapeHtml(m.negative_prompt)}</div>` : ''}
-                    <div class="lightbox__meta-grid">
-                        ${metaItems.map(i => `
-                            <div class="lightbox__meta-item">
-                                <span class="lightbox__meta-label">${escapeHtml(i.label)}</span>
-                                <span class="lightbox__meta-value">${escapeHtml(i.value)}</span>
-                            </div>
-                        `).join('')}
-                        ${loraStr ? `<div class="lightbox__meta-item" style="grid-column:1/-1"><span class="lightbox__meta-label">LoRA</span><span class="lightbox__meta-value">${escapeHtml(loraStr)}</span></div>` : ''}
-                    </div>
-                `;
-            } else if (info) {
-                info.innerHTML = '';
+                // Truncate prompt — avoid dumping web-search context into the UI
+                const promptRaw = (m.prompt || '').replace(/\s+/g, ' ').trim();
+                const promptShort = promptRaw.length > 120 ? promptRaw.slice(0, 120) + '…' : promptRaw;
+                info.innerHTML = [
+                    promptShort && `<span class="lb-prompt">${escapeHtml(promptShort)}</span>`,
+                    chips.length && `<span class="lb-chips">${chips.map(c => `<span class="lb-chip">${escapeHtml(String(c))}</span>`).join('')}</span>`,
+                ].filter(Boolean).join(' ');
             }
         }
     };

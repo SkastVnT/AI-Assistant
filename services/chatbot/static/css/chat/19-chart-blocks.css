@@ -1,0 +1,69 @@
+/* Chart.js block — polished dark-theme rendering */
+
+.chart-block {
+    position: relative;
+    width: 100%;
+    max-width: 700px;
+    margin: 1.1rem 0;
+    padding: 1.4rem 1.5rem 1.25rem;
+    background: linear-gradient(145deg, rgba(18,22,36,0.95) 0%, rgba(12,15,26,0.98) 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-top: 1px solid rgba(255,255,255,0.13);
+    border-radius: 16px;
+    box-shadow:
+        0 4px 24px rgba(0,0,0,0.35),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+    overflow: hidden;
+}
+
+/* Subtle top accent line */
+.chart-block::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 10%; right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(99,179,237,0.4), rgba(154,117,234,0.4), transparent);
+    border-radius: 1px;
+}
+
+.chart-block canvas {
+    display: block;
+    max-width: 100%;
+    height: 320px !important;
+}
+
+.chart-error {
+    padding: 0.7rem 1rem;
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.22);
+    border-radius: 10px;
+    color: #fc8181;
+    font-size: 0.8rem;
+    font-family: 'Geist Mono', 'Fira Code', monospace;
+    margin: 0.5rem 0;
+    line-height: 1.6;
+}
+
+/* Over Reviewers: 3-chart grid layout */
+@media (min-width: 860px) {
+    .message-text:has(.chart-block + .chart-block) {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 0.85rem;
+        align-items: start;
+    }
+
+    /* Text content (headings, paragraphs, sources) spans full grid width */
+    .message-text:has(.chart-block + .chart-block) > *:not(.chart-block) {
+        grid-column: 1 / -1;
+    }
+
+    .message-text:has(.chart-block + .chart-block) .chart-block {
+        max-width: 100%;
+        padding: 1.1rem 1.1rem 1rem;
+    }
+
+    .message-text:has(.chart-block + .chart-block) .chart-block canvas {
+        height: 260px !important;
+    }
+}

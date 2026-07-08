@@ -12,6 +12,7 @@ from functools import wraps
 from bson import ObjectId
 from pymongo import ASCENDING, DESCENDING, MongoClient
 from pymongo.errors import OperationFailure
+from pymongo.server_api import ServerApi
 
 logger = logging.getLogger(__name__)
 
@@ -64,17 +65,19 @@ class DatabaseManager:
 
         try:
             # Connection pooling configuration - with short timeouts for faster startup
+            _is_atlas = self.connection_string.startswith("mongodb+srv://")
             self.client = MongoClient(
                 self.connection_string,
-                maxPoolSize=50,  # Max 50 connections
-                minPoolSize=5,  # Min 5 connections
-                maxIdleTimeMS=60000,  # Close idle connections after 60s
-                serverSelectionTimeoutMS=5000,  # 5s timeout - fail fast
-                connectTimeoutMS=5000,  # 5s connection timeout - fail fast
-                socketTimeoutMS=5000,  # 5s socket timeout
-                retryWrites=True,  # Retry failed writes
-                retryReads=True,  # Retry failed reads
-                tls=True,  # Enable TLS for MongoDB Atlas
+                maxPoolSize=50,
+                minPoolSize=5,
+                maxIdleTimeMS=60000,
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=5000,
+                socketTimeoutMS=5000,
+                retryWrites=True,
+                retryReads=True,
+                **({"server_api": ServerApi("1")} if _is_atlas else {}),
+                tls=_is_atlas,
                 tlsAllowInvalidCertificates=os.getenv(
                     "MONGODB_TLS_ALLOW_INVALID_CERTIFICATES",
                     "false",

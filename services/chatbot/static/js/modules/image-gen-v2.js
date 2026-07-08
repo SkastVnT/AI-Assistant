@@ -356,7 +356,7 @@ export class ImageGenV2 {
 
     async loadGallery() {
         try {
-            const resp = await fetch(`/api/image-gen/gallery?limit=20&conversation_id=${this.conversationId}`);
+            const resp = await fetch(`/api/image-gen/gallery?limit=12&conversation_id=${this.conversationId}`);
             const data = await resp.json();
             this.gallery = data.images || [];
             this._renderGallery();
@@ -753,13 +753,9 @@ export class ImageGenV2 {
         container.innerHTML = this.gallery.map(img => `
             <div class="igv2-gallery-item" data-image-id="${img.image_id}" data-image-url="/api/image-gen/images/${img.image_id}">
                 <img src="/api/image-gen/images/${img.image_id}" alt="${img.prompt?.substring(0, 30)}" loading="lazy"
-                     onerror="this.onerror=null;this.classList.add('igv2-thumb-broken');this.src='/static/icons/app-icon.png';">
-                <div class="igv2-gallery-meta">
-                    <span class="igv2-gallery-prompt">${img.prompt?.substring(0, 40)}...</span>
-                    <span class="igv2-gallery-info">${img.provider} | ${img.model}</span>
-                </div>
-                <button class="igv2-gallery-action igv2-gallery-newtab" onclick="event.stopPropagation(); window.open('/api/image-gen/images/${img.image_id}', '_blank', 'noopener,noreferrer')" title="Open in new tab">↗️</button>
-                <button class="igv2-gallery-action igv2-gallery-delete" onclick="event.stopPropagation(); window.imageGenV2?.deleteImage('${img.image_id}')" title="Delete">🗑️</button>
+                     onerror="this.onerror=null;this.classList.add('igv2-thumb-broken');this.src='/static/icons/app-icon.png';"
+                     title="${img.prompt?.substring(0, 80) || ''}">
+                <button class="igv2-gallery-action igv2-gallery-delete" onclick="event.stopPropagation(); window.imageGenV2?.deleteImage('${img.image_id}')" title="Xóa">🗑️</button>
             </div>
         `).join('');
     }

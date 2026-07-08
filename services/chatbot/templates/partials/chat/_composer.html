@@ -91,6 +91,22 @@
                                             <button class="tools-list__item" id="img2imgToolBtn" title="Img2Img + DeepDanbooru">
                                                 <i data-lucide="scan-eye" class="lucide"></i><span>Img2Img</span>
                                             </button>
+                                            <button class="tools-list__item is-proxy" data-proxy="animePipelineBtn" title="Layered Anime Pipeline">
+                                                <i data-lucide="layers" class="lucide"></i><span>Anime Pipeline</span>
+                                            </button>
+                                            <button class="tools-list__item is-proxy" data-proxy="videoGenBtn" title="Video Sora2">
+                                                <i data-lucide="video" class="lucide"></i><span>Video Gen</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Visualization -->
+                                    <div class="tools-category">
+                                        <div class="tools-category__label"><i data-lucide="bar-chart-2" class="lucide lucide-sm"></i> Visualization</div>
+                                        <div class="tools-list">
+                                            <button class="tools-list__item" id="overReviewersBtn" title="Over Reviewers — AI tạo 3 chart type phù hợp nhất cho dữ liệu">
+                                                <i data-lucide="layout-dashboard" class="lucide"></i><span>Over Reviewers</span>
+                                            </button>
                                         </div>
                                     </div>
 
@@ -111,7 +127,6 @@
 
                                     <!-- Hidden originals — kept so existing main.js bindings keep working without surfacing duplicate buttons -->
                                     <div class="tools-dropdown__actions" hidden aria-hidden="true">
-                                        <button class="tools-list__item" id="googleSearchBtn" tabindex="-1"></button>
                                         <button class="tools-list__item" id="serpapiImagesBtn" tabindex="-1"></button>
                                         <button class="tools-list__item" id="last30daysBtn" tabindex="-1"></button>
                                         <button class="tools-list__item" id="githubBtn" tabindex="-1"></button>
@@ -132,11 +147,17 @@
                                 <button class="quick-tool" type="button" data-target="imageGenToolBtn" title="Image Gen" aria-label="Image Gen">
                                     <i data-lucide="sparkles" class="lucide"></i>
                                 </button>
+                                <button class="quick-tool" type="button" data-target="characterPickerBtn" title="Chọn nhân vật" aria-label="Chọn nhân vật">
+                                    <i data-lucide="user-search" class="lucide"></i>
+                                </button>
                                 <button class="quick-tool" type="button" data-target="deepResearchToolBtn" title="Deep Research" aria-label="Deep Research">
                                     <i data-lucide="telescope" class="lucide"></i>
                                 </button>
                                 <button class="quick-tool" type="button" data-target="uploadFilesBtn" title="Upload Files" aria-label="Upload Files">
                                     <i data-lucide="paperclip" class="lucide"></i>
+                                </button>
+                                <button class="quick-tool" type="button" data-target="branchConversationBtn" title="Branch Conversation" aria-label="Branch Conversation">
+                                    <i data-lucide="git-branch" class="lucide"></i>
                                 </button>
                             </div>
 

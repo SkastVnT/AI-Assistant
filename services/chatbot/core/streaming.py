@@ -211,7 +211,7 @@ class NonStreamingToStreaming:
         for word in words:
             buffer.append(word)
             if len(buffer) >= chunk_size:
-                yield " ".join(buffer) + " "
+                yield " ".join(buffer)
                 buffer = []
                 if delay_ms > 0:
                     time.sleep(delay_ms / 1000)

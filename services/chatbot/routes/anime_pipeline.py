@@ -101,10 +101,17 @@ def _enrich_with_character(data: dict) -> dict:
                         " ", "_"
                     ) or None
 
-            rec = _SAARecord(char_key, saa_hit.display_name, saa_hit.series_hint)
+            # Inject the SDXL prompt TAG (e.g. "hoshino (blue archive)"), NOT
+            # the localized display_name (which is Chinese for the WAI DB and
+            # meaningless to waiIllustrious). The tag is the exact token the
+            # checkpoint was trained on and already carries the series in
+            # parentheses.
+            rec = _SAARecord(char_key, saa_hit.tag, saa_hit.series_hint)
             logger.info(
-                "[anime_pipeline] character_key %s resolved via SAA WAI DB (%s)",
+                "[anime_pipeline] character_key %s resolved via SAA WAI DB "
+                "(tag=%s, display=%s)",
                 char_key,
+                saa_hit.tag,
                 saa_hit.display_name,
             )
         else:
@@ -114,9 +121,13 @@ def _enrich_with_character(data: dict) -> dict:
             return data
 
     prompt = (data.get("prompt") or "").strip()
-    qualified = (
-        f"{rec.display_name} in {rec.series}" if rec.series else rec.display_name
-    )
+    # Append " in <series>" only when the name doesn't already carry the series
+    # in parentheses (SAA tags like "hoshino (blue archive)" already do), so we
+    # don't produce redundant "... (blue archive) in blue archive".
+    if rec.series and f"({rec.series.lower()})" not in rec.display_name.lower():
+        qualified = f"{rec.display_name} in {rec.series}"
+    else:
+        qualified = rec.display_name
     # Only prepend if the qualified phrase isn't already present
     if qualified.lower() not in prompt.lower():
         new_prompt = f"{qualified}, {prompt}" if prompt else qualified
@@ -261,11 +272,12 @@ _req_log: dict = {}
 def _rate_check() -> str | None:
     sid = session.get("session_id", request.remote_addr or "anon")
     now = _time.time()
-    log = _req_log.setdefault(sid, [])
-    _req_log[sid] = [t for t in log if t > now - _RATE_WINDOW]
-    if len(_req_log[sid]) >= _RATE_MAX:
+    recent = [t for t in _req_log.get(sid, []) if t > now - _RATE_WINDOW]
+    if len(recent) >= _RATE_MAX:
+        _req_log[sid] = recent
         return f"Rate limited ({_RATE_MAX} pipeline jobs per {_RATE_WINDOW}s)"
-    _req_log[sid].append(now)
+    recent.append(now)
+    _req_log[sid] = recent
     return None
 
 
@@ -278,11 +290,20 @@ def health():
     Pre-flight check.  Returns:
         { available: bool, feature_flag: bool, comfyui_reachable: bool, errors: [...] }
     """
+    import os
+
     from core.anime_pipeline_service import check_availability
 
     result = check_availability(probe_remote=True)
+    payload = result.to_dict()
+    # Surface the chat-bridge flag so the frontend (main.js) knows whether to
+    # route image prompts through /chat/stream (Thinking-with-Images) or fall
+    # back to the legacy modal/panel flow.
+    payload["chat_bridge"] = (
+        os.getenv("IMAGE_PIPELINE_CHAT_BRIDGE", "false").lower() == "true"
+    )
     status = 200 if result.available else 503
-    return jsonify(result.to_dict()), status
+    return jsonify(payload), status
 
 
 # ── Streaming SSE endpoint ──────────────────────────────────────────────
@@ -476,6 +497,7 @@ def generate_pipeline():
         "conversation_id", session.get("conversation_id", "")
     )
 
+    job = None
     try:
         from image_pipeline.anime_pipeline import AnimePipelineOrchestrator
 
@@ -514,7 +536,8 @@ def generate_pipeline():
     except Exception as e:
         logger.error("[anime_pipeline] Failed: %s", e, exc_info=True)
         try:
-            get_queue().transition(job.job_id, "failed", error=str(e))  # type: ignore[name-defined]
+            if job is not None:
+                get_queue().transition(job.job_id, "failed", error=str(e))
         except Exception:
             pass
         return jsonify({"error": str(e)}), 500
@@ -859,21 +882,16 @@ def fix_text_image():
     ``factor=1.0`` and ``denoise=0.40``. New callers should use
     ``/api/anime-pipeline/upscale`` directly with the desired factor.
     """
+    rate_err = _rate_check()
+    if rate_err:
+        return jsonify({"ok": False, "error": rate_err}), 429
+
     data = request.get_json(force=True, silent=True) or {}
     data["factor"] = 1.0
     if "denoise" not in data:
         data["denoise"] = 0.40
-    # Reinject into the request context. Easiest: call the function and
-    # let it parse from a stub. We do a direct call by mutating
-    # request.json via a tiny shim.
-    from werkzeug.wrappers import Request as _WReq  # noqa: F401
-
-    # Simplest path: just call upscale_image — Flask's request is
-    # request-scoped and we cannot easily rebuild it; instead, replicate
-    # the body inline by passing through the JSON cache.
-    # Flask caches parsed JSON on the request object.
-    request._cached_json = (data, data)  # type: ignore[attr-defined]
-    return upscale_image()
+    body, status = run_upscale_payload(data)
+    return jsonify(body), status
 
 
 # ── Cancel endpoint ─────────────────────────────────────────────────────
@@ -958,17 +976,35 @@ def cancel_all_pipelines():
     return jsonify({"ok": True, "cancelled": accepted, "count": len(accepted)})
 
 
+def _other_active_jobs() -> bool:
+    """True if any tracked job (besides ones already cancel-requested) is still
+    queued/running — used to skip the VRAM /free after a cancel when another
+    generation is in flight (freeing would just cost it a model reload)."""
+    try:
+        from core.job_queue import get_queue
+
+        for rec in get_queue().list(limit=50):
+            if rec.state in ("queued", "running") and not rec.cancel_requested:
+                return True
+    except Exception:  # pragma: no cover - fail open (worst case: a reload)
+        return False
+    return False
+
+
 def _interrupt_comfyui() -> None:
     """Best-effort halt of the active ComfyUI server.
 
-    Sends two requests in sequence:
+    Sends three requests in sequence:
       1. ``POST /queue`` with ``{"clear": true}`` — drops every queued
          prompt so the queued workflows do not start once the current
          one ends. Without this, the user sees ComfyUI keep printing
          ``got prompt`` for ~30 s after Stop while the queue drains.
       2. ``POST /interrupt`` — aborts the currently running KSampler.
+      3. ``POST /free`` (via vram_manager) — unloads models so the GPU's
+         VRAM is reclaimed after a cancel, but only when no other job is
+         still active (otherwise the next job would pay a reload cost).
 
-    Both calls are best-effort; failures are logged but never raise.
+    All calls are best-effort; failures are logged but never raise.
     Uses the same env vars the pipeline ComfyClient honors so we always
     hit the same instance the orchestrator submitted to.
     """
@@ -1002,3 +1038,20 @@ def _interrupt_comfyui() -> None:
             base,
             resp.status_code,
         )
+
+    # Reclaim VRAM after the job is actually stopped — but not if another job is
+    # still queued/running (it would just have to reload the models).
+    if _other_active_jobs():
+        logger.info("[anime_pipeline] /cancel: skipping /free — other jobs active")
+        return
+    try:
+        from image_pipeline.anime_pipeline.vram_manager import (
+            free_models_between_passes,
+        )
+
+        freed = free_models_between_passes(base)
+        logger.info(
+            "[anime_pipeline] /cancel: comfy /free -> %s (freed=%s)", base, freed
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("[anime_pipeline] /cancel: comfy /free failed: %s", exc)

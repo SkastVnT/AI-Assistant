@@ -19,6 +19,7 @@ from __future__ import annotations
 import base64
 import ipaddress
 import logging
+import threading
 import time as _time
 from functools import wraps
 from io import BytesIO
@@ -47,6 +48,7 @@ _MAX_STEPS = 150
 _RATE_WINDOW = 60
 _RATE_MAX = 10
 _req_log: dict = {}
+_req_log_lock = threading.Lock()
 
 
 def _validate(data: dict) -> str | None:
@@ -76,15 +78,16 @@ def _validate(data: dict) -> str | None:
 def _rate_check() -> str | None:
     sid = session.get("session_id", request.remote_addr or "anon")
     now = _time.time()
-    recent = [t for t in _req_log.get(sid, []) if t > now - _RATE_WINDOW]
-    if len(recent) >= _RATE_MAX:
+    with _req_log_lock:
+        recent = [t for t in _req_log.get(sid, []) if t > now - _RATE_WINDOW]
+        if len(recent) >= _RATE_MAX:
+            _req_log[sid] = recent
+            return f"Rate limited ({_RATE_MAX} req/{_RATE_WINDOW}s)"
+        recent.append(now)
         _req_log[sid] = recent
-        return f"Rate limited ({_RATE_MAX} req/{_RATE_WINDOW}s)"
-    recent.append(now)
-    _req_log[sid] = recent
-    # Evict expired sessions to prevent unbounded growth
-    for key in [k for k, v in _req_log.items() if not any(t > now - _RATE_WINDOW for t in v)]:
-        del _req_log[key]
+        # Evict expired sessions to prevent unbounded growth
+        for key in [k for k, v in list(_req_log.items()) if not any(t > now - _RATE_WINDOW for t in v)]:
+            del _req_log[key]
     return None
 
 
@@ -138,19 +141,65 @@ def _save_to_gallery(
     conversation_id: str,
     source: str = "image_gen_v2",
 ) -> None:
-    """Bridge: persist image metadata to MongoDB so it appears in the main gallery."""
+    """Bridge: persist image to MongoDB (+ Google Drive) so it shows in the gallery.
+
+    Mirrors the anime pipeline's cloud persistence. We call upload_to_drive
+    directly instead of store_generated_image because ImageStorage.save() has
+    already uploaded to ImgBB — re-running the full pipeline would double-upload.
+    """
     if saved.get("error"):
         return
     try:
+        import base64 as _b64
         import os
         from datetime import datetime
+        from pathlib import Path
 
-        from core.image_storage import save_to_mongodb
+        from core.image_storage import save_to_mongodb, upload_to_drive
+
+        local_path = saved.get("local_path", "")
+        filename = os.path.basename(local_path)
+        url = saved.get("url", "") or ""
+        # storage.save sets `url` to the ImgBB CDN link when it uploaded, else a
+        # local /api/... serve path. Only an http(s) link counts as a cloud url.
+        cloud_url = url if url.startswith("http") else None
+
+        # ── Upload the finished PNG to Google Drive (best-effort, non-fatal) ──
+        drive_url = None
+        drive_file_id = None
+        try:
+            if local_path and Path(local_path).exists():
+                img_b64 = _b64.b64encode(Path(local_path).read_bytes()).decode()
+                drive_res = upload_to_drive(
+                    image_base64=img_b64,
+                    name=filename,
+                    metadata={
+                        "prompt": prompt,
+                        "provider": provider,
+                        "model": model,
+                        "filename": filename,
+                        "source": source,
+                    },
+                )
+                if drive_res.get("success"):
+                    drive_url = drive_res.get("url")
+                    drive_file_id = drive_res.get("file_id")
+                else:
+                    logger.info(
+                        "[image_gen] Drive upload skipped: %s",
+                        drive_res.get("message"),
+                    )
+        except Exception as drive_err:
+            logger.warning(f"[image_gen] Drive upload failed (non-fatal): {drive_err}")
 
         doc = {
-            "url": saved.get("url", ""),
-            "local_path": saved.get("local_path", ""),
-            "filename": os.path.basename(saved.get("local_path", "")),
+            "url": url,
+            "cloud_url": cloud_url,
+            "drive_url": drive_url,
+            "drive_file_id": drive_file_id,
+            "share_url": drive_url or cloud_url or url,
+            "local_path": local_path,
+            "filename": filename,
             "prompt": prompt,
             "provider": provider,
             "model": model,

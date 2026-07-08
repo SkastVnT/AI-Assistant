@@ -166,11 +166,18 @@ The following custom nodes must be installed in your ComfyUI instance:
 
 ### ControlNet Models
 
-| Layer Type | ControlNet Model | Strength (default) |
-|-----------|-----------------|-------------------|
-| `lineart_anime` | `control_v11p_sd15_lineart_anime` | 0.80 |
-| `depth` | `control_v11f1p_sd15_depth` | 0.45 |
-| `canny` | `control_v11p_sd15_canny` | 0.60 |
+All checkpoints in this pipeline are SDXL-class, so ControlNets must be
+SDXL-native too. The xinsir Union model covers every layer type via
+`union_control_type` (`SetUnionControlNetType` node). SD1.5 models
+(`control_v11p_sd15_*`) are incompatible with SDXL checkpoints and are
+auto-dropped at submit time with a warning.
+
+| Layer Type | ControlNet Model | `union_control_type` | Strength (default) |
+| --- | --- | --- | --- |
+| `openpose` | `xinsir-controlnet-union-sdxl-1.0` | `openpose` | 0.80 |
+| `lineart_anime` | `xinsir-controlnet-union-sdxl-1.0` | `canny/lineart/anime_lineart/mlsd` | 0.72–0.80 |
+| `depth` | `xinsir-controlnet-union-sdxl-1.0` | `depth` | 0.45–0.50 |
+| `canny` | `xinsir-controlnet-union-sdxl-1.0` | `canny/lineart/anime_lineart/mlsd` | 0.35–0.60 |
 
 ---
 

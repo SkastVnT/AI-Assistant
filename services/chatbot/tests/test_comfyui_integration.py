@@ -167,6 +167,7 @@ class TestSubmitWorkflow:
 
             assert not result.success
             assert result.error or result.validation_error
+            assert result.error_class == "config_or_workflow"
 
 
 class TestRetryLogic:
@@ -229,6 +230,98 @@ class TestRetryLogic:
             assert (
                 "retries" in result.error.lower() or "refused" in result.error.lower()
             )
+            assert result.error_class == "retryable"
+
+
+def _comfy_history_execution_error(exc_type: str, exc_msg: str) -> httpx.Response:
+    """Simulate GET /history/{id} — job finished with an execution_error."""
+    return httpx.Response(
+        200,
+        json={
+            FAKE_PROMPT_ID: {
+                "status": {
+                    "status_str": "error",
+                    "completed": False,
+                    "messages": [
+                        [
+                            "execution_error",
+                            {
+                                "node_id": 5,
+                                "node_type": "KSampler",
+                                "exception_type": exc_type,
+                                "exception_message": exc_msg,
+                                "traceback": [],
+                            },
+                        ]
+                    ],
+                },
+                "outputs": {},
+            }
+        },
+        request=httpx.Request(
+            "GET", f"http://localhost:8188/history/{FAKE_PROMPT_ID}"
+        ),
+    )
+
+
+class TestErrorClass:
+    """3-class error taxonomy on ComfyJobResult.error_class."""
+
+    def _run_with_history(self, history_resp: httpx.Response):
+        def _handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path == "/prompt":
+                return _comfy_submit_response()
+            if "/history/" in str(request.url.path):
+                return history_resp
+            return httpx.Response(404)
+
+        transport = httpx.MockTransport(_handler)
+        mock_client = httpx.Client(transport=transport)
+        with patch(
+            "image_pipeline.anime_pipeline.comfy_client.httpx.Client"
+        ) as mock_cls:
+            mock_cls.return_value.__enter__ = lambda s: mock_client
+            mock_cls.return_value.__exit__ = lambda s, *a: None
+            client = ComfyClient(base_url="http://localhost:8188")
+            return client.submit_workflow({"1": {"class_type": "test"}})
+
+    def test_execution_error_oom_is_resource(self):
+        result = self._run_with_history(
+            _comfy_history_execution_error(
+                "torch.cuda.OutOfMemoryError",
+                "CUDA out of memory. Tried to allocate 2.00 GiB",
+            )
+        )
+        assert not result.success
+        assert result.error_class == "resource"
+
+    def test_execution_error_non_oom_is_config(self):
+        result = self._run_with_history(
+            _comfy_history_execution_error(
+                "ValueError", "Sampler 'foo' not found"
+            )
+        )
+        assert not result.success
+        assert result.error_class == "config_or_workflow"
+
+    def test_classify_helpers(self):
+        from image_pipeline.anime_pipeline.comfy_client import (
+            classify_comfy_error,
+            is_resource_error,
+        )
+
+        for oom in (
+            "CUDA out of memory",
+            "torch.OutOfMemoryError: ...",
+            "Allocation on device 0 would exceed allowed memory",
+            "DefaultCPUAllocator: not enough memory",
+            "CUDA error: device-side assert",
+        ):
+            assert is_resource_error(oom) is True
+            assert classify_comfy_error(oom) == "resource"
+        assert is_resource_error("Sampler 'foo' not found") is False
+        assert classify_comfy_error("bad node") == "config_or_workflow"
+        assert is_resource_error("") is False
 
 
 class TestHealthCheck:

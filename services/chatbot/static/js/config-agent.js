@@ -26,6 +26,7 @@
 
     function openConfigAgentModal() {
         const m = document.getElementById('configAgentModal');
+        if (!m) return;
         document.getElementById('configAgentEnabled').checked = agentConfig.enabled;
         document.getElementById('configSystemPrompt').value = agentConfig.systemPrompt || '';
         document.getElementById('configInjectionPrompt').value = agentConfig.injectionPrompt || '';

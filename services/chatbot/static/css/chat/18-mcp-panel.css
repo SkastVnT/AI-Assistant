@@ -1,0 +1,387 @@
+/* ═══════════════════════════════════════════════════════════════
+   MCP Panel — full CSS, replaces all inline styles
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Panel container (overrides 11-modals-shared.css) ───────── */
+.mcp-panel {
+  width: 300px;
+  min-width: 300px;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border-secondary);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width var(--transition-slow);
+}
+.mcp-panel.open {
+  display: flex;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.mcp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 14px 12px;
+  border-bottom: 1px solid var(--border-secondary);
+  flex-shrink: 0;
+  gap: 8px;
+}
+.mcp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.mcp-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.mcp-title {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* Status chip */
+#mcpStatus {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* Close button */
+.mcp-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color var(--transition), background var(--transition);
+  line-height: 1;
+}
+.mcp-close-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+/* ── Toggle switch (replaces checkbox) ──────────────────────── */
+.mcp-switch {
+  position: relative;
+  width: 34px;
+  height: 19px;
+  flex-shrink: 0;
+}
+.mcp-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.mcp-switch-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 19px;
+  background: var(--border-primary);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.mcp-switch input:checked + .mcp-switch-track {
+  background: var(--accent);
+}
+.mcp-switch-track::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform var(--transition);
+}
+.mcp-switch input:checked + .mcp-switch-track::after {
+  transform: translateX(15px);
+}
+.mcp-switch input:focus-visible + .mcp-switch-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Source tabs ─────────────────────────────────────────────── */
+.mcp-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-secondary);
+  flex-shrink: 0;
+}
+.mcp-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border-primary);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 11.5px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.mcp-tab .lucide {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+.mcp-tab.active {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--accent-text);
+}
+.mcp-tab:hover:not(.active):not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+.mcp-tab:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── Source panels ───────────────────────────────────────────── */
+.mcp-source {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border-secondary);
+  flex-shrink: 0;
+}
+.mcp-source-btn {
+  width: 100%;
+}
+.mcp-folder-list {
+  margin-top: 10px;
+}
+.mcp-url-row {
+  display: flex;
+  gap: 8px;
+}
+.mcp-url-row .form-input {
+  flex: 1;
+  min-width: 0;
+}
+.mcp-url-results,
+.mcp-upload-results {
+  margin-top: 10px;
+}
+
+/* ── File browser ───────────────────────────────────────────── */
+.mcp-browser {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mcp-search {
+  width: 100%;
+}
+
+/* Empty state */
+.mcp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 36px 0 24px;
+  color: var(--text-tertiary);
+  gap: 6px;
+}
+.mcp-empty .lucide {
+  width: 32px;
+  height: 32px;
+  stroke-width: 1.4;
+  color: color-mix(in srgb, var(--text-tertiary) 60%, transparent);
+  margin-bottom: 4px;
+}
+.mcp-empty-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+.mcp-empty-sub {
+  font-size: 11px;
+}
+
+/* File items */
+.mcp-file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background var(--transition), border-color var(--transition);
+}
+.mcp-file-item:hover {
+  background: var(--bg-hover);
+}
+.mcp-file-item.selected {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.mcp-file-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+.mcp-file-info {
+  flex: 1;
+  min-width: 0;
+}
+.mcp-file-name {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mcp-file-path {
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+.mcp-file-size {
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Folder / URL / Upload tags */
+.mcp-folder-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+.mcp-remove-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 2px;
+  border-radius: 4px;
+  transition: color var(--transition);
+  flex-shrink: 0;
+}
+.mcp-remove-btn:hover {
+  color: var(--error);
+}
+
+/* ── Selected context footer ─────────────────────────────────── */
+.mcp-footer {
+  padding: 11px 14px 13px;
+  border-top: 1px solid var(--border-secondary);
+  flex-shrink: 0;
+}
+.mcp-footer-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--accent-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+.mcp-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.mcp-actions .btn {
+  flex: 1;
+  font-size: 11.5px;
+}
+
+/* Selected file chips */
+.selected-file-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  font-size: 12px;
+  color: var(--accent-text);
+  margin-bottom: 4px;
+}
+.chip-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chip-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--accent-text);
+  opacity: 0.6;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  border-radius: 4px;
+  transition: opacity var(--transition);
+  flex-shrink: 0;
+}
+.chip-remove:hover {
+  opacity: 1;
+}
+
+/* ── Elements JS shows/hides via style.display ──────────────── */
+/* Do NOT use .hidden class on these — .hidden has !important which blocks JS */
+#mcpFolderList,
+#mcpUrlSource,
+#mcpUploadSource,
+#mcpSelectedFiles { display: none; }
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .mcp-panel {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    min-width: 100%;
+    z-index: 110;
+    border-left: none;
+    border-radius: 0;
+  }
+}

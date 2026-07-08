@@ -63,18 +63,18 @@
 }
 
 .message-action-btn.edit-btn {
-  background: rgba(124, 108, 240, 0.08);
-  border: 1px solid rgba(124, 108, 240, 0.22);
+  background: rgba(167, 139, 250, 0.08);
+  border: 1px solid rgba(167, 139, 250, 0.22);
   color: color-mix(in srgb, var(--accent) 80%, var(--text-primary));
 }
 
 .message-action-btn.edit-btn:hover {
-  background: rgba(124, 108, 240, 0.16);
-  border-color: rgba(124, 108, 240, 0.34);
-  box-shadow: 0 6px 16px rgba(124, 108, 240, 0.25);
+  background: rgba(167, 139, 250, 0.16);
+  border-color: rgba(167, 139, 250, 0.34);
+  box-shadow: 0 6px 16px rgba(167, 139, 250, 0.25);
 }
 
-/* ── User bubble overrides: white-based palette on purple gradient ── */
+/* ── User bubble overrides: light-on-graphite action palette ── */
 .message.user .message-actions {
   background: rgba(0, 0, 0, 0.22);
   border-color: rgba(255, 255, 255, 0.12);
@@ -208,7 +208,7 @@
   border-radius: 8px;
   border: 1px solid var(--border-primary, rgba(255,255,255,0.15));
   background: var(--bg-secondary, #1e1e2e);
-  color: var(--accent, #7c6cf0);
+  color: var(--accent, #a78bfa);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -217,7 +217,7 @@
   transition: all 0.15s ease;
 }
 .select-reply-btn:hover {
-  background: var(--accent, #7c6cf0);
+  background: var(--accent, #a78bfa);
   color: #fff;
 }
 
@@ -228,7 +228,7 @@
   gap: 8px;
   padding: 8px 14px;
   margin: 0 0 4px;
-  background: rgba(124, 108, 240, 0.08);
+  background: rgba(167, 139, 250, 0.08);
   border-radius: 10px;
   animation: fadeInUp 0.2s ease-out;
 }
@@ -236,7 +236,7 @@
   width: 3px;
   min-height: 20px;
   align-self: stretch;
-  background: var(--accent, #7c6cf0);
+  background: var(--accent, #a78bfa);
   border-radius: 2px;
   flex-shrink: 0;
 }
@@ -266,117 +266,140 @@
 .follow-up-suggestions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  /* 32px avatar + 12px gap = 44px; +4px optical nudge */
-  padding: 4px 8px 12px 48px;
-  animation: fusSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 10px;
+  padding: 2px 12px 10px 48px;
+  animation: fusSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes fusSlideIn {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Scrollable chip row — no wrapping */
+/* Scrollable chip row */
 .follow-up-suggestions__chips {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex: 1;
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
-  padding-bottom: 2px; /* room for subtle box-shadow on hover */
+  padding-bottom: 2px;
 }
 .follow-up-suggestions__chips::-webkit-scrollbar { display: none; }
 
-/* Divider between think-btn and question chips */
+/* Dot separator between mode chips and question chips */
 .suggestion-chip-sep {
-  width: 1px;
-  height: 18px;
-  background: var(--border-primary);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-tertiary, #555);
   flex-shrink: 0;
-  opacity: 0.6;
+  opacity: 0.5;
+  margin: 0 3px;
 }
 
-/* Base chip */
+/* Base chip — question suggestions */
 .suggestion-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border: 1px solid var(--border-primary);
-  border-radius: 16px;
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  font-size: 13px;
+  gap: 5px;
+  padding: 5px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary, #aaa);
+  font-size: 12.5px;
   font-weight: 400;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  animation: fusChipIn 0.22s ease-out both;
-  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+  animation: fusChipIn 0.2s ease-out both;
+  transition: background 0.15s ease, border-color 0.15s ease,
+              color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .suggestion-chip:hover {
-  background: var(--bg-hover);
-  border-color: var(--accent);
-  color: var(--text-primary);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  background: rgba(167, 139, 250, 0.08);
+  border-color: rgba(167, 139, 250, 0.35);
+  color: var(--text-primary, #e8e8f0);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
 }
-/* animation-delay set inline via JS for each chip */
+.suggestion-chip:active { transform: translateY(0); }
+
 @keyframes fusChipIn {
-  from { opacity: 0; transform: scale(0.92) translateY(4px); }
-  to   { opacity: 1; transform: none; }
+  from { opacity: 0; transform: scale(0.9) translateY(5px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* Think variant */
+/* Mode chips — Think / 4-Agents */
 .suggestion-chip--think {
-  border-color: rgba(124, 108, 240, 0.3);
-  background: rgba(124, 108, 240, 0.07);
-  color: var(--accent, #7c6cf0);
+  padding: 5px 11px 5px 9px;
+  gap: 5px;
+  border-color: rgba(167, 139, 250, 0.22);
+  background: rgba(167, 139, 250, 0.06);
+  color: rgba(162, 148, 255, 0.9);
+  font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.01em;
 }
 .suggestion-chip--think:hover {
-  background: rgba(124, 108, 240, 0.15);
-  border-color: var(--accent, #7c6cf0);
-  box-shadow: 0 2px 10px rgba(124, 108, 240, 0.2);
+  background: rgba(167, 139, 250, 0.14);
+  border-color: rgba(167, 139, 250, 0.5);
+  color: #c4b5fd;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.08), 0 3px 10px rgba(167, 139, 250, 0.15);
+  transform: translateY(-1px);
 }
-.suggestion-chip--think .lucide { width: 13px; height: 13px; }
+.suggestion-chip--think .lucide {
+  width: 12px;
+  height: 12px;
+  opacity: 0.85;
+}
 
-/* Quick Answer variant (amber/yellow — return to lower mode) */
+/* Quick Answer chip (amber) */
 .suggestion-chip--quick {
-  border-color: rgba(245, 158, 11, 0.3);
-  background: rgba(245, 158, 11, 0.07);
-  color: var(--warning, #f59e0b);
+  padding: 5px 11px 5px 9px;
+  gap: 5px;
+  border-color: rgba(245, 158, 11, 0.22);
+  background: rgba(245, 158, 11, 0.06);
+  color: rgba(255, 190, 60, 0.9);
+  font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.01em;
 }
 .suggestion-chip--quick:hover {
-  background: rgba(245, 158, 11, 0.15);
-  border-color: var(--warning, #f59e0b);
-  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.2);
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08), 0 3px 10px rgba(245, 158, 11, 0.15);
+  transform: translateY(-1px);
 }
-.suggestion-chip--quick .lucide { width: 13px; height: 13px; }
+.suggestion-chip--quick .lucide {
+  width: 12px;
+  height: 12px;
+  opacity: 0.85;
+}
 
-/* Skeleton / loading placeholder — overrides base animation entirely */
+/* Skeleton shimmer */
 .suggestion-chip--loading {
   pointer-events: none;
   color: transparent;
   border-color: transparent;
   background: linear-gradient(90deg,
-    var(--bg-tertiary, rgba(255,255,255,0.04)) 25%,
-    var(--bg-hover, rgba(255,255,255,0.08)) 50%,
-    var(--bg-tertiary, rgba(255,255,255,0.04)) 75%);
+    rgba(255,255,255,0.03) 25%,
+    rgba(255,255,255,0.07) 50%,
+    rgba(255,255,255,0.03) 75%);
   background-size: 200% 100%;
-  /* Override fusChipIn with shimmer; min-width set inline per skeleton */
-  animation: fusSkeleton 1.4s infinite !important;
+  animation: fusSkeleton 1.5s ease-in-out infinite !important;
   min-width: 100px;
+  border-radius: 20px;
 }
 @keyframes fusSkeleton {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
 
-/* Internal marker class — no styles needed, used for targeted cleanup */
 .fus-pending {}
 
 /* Dismiss button */
@@ -385,19 +408,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   padding: 0;
   border: none;
   border-radius: 50%;
   background: transparent;
-  color: var(--text-tertiary);
+  color: rgba(255, 255, 255, 0.2);
   cursor: pointer;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s ease, color 0.15s ease;
+  margin-left: 2px;
 }
 .follow-up-suggestions__close:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Lock version nav buttons while a stream is in-flight */
+body[data-streaming="true"] .version-nav-btn {
+  pointer-events: none;
+  opacity: 0.25;
+  cursor: not-allowed;
 }

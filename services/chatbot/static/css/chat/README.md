@@ -16,7 +16,7 @@
 | Composer and advanced settings | `09-composer.css` | `_composer.html` | `main.js`, `modules/file-handler.js` |
 | Tools and skill state | `10-tools-skill.css` | `_topbar.html`, `_composer.html` | `tool-state.js`, `skill-selector.js` |
 | Shared modals, buttons, MCP, memory | `11-modals-shared.css` | modal/MCP partials | `mcp.js`, `modules/overlay-manager.js` |
-| Gallery, image preview, video jobs | `12-gallery-media.css` | `_modals_shared.html`, `_modals_video.html` | `modules/gallery-manager.js`, `modules/video-gen.js` |
+| Gallery, image preview, video jobs | `12-gallery-media.css` | `_modals_shared.html`, `_modals_video.html` | `modules/video-gen.js` |
 | Main responsive rules | `90-responsive.css` | all partials | viewport/browser |
 | Utilities and compatibility | `13-utilities-compat.css` | all partials | multiple modules |
 | Message actions and suggestions | `14-message-actions.css` | generated messages | `modules/message-renderer.js` |

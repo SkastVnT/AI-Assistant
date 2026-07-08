@@ -34,19 +34,22 @@
     <!-- DOMPurify — sanitize HTML to prevent XSS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js" crossorigin="anonymous" defer></script>
 
+    <!-- Chart.js — loaded synchronously so it is available when message-renderer runs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+
     <!-- PDF export (non-critical: deferred until user action) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 
     <!-- App CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=20260622b">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/image-gen-v2.css') }}?v=20260505b">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/anime-pipeline.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=20260630d">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/image-gen-v2.css') }}?v=20260630b">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/anime-pipeline.css') }}?v=20260707b">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/character-picker.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/local-image-gen.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/nano-banana.css') }}?v=20260506a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tools-tidy.css') }}?v=20260507a">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/ui-polish.css') }}?v=20260601a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ui-polish.css') }}?v=20260630a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/titlebar.css') }}?v=20260508a">
 
     <!-- Lucide Icons: loaded at end of body to avoid blocking initial paint -->

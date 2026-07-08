@@ -86,7 +86,7 @@
   backdrop-filter: blur(4px);
 }
 .igv2-img-btn:hover:not(:disabled) {
-  background: rgba(99,122,255,0.85);
+  background: color-mix(in srgb, var(--accent) 85%, transparent);
   transform: scale(1.1);
 }
 .igv2-img-btn:disabled {
@@ -182,10 +182,10 @@
   word-break: break-word;
 }
 .igv2-stream-step.active {
-  background: rgba(99, 122, 255, 0.08);
+  background: var(--cyan-soft);
 }
 .igv2-stream-step.active .igv2-step-text {
-  color: var(--accent, #7c8aff);
+  color: var(--cyan);
 }
 .igv2-stream-step.done .igv2-step-text {
   color: var(--text-secondary, #b0b0c8);
@@ -243,8 +243,8 @@
 .igv2-choice-timer {
   font-size: 12px;
   font-weight: 700;
-  color: var(--accent, #7c8aff);
-  background: rgba(99, 122, 255, 0.12);
+  color: var(--accent-text);
+  background: var(--accent-soft);
   padding: 2px 8px;
   border-radius: 10px;
   min-width: 32px;
@@ -332,7 +332,7 @@
 }
 .igv2-choice-progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent, #7c8aff), #a78bfa);
+  background: linear-gradient(90deg, var(--cyan), var(--accent));
   border-radius: 2px;
   transition: width 1s linear;
 }
@@ -384,8 +384,8 @@
 }
 .igv2-choice-textarea:focus {
   outline: none;
-  border-color: var(--accent, #7c8aff);
-  box-shadow: 0 0 0 2px rgba(124, 138, 255, 0.15);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 .igv2-choice-textarea:disabled {
   opacity: 0.5;
@@ -413,14 +413,14 @@
   line-height: 1.3;
 }
 .igv2-choice-chip:hover:not(:disabled) {
-  border-color: var(--accent, #7c8aff);
-  background: rgba(124, 138, 255, 0.1);
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 .igv2-choice-chip.selected {
-  border-color: var(--accent, #7c8aff);
-  background: rgba(124, 138, 255, 0.18);
-  color: var(--accent, #7c8aff);
-  box-shadow: 0 0 6px rgba(124, 138, 255, 0.2);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent-text);
+  box-shadow: 0 0 6px rgba(167, 139, 250, 0.2);
 }
 .igv2-choice-chip:disabled {
   cursor: default;
@@ -452,7 +452,7 @@
   transition: background 0.15s;
 }
 .igv2-postgen-toggle:hover {
-  background: rgba(124, 138, 255, 0.06);
+  background: var(--accent-faint);
 }
 .igv2-postgen-toggle-icon {
   font-size: 14px;
@@ -473,8 +473,8 @@
   padding: 8px 0;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #7c8aff 0%, #6366f1 100%);
-  color: #fff;
+  background: var(--accent-gradient);
+  color: var(--text-inverse);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;

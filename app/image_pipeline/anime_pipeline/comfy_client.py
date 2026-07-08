@@ -21,6 +21,7 @@ import json
 import logging
 import os
 import random
+import re
 import threading
 import time
 import uuid
@@ -39,6 +40,110 @@ _DEFAULT_TIMEOUT = 180
 _POLL_INTERVAL = 1.5
 _MAX_RETRIES = 3
 _WORKFLOW_VERSION = "2.0.0"
+
+# Substrings (case-insensitive) that mark a ComfyUI execution error as a GPU/
+# resource exhaustion rather than a config/workflow mistake. Used to derive the
+# 3-class error taxonomy (retryable / config_or_workflow / resource) surfaced to
+# the chat UI so the user gets an actionable hint.
+_RESOURCE_ERROR_PATTERNS = (
+    "out of memory",
+    "outofmemoryerror",
+    "allocation on device",
+    "not enough memory",
+    "cuda error",
+)
+
+
+def is_resource_error(text: str) -> bool:
+    """True when the error text looks like GPU/VRAM/CPU-memory exhaustion."""
+    t = (text or "").lower()
+    return any(p in t for p in _RESOURCE_ERROR_PATTERNS)
+
+
+def classify_comfy_error(detail: str) -> str:
+    """Classify a ComfyUI execution-error detail string.
+
+    Returns ``"resource"`` for OOM/CUDA exhaustion (non-recoverable, VRAM hint),
+    else ``"config_or_workflow"`` (bad node/workflow — non-recoverable, show detail).
+    """
+    return "resource" if is_resource_error(detail) else "config_or_workflow"
+
+
+# Filename markers used to guess which SD family a checkpoint/ControlNet
+# belongs to. Only confident matches count — unknown names return "" so the
+# caller never drops a model it can't classify.
+_SDXL_NAME_MARKERS = ("sdxl", "illustrious", "pony", "noobai")
+_SD15_NAME_MARKERS = ("sd15", "sd1.5", "sd_1_5", "sd-1-5", "control_v11")
+_SDXL_XL_TOKEN = re.compile(r"(^|[^a-z])xl([^a-z]|$)")
+
+
+def guess_model_family(filename: str) -> str:
+    """Best-effort SD family from a model filename: ``"sdxl"``, ``"sd15"`` or ``""``.
+
+    Used to catch family mismatches before ComfyUI does (an SD1.5 ControlNet
+    attached to an SDXL checkpoint fails the whole workflow). Deliberately
+    conservative: names without a clear marker return ``""`` (unknown).
+    """
+    low = (filename or "").lower()
+    if not low:
+        return ""
+    if any(m in low for m in _SDXL_NAME_MARKERS) or _SDXL_XL_TOKEN.search(low):
+        return "sdxl"
+    if any(m in low for m in _SD15_NAME_MARKERS):
+        return "sd15"
+    return ""
+
+
+def ws_preview_enabled() -> bool:
+    """Phase 3 opt-in flag: stream live denoise previews + progress % over the
+    ComfyUI /ws socket. OFF by default — when off, comfy_client never opens a
+    websocket and behaves exactly as before (poll /history only)."""
+    return os.getenv("ANIME_PIPELINE_WS_PREVIEW", "").lower() in ("1", "true", "yes", "on")
+
+
+# ComfyUI binary WS frame layout (see ComfyUI/server.py send_image / protocol.py):
+#   bytes[0:4]  = big-endian uint32 event type (1 = PREVIEW_IMAGE,
+#                                                4 = PREVIEW_IMAGE_WITH_METADATA)
+#   for PREVIEW_IMAGE:               bytes[4:8] = image format (1 = JPEG, 2 = PNG),
+#                                    bytes[8:]  = raw image bytes
+#   for PREVIEW_IMAGE_WITH_METADATA: bytes[4:8] = metadata length,
+#                                    bytes[8:8+len] = json, then raw image bytes
+_WS_EVENT_PREVIEW_IMAGE = 1
+_WS_EVENT_PREVIEW_IMAGE_WITH_METADATA = 4
+
+
+def parse_ws_preview_frame(data: bytes) -> tuple[str, bytes] | None:
+    """Parse a ComfyUI binary WS frame into ``(image_format, image_bytes)``.
+
+    Returns ``("jpeg"|"png", bytes)`` for a preview image, or ``None`` for any
+    frame that is not a decodable preview (unknown event, truncated, etc.).
+    Pure function — safe to unit-test without a live socket.
+    """
+    if not data or len(data) < 8:
+        return None
+    event = int.from_bytes(data[0:4], "big")
+    if event == _WS_EVENT_PREVIEW_IMAGE:
+        fmt_num = int.from_bytes(data[4:8], "big")
+        fmt = "jpeg" if fmt_num == 1 else "png" if fmt_num == 2 else None
+        if fmt is None:
+            return None
+        return fmt, data[8:]
+    if event == _WS_EVENT_PREVIEW_IMAGE_WITH_METADATA:
+        meta_len = int.from_bytes(data[4:8], "big")
+        img_start = 8 + meta_len
+        if img_start > len(data):
+            return None
+        img = data[img_start:]
+        # mimetype lives in the metadata JSON; default to jpeg (ComfyUI's default).
+        fmt = "jpeg"
+        try:
+            meta = json.loads(data[8:img_start].decode("utf-8"))
+            if str(meta.get("image_type", "")).endswith("png"):
+                fmt = "png"
+        except Exception:
+            pass
+        return fmt, img
+    return None
 
 
 def _is_job_cancel_requested(job_id: str) -> bool:
@@ -92,6 +197,13 @@ class ComfyJobResult:
     workflow_version: str = _WORKFLOW_VERSION
     workflow_file: str = ""  # path to saved workflow JSON (debug mode)
     cancelled: bool = False
+    # 3-class error taxonomy for UX: "retryable" (transient connect/timeout),
+    # "config_or_workflow" (bad node/workflow), "resource" (GPU/VRAM OOM).
+    # None on success or cancellation.
+    error_class: str | None = None
+    # Phase 3: True if ComfyUI served this pass from its execution cache
+    # (observed via the /ws "execution_cached" message). None = unknown.
+    execution_cached: bool | None = None
 
 
 class ComfyClient:
@@ -131,6 +243,18 @@ class ComfyClient:
         self._debug_dir = Path(debug_dir) if debug_dir else STORAGE_DIR / "debug"
         self._cancelled: dict[str, bool] = {}
         self._lock = threading.Lock()
+        # Phase 3 live-preview callbacks (opt-in). Set via set_preview_callbacks();
+        # invoked from a background /ws reader thread during _submit_and_wait.
+        self._on_progress = None  # callable(pct: float) -> None
+        self._on_preview = None   # callable(fmt: str, image_bytes: bytes) -> None
+        self._ws_cached: dict[str, bool] = {}  # prompt_id -> execution_cached seen
+
+    def set_preview_callbacks(self, on_progress=None, on_preview=None) -> None:
+        """Register (or clear, by passing None) the live-preview callbacks used
+        when ANIME_PIPELINE_WS_PREVIEW is enabled. Callbacks fire from a daemon
+        /ws reader thread, so their bodies must be cheap + thread-safe."""
+        self._on_progress = on_progress
+        self._on_preview = on_preview
 
     # ── Public properties ─────────────────────────────────────────────
 
@@ -250,6 +374,28 @@ class ComfyClient:
                 cancelled=True,
             )
 
+        # Drop ControlNet chains that would fail ComfyUI validation/execution:
+        # models missing from ComfyUI's live list (HTTP 400 value_not_in_list)
+        # or family-mismatched with the checkpoint (SD1.5 ControlNet on SDXL).
+        # Runs before preprocessing so dropped control images are never
+        # uploaded. The render continues without the bad control — a weaker
+        # structure lock beats a crashed pass.
+        if any(
+            node.get("class_type") == "ControlNetLoader"
+            for node in workflow.values()
+        ):
+            workflow, dropped_cns = self._filter_incompatible_controlnets(
+                workflow, self.get_available_controlnets()
+            )
+            if dropped_cns:
+                logger.warning(
+                    "[ComfyClient] job=%s pass=%s dropped %d ControlNet chain(s): %s",
+                    job_id,
+                    pass_name,
+                    len(dropped_cns),
+                    "; ".join(dropped_cns),
+                )
+
         # Replace LoadImageFromBase64 with LoadImage (standard ComfyUI node).
         # This handles cases where custom nodes are not installed.
         workflow = self._preprocess_workflow(workflow)
@@ -325,6 +471,7 @@ class ComfyClient:
         return ComfyJobResult(
             error=f"All retries failed: {last_error}",
             workflow_file=workflow_file,
+            error_class="retryable",
         )
 
     def cancel(self, prompt_id: str) -> bool:
@@ -446,6 +593,147 @@ class ComfyClient:
 
         return new_wf, skipped
 
+    # ── ControlNet availability / compatibility helpers ──────────────
+
+    def get_available_controlnets(self) -> set[str]:
+        """Return ComfyUI's current set of known ControlNet filenames.
+
+        Calls ``GET /object_info/ControlNetLoader`` (served from ComfyUI's
+        in-memory model cache, populated at startup). Returns an empty set on
+        any failure so callers can treat it as "skip the availability check".
+        """
+        try:
+            with httpx.Client(timeout=10) as client:
+                resp = client.get(f"{self._base_url}/object_info/ControlNetLoader")
+                if resp.status_code == 200:
+                    data = resp.json()
+                    cn_list = (
+                        data.get("ControlNetLoader", {})
+                        .get("input", {})
+                        .get("required", {})
+                        .get("control_net_name", [[]])[0]
+                    )
+                    if isinstance(cn_list, list):
+                        return set(cn_list)
+        except Exception as e:
+            logger.warning("[ComfyClient] Could not fetch ControlNet list: %s", e)
+        return set()
+
+    def _filter_incompatible_controlnets(
+        self, workflow: dict, available: set[str]
+    ) -> tuple[dict, list[str]]:
+        """Remove ControlNet chains that would fail ComfyUI validation.
+
+        A chain (loader → optional SetUnionControlNetType → apply node) is
+        dropped when its ``control_net_name`` is absent from *available*
+        (HTTP 400 ``value_not_in_list`` at submit) or belongs to a different
+        SD family than the workflow checkpoint (SD1.5 ControlNet on an SDXL
+        checkpoint fails at execution). Conditioning consumers are rewired to
+        bypass removed apply nodes so the pass still renders — a weaker
+        structure lock beats a crashed job. Returns ``(workflow, dropped)``
+        where dropped items are ``"name (reason)"`` strings.
+        """
+        import copy
+
+        ckpt_family = ""
+        for node in workflow.values():
+            if node.get("class_type") == "CheckpointLoaderSimple":
+                ckpt_family = guess_model_family(
+                    str(node.get("inputs", {}).get("ckpt_name", ""))
+                )
+                if ckpt_family:
+                    break
+
+        bad_loaders: dict[str, str] = {}  # loader nid -> "name (reason)"
+        for nid, node in workflow.items():
+            if node.get("class_type") != "ControlNetLoader":
+                continue
+            name = str(node.get("inputs", {}).get("control_net_name", ""))
+            cn_family = guess_model_family(name)
+            if available and name not in available:
+                bad_loaders[nid] = f"{name} (not installed in ComfyUI)"
+            elif ckpt_family and cn_family and cn_family != ckpt_family:
+                bad_loaders[nid] = (
+                    f"{name} ({cn_family} model on {ckpt_family} checkpoint)"
+                )
+
+        if not bad_loaders:
+            return workflow, []
+
+        new_wf = copy.deepcopy(workflow)
+
+        def _input_ref(node: dict, key: str) -> list | None:
+            val = node.get("inputs", {}).get(key)
+            if isinstance(val, list) and len(val) == 2:
+                return val
+            return None
+
+        # Cascade removal: unions fed by bad loaders, then apply nodes fed
+        # by either. Image loaders feeding removed applies are pruned later
+        # only if nothing else consumes them.
+        removed: set[str] = set(bad_loaders)
+        for nid, node in new_wf.items():
+            if node.get("class_type") == "SetUnionControlNetType":
+                ref = _input_ref(node, "control_net")
+                if ref and str(ref[0]) in bad_loaders:
+                    removed.add(nid)
+        removed_applies: set[str] = set()
+        for nid, node in new_wf.items():
+            if node.get("class_type") in ("ControlNetApplyAdvanced", "ControlNetApply"):
+                ref = _input_ref(node, "control_net")
+                if ref and str(ref[0]) in removed:
+                    removed_applies.add(nid)
+        removed |= removed_applies
+
+        def _resolve(ref: list, seen: frozenset[str] = frozenset()) -> list:
+            """Walk conditioning refs through removed apply nodes."""
+            nid, port = str(ref[0]), int(ref[1])
+            if nid not in removed_applies or nid in seen:
+                return [nid, port]
+            node = new_wf[nid]
+            if node.get("class_type") == "ControlNetApply":
+                upstream = _input_ref(node, "conditioning")
+            else:
+                upstream = _input_ref(node, "positive" if port == 0 else "negative")
+            if not upstream:
+                return [nid, port]
+            return _resolve(upstream, seen | {nid})
+
+        # Remember control-image loaders referenced by removed applies.
+        candidate_images: set[str] = set()
+        for nid in removed_applies:
+            ref = _input_ref(new_wf[nid], "image")
+            if ref:
+                candidate_images.add(str(ref[0]))
+
+        # Rewire survivors, then delete removed nodes.
+        for nid, node in new_wf.items():
+            if nid in removed:
+                continue
+            inputs = node.get("inputs", {})
+            for key, val in list(inputs.items()):
+                if isinstance(val, list) and len(val) == 2 and str(val[0]) in removed_applies:
+                    inputs[key] = _resolve(val)
+        for nid in removed:
+            new_wf.pop(nid, None)
+
+        # Prune orphaned control-image loaders (no remaining consumers).
+        still_referenced: set[str] = set()
+        for node in new_wf.values():
+            for val in node.get("inputs", {}).values():
+                if isinstance(val, list) and len(val) == 2:
+                    still_referenced.add(str(val[0]))
+        for nid in candidate_images:
+            node = new_wf.get(nid)
+            if (
+                node
+                and nid not in still_referenced
+                and node.get("class_type") in ("LoadImageFromBase64", "LoadImage")
+            ):
+                del new_wf[nid]
+
+        return new_wf, sorted(bad_loaders.values())
+
     # ── Internal: submit + poll ───────────────────────────────────────
 
     def _is_cancelled(self, prompt_id: str) -> bool:
@@ -512,6 +800,7 @@ class ComfyClient:
                     error=error_msg,
                     validation_error=str(error_body)[:2000],
                     duration_ms=(time.time() - t0) * 1000,
+                    error_class="config_or_workflow",
                 )
 
             body = resp.json()
@@ -526,17 +815,120 @@ class ComfyClient:
                 prompt_id,
             )
 
+            # ── Optional /ws live-preview reader (opt-in, best-effort) ──
+            # Enriches the poll below with progress % + denoise previews via
+            # callbacks; polling stays the source of truth for completion.
+            _ws_stop = threading.Event()
+            _ws_thread = self._maybe_start_ws_reader(client_id, prompt_id, _ws_stop)
+
             # ── Poll ──────────────────────────────────────────────
             try:
-                return self._poll_until_done(
+                result = self._poll_until_done(
                     client,
                     prompt_id,
                     job_id,
                     pass_name,
                     t0,
                 )
+                if _ws_thread is not None and self._ws_cached.get(prompt_id):
+                    result.execution_cached = True
+                return result
             finally:
+                _ws_stop.set()
+                if _ws_thread is not None:
+                    _ws_thread.join(timeout=2)
+                self._ws_cached.pop(prompt_id, None)
                 self._cleanup_cancelled(prompt_id)
+
+    def _maybe_start_ws_reader(self, client_id, prompt_id, stop_evt):
+        """Start a daemon /ws reader thread if the feature flag is on, the
+        websocket-client lib is importable, and at least one preview callback is
+        registered. Returns the thread (or None). Never raises — any failure
+        just means no live preview (polling still drives completion)."""
+        if not ws_preview_enabled():
+            return None
+        if self._on_progress is None and self._on_preview is None:
+            return None
+        try:
+            import websocket  # noqa: F401 — presence check
+        except ImportError:
+            logger.info(
+                "[ComfyClient] ANIME_PIPELINE_WS_PREVIEW on but websocket-client "
+                "not installed — falling back to poll-only (pip install websocket-client)."
+            )
+            return None
+        t = threading.Thread(
+            target=self._ws_read_loop,
+            args=(client_id, prompt_id, stop_evt),
+            daemon=True,
+        )
+        t.start()
+        return t
+
+    def _ws_read_loop(self, client_id, prompt_id, stop_evt) -> None:
+        """Consume ComfyUI /ws messages until stop_evt is set. Best-effort:
+        forwards progress % + denoise previews to the registered callbacks and
+        records execution_cached. All exceptions are swallowed so a WS hiccup
+        never affects the polling path that actually resolves the job."""
+        import websocket
+
+        ws_url = (
+            self._base_url.replace("https://", "wss://").replace("http://", "ws://")
+            + f"/ws?clientId={client_id}"
+        )
+        ws = None
+        try:
+            ws = websocket.create_connection(ws_url, timeout=5)
+            while not stop_evt.is_set():
+                try:
+                    ws.settimeout(1.0)
+                    msg = ws.recv()
+                except websocket.WebSocketTimeoutException:
+                    continue
+                except Exception:
+                    break
+                if not msg:
+                    continue
+                if isinstance(msg, (bytes, bytearray)):
+                    if self._on_preview is None:
+                        continue
+                    parsed = parse_ws_preview_frame(bytes(msg))
+                    if parsed is not None:
+                        try:
+                            self._on_preview(parsed[0], parsed[1])
+                        except Exception:
+                            pass
+                    continue
+                # Text (JSON) status messages.
+                try:
+                    data = json.loads(msg)
+                except Exception:
+                    continue
+                mtype = data.get("type")
+                mdata = data.get("data", {}) or {}
+                # Only react to messages for our prompt when a prompt_id is present.
+                if mdata.get("prompt_id") and mdata.get("prompt_id") != prompt_id:
+                    continue
+                if mtype == "progress" and self._on_progress is not None:
+                    value = mdata.get("value")
+                    maximum = mdata.get("max") or 0
+                    if value is not None and maximum:
+                        try:
+                            self._on_progress(max(0.0, min(100.0, 100.0 * value / maximum)))
+                        except Exception:
+                            pass
+                elif mtype == "execution_cached":
+                    nodes = mdata.get("nodes") or []
+                    if nodes:
+                        self._ws_cached[prompt_id] = True
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.debug("[ComfyClient] ws reader stopped: %s", exc)
+        finally:
+            try:
+                if ws is not None:
+                    ws.close()
+            except Exception:
+                pass
 
     def _poll_until_done(
         self,
@@ -654,6 +1046,7 @@ class ComfyClient:
                         prompt_id=prompt_id,
                         error=f"ComfyUI error: {detail}",
                         duration_ms=duration,
+                        error_class=classify_comfy_error(detail),
                     )
                 continue
 

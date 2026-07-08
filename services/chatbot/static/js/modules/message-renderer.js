@@ -43,6 +43,7 @@ export class MessageRenderer {
         };
 
         this.messageHistory = new Map(); // Store message edit history
+        this._chartSpecStore = new Map(); // chart-id → JSON string, for ```chart blocks
         this.features = this._resolveFeatureFlags();
         this._quotedContext = null; // Selected text for reply context
         this.initMarked();
@@ -346,6 +347,262 @@ export class MessageRenderer {
                     return code;
                 }
             });
+
+            // ```chart / ```chartjs blocks: let marked render them as regular
+            // <pre><code class="language-chart"> blocks. _initChartBlocks() reads
+            // the JSON from textContent (survives DOMPurify + hljs) and converts
+            // them to Chart.js canvases. No data-* attribute dependency.
+        }
+    }
+
+    /**
+     * Convert ```chart / ```chartjs code blocks to Chart.js canvases.
+     * MUST be called BEFORE enhanceCodeBlocks() so the <pre> elements are
+     * replaced before copy-button headers are added.
+     *
+     * Strategy: read JSON from codeEl.textContent — survives DOMPurify
+     * sanitization and hljs highlighting without needing data-* attributes.
+     */
+    _initChartBlocks(container) {
+        if (typeof Chart === 'undefined') return;
+
+        // Case 1: Fresh markdown rendering — convert code.language-chart to chart divs.
+        // Must run BEFORE hljs, which may auto-detect and rename the language-chart class.
+        container.querySelectorAll(
+            'pre:not([data-chart-init]) code.language-chart, pre:not([data-chart-init]) code.language-chartjs'
+        ).forEach(codeEl => {
+            const pre = codeEl.parentElement;
+            if (!pre || pre.dataset.chartInit) return;
+            pre.dataset.chartInit = '1';
+            const specJson = codeEl.textContent || '';
+            try {
+                JSON.parse(specJson);
+            } catch (e) {
+                return;
+            }
+            const chartDiv = document.createElement('div');
+            chartDiv.className = 'chart-block';
+            // Embed spec in a hidden <pre> so outerHTML (saved to localStorage) keeps
+            // the JSON — canvas state is not serializable. On F5/navigation Case 2 below
+            // reads this and re-draws the chart. React-style: chart is always driven by data.
+            const specStore = document.createElement('pre');
+            specStore.className = 'chart-spec-data';
+            specStore.style.display = 'none';
+            specStore.textContent = specJson;
+            chartDiv.appendChild(specStore);
+            pre.parentNode.replaceChild(chartDiv, pre);
+            this._renderChart(chartDiv, specJson);
+        });
+
+        // Case 2: Restored from localStorage / navigation — chart-block exists but canvas
+        // was serialized as empty HTML (canvas has no content in outerHTML). Re-draw from spec.
+        container.querySelectorAll('.chart-block').forEach(block => {
+            const existingCanvas = block.querySelector('canvas');
+            // Skip only if Chart.js actually registered an instance on this canvas
+            if (existingCanvas && typeof Chart !== 'undefined' && Chart.getChart(existingCanvas)) return;
+            const specPre = block.querySelector('.chart-spec-data');
+            if (!specPre) return;
+            const specJson = specPre.textContent || '';
+            try { JSON.parse(specJson); } catch (e) { return; }
+            // Remove the stale empty canvas from localStorage HTML before drawing fresh
+            if (existingCanvas) existingCanvas.remove();
+            this._renderChart(block, specJson);
+        });
+    }
+
+    _renderChart(block, specJson) {
+        // Consistent color palette for dark theme
+        const PALETTE = [
+            'rgba(99,179,237,0.85)',   // blue
+            'rgba(154,117,234,0.85)',  // purple
+            'rgba(72,187,120,0.85)',   // green
+            'rgba(245,158,11,0.85)',   // amber
+            'rgba(236,72,153,0.85)',   // pink
+            'rgba(56,189,248,0.85)',   // sky
+            'rgba(251,113,133,0.85)',  // rose
+            'rgba(52,211,153,0.85)',   // emerald
+        ];
+        const PALETTE_BORDER = PALETTE.map(c => c.replace(/0\.85\)/, '1)'));
+
+        try {
+            const spec = JSON.parse(specJson);
+
+            // Chart.js 4.x: 'horizontalBar' removed
+            if (spec.type === 'horizontalBar') {
+                spec.type = 'bar';
+                if (!spec.options) spec.options = {};
+                spec.options.indexAxis = 'y';
+            }
+
+            // Auto-fill missing colors on datasets
+            (spec.data?.datasets || []).forEach((ds, i) => {
+                const baseColor = PALETTE[i % PALETTE.length];
+                const borderColor = PALETTE_BORDER[i % PALETTE_BORDER.length];
+                // For bar/polarArea: backgroundColor can be array-per-bar
+                if ((spec.type === 'bar' || spec.type === 'polarArea' || spec.type === 'pie' || spec.type === 'doughnut') && !ds.backgroundColor) {
+                    if (spec.type === 'bar' && (spec.data?.labels?.length || 0) > 1 && (spec.data?.datasets?.length || 0) === 1) {
+                        ds.backgroundColor = spec.data.labels.map((_, j) => PALETTE[j % PALETTE.length]);
+                        ds.borderColor = spec.data.labels.map((_, j) => PALETTE_BORDER[j % PALETTE_BORDER.length]);
+                    } else {
+                        ds.backgroundColor = PALETTE.slice(0, spec.data?.labels?.length || PALETTE.length);
+                        ds.borderColor = PALETTE_BORDER.slice(0, spec.data?.labels?.length || PALETTE.length);
+                    }
+                }
+                if (!ds.backgroundColor && spec.type !== 'bar') {
+                    ds.backgroundColor = spec.type === 'line'
+                        ? baseColor.replace('0.85)', '0.15)')
+                        : baseColor;
+                }
+                if (!ds.borderColor) ds.borderColor = borderColor;
+            });
+
+            // Ensure options object
+            if (!spec.options) spec.options = {};
+            spec.options.responsive = true;
+            spec.options.maintainAspectRatio = false;
+            if (!spec.options.animation) spec.options.animation = { duration: 600, easing: 'easeOutQuart' };
+
+            // Plugins
+            if (!spec.options.plugins) spec.options.plugins = {};
+
+            // Legend
+            const leg = spec.options.plugins.legend || {};
+            spec.options.plugins.legend = {
+                ...leg,
+                labels: {
+                    color: '#b0bec5',
+                    font: { size: 12, family: 'Inter, sans-serif' },
+                    padding: 18,
+                    usePointStyle: true,
+                    pointStyleWidth: 10,
+                    ...(leg.labels || {}),
+                },
+            };
+
+            // Title
+            const ttl = spec.options.plugins.title || {};
+            spec.options.plugins.title = {
+                display: true,
+                color: '#e2e8f0',
+                font: { size: 14, weight: '600', family: 'Inter, sans-serif' },
+                padding: { top: 4, bottom: 16 },
+                ...ttl,
+            };
+
+            // Tooltip
+            if (!spec.options.plugins.tooltip) {
+                spec.options.plugins.tooltip = {
+                    backgroundColor: 'rgba(10,12,20,0.92)',
+                    titleColor: '#e2e8f0',
+                    bodyColor: '#90a4ae',
+                    borderColor: 'rgba(255,255,255,0.12)',
+                    borderWidth: 1,
+                    padding: { x: 14, y: 10 },
+                    cornerRadius: 10,
+                    displayColors: true,
+                    boxPadding: 4,
+                };
+            }
+
+            // Per-type scale + dataset styling
+            if (spec.type === 'bar') {
+                (spec.data?.datasets || []).forEach(ds => {
+                    if (ds.borderRadius === undefined) ds.borderRadius = 7;
+                    if (ds.borderSkipped === undefined) ds.borderSkipped = false;
+                    if (ds.borderWidth === undefined) ds.borderWidth = 0;
+                });
+                if (!spec.options.scales) {
+                    spec.options.scales = {
+                        x: {
+                            ticks: { color: '#78909c', font: { size: 11 } },
+                            grid: { display: false },
+                            border: { display: false },
+                        },
+                        y: {
+                            ticks: { color: '#78909c', font: { size: 11 } },
+                            grid: { color: 'rgba(255,255,255,0.06)', drawBorder: false },
+                            border: { display: false },
+                        },
+                    };
+                }
+            }
+
+            if (spec.type === 'line') {
+                (spec.data?.datasets || []).forEach((ds, i) => {
+                    if (ds.tension === undefined) ds.tension = 0.42;
+                    if (ds.pointRadius === undefined) ds.pointRadius = 5;
+                    if (ds.pointHoverRadius === undefined) ds.pointHoverRadius = 8;
+                    if (ds.pointBorderWidth === undefined) ds.pointBorderWidth = 2;
+                    if (ds.pointBackgroundColor === undefined) ds.pointBackgroundColor = PALETTE[i % PALETTE.length];
+                    if (ds.borderWidth === undefined) ds.borderWidth = 2.5;
+                    if (ds.fill === undefined) ds.fill = false;
+                });
+                if (!spec.options.scales) {
+                    spec.options.scales = {
+                        x: { ticks: { color: '#78909c', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { display: false } },
+                        y: { ticks: { color: '#78909c', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.07)' }, border: { display: false } },
+                    };
+                }
+            }
+
+            if (spec.type === 'radar') {
+                (spec.data?.datasets || []).forEach((ds, i) => {
+                    const base = PALETTE[i % PALETTE.length];
+                    if (!ds.backgroundColor) ds.backgroundColor = base.replace('0.85)', '0.18)');
+                    if (!ds.borderColor) ds.borderColor = PALETTE_BORDER[i % PALETTE_BORDER.length];
+                    if (ds.borderWidth === undefined) ds.borderWidth = 2.5;
+                    if (ds.pointRadius === undefined) ds.pointRadius = 5;
+                    if (ds.pointHoverRadius === undefined) ds.pointHoverRadius = 8;
+                    if (!ds.pointBackgroundColor) ds.pointBackgroundColor = PALETTE_BORDER[i % PALETTE_BORDER.length];
+                    if (!ds.pointBorderColor) ds.pointBorderColor = '#1a1d2e';
+                    if (ds.pointBorderWidth === undefined) ds.pointBorderWidth = 2;
+                });
+                if (!spec.options.scales) spec.options.scales = {};
+                if (!spec.options.scales.r) {
+                    const allVals = (spec.data?.datasets || [])
+                        .flatMap(d => Array.isArray(d.data) ? d.data : [])
+                        .filter(v => typeof v === 'number');
+                    const minVal = allVals.length ? Math.min(...allVals) : 0;
+                    spec.options.scales.r = {
+                        suggestedMin: minVal > 50 ? Math.floor(minVal * 0.88) : 0,
+                        ticks: { color: '#607d8b', backdropColor: 'transparent', font: { size: 9 }, stepSize: 5 },
+                        grid: { color: 'rgba(255,255,255,0.09)' },
+                        pointLabels: { color: '#b0bec5', font: { size: 12, family: 'Inter, sans-serif' } },
+                        angleLines: { color: 'rgba(255,255,255,0.12)' },
+                    };
+                }
+            }
+
+            if (spec.type === 'pie' || spec.type === 'doughnut') {
+                (spec.data?.datasets || []).forEach(ds => {
+                    if (ds.borderWidth === undefined) ds.borderWidth = 3;
+                    if (!ds.borderColor) ds.borderColor = '#0f1117';
+                    if (ds.hoverOffset === undefined) ds.hoverOffset = 10;
+                });
+                if (spec.type === 'doughnut' && !spec.options.cutout) spec.options.cutout = '58%';
+            }
+
+            if (spec.type === 'polarArea') {
+                (spec.data?.datasets || []).forEach(ds => {
+                    if (!ds.backgroundColor) ds.backgroundColor = PALETTE.slice(0, spec.data?.labels?.length || 8).map(c => c.replace('0.85)', '0.7)'));
+                    if (ds.borderWidth === undefined) ds.borderWidth = 2;
+                    if (!ds.borderColor) ds.borderColor = '#0f1117';
+                });
+                if (!spec.options.scales) spec.options.scales = {};
+                if (!spec.options.scales.r) {
+                    spec.options.scales.r = {
+                        ticks: { color: '#607d8b', backdropColor: 'transparent', font: { size: 9 } },
+                        grid: { color: 'rgba(255,255,255,0.09)' },
+                        pointLabels: { color: '#b0bec5' },
+                    };
+                }
+            }
+
+            const canvas = document.createElement('canvas');
+            block.appendChild(canvas);
+            new Chart(canvas, spec);
+        } catch (e) {
+            block.innerHTML = `<div class="chart-error"><strong>Chart render error:</strong> ${e.message}</div>`;
         }
     }
 
@@ -468,14 +725,16 @@ export class MessageRenderer {
                     textDiv.textContent = content;
                 }
                 
-                // Highlight code blocks
+                // Charts first — _initChartBlocks removes chart <pre> from DOM so hljs
+                // never sees them (and can't rename their language-chart class).
+                this._initChartBlocks(textDiv);
                 if (typeof hljs !== 'undefined') {
                     textDiv.querySelectorAll('pre code').forEach((block) => {
                         hljs.highlightElement(block);
                     });
                 }
                 this.enhanceCodeBlocks(textDiv);
-                
+
                 // Enhance tables with interactive viewer
                 this.enhanceMarkdownTables(textDiv);
             } else {
@@ -979,9 +1238,10 @@ export class MessageRenderer {
     /**
      * API-compatible replacement for the old inline thinking block.
      */
-    createThinkingSection(thinkingProcess, isLoading = false) {
+    createThinkingSection(thinkingProcess, isLoading = false, label = null) {
         const block = document.createElement('div');
         block.className = 'thinking-block' + (isLoading ? ' thinking-block--loading' : ' thinking-block--done');
+        block._label = label;  // custom header label (e.g. "Đang tạo ảnh"); null = default
         block._stepsData = [];
         block._startTime = Date.now();
         block._durationMs = 0;
@@ -1000,7 +1260,7 @@ export class MessageRenderer {
             block.innerHTML = `
                 <div class="thinking-block__header">
                     <div class="thinking-block__spinner"></div>
-                    <span class="thinking-block__label">Đang suy nghĩ</span>
+                    <span class="thinking-block__label">${label || 'Đang suy nghĩ'}</span>
                     <span class="thinking-block__sep">·</span>
                     <span class="thinking-block__timer"></span>
                 </div>
@@ -1129,6 +1389,48 @@ export class MessageRenderer {
         if (wasExpanded) container.classList.add('thinking-block--expanded');
 
         if (window.ThinkingPanel) window.ThinkingPanel.onFinalize(container, data);
+    }
+
+    /**
+     * Finalize a thinking-block WITHOUT rebuilding its innerHTML — used for the
+     * "Thinking with images" bridge, whose block hosts a live image-pipeline
+     * card in _contentEl that must survive finalization (the standard
+     * finalizeThinking() replaces innerHTML and would wipe it). Flips
+     * loading→done, stops the timer, updates the label, and keeps the block
+     * EXPANDED so the generated image stays visible.
+     */
+    finalizeThinkingKeepContent(container, { label = null, duration_ms = 0, collapsed = false } = {}) {
+        if (!container) return;
+        if (container._timerInterval) {
+            clearInterval(container._timerInterval);
+            container._timerInterval = null;
+        }
+        container._finalized = true;
+        container._durationMs = duration_ms || (Date.now() - container._startTime);
+        container.classList.remove('thinking-block--loading');
+        container.classList.add('thinking-block--done');
+        // collapsed=true: the caller moved the important content (e.g. the
+        // generated image) OUT of the block, so it can settle to a one-line
+        // summary; expand-on-click still reveals the kept pipeline card.
+        if (collapsed) container.classList.remove('thinking-block--expanded');
+        else container.classList.add('thinking-block--expanded');
+
+        const spinner = container.querySelector('.thinking-block__spinner');
+        if (spinner) spinner.className = 'thinking-block__dot';
+        const labelEl = container.querySelector('.thinking-block__label');
+        if (labelEl && label) labelEl.textContent = label;
+        const timerEl = container.querySelector('.thinking-block__timer');
+        if (timerEl && container._durationMs) {
+            timerEl.textContent = (container._durationMs / 1000).toFixed(1) + 's';
+        }
+        // Ensure a collapse chevron exists (loading header has none).
+        const header = container.querySelector('.thinking-block__header');
+        if (header && !header.querySelector('.thinking-block__chevron')) {
+            const chev = document.createElement('span');
+            chev.className = 'thinking-block__chevron';
+            chev.textContent = '›';
+            header.appendChild(chev);
+        }
     }
 
     /**
@@ -1357,9 +1659,10 @@ export class MessageRenderer {
         // Get selected memories
         const selectedMemories = window.chatApp.memoryManager.getSelectedMemories();
         
-        // Create new AbortController
+        // Create new AbortController — capture reference for ownership check in finally.
         window.chatApp.currentAbortController = new AbortController();
-        
+        const _regenAbort = window.chatApp.currentAbortController;
+
         // Send API request
         window.chatApp.apiService.sendMessage(
             userText,
@@ -1431,6 +1734,12 @@ export class MessageRenderer {
                     formValues.context,
                     window.chatApp.uiUtils.formatTimestamp(new Date())
                 );
+            }
+        }).finally(() => {
+            // Clear only if we still own the controller; a concurrent regen
+            // may have replaced it while this one was in-flight.
+            if (window.chatApp && window.chatApp.currentAbortController === _regenAbort) {
+                window.chatApp.currentAbortController = null;
             }
         });
     }
@@ -1541,11 +1850,12 @@ export class MessageRenderer {
         };
 
         window.chatApp.currentAbortController = new AbortController();
+        const _regenImageAbort = window.chatApp.currentAbortController;
         let providerStep = null;
 
         try {
             const result = await window.chatApp.imageGenV2.generateFromChatStream(
-                userPrompt, conversationId, window.chatApp.currentAbortController.signal,
+                userPrompt, conversationId, _regenImageAbort.signal,
                 {
                     onStatus: (data) => {
                         if (data.phase === 'enhance') {
@@ -1679,6 +1989,12 @@ export class MessageRenderer {
             headerIcon.textContent = '❌';
             headerIcon.classList.remove('spinning');
             addStep('❌', error.message || 'Unknown error', 'fail');
+        } finally {
+            // Lift the stream-guard lock so version-nav works after regen.
+            // Ownership check prevents clearing a concurrent regen's controller.
+            if (window.chatApp && window.chatApp.currentAbortController === _regenImageAbort) {
+                window.chatApp.currentAbortController = null;
+            }
         }
     }
 
@@ -2078,6 +2394,9 @@ export class MessageRenderer {
             if (modelSelect.value) messageDiv.dataset.model = modelSelect.value;
             if (agentSelect.value) messageDiv.dataset.context = agentSelect.value;
 
+            // Always close the form — model/agent changes above are already applied
+            editForm.remove();
+
             if (newContent && newContent !== originalContent) {
                 const previousVersion = parseInt(messageDiv.dataset.currentVersion || '0', 10);
                 if (window.chatApp && typeof window.chatApp.syncConversationBranches === 'function' && !Number.isNaN(previousVersion)) {
@@ -2091,31 +2410,28 @@ export class MessageRenderer {
                     nextMsg = nextMsg.nextElementSibling;
                 }
                 const oldResponse = nextMsg ? nextMsg.querySelector('.message-text')?.innerHTML : '';
-                
+
                 // Save new version with empty response (will be filled after regeneration)
                 this.addMessageVersion(messageId, newContent, '', new Date().toISOString());
                 if (window.chatManager) {
                     window.chatManager.saveMessageVersion(messageId, newContent, '', new Date().toISOString());
                 }
-                
+
                 // Update message content
                 const textDiv = messageDiv.querySelector('.message-text');
                 textDiv.textContent = newContent;
-                
+
                 // Update version indicator
                 const history = this.getMessageHistory(messageId);
                 const currentIdx = history.length - 1;
                 messageDiv.dataset.currentVersion = currentIdx.toString();
                 this.updateVersionIndicator(messageDiv);
-                
-                // Remove edit form
-                editForm.remove();
-                
+
                 // Find and remove subsequent assistant message
                 if (nextMsg) {
                     nextMsg.remove();
                 }
-                
+
                 // Regenerate response with edited message
                 if (this.onEditSave) {
                     this.onEditSave(messageDiv, newContent, originalContent);
@@ -2234,9 +2550,11 @@ export class MessageRenderer {
      * Navigate to specific version
      */
     navigateVersion(messageDiv, newIndex) {
+        if (document.body.dataset.streaming === 'true') return;
+
         const messageId = messageDiv.dataset.messageId;
         const history = this.getMessageHistory(messageId);
-        
+
         if (newIndex < 0 || newIndex >= history.length) return;
 
         const oldIndex = parseInt(messageDiv.dataset.currentVersion || '0');
@@ -2284,10 +2602,16 @@ export class MessageRenderer {
                 assistantTextDiv.style.transform = `translateX(${direction * -18}px)`;
 
                 setTimeout(() => {
-                    assistantTextDiv.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(history[newIndex].assistantResponse) : history[newIndex].assistantResponse;
+                    const _rawMd = history[newIndex].assistantResponse;
+                    const _html = typeof marked !== 'undefined' ? marked.parse(_rawMd) : _rawMd;
+                    assistantTextDiv.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(_html) : _html;
+                    this._initChartBlocks(assistantTextDiv); // before hljs — see addMessage()
                     if (typeof hljs !== 'undefined') {
                         assistantTextDiv.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
                     }
+                    this.enhanceCodeBlocks(assistantTextDiv);
+                    this.enhanceMarkdownTables(assistantTextDiv);
+                    if (window.lucide) lucide.createIcons({ nodes: [assistantMsg] });
                     assistantTextDiv.style.transform = `translateX(${direction * 18}px)`;
                     void assistantTextDiv.offsetWidth;
                     assistantTextDiv.style.opacity = '1';
@@ -2442,10 +2766,7 @@ export class MessageRenderer {
             }
         });
         
-        // Make images clickable
-        if (onImageClick) {
-            this.makeImagesClickable(onImageClick);
-        }
+        // Image clicks are handled by the delegated listener in global-image-viewer.js
     }
 
     /**

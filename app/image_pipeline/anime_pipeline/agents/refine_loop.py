@@ -495,6 +495,7 @@ def run_refine_round(
             result.error,
         )
         job.error = f"Refine round {round_num} failed: {result.error}"
+        job.error_class = getattr(result, "error_class", None)
         job.status = AnimePipelineStatus.FAILED
         return job, last_critique, patched_pc
 

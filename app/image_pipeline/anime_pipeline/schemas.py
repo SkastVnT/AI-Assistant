@@ -751,6 +751,9 @@ class AnimePipelineJob:
     refine_rounds: int = 0
     models_used: list[str] = field(default_factory=list)
     error: Optional[str] = None
+    # 3-class error taxonomy propagated from ComfyJobResult.error_class
+    # ("retryable" / "config_or_workflow" / "resource"); None when no error.
+    error_class: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to JSON-friendly dict (manifest)."""

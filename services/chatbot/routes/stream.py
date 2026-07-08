@@ -44,6 +44,7 @@ from core.stream_metrics import (
 from core.streaming import StreamEvent
 from core.thinking_generator import (
     REASONING_PREFIX,
+    USAGE_SENTINEL,
     ThinkTagParser,
     detect_category,
     generate_thinking_summary,
@@ -103,6 +104,12 @@ _REALTIME_PATTERNS_VI = [
     "release",
     "công bố",
     "thông báo",
+    "biểu đồ",
+    "chart",
+    "benchmark",
+    "xếp hạng model",
+    "so sánh model",
+    "hiệu năng model",
 ]
 _REALTIME_PATTERNS_EN = [
     "price",
@@ -132,7 +139,28 @@ _REALTIME_PATTERNS_EN = [
     "result",
     "ranking",
     "trending",
+    "chart",
+    "graph",
+    "benchmark",
+    "model comparison",
+    "leaderboard",
 ]
+
+# Chart intent detection — triggers chart output instruction when search results injected
+_CHART_PATTERNS_VI = [
+    "biểu đồ", "chart", "vẽ chart", "tạo chart", "vẽ biểu đồ", "tạo biểu đồ",
+    "bar chart", "line chart", "pie chart", "so sánh.*chart", "chart.*so sánh",
+]
+_CHART_PATTERNS_EN = [
+    "chart", "graph", "plot", "bar chart", "line chart", "pie chart",
+    "create chart", "make a chart", "draw chart", "visualize", "visualization",
+]
+
+
+def _wants_chart(message: str) -> bool:
+    """Return True when the user explicitly asked for a chart/graph."""
+    msg_lower = message.lower()
+    return any(p in msg_lower for p in _CHART_PATTERNS_VI + _CHART_PATTERNS_EN)
 _SEARCH_KEYWORDS = [
     "tìm",
     "search",
@@ -161,6 +189,7 @@ def _build_complete_event_payload(
     tokens: int,
     max_tokens: int,
     request_id: str | None = None,
+    has_image: bool | None = None,
 ) -> dict:
     """Compatibility wrapper around shared contract helper."""
     return build_complete_event_payload(
@@ -177,6 +206,7 @@ def _build_complete_event_payload(
         tokens=tokens,
         max_tokens=max_tokens,
         request_id=request_id,
+        has_image=has_image,
     )
 
 
@@ -370,6 +400,11 @@ def chat_stream():
             rag_collection_ids = []
         rag_tenant_id = str(data.get("rag_tenant_id") or "default")
 
+        # Preserve the raw user message before normalization appends
+        # asset-context (previously generated images). route_request() must
+        # classify the user's actual words, not the augmented string.
+        raw_message = message
+
         # ── Shared request normalization ──────────────────────────────
         # Conversation id extract+validate+bind, image context injection,
         # and history bounding live in core/request_normalizer.py so that
@@ -411,7 +446,7 @@ def chat_stream():
         if applied.was_applied:
             logger.info(f"[SSE:{request_id}] Skill applied: {applied.skill_id}")
 
-        route_decision = route_request(message)
+        route_decision = route_request(raw_message)
         trace = RequestTrace(
             conversation_id=conversation_id or "",
             message_id=(data.get("message_id") or "").strip()
@@ -617,9 +652,72 @@ def chat_stream():
 
         if _needs_web_search(data.get("message", message), tools):
             try:
-                search_results = _run_web_search(data.get("message", message))
+                _raw_user_msg = data.get("message", message)
+                # For chart requests, build a more targeted search query
+                _search_query = _raw_user_msg
+                if _wants_chart(_raw_user_msg):
+                    import re as _re_q
+                    # Strip UI instruction words to get the data topic
+                    _clean = _re_q.sub(
+                        r'\b(tạo|vẽ|tạo ra|cho tôi|giúp tôi|create|make|draw|generate|plot)\b',
+                        '', _raw_user_msg, flags=_re_q.IGNORECASE
+                    ).strip()
+                    _clean = _re_q.sub(r'\b(biểu đồ|chart|graph|visualization)\b', '', _clean, flags=_re_q.IGNORECASE).strip()
+                    _search_query = f"{_clean} benchmark comparison 2025" if _clean else _raw_user_msg
+                    logger.info("[Stream] Chart search query refined: %r", _search_query[:80])
+                search_results = _run_web_search(_search_query)
                 if search_results:
                     _search_performed = True
+                    _chart_instruction = ""
+                    _over_reviewers = bool(data.get("over_reviewers", False))
+                    if _wants_chart(_raw_user_msg):
+                        if _over_reviewers:
+                            _chart_instruction = (
+                                "\n4. OVER REVIEWERS MODE — Người dùng muốn xem 3 cách visualize tốt nhất cho dữ liệu này.\n"
+                                "Phân tích dữ liệu, hiểu ngữ cảnh (benchmark, market share, trend, comparison, v.v.) rồi "
+                                "output CHÍNH XÁC 3 ```chart blocks với 3 loại biểu đồ KHÁC NHAU và PHÙ HỢP NHẤT.\n\n"
+                                "NGUYÊN TẮC chọn chart type (dùng đúng các type sau — Chart.js 4.x):\n"
+                                "- So sánh trực tiếp → type:\"bar\"\n"
+                                "- Bar nằm ngang → type:\"bar\" + options.indexAxis:\"y\"\n"
+                                "- Đa chiều/nhiều metric → type:\"radar\"\n"
+                                "- Phân phối tỷ lệ → type:\"pie\" hoặc type:\"doughnut\"\n"
+                                "- Xu hướng/thời gian → type:\"line\"\n"
+                                "- Phân phối tròn → type:\"polarArea\"\n"
+                                "TUYỆT ĐỐI KHÔNG dùng type:\"horizontalBar\" (đã bị xóa trong Chart.js 4).\n\n"
+                                "Mỗi chart bắt buộc:\n"
+                                "- DỮ LIỆU THỰC (không được để 0 hoặc null) — dùng web data > training knowledge\n"
+                                "- options.plugins.title.display:true và text mô tả rõ loại\n"
+                                "- Màu sắc dark-theme (rgba với alpha 0.75–0.9)\n"
+                                "- labels[] và data[] cùng độ dài\n"
+                                "- Radar chart: KHÔNG set scales.y — chỉ set scales.r nếu cần\n\n"
+                                "Format: 3 khối ```chart riêng biệt, mỗi khối JSON hoàn chỉnh hợp lệ.\n"
+                                "Ví dụ format một khối:\n"
+                                "```chart\n"
+                                '{"type":"bar","data":{"labels":["A","B","C"],"datasets":[{"label":"Score",'
+                                '"data":[85,90,78],"backgroundColor":["rgba(99,179,237,0.8)","rgba(154,117,234,0.8)",'
+                                '"rgba(72,187,120,0.8)"],"borderWidth":1}]},'
+                                '"options":{"plugins":{"title":{"display":true,"text":"Bar Chart — So sánh"}}}}\n'
+                                "```\n"
+                                "Sau đó là 2 khối chart khác tương tự với type khác nhau."
+                            )
+                        else:
+                            _chart_instruction = (
+                                "\n4. QUAN TRỌNG — Người dùng yêu cầu biểu đồ/chart. "
+                                "Bắt buộc phải output một ```chart block với DỮ LIỆU THỰC (không được để 0 hoặc null).\n"
+                                "Nếu dữ liệu web không có số liệu cụ thể → dùng kiến thức training của bạn "
+                                "(benchmark scores, market share, v.v. đã biết). Ưu tiên: web data > training knowledge > ước tính có ghi chú.\n"
+                                "Format bắt buộc (JSON hợp lệ, đặt trong code block ```chart):\n"
+                                "```chart\n"
+                                '{"type":"bar","data":{"labels":[...],"datasets":[{"label":"Benchmark","data":[87.2,88.0,83.7],'
+                                '"backgroundColor":["rgba(99,179,237,0.8)","rgba(154,117,234,0.8)","rgba(72,187,120,0.8)"],'
+                                '"borderColor":["rgba(99,179,237,1)","rgba(154,117,234,1)","rgba(72,187,120,1)"],"borderWidth":1}]},'
+                                '"options":{"plugins":{"title":{"display":true,"text":"Tiêu đề chart"},'
+                                '"legend":{"display":true}},"scales":{"y":{"beginAtZero":false,"min":70}}}}\n'
+                                "```\n"
+                                "Quy tắc: (a) data[] phải là số thực dương; (b) labels[] và data[] phải cùng độ dài; "
+                                "(c) chỉ output đúng một ```chart block; (d) nếu có nhiều metrics → dùng nhiều datasets; "
+                                "(e) KHÔNG dùng type:\"horizontalBar\" — đã bị xóa, dùng type:\"bar\"+options.indexAxis:\"y\" thay thế."
+                            )
                     message = (
                         f"{message}\n\n"
                         f"---\n"
@@ -630,9 +728,12 @@ def chat_stream():
                         f"1. Dẫn thông tin từ dữ liệu web trên.\n"
                         f"2. Ghi rõ link nguồn (🔗 URL) ngay sau thông tin liên quan HOẶC gom lại trong mục **Nguồn:** ở cuối — KHÔNG chỉ nhắc tên site.\n"
                         f"3. Nếu dữ liệu có ngày/giờ cụ thể, hãy trích dẫn chính xác."
+                        f"{_chart_instruction}"
                     )
                     logger.info(
-                        f"[Stream] Auto web search triggered for: {data.get('message', '')[:60]}"
+                        "[Stream] Auto web search triggered for: %s%s",
+                        _raw_user_msg[:60],
+                        " [+chart×3]" if (_chart_instruction and _over_reviewers) else (" [+chart]" if _chart_instruction else ""),
                     )
             except Exception as e:
                 logger.warning(f"[Stream] Web search failed: {e}")
@@ -863,6 +964,331 @@ def chat_stream():
                 yield _emit("metadata", metadata_payload)
                 yield _emit("router.selected", route_decision.to_dict())
 
+                # ── Thinking-with-Images bridge ─────────────────────────
+                # When the request is an image intent and the bridge flag
+                # is on, run the anime pipeline as an in-chat image
+                # sub-stream INSTEAD of the LLM text path. The pipeline keeps
+                # its own queue / GPU semaphore / cancel and its ap_* SSE
+                # vocabulary; we forward those frames VERBATIM so the existing
+                # anime-pipeline.js renderer drives the inline bubble. After
+                # the image finishes we stream a short LLM caption + a real
+                # `complete` so the chat turn is finalized and saved.
+                #
+                # NOTE: multi-thinking council is NOT re-run here — the
+                # orchestrator already runs its own council internally when
+                # job.thinking_mode == "multi-thinking", and we return before
+                # the text-council dispatch below, so it runs exactly once.
+                def _caption_with_timeout(user_prompt: str, timeout_s: float = 12.0) -> str:
+                    """Short, non-blocking LLM caption. Returns "" on timeout/err."""
+                    import re as _re_cap
+                    import threading as _th_cap
+
+                    _res: dict = {}
+
+                    def _work():
+                        try:
+                            buf = []
+                            for ch in chatbot.chat_stream(
+                                message=(
+                                    "Viết MỘT câu ngắn (tối đa 25 từ), thân thiện, bằng "
+                                    "tiếng Việt, giới thiệu bức ảnh vừa được tạo theo yêu "
+                                    "cầu sau. Chỉ trả về đúng một câu, không markdown, "
+                                    f"không tiền tố.\n\nYêu cầu: {user_prompt}"
+                                ),
+                                model=model,
+                                context=context,
+                                deep_thinking=False,
+                                history=[],
+                                language=language,
+                                custom_prompt="",
+                                images=[],
+                            ):
+                                # Skip reasoning chunks AND the trailing usage
+                                # sentinel ("\x02USAGE\x03<in>:<out>") that every
+                                # provider stream yields as its last chunk — the
+                                # text path strips it, so the caption must too
+                                # (it leaked as "USAGE1570:20" in the chat).
+                                if (
+                                    ch
+                                    and not ch.startswith(REASONING_PREFIX)
+                                    and not ch.startswith(USAGE_SENTINEL)
+                                ):
+                                    buf.append(ch)
+                            text = "".join(buf)
+                            # Belt-and-braces: drop anything after a mid-buffer
+                            # sentinel in case a provider merges chunks.
+                            if USAGE_SENTINEL in text:
+                                text = text.split(USAGE_SENTINEL, 1)[0]
+                            _res["text"] = text.strip()
+                        except Exception as exc:  # noqa: BLE001 — caption is non-fatal
+                            _res["err"] = exc
+
+                    _t_cap = _th_cap.Thread(target=_work, daemon=True)
+                    _t_cap.start()
+                    _t_cap.join(timeout=timeout_s)
+                    txt = (_res.get("text") or "").strip()
+                    if not txt:
+                        return ""
+                    # Strip stray <think> blocks from reasoning models.
+                    txt = _re_cap.sub(
+                        r"<think>.*?</think>", "", txt, flags=_re_cap.DOTALL
+                    ).strip()
+                    return txt[:300]
+
+                def _image_chat_bridge():
+                    """Forward anime-pipeline ap_* frames into the chat SSE,
+                    then stream caption + complete. Returns True if it handled
+                    the turn, False to fall back to the normal chat path."""
+                    import queue as _q_ap
+                    import re as _re_ap
+                    import threading as _th_ap
+
+                    from core import anime_pipeline_service as _aps
+
+                    # Build the pipeline request from the chat body. Image
+                    # options come from the chat mode-card (PR3); default
+                    # safely if absent so the bridge also works pre-PR3.
+                    _img_data: dict = {
+                        "prompt": message,
+                        "thinking_mode": thinking_mode,
+                        "session_id": session_id or "",
+                        "conversation_id": conversation_id or "",
+                        "character_key": (data.get("character_key") or "").strip(),
+                        "image_only": bool(data.get("image_only", False)),
+                        "batch_size": int(data.get("batch_size") or 1),
+                        "preset": data.get("preset") or "anime_quality",
+                    }
+                    for _k in ("width", "height"):
+                        _v = data.get(_k)
+                        if isinstance(_v, (int, float)) and _v:
+                            _img_data[_k] = int(_v)
+                    if data.get("references"):
+                        _img_data["references"] = data.get("references")
+                    if data.get("reference_images"):
+                        _img_data["reference_images"] = data.get("reference_images")
+
+                    # Character resolution parity with the standalone image
+                    # routes (/api/anime-pipeline/stream, /api/image-gen/*):
+                    # auto-derive the character from the message via NLU and/or
+                    # resolve an explicit picker key against the local registry
+                    # + SAA 5149-char DB, prepending a fully-qualified
+                    # "Name in Series" phrase so the pipeline renders the right
+                    # character. The chat bridge previously skipped this, which
+                    # is why in-chat image gen was worse at characters than the
+                    # modal path. Fail-safe: any error leaves _img_data as-is.
+                    try:
+                        from routes.anime_pipeline import _enrich_with_character
+
+                        _img_data = _enrich_with_character(_img_data)
+                    except Exception as _ce:  # pragma: no cover — defensive
+                        logger.debug(
+                            "[SSE:%s] character enrichment skipped: %s",
+                            request_id,
+                            _ce,
+                        )
+
+                    _req, _verr = _aps.validate_request(_img_data)
+                    if _verr or _req is None:
+                        logger.info(
+                            "[SSE:%s] image bridge skipped (validate: %s)",
+                            request_id,
+                            _verr,
+                        )
+                        # When the caller forced the bridge (frontend explicitly
+                        # signaled image intent), tell the user why it failed
+                        # instead of silently falling through to the text path.
+                        if bool(data.get("force_image_bridge")):
+                            _err_msg = f"Không thể tạo ảnh: {_verr or 'pipeline không sẵn sàng'}."
+                            yield _emit("chunk", {"content": _err_msg, "chunk_index": 1})
+                            _ep = _build_complete_event_payload(
+                                full_response=_err_msg,
+                                model=model, context=context,
+                                deep_thinking=False, thinking_mode=thinking_mode,
+                                chunk_count=1, thinking_summary="",
+                                thinking_steps_text=[], thinking_duration=0,
+                                elapsed_time=0.0,
+                                tokens=max(1, len(_err_msg)), max_tokens=512,
+                                request_id=request_id, has_image=False,
+                            )
+                            yield StreamEvent(
+                                event="complete",
+                                data=json.dumps(_ep, ensure_ascii=False),
+                            ).format()
+                            return True
+                        return False
+
+                    logger.info(
+                        "[SSE:%s] image bridge engaged intent=%s mode=%s",
+                        request_id,
+                        route_decision.intent,
+                        thinking_mode,
+                    )
+
+                    # Drain stream_pipeline() in a worker thread so its
+                    # blocking GPU-semaphore wait (sleep loop) never stalls
+                    # the Flask SSE generator / keepalive.
+                    _frame_q: _q_ap.Queue = _q_ap.Queue()
+                    _AP_DONE = "__APBRIDGE_DONE__"
+                    _AP_ERR = "__APBRIDGE_ERR__"
+
+                    def _drain():
+                        try:
+                            for _frame in _aps.stream_pipeline(_req):
+                                _frame_q.put(_frame)
+                            _frame_q.put((_AP_DONE, None))
+                        except BaseException as exc:  # catches KeyboardInterrupt/SystemExit too
+                            _frame_q.put((_AP_ERR, exc))
+                            raise
+
+                    _worker = _th_ap.Thread(target=_drain, daemon=True)
+                    _worker.start()
+
+                    _evt_re = _re_ap.compile(r"^event:\s*(\S+)", _re_ap.MULTILINE)
+                    _ok = False
+                    _cancelled = False
+                    _failed = False
+
+                    # JobQueue tracking: capture job_id from first ap_status frame.
+                    from core.job_queue import get_queue as _get_queue_ap
+
+                    _jid: str = ""
+                    _jq = _get_queue_ap()
+
+                    try:
+                        while True:
+                            try:
+                                _item = _frame_q.get(timeout=15)
+                            except _q_ap.Empty:
+                                yield ": keepalive\n\n"
+                                continue
+                            if isinstance(_item, tuple):
+                                if _item[0] == _AP_DONE:
+                                    break
+                                if _item[0] == _AP_ERR:
+                                    _failed = True
+                                    logger.error(
+                                        "[SSE:%s] image bridge pipeline error: %s",
+                                        request_id,
+                                        _item[1],
+                                    )
+                                    break
+                            # _item is a pre-formatted SSE string; forward verbatim.
+                            yield _item
+                            _m = _evt_re.search(_item)
+                            _name = _m.group(1) if _m else ""
+                            # Parse JSON payload for job_id and queue transitions.
+                            _data_j: dict = {}
+                            for _ln in _item.split("\n"):
+                                if _ln.startswith("data:"):
+                                    try:
+                                        _data_j = json.loads(_ln.split(":", 1)[1].strip())
+                                    except Exception:
+                                        pass
+                                    break
+                            if _name == "ap_status" and not _jid:
+                                _jid = str(_data_j.get("job_id") or "")
+                                if _jid:
+                                    if _jq.get(_jid) is None:
+                                        _jq.create(job_id=_jid, prompt=raw_message[:500])
+                                    _jq.transition(_jid, "queued")
+                                    _jq.transition(_jid, "running")
+                            elif _name == "ap_result":
+                                _ok = True
+                                if _jid:
+                                    _jq.transition(_jid, "completed", progress_pct=100.0)
+                            elif _name == "ap_cancelled":
+                                _cancelled = True
+                                if _jid:
+                                    _jq.transition(_jid, "cancelled")
+                            elif _name == "ap_error":
+                                _failed = True
+                                if _jid:
+                                    _jq.transition(
+                                        _jid, "failed",
+                                        error=str(_data_j.get("error", "pipeline error")),
+                                    )
+                    except GeneratorExit:
+                        # Client disconnected: cancel job and interrupt ComfyUI GPU.
+                        if _jid:
+                            _rec = _jq.get(_jid)
+                            if _rec and _rec.state in ("queued", "running"):
+                                _jq.request_cancel(_jid)
+                                try:
+                                    from routes.anime_pipeline import (
+                                        _interrupt_comfyui as _ic,
+                                    )
+                                    _ic()
+                                except Exception:
+                                    pass
+                        _worker.join(timeout=5)
+                        raise
+
+                    _worker.join(timeout=5)
+
+                    # ── Caption + complete (finalize the chat turn) ──
+                    # Caption only on success; its failure must NOT fail the
+                    # image turn (ap_done ≠ complete: chat finalizes here).
+                    if _ok and not _cancelled and not _failed:
+                        _caption = _caption_with_timeout(message) or "Ảnh đã được tạo xong."
+                    elif _cancelled:
+                        _caption = "Đã hủy tạo ảnh."
+                    else:
+                        _caption = "Tạo ảnh thất bại. Hãy thử lại."
+
+                    _cc = 0
+                    for _i in range(0, len(_caption), 80):
+                        _cc += 1
+                        yield _emit(
+                            "chunk",
+                            {"content": _caption[_i : _i + 80], "chunk_index": _cc},
+                        )
+
+                    _payload = _build_complete_event_payload(
+                        full_response=_caption,
+                        model=model,
+                        context=context,
+                        deep_thinking=deep_thinking,
+                        thinking_mode=thinking_mode,
+                        chunk_count=_cc,
+                        thinking_summary="",
+                        thinking_steps_text=[],
+                        thinking_duration=0,
+                        elapsed_time=time.time() - thinking_start,
+                        tokens=max(1, len(_caption)),
+                        max_tokens=512,
+                        request_id=request_id,
+                        has_image=_ok,
+                    )
+                    try:
+                        trace.finish()
+                        TRACE_STORE.save(trace)
+                    except Exception:  # noqa: BLE001
+                        pass
+                    yield StreamEvent(
+                        event="complete",
+                        data=json.dumps(_payload, ensure_ascii=False),
+                    ).format()
+                    return True
+
+                _bridge_on = (
+                    os.getenv("IMAGE_PIPELINE_CHAT_BRIDGE", "false").lower() == "true"
+                )
+                _image_tool_active = "image-generation" in (tools or [])
+                _image_intent = route_decision.intent in ("image_anime", "image_general")
+                # Frontend (main.js) sets force_image_bridge when it decides a
+                # prompt is an image request under bridge mode — the explicit,
+                # mismatch-proof signal (its ImageGenV2 heuristic may diverge
+                # from the backend keyword router).
+                _force_bridge = bool(data.get("force_image_bridge"))
+                if _bridge_on and (
+                    _force_bridge
+                    or _image_tool_active
+                    or (_image_intent and route_decision.confidence >= 0.85)
+                ):
+                    _handled = yield from _image_chat_bridge()
+                    if _handled:
+                        return
+
                 # ── Thinking Phase ──
                 # Real AI reasoning via <think> tags or native reasoning_content
                 category = detect_category(message)
@@ -893,6 +1319,8 @@ def chat_stream():
                 full_response = ""
                 chunk_count = 0
                 fallback_used = False
+                _api_input_tokens = 0
+                _api_output_tokens = 0
 
                 # ── 4-Agents Coordinated Reasoning ──
                 if is_multi_thinking:
@@ -1053,6 +1481,17 @@ def chat_stream():
                         if not chunk:
                             continue
 
+                        # Capture real token usage from the API layer sentinel.
+                        if chunk.startswith(USAGE_SENTINEL):
+                            try:
+                                raw = chunk[len(USAGE_SENTINEL):]
+                                _in, _out = raw.split(":", 1)
+                                _api_input_tokens = int(_in)
+                                _api_output_tokens = int(_out)
+                            except Exception:
+                                pass
+                            continue
+
                         # Handle native reasoning_content (DeepSeek R1, etc.)
                         if chunk.startswith(REASONING_PREFIX):
                             reasoning_text = chunk[len(REASONING_PREFIX) :]
@@ -1174,7 +1613,8 @@ def chat_stream():
 
                 # Send complete event
                 _elapsed = time.time() - thinking_start
-                _est_tokens = max(1, int(len(full_response) * 0.75))
+                # Prefer real API-reported output tokens; fall back to character estimate.
+                _est_tokens = _api_output_tokens or max(1, int(len(full_response) * 0.75))
                 if is_multi_thinking:
                     _max_tokens = 4096
                 else:
@@ -1186,27 +1626,29 @@ def chat_stream():
                         if _mc
                         else 2000
                     )
+                _complete_payload = _build_complete_event_payload(
+                    full_response=full_response,
+                    model=model,
+                    context=context,
+                    deep_thinking=deep_thinking,
+                    thinking_mode=thinking_mode,
+                    chunk_count=chunk_count,
+                    thinking_summary=thinking_summary,
+                    thinking_steps_text=thinking_steps_text,
+                    thinking_duration=thinking_duration,
+                    elapsed_time=_elapsed,
+                    tokens=_est_tokens,
+                    max_tokens=_max_tokens,
+                    request_id=request_id,
+                    has_image=False,
+                )
+                if _api_input_tokens:
+                    _complete_payload["input_tokens"] = _api_input_tokens
                 yield StreamEvent(
                     event="complete",
                     data=json.dumps(
-                        _with_rag_citations(
-                            _build_complete_event_payload(
-                                full_response=full_response,
-                                model=model,
-                                context=context,
-                                deep_thinking=deep_thinking,
-                                thinking_mode=thinking_mode,
-                                chunk_count=chunk_count,
-                                thinking_summary=thinking_summary,
-                                thinking_steps_text=thinking_steps_text,
-                                thinking_duration=thinking_duration,
-                                elapsed_time=_elapsed,
-                                tokens=_est_tokens,
-                                max_tokens=_max_tokens,
-                                request_id=request_id,
-                            ),
-                            rag_citations,
-                        )
+                        _with_rag_citations(_complete_payload, rag_citations),
+                        ensure_ascii=False,
                     ),
                 ).format()
                 record_stream_complete(

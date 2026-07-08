@@ -2,8 +2,8 @@
 /* ── Input Area ────────────────────────────────────────────── */
 .input-area {
   position: relative;
-  padding: 0 16px 20px;
-  max-width: 768px;
+  padding: 0 24px 20px;
+  max-width: 960px;
   width: 100%;
   margin: 0 auto;
 }
@@ -20,13 +20,14 @@
   border-radius: var(--radius-xl);
   transition: border-color var(--transition), box-shadow var(--transition);
   overflow: visible;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.025);
 }
 
 .input-area__container:focus-within {
-  border-color: rgba(124, 108, 240, 0.5);
+  border-color: var(--border-focus);
   box-shadow:
-    0 0 0 3px rgba(124, 108, 240, 0.1),
-    0 0 20px rgba(124, 108, 240, 0.08);
+    0 0 0 3px var(--accent-soft),
+    0 10px 32px rgba(0, 0, 0, 0.4);
 }
 
 /* File attachments preview */
@@ -78,14 +79,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full);
-  border: none;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--transition);
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
   font-size: 18px;
   flex-shrink: 0;
 }
@@ -120,33 +121,37 @@
 }
 
 .input-area__send {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full);
-  border: none;
-  background: var(--text-primary);
-  color: var(--text-inverse);
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-secondary);
+  background: var(--bg-active);
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition);
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition), color var(--transition);
   flex-shrink: 0;
-  opacity: 0.3;
+  opacity: 0.55;
 }
 
 .input-area__send.ready {
   opacity: 1;
-  background: linear-gradient(135deg, #7c6cf0, #6366f1);
-  box-shadow: 0 0 8px rgba(124, 108, 240, 0.3);
+  border-color: transparent;
+  background: var(--accent-gradient);
+  color: var(--text-inverse);
+  box-shadow: 0 2px 12px rgba(167, 139, 250, 0.28);
 }
 
-.input-area__send:hover {
-  opacity: 0.85;
+.input-area__send.ready:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(167, 139, 250, 0.36);
 }
+.input-area__send.ready:active { transform: scale(0.96); }
 
 .input-area__send:disabled {
-  opacity: 0.2;
+  opacity: 0.25;
   cursor: not-allowed;
 }
 
@@ -156,27 +161,30 @@
 }
 
 .input-area__stop {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full);
-  border: 2px solid var(--text-primary);
-  background: transparent;
-  color: var(--text-primary);
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--error) 55%, transparent);
+  background: color-mix(in srgb, var(--error) 10%, transparent);
+  color: var(--error);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition);
+  transition: background var(--transition), border-color var(--transition);
   flex-shrink: 0;
 }
 
-.input-area__stop:hover { background: var(--bg-hover); }
+.input-area__stop:hover {
+  background: color-mix(in srgb, var(--error) 18%, transparent);
+  border-color: var(--error);
+}
 
 .input-area__stop-icon {
-  width: 14px;
-  height: 14px;
-  background: var(--text-primary);
-  border-radius: 2px;
+  width: 13px;
+  height: 13px;
+  background: var(--error);
+  border-radius: 3px;
 }
 
 /* Below input */
@@ -228,7 +236,7 @@
   transition: background 0.15s;
 }
 .adv-settings__reset:hover {
-  background: rgba(124,124,255,0.12);
+  background: var(--accent-soft);
 }
 .adv-settings__grid {
   display: grid;
@@ -269,6 +277,6 @@
 }
 /* Gear toggle button active state */
 .adv-settings__toggle.active {
-  color: var(--accent, #7c7cff);
-  background: rgba(124,124,255,0.1);
+  color: var(--accent);
+  background: var(--accent-soft);
 }
