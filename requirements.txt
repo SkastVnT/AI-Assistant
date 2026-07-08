@@ -56,7 +56,7 @@ eventlet>=0.33.0
 fastapi>=0.94.0
 uvicorn>=0.20.0
 python-multipart>=0.0.31
-gradio>=6.15.0
+gradio>=6.19.0
 watchdog>=2.0.0
 
 # ============================================================================
@@ -65,7 +65,7 @@ watchdog>=2.0.0
 openai>=1.0.0
 pydantic>=2.0.0,<3.0.0
 google-genai>=1.56.0
-transformers>=5.9.0,<5.10
+transformers>=5.12.1,<5.13
 accelerate>=0.27.0
 sentencepiece>=0.2.0
 safetensors>=0.4.0
