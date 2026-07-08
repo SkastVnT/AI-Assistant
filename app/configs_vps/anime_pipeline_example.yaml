@@ -62,10 +62,15 @@ resolutions:
   square:    [1024, 1024]
 
 # ── Structure Lock Layers ─────────────────────────────────────────
+# ControlNet models MUST match the checkpoint family. All checkpoints in
+# this pipeline are SDXL-class (waiIllustrious…), so use SDXL ControlNets
+# (xinsir Union covers every layer type via union_control_type). SD1.5
+# models (control_v11p_sd15_*) fail on SDXL and are auto-dropped at submit.
 structure_layers:
   - layer_type: lineart_anime
     preprocessor: AnimeLineArtPreprocessor
-    controlnet_model: "control_v11p_sd15_lineart_anime"
+    controlnet_model: "xinsir-controlnet-union-sdxl-1.0.safetensors"
+    union_control_type: canny/lineart/anime_lineart/mlsd
     strength: 0.80
     start_percent: 0.0
     end_percent: 0.80
@@ -74,7 +79,8 @@ structure_layers:
 
   - layer_type: depth
     preprocessor: DepthAnythingV2Preprocessor
-    controlnet_model: "control_v11f1p_sd15_depth"
+    controlnet_model: "xinsir-controlnet-union-sdxl-1.0.safetensors"
+    union_control_type: depth
     strength: 0.45
     start_percent: 0.0
     end_percent: 0.60

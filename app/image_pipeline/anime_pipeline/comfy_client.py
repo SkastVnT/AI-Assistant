@@ -21,6 +21,7 @@ import json
 import logging
 import os
 import random
+import re
 import threading
 import time
 import uuid
@@ -66,6 +67,31 @@ def classify_comfy_error(detail: str) -> str:
     else ``"config_or_workflow"`` (bad node/workflow — non-recoverable, show detail).
     """
     return "resource" if is_resource_error(detail) else "config_or_workflow"
+
+
+# Filename markers used to guess which SD family a checkpoint/ControlNet
+# belongs to. Only confident matches count — unknown names return "" so the
+# caller never drops a model it can't classify.
+_SDXL_NAME_MARKERS = ("sdxl", "illustrious", "pony", "noobai")
+_SD15_NAME_MARKERS = ("sd15", "sd1.5", "sd_1_5", "sd-1-5", "control_v11")
+_SDXL_XL_TOKEN = re.compile(r"(^|[^a-z])xl([^a-z]|$)")
+
+
+def guess_model_family(filename: str) -> str:
+    """Best-effort SD family from a model filename: ``"sdxl"``, ``"sd15"`` or ``""``.
+
+    Used to catch family mismatches before ComfyUI does (an SD1.5 ControlNet
+    attached to an SDXL checkpoint fails the whole workflow). Deliberately
+    conservative: names without a clear marker return ``""`` (unknown).
+    """
+    low = (filename or "").lower()
+    if not low:
+        return ""
+    if any(m in low for m in _SDXL_NAME_MARKERS) or _SDXL_XL_TOKEN.search(low):
+        return "sdxl"
+    if any(m in low for m in _SD15_NAME_MARKERS):
+        return "sd15"
+    return ""
 
 
 def ws_preview_enabled() -> bool:
@@ -348,6 +374,28 @@ class ComfyClient:
                 cancelled=True,
             )
 
+        # Drop ControlNet chains that would fail ComfyUI validation/execution:
+        # models missing from ComfyUI's live list (HTTP 400 value_not_in_list)
+        # or family-mismatched with the checkpoint (SD1.5 ControlNet on SDXL).
+        # Runs before preprocessing so dropped control images are never
+        # uploaded. The render continues without the bad control — a weaker
+        # structure lock beats a crashed pass.
+        if any(
+            node.get("class_type") == "ControlNetLoader"
+            for node in workflow.values()
+        ):
+            workflow, dropped_cns = self._filter_incompatible_controlnets(
+                workflow, self.get_available_controlnets()
+            )
+            if dropped_cns:
+                logger.warning(
+                    "[ComfyClient] job=%s pass=%s dropped %d ControlNet chain(s): %s",
+                    job_id,
+                    pass_name,
+                    len(dropped_cns),
+                    "; ".join(dropped_cns),
+                )
+
         # Replace LoadImageFromBase64 with LoadImage (standard ComfyUI node).
         # This handles cases where custom nodes are not installed.
         workflow = self._preprocess_workflow(workflow)
@@ -544,6 +592,147 @@ class ComfyClient:
             del new_wf[removed_id]
 
         return new_wf, skipped
+
+    # ── ControlNet availability / compatibility helpers ──────────────
+
+    def get_available_controlnets(self) -> set[str]:
+        """Return ComfyUI's current set of known ControlNet filenames.
+
+        Calls ``GET /object_info/ControlNetLoader`` (served from ComfyUI's
+        in-memory model cache, populated at startup). Returns an empty set on
+        any failure so callers can treat it as "skip the availability check".
+        """
+        try:
+            with httpx.Client(timeout=10) as client:
+                resp = client.get(f"{self._base_url}/object_info/ControlNetLoader")
+                if resp.status_code == 200:
+                    data = resp.json()
+                    cn_list = (
+                        data.get("ControlNetLoader", {})
+                        .get("input", {})
+                        .get("required", {})
+                        .get("control_net_name", [[]])[0]
+                    )
+                    if isinstance(cn_list, list):
+                        return set(cn_list)
+        except Exception as e:
+            logger.warning("[ComfyClient] Could not fetch ControlNet list: %s", e)
+        return set()
+
+    def _filter_incompatible_controlnets(
+        self, workflow: dict, available: set[str]
+    ) -> tuple[dict, list[str]]:
+        """Remove ControlNet chains that would fail ComfyUI validation.
+
+        A chain (loader → optional SetUnionControlNetType → apply node) is
+        dropped when its ``control_net_name`` is absent from *available*
+        (HTTP 400 ``value_not_in_list`` at submit) or belongs to a different
+        SD family than the workflow checkpoint (SD1.5 ControlNet on an SDXL
+        checkpoint fails at execution). Conditioning consumers are rewired to
+        bypass removed apply nodes so the pass still renders — a weaker
+        structure lock beats a crashed job. Returns ``(workflow, dropped)``
+        where dropped items are ``"name (reason)"`` strings.
+        """
+        import copy
+
+        ckpt_family = ""
+        for node in workflow.values():
+            if node.get("class_type") == "CheckpointLoaderSimple":
+                ckpt_family = guess_model_family(
+                    str(node.get("inputs", {}).get("ckpt_name", ""))
+                )
+                if ckpt_family:
+                    break
+
+        bad_loaders: dict[str, str] = {}  # loader nid -> "name (reason)"
+        for nid, node in workflow.items():
+            if node.get("class_type") != "ControlNetLoader":
+                continue
+            name = str(node.get("inputs", {}).get("control_net_name", ""))
+            cn_family = guess_model_family(name)
+            if available and name not in available:
+                bad_loaders[nid] = f"{name} (not installed in ComfyUI)"
+            elif ckpt_family and cn_family and cn_family != ckpt_family:
+                bad_loaders[nid] = (
+                    f"{name} ({cn_family} model on {ckpt_family} checkpoint)"
+                )
+
+        if not bad_loaders:
+            return workflow, []
+
+        new_wf = copy.deepcopy(workflow)
+
+        def _input_ref(node: dict, key: str) -> list | None:
+            val = node.get("inputs", {}).get(key)
+            if isinstance(val, list) and len(val) == 2:
+                return val
+            return None
+
+        # Cascade removal: unions fed by bad loaders, then apply nodes fed
+        # by either. Image loaders feeding removed applies are pruned later
+        # only if nothing else consumes them.
+        removed: set[str] = set(bad_loaders)
+        for nid, node in new_wf.items():
+            if node.get("class_type") == "SetUnionControlNetType":
+                ref = _input_ref(node, "control_net")
+                if ref and str(ref[0]) in bad_loaders:
+                    removed.add(nid)
+        removed_applies: set[str] = set()
+        for nid, node in new_wf.items():
+            if node.get("class_type") in ("ControlNetApplyAdvanced", "ControlNetApply"):
+                ref = _input_ref(node, "control_net")
+                if ref and str(ref[0]) in removed:
+                    removed_applies.add(nid)
+        removed |= removed_applies
+
+        def _resolve(ref: list, seen: frozenset[str] = frozenset()) -> list:
+            """Walk conditioning refs through removed apply nodes."""
+            nid, port = str(ref[0]), int(ref[1])
+            if nid not in removed_applies or nid in seen:
+                return [nid, port]
+            node = new_wf[nid]
+            if node.get("class_type") == "ControlNetApply":
+                upstream = _input_ref(node, "conditioning")
+            else:
+                upstream = _input_ref(node, "positive" if port == 0 else "negative")
+            if not upstream:
+                return [nid, port]
+            return _resolve(upstream, seen | {nid})
+
+        # Remember control-image loaders referenced by removed applies.
+        candidate_images: set[str] = set()
+        for nid in removed_applies:
+            ref = _input_ref(new_wf[nid], "image")
+            if ref:
+                candidate_images.add(str(ref[0]))
+
+        # Rewire survivors, then delete removed nodes.
+        for nid, node in new_wf.items():
+            if nid in removed:
+                continue
+            inputs = node.get("inputs", {})
+            for key, val in list(inputs.items()):
+                if isinstance(val, list) and len(val) == 2 and str(val[0]) in removed_applies:
+                    inputs[key] = _resolve(val)
+        for nid in removed:
+            new_wf.pop(nid, None)
+
+        # Prune orphaned control-image loaders (no remaining consumers).
+        still_referenced: set[str] = set()
+        for node in new_wf.values():
+            for val in node.get("inputs", {}).values():
+                if isinstance(val, list) and len(val) == 2:
+                    still_referenced.add(str(val[0]))
+        for nid in candidate_images:
+            node = new_wf.get(nid)
+            if (
+                node
+                and nid not in still_referenced
+                and node.get("class_type") in ("LoadImageFromBase64", "LoadImage")
+            ):
+                del new_wf[nid]
+
+        return new_wf, sorted(bad_loaders.values())
 
     # ── Internal: submit + poll ───────────────────────────────────────
 

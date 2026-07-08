@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 import random
+import re
 import time
 from pathlib import Path
 from typing import Any, Optional
@@ -387,9 +388,11 @@ _REGION_LORA_MAP: dict[str, list[dict[str, Any]]] = {
 
 # ── Auto-discovery of supplemental LoRAs ───────────────────────────
 # After bulk_model_downloader.py drops files into ComfyUI/models/loras/effects/<sub>/,
-# any .safetensors found is auto-attached to the matching region(s) at low
-# strength so it complements (not replaces) the core entries above. Triggered
-# at import time, idempotent, never raises.
+# discovered .safetensors become *candidates* for the matching region(s).
+# Unlike the hand-curated stacks above they are PROMPT-GATED: an effect LoRA
+# (drool, ahegao, mouth-pull, …) only attaches when the job prompt actually
+# asks for that effect. Unconditional stacking poisoned renders — a gentle
+# closed-mouth smile once shipped with ~14 off-topic mouth LoRAs attached.
 
 # Subfolder name → list of region_type keys it should be merged into
 _EFFECT_SUBDIR_REGION_MAP: dict[str, tuple[str, ...]] = {
@@ -411,13 +414,98 @@ _EFFECT_SUBDIR_REGION_MAP: dict[str, tuple[str, ...]] = {
 _AUTO_LORA_STRENGTH_MODEL = 0.45
 _AUTO_LORA_STRENGTH_CLIP = 0.35
 
+# Hard cap per region pass — even with a matching prompt, stacking many
+# effect LoRAs degrades quality and slows ComfyUI model patching.
+_AUTO_EFFECT_MAX_PER_REGION = 2
+
+# Candidate store: region_type → entries carrying a private "_match_terms"
+# tuple used for prompt gating (stripped before the entry reaches a workflow).
+_AUTO_EFFECT_LORAS: dict[str, list[dict[str, Any]]] = {}
+
+# Generic anatomy words never count as evidence that the user asked for a
+# specific effect ("closed mouth, smile" must NOT pull in mouth-pull LoRAs).
+_MATCH_TERM_STOPLIST = {
+    "mouth", "lips", "lip", "face", "eye", "eyes", "iris", "pupil",
+    "smile", "expression", "open mouth", "closed mouth", "teeth",
+    "girl", "1girl", "boy", "1boy", "solo", "anime", "detail", "detailed",
+    "effect", "effects", "concept", "quality", "masterpiece",
+    # model-family / packaging tokens that leak in from filenames
+    "sd15", "sdxl", "pony", "illustrious", "noobai", "lora", "locon",
+    "safetensors", "final", "version",
+}
+
+
+def _norm_term(s: str) -> str:
+    """Lowercase, underscores→spaces, collapsed whitespace."""
+    return " ".join(str(s).lower().replace("_", " ").split())
+
+
+def _registry_match_terms() -> dict[str, tuple[str, ...]]:
+    """basename.lower() → match terms from configs/lora_registry.yaml.
+
+    Terms come from each entry's ``trigger_words`` + ``keywords`` (NOT
+    ``tags`` — tags like "mouth"/"expression" are exactly the generic words
+    the stoplist exists to block). Loaded once; failures yield an empty map.
+    """
+    cached = getattr(_registry_match_terms, "_cache", None)
+    if cached is not None:
+        return cached
+    terms_by_name: dict[str, tuple[str, ...]] = {}
+    try:
+        import yaml  # local import — registry parsing is optional
+
+        from ..lora_manager import _LORA_REGISTRY_YAML  # type: ignore
+
+        data = yaml.safe_load(_LORA_REGISTRY_YAML.read_text(encoding="utf-8")) or {}
+        for section in data.values():
+            if not isinstance(section, list):
+                continue
+            for entry in section:
+                if not isinstance(entry, dict) or not entry.get("name"):
+                    continue
+                raw_terms: list[str] = []
+                for key in ("trigger_words", "keywords"):
+                    val = entry.get(key) or []
+                    if isinstance(val, str):
+                        val = [val]
+                    for item in val:
+                        # trigger strings are often comma-joined tag lists
+                        raw_terms.extend(str(item).split(","))
+                terms = tuple(
+                    dict.fromkeys(
+                        t
+                        for t in (_norm_term(x) for x in raw_terms)
+                        if len(t) >= 4 and t not in _MATCH_TERM_STOPLIST
+                    )
+                )
+                if terms:
+                    terms_by_name[Path(str(entry["name"])).name.lower()] = terms
+    except Exception as exc:  # noqa: BLE001 — registry is best-effort
+        logger.debug("[DetectionInpaint] lora_registry match terms skipped: %s", exc)
+    _registry_match_terms._cache = terms_by_name  # type: ignore[attr-defined]
+    return terms_by_name
+
+
+def _filename_match_terms(filename: str, sub_name: str) -> tuple[str, ...]:
+    """Fallback match terms from a LoRA filename + its effects/ subfolder."""
+    tokens = re.split(r"[^a-z0-9]+", Path(filename).stem.lower())
+    terms = [
+        t
+        for t in tokens
+        if len(t) >= 4 and not t.isdigit() and t not in _MATCH_TERM_STOPLIST
+    ]
+    sub = _norm_term(sub_name)
+    if len(sub) >= 4 and sub not in _MATCH_TERM_STOPLIST:
+        terms.append(sub)
+    return tuple(dict.fromkeys(terms))
+
 
 def _auto_discover_effect_loras() -> None:
-    """Scan ComfyUI/models/loras/effects/<sub>/ and merge into _REGION_LORA_MAP.
+    """Scan ComfyUI/models/loras/effects/<sub>/ into _AUTO_EFFECT_LORAS.
 
-    Skipped silently if the directory is missing or scanning fails.
-    Existing region entries are preserved; auto-discovered files are appended
-    only if their basename is not already present in that region's stack.
+    Skipped silently if the directory is missing or scanning fails. Entries
+    are candidates only — attachment happens per job via
+    ``effect_loras_for_prompt`` when the prompt matches.
     """
     try:
         from ..lora_manager import _COMFYUI_LORA_ROOT  # type: ignore
@@ -428,6 +516,7 @@ def _auto_discover_effect_loras() -> None:
     if not effects_root.is_dir():
         return
 
+    registry_terms = _registry_match_terms()
     discovered = 0
     for sub_name, region_types in _EFFECT_SUBDIR_REGION_MAP.items():
         if not region_types:
@@ -436,14 +525,19 @@ def _auto_discover_effect_loras() -> None:
         if not sub_dir.is_dir():
             continue
         for f in sub_dir.glob("*.safetensors"):
-            rel = f"effects/{sub_name}/{f.name}"
+            terms = registry_terms.get(f.name.lower()) or _filename_match_terms(
+                f.name, sub_name
+            )
+            if not terms:
+                continue  # nothing safe to gate on — never attach blindly
             entry = {
-                "name": rel,
+                "name": f"effects/{sub_name}/{f.name}",
                 "strength_model": _AUTO_LORA_STRENGTH_MODEL,
                 "strength_clip": _AUTO_LORA_STRENGTH_CLIP,
+                "_match_terms": terms,
             }
             for region in region_types:
-                stack = _REGION_LORA_MAP.setdefault(region, [])
+                stack = _AUTO_EFFECT_LORAS.setdefault(region, [])
                 # Dedupe by basename so re-imports don't double-stack
                 names = {Path(item.get("name", "")).name for item in stack}
                 if f.name not in names:
@@ -452,10 +546,46 @@ def _auto_discover_effect_loras() -> None:
 
     if discovered:
         logger.info(
-            "[DetectionInpaint] Auto-discovered %d supplemental LoRA attachments "
-            "across effects/ subfolders.",
+            "[DetectionInpaint] Discovered %d prompt-gated effect LoRA "
+            "candidate(s) across effects/ subfolders.",
             discovered,
         )
+
+
+def effect_loras_for_prompt(
+    region_type: str,
+    prompt_text: str,
+    *,
+    max_count: int = _AUTO_EFFECT_MAX_PER_REGION,
+) -> list[dict[str, Any]]:
+    """Return auto-discovered effect LoRAs whose match terms appear in *prompt_text*.
+
+    Entries are copies with the private ``_match_terms`` key stripped, capped
+    at *max_count* per region. No prompt evidence → no attachment.
+    """
+    candidates = _AUTO_EFFECT_LORAS.get(region_type)
+    if not candidates:
+        return []
+    prompt_norm = _norm_term(prompt_text)
+    if not prompt_norm:
+        return []
+    selected: list[dict[str, Any]] = []
+    for entry in candidates:
+        terms = entry.get("_match_terms") or ()
+        matched = next((t for t in terms if t in prompt_norm), None)
+        if matched is None:
+            continue
+        clean = {k: v for k, v in entry.items() if k != "_match_terms"}
+        selected.append(clean)
+        logger.info(
+            "[DetectionInpaint] Effect LoRA %s attached to %s (prompt matched %r)",
+            Path(str(entry.get("name", ""))).name,
+            region_type,
+            matched,
+        )
+        if len(selected) >= max_count:
+            break
+    return selected
 
 
 # Run discovery at import. Failures must not break module load.
@@ -958,6 +1088,15 @@ class DetectionInpaintAgent:
             region_loras = self._filter_existing_loras(
                 list(_REGION_LORA_MAP.get(region_type, [])),
                 region_type=region_type,
+            )
+            # Prompt-gated effect LoRAs (drool/ahegao/mouth-pull/…): only
+            # attach when the user prompt or planned prompt actually asks
+            # for the effect — never blanket-stack a whole effects/ folder.
+            region_loras.extend(
+                effect_loras_for_prompt(
+                    region_type,
+                    f"{getattr(job, 'user_prompt', '')} {base_positive}",
+                )
             )
             # Also include default LoRAs from config at reduced strength
             for lora in self._config.default_loras:

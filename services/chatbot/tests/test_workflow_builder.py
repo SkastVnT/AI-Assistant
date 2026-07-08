@@ -505,3 +505,96 @@ class TestIdempotency:
         # Both should start from ID "1"
         assert "1" in wf1
         assert "1" in wf2
+
+
+# ═══════════════════════════════════════════════════════════════════
+# ControlNet conditioning ports (regression)
+# ═══════════════════════════════════════════════════════════════════
+
+
+class TestControlNetConditioningPorts:
+    """Negative conditioning must come from ControlNetApplyAdvanced output 1.
+
+    Regression: both KSampler conditioning inputs were wired to output 0,
+    which silently replaced the negative prompt with the positive one
+    whenever at least one control was attached (broken CFG guidance).
+    """
+
+    @staticmethod
+    def _sampler(wf):
+        return next(n for n in wf.values() if n["class_type"] == "KSampler")
+
+    def test_negative_uses_port_1_with_control(self, builder, beauty_pc):
+        wf = builder.build_beauty(beauty_pc, "source", SEED)
+        cn_ids = [
+            nid
+            for nid, n in wf.items()
+            if n["class_type"] == "ControlNetApplyAdvanced"
+        ]
+        assert len(cn_ids) == 1
+        sampler = self._sampler(wf)
+        assert sampler["inputs"]["positive"] == [cn_ids[0], 0]
+        assert sampler["inputs"]["negative"] == [cn_ids[0], 1]
+
+    def test_chain_threads_both_ports(self, builder):
+        pc = PassConfig(
+            pass_name="beauty",
+            model_slot="final",
+            checkpoint="wai-nsfw-illustrious.safetensors",
+            width=832,
+            height=1216,
+            sampler="dpmpp_2m_sde",
+            scheduler="karras",
+            steps=30,
+            cfg=5.5,
+            denoise=0.30,
+            positive_prompt="masterpiece, 1girl",
+            negative_prompt="lowres",
+            control_inputs=[
+                ControlInput(
+                    layer_type="lineart_anime",
+                    controlnet_model="cn_a.safetensors",
+                    strength=0.8,
+                    image_b64="a_b64",
+                ),
+                ControlInput(
+                    layer_type="depth",
+                    controlnet_model="cn_b.safetensors",
+                    strength=0.5,
+                    image_b64="b_b64",
+                ),
+            ],
+        )
+        wf = builder.build_beauty(pc, "source", SEED)
+        applies = {
+            nid: n
+            for nid, n in wf.items()
+            if n["class_type"] == "ControlNetApplyAdvanced"
+        }
+        assert len(applies) == 2
+        # First apply consumes the CLIP encoders; second consumes the first.
+        first_id = next(
+            nid
+            for nid, n in applies.items()
+            if wf[n["inputs"]["positive"][0]]["class_type"] == "CLIPTextEncode"
+        )
+        second_id = next(nid for nid in applies if nid != first_id)
+        first = wf[first_id]
+        second = wf[second_id]
+        assert wf[first["inputs"]["negative"][0]]["class_type"] == "CLIPTextEncode"
+        assert first["inputs"]["negative"][1] == 0
+        assert second["inputs"]["positive"] == [first_id, 0]
+        assert second["inputs"]["negative"] == [first_id, 1]
+        sampler = self._sampler(wf)
+        assert sampler["inputs"]["positive"] == [second_id, 0]
+        assert sampler["inputs"]["negative"] == [second_id, 1]
+
+    def test_no_controls_negative_is_clip_encode(self, builder, composition_pc):
+        wf = builder.build_composition(composition_pc, SEED)
+        sampler = self._sampler(wf)
+        neg_ref = sampler["inputs"]["negative"]
+        assert wf[neg_ref[0]]["class_type"] == "CLIPTextEncode"
+        assert neg_ref[1] == 0
+        assert (
+            wf[neg_ref[0]]["inputs"]["text"] == composition_pc.negative_prompt
+        )

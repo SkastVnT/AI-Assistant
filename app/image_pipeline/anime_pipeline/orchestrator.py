@@ -819,6 +819,38 @@ class AnimePipelineOrchestrator:
                 # Reset status so critique can still run using the last available image
                 job.status = AnimePipelineStatus.CRITIQUING
 
+                # Retry beauty with a fresh seed while refine rounds remain.
+                # Without this, a single beauty failure on round 0 broke the
+                # loop and shipped the composition draft as the final image
+                # (observed: ControlNet 400 → refine_rounds=0 despite
+                # retry_recommendation=true). Resource errors (OOM) are not
+                # retried — the same VRAM ceiling fails identically.
+                beauty_error_class = getattr(job, "error_class", None)
+                if round_num < max_rounds and beauty_error_class != "resource":
+                    logger.warning(
+                        "[AnimePipeline] Beauty pass failed on round %d (%s) — "
+                        "retrying with a fresh seed (%d round(s) left)",
+                        round_num,
+                        job.error,
+                        max_rounds - round_num,
+                    )
+                    yield self._event(
+                        "beauty_retry_scheduled",
+                        {
+                            "round": round_num + 1,
+                            "max_rounds": max_rounds,
+                            "error": job.error,
+                            "error_class": beauty_error_class,
+                        },
+                    )
+                    job.error = None
+                    job.error_class = None
+                    job.refine_rounds += 1
+                    if job.layer_plan and job.layer_plan.beauty_pass:
+                        job.layer_plan.beauty_pass.seed = -1  # force new seed
+                    critique_for_next_round = None
+                    continue
+
             # YOLO Detail Fix — runs BEFORE critique so that Critique
             # evaluates the YOLO-enhanced image, not raw beauty output.
             # Skips gracefully if YOLO unavailable or beauty failed.

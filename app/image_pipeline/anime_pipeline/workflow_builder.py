@@ -292,8 +292,8 @@ class WorkflowBuilder:
             "class_type": "KSampler",
             "inputs": {
                 "model": [model_out, 0],
-                "positive": [pos_out, 0],
-                "negative": [neg_out, 0],
+                "positive": pos_out,
+                "negative": neg_out,
                 "latent_image": [latent, 0],
                 "seed": seed,
                 "steps": pc.steps,
@@ -398,8 +398,8 @@ class WorkflowBuilder:
             "class_type": "KSampler",
             "inputs": {
                 "model": [model_out, 0],
-                "positive": [pos_out, 0],
-                "negative": [neg_out, 0],
+                "positive": pos_out,
+                "negative": neg_out,
                 "latent_image": [vae_enc, 0],
                 "seed": seed,
                 "steps": pc.steps,
@@ -582,8 +582,8 @@ class WorkflowBuilder:
             "class_type": "KSampler",
             "inputs": {
                 "model": [model_out, 0],
-                "positive": [pos_out, 0],
-                "negative": [neg_out, 0],
+                "positive": pos_out,
+                "negative": neg_out,
                 "latent_image": [vae_enc, 0],
                 "seed": seed,
                 "steps": pc.steps,
@@ -702,8 +702,8 @@ class WorkflowBuilder:
             "class_type": "KSampler",
             "inputs": {
                 "model": [model_out, 0],
-                "positive": [pos_out, 0],
-                "negative": [neg_out, 0],
+                "positive": pos_out,
+                "negative": neg_out,
                 "latent_image": [vae_enc, 0],
                 "seed": seed,
                 "steps": pc.steps,
@@ -725,8 +725,8 @@ class WorkflowBuilder:
                 "class_type": "KSampler",
                 "inputs": {
                     "model": [model_out, 0],
-                    "positive": [pos_out, 0],
-                    "negative": [neg_out, 0],
+                    "positive": pos_out,
+                    "negative": neg_out,
                     "latent_image": latent_out,
                     "seed": seed + 101 + i,
                     "steps": max(8, int(pc.steps * 0.35) - (i * 2)),
@@ -803,8 +803,8 @@ class WorkflowBuilder:
             "class_type": "KSampler",
             "inputs": {
                 "model": [model_out, 0],
-                "positive": [pos_out, 0],
-                "negative": [neg_out, 0],
+                "positive": pos_out,
+                "negative": neg_out,
                 "latent_image": [latent, 0],
                 "seed": seed,
                 "steps": pc.steps,
@@ -885,8 +885,8 @@ class WorkflowBuilder:
             "class_type": "KSampler",
             "inputs": {
                 "model": [model_out, 0],
-                "positive": [pos_out, 0],
-                "negative": [neg_out, 0],
+                "positive": pos_out,
+                "negative": neg_out,
                 "latent_image": [vae_enc, 0],
                 "seed": seed,
                 "steps": pc.steps,
@@ -1716,10 +1716,16 @@ class WorkflowBuilder:
         model_id: str,
         pos_id: str,
         neg_id: str,
-    ) -> tuple[str, str, str]:
-        """Chain ControlNet apply nodes; return final (model, pos, neg) IDs."""
-        current_pos = pos_id
-        current_neg = neg_id
+    ) -> tuple[str, list, list]:
+        """Chain ControlNet apply nodes; return (model id, pos ref, neg ref).
+
+        The conditioning refs are ``[node_id, output_port]`` pairs ready to
+        wire into KSampler inputs. ControlNetApplyAdvanced emits positive on
+        output 0 and negative on output 1, so the two refs may point at
+        different ports of the same node.
+        """
+        current_pos: list = [pos_id, 0]
+        current_neg: list = [neg_id, 0]
 
         for ctrl in controls:
             if not ctrl.image_b64 or not ctrl.controlnet_model:
@@ -1756,8 +1762,8 @@ class WorkflowBuilder:
             w[cn_apply] = {
                 "class_type": "ControlNetApplyAdvanced",
                 "inputs": {
-                    "positive": [current_pos, 0],
-                    "negative": [current_neg, 0],
+                    "positive": current_pos,
+                    "negative": current_neg,
                     "control_net": [control_net_out, 0],
                     "image": [ctrl_img, 0],
                     "strength": ctrl.strength,
@@ -1766,7 +1772,7 @@ class WorkflowBuilder:
                 },
             }
 
-            current_pos = cn_apply  # output 0 = positive
-            current_neg = cn_apply  # output 1 = negative
+            current_pos = [cn_apply, 0]  # output 0 = positive
+            current_neg = [cn_apply, 1]  # output 1 = negative
 
         return model_id, current_pos, current_neg

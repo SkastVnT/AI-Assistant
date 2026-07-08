@@ -226,18 +226,32 @@ class ResultStore:
             "error": job.error,
         }
 
-        # Build pass list from intermediates
+        # Build pass list from intermediates — one row per stage. Replan and
+        # refine loops append multiple intermediates for the same stage while
+        # ``stage_timings_ms`` keeps only the latest timing, so emitting the
+        # raw list produced duplicate rows with identical durations
+        # (mirrors the dedup in agents.output_manifest._build_pass_list).
+        stage_runs: dict[str, int] = {}
+        stage_model: dict[str, str] = {}
+        ordered_stages: list[str] = []
         for img in job.intermediates:
-            prefix = _STAGE_FILE_PREFIX.get(img.stage, img.stage)
-            manifest["passes"].append(
-                {
-                    "name": img.stage,
-                    "model": img.metadata.get("checkpoint")
-                    or img.metadata.get("model", ""),
-                    "duration_ms": job.stage_timings_ms.get(img.stage, 0.0),
-                    "output": f"{prefix}.png",
-                }
-            )
+            stage_runs[img.stage] = stage_runs.get(img.stage, 0) + 1
+            model = img.metadata.get("checkpoint") or img.metadata.get("model", "")
+            if model:
+                stage_model[img.stage] = model  # latest run wins
+            if img.stage not in ordered_stages:
+                ordered_stages.append(img.stage)
+        for stage in ordered_stages:
+            prefix = _STAGE_FILE_PREFIX.get(stage, stage)
+            entry: dict[str, Any] = {
+                "name": stage,
+                "model": stage_model.get(stage, ""),
+                "duration_ms": job.stage_timings_ms.get(stage, 0.0),
+                "output": f"{prefix}.png",
+            }
+            if stage_runs[stage] > 1:
+                entry["runs"] = stage_runs[stage]
+            manifest["passes"].append(entry)
 
         # Add critique summaries
         if job.critique_results:
