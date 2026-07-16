@@ -13,7 +13,7 @@ tensorboard>=2.13.0
 wandb>=0.15.0
 
 # MCP Server
-mcp[cli]>=1.0.0
+mcp[cli]>=1.27.2
 
 # ML Optimization (install separately if GPU available)
 # xformers==0.0.23.post1
