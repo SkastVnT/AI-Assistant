@@ -10,7 +10,7 @@
 -r requirements_chunk_8_document.txt
 
 # Keep MCP runtime in core profile
-mcp[cli]>=1.0.0
+mcp[cli]>=1.27.2
 
 # Optional for chatbot UI routes using gradio
 gradio>=6.19.0
