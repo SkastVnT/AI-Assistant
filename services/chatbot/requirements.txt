@@ -15,7 +15,7 @@ fastapi>=0.139.0
 uvicorn[standard]>=0.30.0
 python-multipart>=0.0.9  # Required for UploadFile
 pydantic>=2.13.4
-werkzeug>=3.0.0
+werkzeug>=3.1.8
 
 # ============= PERFORMANCE & CACHING (Phase 1) =============
 redis>=8.0.0
