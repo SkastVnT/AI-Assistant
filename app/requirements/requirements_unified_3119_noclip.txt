@@ -218,7 +218,7 @@ pdfminer.six==20251230
 pdfplumber==0.11.9
 peft==0.18.0
 piexif==1.1.3
-pillow==12.2.0
+pillow==12.3.0
 pixeloe
 platformdirs==4.5.1
 pluggy==1.6.0
