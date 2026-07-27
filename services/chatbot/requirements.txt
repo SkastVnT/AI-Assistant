@@ -39,7 +39,7 @@ openai>=2.44.0  # Videos API (Sora 2) requires >=2.29
 google-genai>=1.56.0
 
 # ============= IMAGE PROCESSING =============
-Pillow>=10.0.0
+Pillow>=12.3.0
 requests>=2.33.1
 
 # ============= PHASE 2: ADVANCED FEATURES =============
