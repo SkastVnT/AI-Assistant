@@ -107,7 +107,7 @@ pydub>=0.25.1
 # ============================================================================
 # IMAGE & DOCUMENT PROCESSING
 # ============================================================================
-Pillow>=12.2.0
+Pillow>=12.3.0
 opencv-python<=4.13.0.90  # Required by paddleocr 2.7.3 (max version constraint)
 paddleocr==2.7.3
 paddlepaddle==2.6.2

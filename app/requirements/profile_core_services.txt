@@ -34,7 +34,7 @@ gradio>=6.19.0
 # Required: reference image encode/decode in orchestrator and detection agents.
 # Imported lazily inside orchestrator._augment_references_from_cache and
 # agents/detection_detail.py. Not pulled in transitively by core chunks.
-Pillow>=12.2.0
+Pillow>=12.3.0
 
 # Optional (feature-flagged): YOLO-based detection + inpaint "ADetailer" pass.
 # Activated only when IMAGE_PIPELINE_V2=true and the detection feature flag is
