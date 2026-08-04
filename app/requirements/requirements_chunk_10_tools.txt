@@ -5,7 +5,7 @@
 gradio>=6.19.0
 
 # Git
-GitPython>=3.1.0
+GitPython>=3.1.57
 jsonmerge>=1.9.0
 
 # Monitoring
