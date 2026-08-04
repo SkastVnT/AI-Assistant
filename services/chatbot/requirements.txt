@@ -12,7 +12,7 @@ websocket-client>=1.9.0  # ComfyUI /ws live-preview reader (Phase 3, opt-in via 
 
 # ============= FASTAPI (async mode) =============
 fastapi>=0.139.0
-uvicorn[standard]>=0.30.0
+uvicorn[standard]>=0.51.0
 python-multipart>=0.0.9  # Required for UploadFile
 pydantic>=2.13.4
 werkzeug>=3.1.8
