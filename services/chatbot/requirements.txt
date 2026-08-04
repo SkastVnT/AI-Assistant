@@ -12,8 +12,8 @@ websocket-client>=1.9.0  # ComfyUI /ws live-preview reader (Phase 3, opt-in via 
 
 # ============= FASTAPI (async mode) =============
 fastapi>=0.139.0
-uvicorn[standard]>=0.30.0
-python-multipart>=0.0.32  # Required for UploadFile
+uvicorn[standard]>=0.51.0
+python-multipart>=0.0.9  # Required for UploadFile
 pydantic>=2.13.4
 werkzeug>=3.1.8
 
@@ -36,10 +36,10 @@ pymupdf>=1.24.0
 
 # ============= AI APIs =============
 openai>=2.44.0  # Videos API (Sora 2) requires >=2.29
-google-genai>=1.56.0
+google-genai>=2.14.0
 
 # ============= IMAGE PROCESSING =============
-Pillow>=10.0.0
+Pillow>=12.3.0
 requests>=2.33.1
 
 # ============= PHASE 2: ADVANCED FEATURES =============
