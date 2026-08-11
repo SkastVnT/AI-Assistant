@@ -40,7 +40,7 @@ google-genai>=2.14.0
 
 # ============= IMAGE PROCESSING =============
 Pillow>=12.3.0
-requests>=2.33.1
+requests>=2.34.2
 
 # ============= PHASE 2: ADVANCED FEATURES =============
 # Semantic search and embeddings
