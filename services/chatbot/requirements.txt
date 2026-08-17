@@ -32,7 +32,7 @@ boto3>=1.43.51
 beautifulsoup4>=4.12.0
 boto3>=1.43.6
 beautifulsoup4>=4.15.0
-pymupdf>=1.24.0
+pymupdf>=1.28.2
 
 # ============= AI APIs =============
 openai>=2.44.0  # Videos API (Sora 2) requires >=2.29
