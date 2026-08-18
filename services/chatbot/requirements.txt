@@ -20,7 +20,7 @@ werkzeug>=3.1.8
 # ============= PERFORMANCE & CACHING (Phase 1) =============
 redis>=8.0.0
 pymongo>=4.17.0
-dnspython>=2.4.0  # Required for MongoDB SRV connection
+dnspython>=2.8.0  # Required for MongoDB SRV connection
 
 # ============= RAG =============
 chromadb>=1.5.9
