@@ -44,7 +44,7 @@ requests>=2.34.2
 
 # ============= PHASE 2: ADVANCED FEATURES =============
 # Semantic search and embeddings
-sentence-transformers>=5.7.0
+sentence-transformers>=6.0.0
 
 # Scientific computing
 scipy>=1.17.1
