@@ -88,6 +88,7 @@ The local gate script (`app/scripts/verify-local.ps1`) handles this automaticall
 |---|---|---|
 | `app/requirements/profile_core_services.txt` | **Primary venv-core installer** (flat, self-contained). | Adding a new chatbot/MCP runtime dependency |
 | `app/requirements/profile_image_ai_services.txt` | **Primary venv-image installer** (flat, self-contained). | Adding a new image-pipeline runtime dependency |
+| `app/requirements/profile_chatbot_minimal.txt` | Chatbot + MCP only; `profile_core_services.txt` minus the audio and document blocks (20 packages). Strict subset. | Keep in sync when editing the core profile |
 | `services/chatbot/requirements.txt` | Chatbot-extended install including RAG stack | Adding chatbot-specific deps not in the shared profile |
 | `services/chatbot/tests/requirements-test.txt` | Test-only deps (pytest, pytest-mock, pytest-asyncio, etc.) | Adding or upgrading a test tool |
 | `services/mcp-server/requirements.txt` | MCP server runtime (mcp[cli] only) | Upgrading the MCP package |
@@ -111,9 +112,6 @@ To regenerate a freeze: `pip list --format=freeze > requirements-core.txt` (from
 | File | Why stale |
 |---|---|
 | `requirements.txt` (repo root) | Last updated 2025-12-17. Lists nine services, most of which are archived (speech2text, text2sql, document-intelligence, lora-training, image-upscale, hub-gateway). Port table is wrong (SD shown as 7860). Mixes core and image stacks in one file. Do not `pip install -r requirements.txt`. |
-| `app/requirements/requirements_unified_3119.txt` | Auto-generated full pip list for Python 3.11.9 (generated once for reference). Not a maintainable manifest. |
-| `app/requirements/requirements_unified_3119_installable.txt` | Same, filtered for installability. |
-| `app/requirements/requirements_unified_3119_noclip.txt` | Same, minus open-clip-torch. |
 | `app/requirements/PROFILE_SERVICE_MAP.md` | Service-to-profile map; **partially stale** â€” still lists archived services (speech2text, text2sql, document-intelligence, hub-gateway). Accurate for venv split (core vs image) but service list needs update in P1.3. |
 
 ---
@@ -146,7 +144,6 @@ The following discrepancies exist between what is declared in the install manife
 ## 7. What Not to Edit Casually
 
 - **`requirements-core.txt` and `requirements-image.txt`** â€” these are freeze snapshots. Do not edit by hand. Regenerate after a deliberate venv rebuild.
-- **`app/requirements/requirements_unified_3119*.txt`** â€” one-time artifacts. Do not edit or use for installation.
 - **`requirements.txt` (root)** â€” legacy stub. Do not add new packages here; they will be ignored by the profile system.
 - **Web block in `app/requirements/profile_core_services.txt`** — contains `fastapi` and `uvicorn`. FastAPI is no longer a runtime path (removed May 2026) but is kept as a transitive dependency of the MCP client. Do not remove it from the profile unless the MCP dependency chain is verified to no longer need it.
 

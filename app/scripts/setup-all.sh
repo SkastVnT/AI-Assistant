@@ -62,19 +62,17 @@ cd "${PROJECT_ROOT}"
 # Upgrade pip first
 pip install --upgrade pip --quiet
 
-# Install chunks if available
-if ls requirements_chunk_*.txt 1> /dev/null 2>&1; then
-    for chunk in requirements_chunk_*.txt; do
-        echo -e "${YELLOW}  Installing ${chunk}...${NC}"
-        pip install -r "${chunk}" --quiet 2>/dev/null || {
-            echo -e "${YELLOW}  Some packages in ${chunk} failed, continuing...${NC}"
-        }
-    done
-else
-    # Install main requirements
-    pip install -r requirements.txt --quiet 2>/dev/null || {
-        echo -e "${YELLOW}  Some packages failed, continuing...${NC}"
+# Install the core profile (flat, self-contained).
+PROFILE="${PROJECT_ROOT}/app/requirements/profile_core_services.txt"
+if [[ -f "${PROFILE}" ]]; then
+    echo -e "${YELLOW}  Installing profile_core_services.txt...${NC}"
+    pip install -r "${PROFILE}" --quiet || {
+        echo -e "${RED}  Failed to install the core profile.${NC}"
+        exit 1
     }
+else
+    echo -e "${RED}  ${PROFILE} not found.${NC}"
+    exit 1
 fi
 echo -e "${GREEN}âœ“ Core dependencies installed${NC}"
 

@@ -52,16 +52,11 @@ cp services/chatbot/.env.example services/chatbot/.env
 python services/chatbot/run.py
 ```
 
-> **Chatbot-only (lighter install):** skip the audio and document chunks by installing only the required subset:
+> **Chatbot-only (lighter install):** skips the local audio and OCR stack
+> (20 packages: faster-whisper, pyannote, librosa, paddleocr, PyMuPDF, ...).
 >
 > ```bash
-> cd app/requirements
-> pip install -r requirements_chunk_1_core.txt \
->             -r requirements_chunk_2_web.txt \
->             -r requirements_chunk_3_database.txt \
->             -r requirements_chunk_4_ai_apis.txt
-> pip install "mcp[cli]>=1.0.0" "Pillow>=10.3.0"
-> cd ../..
+> pip install -r app/requirements/profile_chatbot_minimal.txt
 > ```
 
 Open `http://127.0.0.1:5000`.
