@@ -187,11 +187,11 @@ services/text2sql/sample/uploaded/*.jsonl
 # ============================================
 # STABLE DIFFUSION SERVICE
 # ============================================
-services/stable-diffusion/models/
-services/stable-diffusion/outputs/
-services/stable-diffusion/log/
-services/stable-diffusion/tmp/
-services/stable-diffusion/cache.json
+# Local A1111 working install. The webui source is not vendored here; the
+# canonical pinned copy is the services/stable-diffusion_upstream submodule.
+# repositories/* is cloned and version-pinned by A1111's own launch_utils.py,
+# so it must not be tracked as git submodules.
+services/stable-diffusion/
 stable-diffusion-webui/
 ComfyUI/final/
 

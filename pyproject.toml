@@ -11,7 +11,7 @@ exclude = [
     "venv-image",
     "ComfyUI",
     "services/edit-image/ComfyUI",
-    "services/stable-diffusion/repositories",
+    "services/stable-diffusion",
     "character_select_stand_alone_app-main",
     "image_pipeline",
     "private",
