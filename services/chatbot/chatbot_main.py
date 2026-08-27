@@ -7041,9 +7041,9 @@ def app_chat_suggestions():
 @app.route("/openapi.json", methods=["GET"])
 def openapi_json():
     """Return the static-scan OpenAPI document for backend inspection."""
-    generator_path = ROOT_DIR / "openapi.js"
+    generator_path = ROOT_DIR / "scripts" / "openapi.js"
     if not generator_path.exists():
-        return jsonify({"error": "openapi.js not found", "path": str(generator_path)}), 404
+        return jsonify({"error": "scripts/openapi.js not found", "path": str(generator_path)}), 404
 
     try:
         result = subprocess.run(
@@ -7061,7 +7061,7 @@ def openapi_json():
             jsonify(
                 {
                     "error": "node executable not found",
-                    "message": "Install Node.js or run `node openapi.js > openapi.json` from the repo root.",
+                    "message": "Install Node.js or run `node scripts/openapi.js > openapi.json` from the repo root.",
                 }
             ),
             500,

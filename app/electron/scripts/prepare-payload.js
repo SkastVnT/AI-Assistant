@@ -48,9 +48,9 @@ const COPY_ITEMS = [
     { src: 'app/storage/references',                          dst: 'app/storage/references',                          required: false },
     { src: 'app/storage/lora_inventory.json',                 dst: 'app/storage/lora_inventory.json',                 required: false },
     { src: 'LORA',                                            dst: 'LORA',                                            required: false },
-    { src: 'requirements.txt',                                dst: 'requirements.txt',                                required: false },
-    { src: 'requirements-core.txt',                           dst: 'requirements-core.txt',                           required: false },
-    { src: 'requirements-image.txt',                          dst: 'requirements-image.txt',                          required: false },
+    { src: 'app/requirements/legacy-root-requirements.txt',                                dst: 'requirements.txt',                                required: false },
+    { src: 'app/requirements/freeze-venv-core.txt',                           dst: 'requirements-core.txt',                           required: false },
+    { src: 'app/requirements/freeze-venv-image.txt',                          dst: 'requirements-image.txt',                          required: false },
 ];
 
 // Path-based exclusion. Tested as substring against forward-slash relative path.

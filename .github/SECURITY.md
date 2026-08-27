@@ -61,7 +61,7 @@ If you discover a security vulnerability, please report it responsibly:
 - `services/chatbot/src/utils/conversation_manager.py` — replaced with `secrets.token_hex()` (cryptographically secure ID generation)
 - `app/image_pipeline/anime_pipeline/saa_character_db.py` — added `usedforsecurity=False` (non-security: thumbnail key lookup in external JSON)
 - `app/src/cache/redis_cache.py` — added `usedforsecurity=False` (non-security: cache key generation)
-- Remaining occurrences are in vendored code excluded via `.bandit`
+- Remaining occurrences are in vendored code excluded via `pyproject.toml`
 
 #### 2. Flask Debug Mode Enabled (5 occurrences)
 **Issue:** Flask applications running with `debug=True` in production  
@@ -86,7 +86,7 @@ If you discover a security vulnerability, please report it responsibly:
 #### 4. Unsafe Model Downloads (65 occurrences)
 **Issue:** Hugging Face model downloads without revision pinning  
 **Risk:** Potentially malicious model versions could be downloaded  
-**Status:** ✅ Resolved — zero occurrences in first-party code. `services/chatbot/src/utils/local_model_loader.py` uses `local_files_only=True` (no remote downloads at runtime). All 65 occurrences are in vendored code (ComfyUI custom nodes, stable-diffusion repositories) excluded via `.bandit`.
+**Status:** ✅ Resolved — zero occurrences in first-party code. `services/chatbot/src/utils/local_model_loader.py` uses `local_files_only=True` (no remote downloads at runtime). All 65 occurrences are in vendored code (ComfyUI custom nodes, stable-diffusion repositories) excluded via `pyproject.toml`.
 
 #### 5. Binding to All Interfaces (24 occurrences)
 **Issue:** Services binding to 0.0.0.0 without firewall restrictions  
@@ -96,7 +96,7 @@ If you discover a security vulnerability, please report it responsibly:
 #### 6. Unsafe PyTorch Load (7 occurrences)
 **Issue:** Using `torch.load()` without weights_only parameter  
 **Risk:** Can execute arbitrary code from malicious checkpoint files  
-**Status:** ✅ Resolved — all occurrences are in vendored third-party libraries (taming-transformers, stable-diffusion repositories, ComfyUI custom nodes). Zero occurrences in first-party code (`app/`, `services/chatbot/`, `services/mcp-server/`). Bandit exclude config added via `.bandit` to suppress vendored-code false positives.
+**Status:** ✅ Resolved — all occurrences are in vendored third-party libraries (taming-transformers, stable-diffusion repositories, ComfyUI custom nodes). Zero occurrences in first-party code (`app/`, `services/chatbot/`, `services/mcp-server/`). Bandit exclude config added via `pyproject.toml` to suppress vendored-code false positives.
 
 #### 7. Use of exec() (3 occurrences)
 **Issue:** Dynamic code execution using `exec()`  
@@ -109,7 +109,7 @@ If you discover a security vulnerability, please report it responsibly:
 #### 8. Eval Usage (3 occurrences)
 **Issue:** Use of `eval()` for parsing expressions  
 **Risk:** Code injection if user input is evaluated  
-**Status:** ✅ Resolved — no `eval()` calls found in first-party code (`app/`, `services/chatbot/`, `services/mcp-server/`). All occurrences are in vendored libraries excluded via `.bandit`.
+**Status:** ✅ Resolved — no `eval()` calls found in first-party code (`app/`, `services/chatbot/`, `services/mcp-server/`). All occurrences are in vendored libraries excluded via `pyproject.toml`.
 
 #### 9. Pickle Deserialization (1 occurrence)
 **Issue:** Unpickling untrusted data  
@@ -137,7 +137,7 @@ If you discover a security vulnerability, please report it responsibly:
 
 #### 14. Bandit Config Format Error
 
-**Status:** ✅ Resolved — `.bandit` config file was in INI format; `--configfile` requires YAML. Converted to YAML format (`exclude_dirs` list). CI `ci-cd.yml` updated to pass `--configfile .bandit` so vendor exclusions apply consistently.
+**Status:** ✅ Resolved — `pyproject.toml` config file was in INI format; `--configfile` requires YAML. Converted to YAML format (`exclude_dirs` list). CI `ci-cd.yml` updated to pass `--configfile .bandit` so vendor exclusions apply consistently.
 
 #### 15. Dependency CVEs (pip-audit)
 
@@ -557,7 +557,7 @@ For security concerns or questions:
 - New findings fixed: Dockerfile hardening, API key fail-open, CORS wildcard, shell script injection, Bandit config
 - pip-audit: protobuf CVEs resolved via requirements pinning; torch CVE has no upstream fix
 - Bandit full scan: 0 HIGH remaining in first-party code (27,687 lines scanned)
-- `.bandit` YAML config added for consistent vendor exclusion across local and CI runs
+- `pyproject.toml` YAML config added for consistent vendor exclusion across local and CI runs
 
 ### v2.0.0 (February 2, 2026)
 

@@ -5,9 +5,9 @@
  * Static OpenAPI generator for this repository.
  *
  * Usage:
- *   node openapi.js > openapi.json
- *   node openapi.js --summary
- *   node openapi.js --routes
+ *   node scripts/openapi.js > openapi.json
+ *   node scripts/openapi.js --summary
+ *   node scripts/openapi.js --routes
  *
  * The chatbot service is Flask, so it does not expose /openapi.json by itself.
  * This file scans the backend route source files and relevant markdown docs,
@@ -17,7 +17,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const ROOT = __dirname;
+const ROOT = path.resolve(__dirname, "..");
 
 const SERVER_BY_SERVICE = {
   chatbot: {
@@ -865,7 +865,7 @@ function printSummary() {
     console.log(`  ${service}: ${count}`);
   }
   console.log("");
-  console.log("Write JSON with: node openapi.js > openapi.json");
+  console.log("Write JSON with: node scripts/openapi.js > openapi.json");
 }
 
 function printRoutes() {

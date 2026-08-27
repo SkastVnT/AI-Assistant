@@ -2,7 +2,7 @@
 
 ## Chatbot Does Not Start
 
-- Confirm Python dependencies are installed from `requirements-core.txt`.
+- Confirm Python dependencies are installed from `app/requirements/freeze-venv-core.txt`.
 - Confirm `app/config/.env` exists and contains at least one usable LLM provider key.
 - Run from the repository root: `python services/chatbot/run.py`.
 
@@ -26,6 +26,6 @@ Do not install GPU/ComfyUI dependencies unless needed. Use the core profile for 
 
 ```powershell
 .\venv-core\Scripts\Activate.ps1
-pip install -r requirements-core.txt
+pip install -r app/requirements/freeze-venv-core.txt
 pytest
 ```

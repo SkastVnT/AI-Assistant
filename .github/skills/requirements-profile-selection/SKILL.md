@@ -56,8 +56,8 @@ description: "Teach Copilot how to choose the correct dependency profile when wo
 
 | File | Purpose |
 |------|---------|
-| `requirements-core.txt` (repo root) | Full pip freeze of `venv-core` |
-| `requirements-image.txt` (repo root) | Full pip freeze of `venv-image` |
+| `app/requirements/freeze-venv-core.txt` (repo root) | Full pip freeze of `venv-core` |
+| `app/requirements/freeze-venv-image.txt` (repo root) | Full pip freeze of `venv-image` |
 
 **Rule:** Never hand-edit the root lock files. They are regenerated from `pip freeze` after installing from profile files.
 
@@ -217,11 +217,11 @@ If you add a new service-local `requirements.txt`, add it to the pip-audit loop.
 ```powershell
 # Regenerate core lock file
 & .\venv-core\Scripts\Activate.ps1
-pip freeze > requirements-core.txt
+pip freeze > app/requirements/freeze-venv-core.txt
 
 # Regenerate image lock file
 & .\venv-image\Scripts\Activate.ps1
-pip freeze > requirements-image.txt
+pip freeze > app/requirements/freeze-venv-image.txt
 ```
 
 Do NOT regenerate lock files unless the user asks or the profile file was changed.
@@ -234,7 +234,7 @@ Do NOT regenerate lock files unless the user asks or the profile file was change
 |---------|----------------|-----|
 | Adding `diffusers` to chatbot requirements for "image description" | Use `openai` vision API instead — no local diffusion needed | Remove from chatbot, use API call |
 | Adding `torch` with CUDA index URL to `profile_core_services.txt` | Bloats core venv, may conflict with image venv's CUDA version | Keep CPU-only torch in core, or rely on transitive install from sentence-transformers |
-| Editing `requirements-core.txt` (root) by hand | It's a generated lock file | Edit `profile_core_services.txt` or `services/chatbot/requirements.txt` instead |
+| Editing `app/requirements/freeze-venv-core.txt` (root) by hand | It's a generated lock file | Edit `profile_core_services.txt` or `services/chatbot/requirements.txt` instead |
 | Adding package to chunk file but not to `services/chatbot/requirements.txt` | CI won't have it — tests may pass locally but fail in CI | Add to both |
 | Pinning exact version in chunk file | Breaks flexibility for both profiles | Use range (`>=X.Y.Z`) in chunks, exact pins only in service-local or lock files |
 | Adding dev tools (pytest, black) to runtime profile | Bloats production install | Put in `chunk_10_tools.txt` or `tests/requirements-test.txt` |
@@ -253,7 +253,7 @@ Before merging any dependency change:
 - [ ] **Version range compatible** — new range does not conflict with the same package in the other profile
 - [ ] **Justified** — PR describes what service needs it, why, and why this profile
 - [ ] **Tests pass** — `cd services/chatbot && pytest tests/ -v` still green
-- [ ] **Lock files untouched** — root `requirements-core.txt` and `requirements-image.txt` not hand-edited (regenerate if needed)
+- [ ] **Lock files untouched** — root `app/requirements/freeze-venv-core.txt` and `app/requirements/freeze-venv-image.txt` not hand-edited (regenerate if needed)
 - [ ] **CI workflow checked** — if a new service-local requirements file was added, it's included in `security-scan.yml` pip-audit loop
 
 ---

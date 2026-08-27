@@ -106,16 +106,16 @@ jobs:
     - uses: actions/setup-python@v7
       with:
         python-version: '3.11'
-    - run: pip install bandit pip-audit
+    - run: pip install 'bandit[toml]' pip-audit
     - name: Bandit (Python)
       run: |
         bandit -r services/ app/src/ \
-          --configfile .bandit \
+          --configfile pyproject.toml \
           --exclude '**/tests/**,**/__pycache__/**' \
           --severity-level high --confidence-level medium \
           -f json -o bandit-report.json || true
         bandit -r services/ app/src/ \
-          --configfile .bandit \
+          --configfile pyproject.toml \
           --exclude '**/tests/**,**/__pycache__/**' \
           --severity-level high -f txt
     - name: pip-audit

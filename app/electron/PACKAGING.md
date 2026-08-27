@@ -73,7 +73,7 @@ python -m pip download -r ..\..\app\requirements\profile_image_ai_services.txt `
 ```
 
 > CUDA target: this assumes torch wheels for the default CUDA your
-> `requirements-image.txt` pins. If you need a specific CUDA, add the index
+> `app/requirements/freeze-venv-image.txt` pins. If you need a specific CUDA, add the index
 > URL: `--extra-index-url https://download.pytorch.org/whl/cu121`.
 
 ---

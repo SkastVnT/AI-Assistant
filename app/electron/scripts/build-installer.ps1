@@ -54,8 +54,8 @@ try {
 
     if ($BuildWheels) {
         Write-Host "==> Building wheel caches (offline pip mirror)" -ForegroundColor Cyan
-        $coreReq  = Join-Path $RepoRoot 'requirements-core.txt'
-        $imageReq = Join-Path $RepoRoot 'requirements-image.txt'
+        $coreReq  = Join-Path $RepoRoot 'app/requirements/freeze-venv-core.txt'
+        $imageReq = Join-Path $RepoRoot 'app/requirements/freeze-venv-image.txt'
         $coreOut  = Join-Path $Payload 'wheels\core'
         $imageOut = Join-Path $Payload 'wheels\image'
 
@@ -77,7 +77,7 @@ try {
         & $py -m pip download -r $imageReq -d $imageOut --no-deps --prefer-binary
         if ($LASTEXITCODE -ne 0) { Write-Warning "image wheel download had issues (exit $LASTEXITCODE)" }
 
-        # Torch (CUDA) is not pinned in requirements-image.txt — fetch from
+        # Torch (CUDA) is not pinned in freeze-venv-image.txt — fetch from
         # PyTorch's index. Adjust version + cu* tag if you upgrade torch.
         Write-Host "    -> downloading CUDA torch trio (cu128)"
         & $py -m pip download torch==2.11.0+cu128 torchvision==0.26.0+cu128 torchaudio==2.11.0+cu128 `

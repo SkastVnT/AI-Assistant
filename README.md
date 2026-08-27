@@ -32,7 +32,7 @@ AI-Assistant is a local-first AI workspace that combines a Python chatbot servic
 ```powershell
 python -m venv venv-core
 .\venv-core\Scripts\Activate.ps1
-pip install -r requirements-core.txt
+pip install -r app/requirements/freeze-venv-core.txt
 copy app\config\.env.example app\config\.env
 copy services\chatbot\.env.example services\chatbot\.env
 python services\chatbot\run.py
@@ -40,7 +40,7 @@ python services\chatbot\run.py
 
 ### Chatbot (Linux / VPS)
 
-> `requirements-core.txt` is a Windows lock file — **do not use it on Linux**. Use the cross-platform profile instead.
+> `app/requirements/freeze-venv-core.txt` is a Windows lock file — **do not use it on Linux**. Use the cross-platform profile instead.
 
 ```bash
 python3 -m venv venv-core

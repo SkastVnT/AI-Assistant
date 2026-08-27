@@ -14,7 +14,7 @@
 | Minimum floor | `>=3.11` | `app/config/pyproject.toml` â†’ `requires-python` |
 | End-of-life date | October 2027 | [python.org/downloads](https://www.python.org/downloads/) |
 
-**Why 3.11, not ">=3.10":** Both venv freeze snapshots (`requirements-core.txt`, `requirements-image.txt`) were generated against CPython 3.11.9 on Windows. Several transitive deps (ComfyUI frontend, pyannote, torch 2.10) assume 3.11. The old `>=3.10` floor in `pyproject.toml` was stale and has been corrected to `>=3.11`.
+**Why 3.11, not ">=3.10":** Both venv freeze snapshots (`app/requirements/freeze-venv-core.txt`, `app/requirements/freeze-venv-image.txt`) were generated against CPython 3.11.9 on Windows. Several transitive deps (ComfyUI frontend, pyannote, torch 2.10) assume 3.11. The old `>=3.10` floor in `pyproject.toml` was stale and has been corrected to `>=3.11`.
 
 ---
 
@@ -97,10 +97,10 @@ The local gate script (`app/scripts/verify-local.ps1`) handles this automaticall
 
 | File | Role |
 |---|---|
-| `requirements-core.txt` | **Freeze snapshot of venv-core** (generated 2026-04-03, exact `==` pins, full pip list). Use as the source of truth for "what is actually installed." Do not pip-install this file â€” it contains platform-specific hashes and may not install cleanly from scratch. |
-| `requirements-image.txt` | **Freeze snapshot of venv-image** (same, 2026-04-03). Same caution. |
+| `app/requirements/freeze-venv-core.txt` | **Freeze snapshot of venv-core** (generated 2026-04-03, exact `==` pins, full pip list). Use as the source of truth for "what is actually installed." Do not pip-install this file â€” it contains platform-specific hashes and may not install cleanly from scratch. |
+| `app/requirements/freeze-venv-image.txt` | **Freeze snapshot of venv-image** (same, 2026-04-03). Same caution. |
 
-To regenerate a freeze: `pip list --format=freeze > requirements-core.txt` (from inside an active venv-core).
+To regenerate a freeze: `pip list --format=freeze > app/requirements/freeze-venv-core.txt` (from inside an active venv-core).
 
 ### 4c. Orphaned â€” do not rely on
 
@@ -111,7 +111,7 @@ To regenerate a freeze: `pip list --format=freeze > requirements-core.txt` (from
 
 | File | Why stale |
 |---|---|
-| `requirements.txt` (repo root) | Last updated 2025-12-17. Lists nine services, most of which are archived (speech2text, text2sql, document-intelligence, lora-training, image-upscale, hub-gateway). Port table is wrong (SD shown as 7860). Mixes core and image stacks in one file. Do not `pip install -r requirements.txt`. |
+| `app/requirements/legacy-root-requirements.txt` | Last updated 2025-12-17. Lists nine services, most of which are archived (speech2text, text2sql, document-intelligence, lora-training, image-upscale, hub-gateway). Port table is wrong (SD shown as 7860). Mixes core and image stacks in one file. Do not `pip install -r requirements.txt`. |
 | `app/requirements/PROFILE_SERVICE_MAP.md` | Service-to-profile map; **partially stale** â€” still lists archived services (speech2text, text2sql, document-intelligence, hub-gateway). Accurate for venv split (core vs image) but service list needs update in P1.3. |
 
 ---
@@ -143,8 +143,8 @@ The following discrepancies exist between what is declared in the install manife
 
 ## 7. What Not to Edit Casually
 
-- **`requirements-core.txt` and `requirements-image.txt`** â€” these are freeze snapshots. Do not edit by hand. Regenerate after a deliberate venv rebuild.
-- **`requirements.txt` (root)** â€” legacy stub. Do not add new packages here; they will be ignored by the profile system.
+- **`app/requirements/freeze-venv-core.txt` and `app/requirements/freeze-venv-image.txt`** â€” these are freeze snapshots. Do not edit by hand. Regenerate after a deliberate venv rebuild.
+- **`app/requirements/legacy-root-requirements.txt`** â€” legacy stub. Do not add new packages here; they will be ignored by the profile system.
 - **Web block in `app/requirements/profile_core_services.txt`** — contains `fastapi` and `uvicorn`. FastAPI is no longer a runtime path (removed May 2026) but is kept as a transitive dependency of the MCP client. Do not remove it from the profile unless the MCP dependency chain is verified to no longer need it.
 
 ---
@@ -154,7 +154,7 @@ The following discrepancies exist between what is declared in the install manife
 1. Decide which venv it belongs to (core vs image â€” never mix).
 2. Add it to the appropriate **profile file** (`profile_core_services.txt` or `profile_image_ai_services.txt`) with a lower-bound `>=` pin.
 3. Re-run `pip install -r app/requirements/profile_core_services.txt` (or image profile) in the target venv.
-4. After verifying it works, regenerate the freeze snapshot: `pip list --format=freeze > requirements-core.txt`.
+4. After verifying it works, regenerate the freeze snapshot: `pip list --format=freeze > app/requirements/freeze-venv-core.txt`.
 5. Run `app/scripts/verify-local.ps1` to confirm the gate is green.
 6. If the dependency is test-only, add it to `services/chatbot/tests/requirements-test.txt` instead.
 7. If the dependency is optional/heavy, add a note to the "Optional" section of this document.

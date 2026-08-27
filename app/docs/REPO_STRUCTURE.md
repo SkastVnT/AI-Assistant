@@ -13,26 +13,36 @@
 .
   README.md
   LICENSE
-  .gitignore
-  .gitmodules
-  package.json / package-lock.json
-  requirements*.txt
-  ruff.toml
+  pyproject.toml          ruff + pytest + bandit config
+  conftest.py
+  docker-compose.yml
+  .gitignore / .gitattributes / .gitmodules
+  .gitnexusignore
+  .pre-commit-config.yaml
   app/
-    character_select_stand_alone_app-main/
-    configs_vps/
+    config/               shared config + env loading
+    configs_vps/          pipeline / model / lora YAML
+    docker/
     docs/
-    electron/
-    image_pipeline/
+    electron/             desktop shell
+    image_pipeline/       anime_pipeline (live) + deferred subtrees
     rag/
+    requirements/         profiles + freeze snapshots
     scripts/
+    src/
     storage/
   services/
-  ComfyUI/
-  .github/
-  .claude/
-  docker-compose.yml
-  private/
+    chatbot/              Flask app, routes, tests
+    clip-embed/
+    edit-image/           ComfyUI integration (submodule custom_nodes)
+    mcp-server/
+    stable-diffusion/
+  scripts/                repo-level scripts (openapi.js, apply_patches.py)
+  patches/                local patches applied to ComfyUI submodule
+  ComfyUI/                submodule, pinned upstream v0.7.0
+  private/                submodule, archived material
+  .github/                workflows + skills
+  .claude/  .agents/      agent skill definitions (Claude Code / Codex)
 ```
 
 `ComfyUI/` intentionally remains at the repository root as the primary runtime.
