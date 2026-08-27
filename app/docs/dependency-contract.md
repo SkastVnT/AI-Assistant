@@ -86,17 +86,8 @@ The local gate script (`app/scripts/verify-local.ps1`) handles this automaticall
 
 | File | Role | Edit whenâ€¦ |
 |---|---|---|
-| `app/requirements/profile_core_services.txt` | **Primary venv-core installer**. Includes chunks 1â€“4, 7, 8. | Adding a new chatbot/MCP runtime dependency |
-| `app/requirements/profile_image_ai_services.txt` | **Primary venv-image installer**. Includes chunks 1, 2, 5, 6, 9. | Adding a new image-pipeline runtime dependency |
-| `app/requirements/requirements_chunk_1_core.txt` | Foundational packages (numpy, pyyaml, requests, etc.) | Upgrading a foundational dependency |
-| `app/requirements/requirements_chunk_2_web.txt` | Flask, FastAPI, uvicorn, eventlet, watchdog | Upgrading web-server packages |
-| `app/requirements/requirements_chunk_3_database.txt` | pymongo, redis, clickhouse, pandas | Upgrading database client packages |
-| `app/requirements/requirements_chunk_4_ai_apis.txt` | openai, google-genai, httpx, pydantic | Upgrading AI API client packages |
-| `app/requirements/requirements_chunk_5_ml_core.txt` | HuggingFace transformers stack | Image venv only |
-| `app/requirements/requirements_chunk_6_image.txt` | Diffusion/image stack | Image venv only |
-| `app/requirements/requirements_chunk_7_audio.txt` | Speech/audio stack (faster-whisper, pyannote, librosa) | When audio transcription changes |
-| `app/requirements/requirements_chunk_8_document.txt` | OCR / document parsing (paddleocr, PyMuPDF, markitdown) | When OCR or document processing changes |
-| `app/requirements/requirements_chunk_9_upscale.txt` | Upscaling stack (basicsr, gfpgan, realesrgan) | Image venv only |
+| `app/requirements/profile_core_services.txt` | **Primary venv-core installer** (flat, self-contained). | Adding a new chatbot/MCP runtime dependency |
+| `app/requirements/profile_image_ai_services.txt` | **Primary venv-image installer** (flat, self-contained). | Adding a new image-pipeline runtime dependency |
 | `services/chatbot/requirements.txt` | Chatbot-extended install including RAG stack | Adding chatbot-specific deps not in the shared profile |
 | `services/chatbot/tests/requirements-test.txt` | Test-only deps (pytest, pytest-mock, pytest-asyncio, etc.) | Adding or upgrading a test tool |
 | `services/mcp-server/requirements.txt` | MCP server runtime (mcp[cli] only) | Upgrading the MCP package |
@@ -114,7 +105,6 @@ To regenerate a freeze: `pip list --format=freeze > requirements-core.txt` (from
 
 | File | Reason |
 |---|---|
-| `app/requirements/requirements_chunk_10_tools.txt` | Not included in either profile. Contains dev tools (pytest, black, wandb, gitpython, gradio). Install specific tools manually if needed. Will be wired to a `dev` extras group in P1.2. |
 
 ### 4d. Legacy / bridge â€” do not use for installs
 
@@ -134,8 +124,8 @@ These are installed by the core profile but can be omitted for a minimal chatbot
 
 | Package / Chunk | Why optional | How to exclude |
 |---|---|---|
-| `requirements_chunk_7_audio.txt` (pyannote, faster-whisper, librosa, speechbrain) | The `speech2text` service is archived. Audio transcription (`src/audio_transcription.py`) uses the Whisper API, not the local stack. | Remove chunk_7 include from `profile_core_services.txt` if local STT is not needed. |
-| `requirements_chunk_8_document.txt` (paddlepaddle, paddleocr, PyMuPDF) | PaddlePaddle is a heavy GPU-optional framework. PyMuPDF is used by `src/ocr_integration.py` and is lighter. `markitdown` is used by document processing. | Remove paddlepaddle/paddleocr from chunk_8 if only text PDF reading is needed. PyMuPDF and markitdown should stay. |
+| Audio block in `profile_core_services.txt` (pyannote, faster-whisper, librosa, speechbrain) | The `speech2text` service is archived. Audio transcription (`src/audio_transcription.py`) uses the Whisper API, not the local stack. | Remove the audio block from `profile_core_services.txt` if local STT is not needed. |
+| Document block in `profile_core_services.txt` (paddlepaddle, paddleocr, PyMuPDF) | PaddlePaddle is a heavy GPU-optional framework. PyMuPDF is used by `src/ocr_integration.py` and is lighter. `markitdown` is used by document processing. | Remove paddlepaddle/paddleocr from `profile_core_services.txt` if only text PDF reading is needed. PyMuPDF and markitdown should stay. |
 | `ultralytics>=8.0.0` (in profile_core_services.txt) | YOLO-based detection/inpaint pass. Only active when `IMAGE_PIPELINE_V2=true`. Pulls in torch transitively. | Comment out in `profile_core_services.txt` if the detection pass is not used. |
 | RAG stack (chromadb, pgvector, psycopg2-binary) | In `services/chatbot/requirements.txt` only, not in the profile. Only needed when the RAG subsystem is active. | Only install `services/chatbot/requirements.txt` if RAG is in use. |
 
@@ -158,14 +148,14 @@ The following discrepancies exist between what is declared in the install manife
 - **`requirements-core.txt` and `requirements-image.txt`** â€” these are freeze snapshots. Do not edit by hand. Regenerate after a deliberate venv rebuild.
 - **`app/requirements/requirements_unified_3119*.txt`** â€” one-time artifacts. Do not edit or use for installation.
 - **`requirements.txt` (root)** â€” legacy stub. Do not add new packages here; they will be ignored by the profile system.
-- **`app/requirements/requirements_chunk_2_web.txt`** â€” contains `fastapi` and `uvicorn`. FastAPI is no longer a runtime path (removed May 2026) but is kept as a transitive dependency of the MCP client. Do not remove it from the chunk file unless the MCP dependency chain is verified to no longer need it.
+- **Web block in `app/requirements/profile_core_services.txt`** — contains `fastapi` and `uvicorn`. FastAPI is no longer a runtime path (removed May 2026) but is kept as a transitive dependency of the MCP client. Do not remove it from the profile unless the MCP dependency chain is verified to no longer need it.
 
 ---
 
 ## 8. Adding a New Dependency
 
 1. Decide which venv it belongs to (core vs image â€” never mix).
-2. Add it to the appropriate **chunk file** (`requirements_chunk_*.txt`) with a lower-bound `>=` pin.
+2. Add it to the appropriate **profile file** (`profile_core_services.txt` or `profile_image_ai_services.txt`) with a lower-bound `>=` pin.
 3. Re-run `pip install -r app/requirements/profile_core_services.txt` (or image profile) in the target venv.
 4. After verifying it works, regenerate the freeze snapshot: `pip list --format=freeze > requirements-core.txt`.
 5. Run `app/scripts/verify-local.ps1` to confirm the gate is green.

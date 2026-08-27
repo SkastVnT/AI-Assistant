@@ -1,31 +1,24 @@
-# Dependency Chunks
+# Dependency Profiles
 
-This folder only groups the split requirement files to keep the repo root tidy. Use them exactly as before; paths just moved here.
+Two self-contained profile files. Install one per venv — they do not share a
+resolver run, which is what keeps the image stack from breaking the core stack.
 
 ## Files
-- requirements_chunk_1_core.txt
-- requirements_chunk_2_web.txt
-- requirements_chunk_3_database.txt
-- requirements_chunk_4_ai_apis.txt
-- requirements_chunk_5_ml_core.txt
-- requirements_chunk_6_image.txt
-- requirements_chunk_7_audio.txt
-- requirements_chunk_8_document.txt
-- requirements_chunk_9_upscale.txt
-- requirements_chunk_10_tools.txt
-- profile_core_services.txt
-- profile_image_ai_services.txt
+- `profile_core_services.txt` — hub-gateway, chatbot, speech2text, text2sql,
+  document-intelligence, mcp-server
+- `profile_image_ai_services.txt` — stable-diffusion, edit-image, image-upscale,
+  lora-training, ComfyUI workflows
+- `PROFILE_SERVICE_MAP.md` — which service maps to which profile
+
+Both files are flat: the former `requirements_chunk_*.txt` split was inlined so
+each profile can be installed on its own with no `-r` indirection. The retired
+chunk files and the unused `requirements_unified_3119*` set are archived in the
+private repo under `archived-requirements/`.
 
 ## Usage
-Install the chunks individually or concatenate as needed, for example:
 
 ```bash
-# install a specific chunk
-pip install -r requirements/requirements_chunk_1_core.txt
-
-# install everything (concatenate)
-cat requirements/requirements_chunk_*.txt > /tmp/ai-assistant-all.txt
-pip install -r /tmp/ai-assistant-all.txt
+pip install -r app/requirements/profile_core_services.txt
 ```
 
 ## Recommended environment profiles
@@ -74,10 +67,10 @@ local anime pipeline code paths to run at all.
 
 | Package | Where declared | Why it belongs in core |
 |---|---|---|
-| `httpx` | `requirements_chunk_4_ai_apis.txt` | ComfyUI HTTP client, vision + CivitAI calls |
-| `pyyaml` | `requirements_chunk_1_core.txt` | Loads `app/configs_vps/anime_pipeline.yaml`, `app/configs_vps/lora_registry.yaml` |
-| `numpy` | `requirements_chunk_1_core.txt` | Detection mask math in `agents/detection_detail.py` |
-| `requests` | `requirements_chunk_1_core.txt` | Reference image downloads |
+| `httpx` | `profile_core_services.txt` | ComfyUI HTTP client, vision + CivitAI calls |
+| `pyyaml` | `profile_core_services.txt` | Loads `app/configs_vps/anime_pipeline.yaml`, `app/configs_vps/lora_registry.yaml` |
+| `numpy` | `profile_core_services.txt` | Detection mask math in `agents/detection_detail.py` |
+| `requests` | `profile_core_services.txt` | Reference image downloads |
 | `Pillow` | `profile_core_services.txt` (direct) | Reference image encode/decode in orchestrator + detection agents |
 
 ### Optional — feature-flagged (core profile)
@@ -114,9 +107,9 @@ keeps the chatbot venv small.
 
 | Package | Reason |
 |---|---|
-| `diffusers`, `open-clip-torch`, `timm`, `kornia`, `lpips`, `einops`, `torchdiffeq`, `torchsde`, `pytorch_lightning` | Declared in `requirements_chunk_6_image.txt` — only needed when running the full SDXL / ComfyUI stack locally. |
-| `basicsr`, `gfpgan`, `realesrgan`, `facexlib`, `codeformer` | Upscale / restoration stack — `requirements_chunk_9_upscale.txt`. |
-| `clean-fid`, `tomesd`, `blendmodes`, `resize-right`, `piexif`, `lark`, `inflection` | SD-specific — `requirements_chunk_6_image.txt`. |
+| `diffusers`, `open-clip-torch`, `timm`, `kornia`, `lpips`, `einops`, `torchdiffeq`, `torchsde`, `pytorch_lightning` | Declared in `profile_image_ai_services.txt` — only needed when running the full SDXL / ComfyUI stack locally. |
+| `basicsr`, `gfpgan`, `realesrgan`, `facexlib`, `codeformer` | Upscale / restoration stack — `profile_image_ai_services.txt`. |
+| `clean-fid`, `tomesd`, `blendmodes`, `resize-right`, `piexif`, `lark`, `inflection` | SD-specific — `profile_image_ai_services.txt`. |
 
 ### Quick gap check
 
@@ -126,6 +119,6 @@ anime pipeline, check in this order:
 1. `from PIL import Image` — install/upgrade `Pillow`.
 2. `from ultralytics import YOLO` — either install `ultralytics` or disable
    the detection feature flag.
-3. `import httpx` / `import yaml` / `import numpy` — core chunks are missing;
+3. `import httpx` / `import yaml` / `import numpy` — core deps are missing;
    reinstall `-r profile_core_services.txt`.
 

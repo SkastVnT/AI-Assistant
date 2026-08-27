@@ -17,7 +17,6 @@ Chào mừng đến với MCP Server documentation! File này giúp bạn tìm �
 → Đọc **[DIAGRAMS.md](DIAGRAMS.md)** (10 architecture diagrams)
 
 ### 🔧 Tôi muốn cải thiện server
-→ Đọc **[ENHANCEMENT_SUMMARY.md](ENHANCEMENT_SUMMARY.md)**
 
 ### 🗺️ Tôi muốn biết roadmap
 → Đọc **[ROADMAP.md](ROADMAP.md)**
@@ -35,7 +34,6 @@ Chào mừng đến với MCP Server documentation! File này giúp bạn tìm �
 | **[QUICKSTART.md](QUICKSTART.md)** | Cài đặt nhanh 5 phút | 5 min | ⭐ |
 | **[HUONG_DAN.md](HUONG_DAN.md)** | Hướng dẫn chi tiết tiếng Việt | 30 min | ⭐⭐ |
 | **[README.md](README.md)** | Technical docs (English) | 20 min | ⭐⭐ |
-| **[CHECKLIST.md](CHECKLIST.md)** | Setup checklist từng bước | 10 min | ⭐ |
 
 ### 📊 Architecture & Design (Kiến trúc)
 | File | Mục đích | Thời gian đọc | Độ khó |
@@ -46,9 +44,7 @@ Chào mừng đến với MCP Server documentation! File này giúp bạn tìm �
 ### 🚀 Development & Enhancement (Phát triển)
 | File | Mục đích | Thời gian đọc | Độ khó |
 |------|----------|---------------|---------|
-| **[ENHANCEMENT_SUMMARY.md](ENHANCEMENT_SUMMARY.md)** | Tổng kết cải tiến | 15 min | ⭐⭐ |
 | **[ROADMAP.md](ROADMAP.md)** | Kế hoạch phát triển | 45 min | ⭐⭐⭐ |
-| **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** | Implementation overview | 10 min | ⭐⭐ |
 
 ### 💻 Code Files (Mã nguồn)
 | File | Mục đích | Lines | Độ khó |
@@ -107,7 +103,6 @@ graph LR
     A[README.md<br/>Technical] --> B[DIAGRAMS.md<br/>Architecture]
     B --> C[COMPARISON.md<br/>Versions]
     C --> D[server_enhanced.py<br/>Study Code]
-    D --> E[CHECKLIST.md<br/>Complete]
     
     style A fill:#F59E0B
     style E fill:#6366F1
@@ -120,7 +115,6 @@ graph LR
 - [ ] Đọc server_enhanced.py
 - [ ] Hiểu caching, logging, metrics
 - [ ] Test enhanced version
-- [ ] Complete CHECKLIST.md
 
 **Kết quả**: Bạn hiểu sâu về MCP architecture và có thể customize!
 
@@ -130,7 +124,6 @@ graph LR
 
 ```mermaid
 graph LR
-    A[ENHANCEMENT_SUMMARY.md] --> B[ROADMAP.md<br/>Full]
     B --> C[advanced_tools.py<br/>Study]
     C --> D[Integrate Tools]
     D --> E[Customize<br/>& Extend]
@@ -141,7 +134,6 @@ graph LR
 ```
 
 **Checklist:**
-- [ ] Đọc ENHANCEMENT_SUMMARY.md
 - [ ] Đọc toàn bộ ROADMAP.md
 - [ ] Study advanced_tools.py
 - [ ] Integrate 2-3 advanced tools
@@ -159,7 +151,6 @@ graph LR
 ### Installation & Setup
 - QUICKSTART.md → Quick 5-min setup
 - HUONG_DAN.md → Chi tiết tiếng Việt
-- CHECKLIST.md → Step-by-step checklist
 
 ### Understanding Architecture
 - DIAGRAMS.md → 10 visual diagrams
@@ -173,7 +164,6 @@ graph LR
 
 ### Customization & Extension
 - ROADMAP.md → Feature suggestions
-- ENHANCEMENT_SUMMARY.md → Improvements
 - advanced_tools.py → Advanced features
 
 ### Performance & Optimization
@@ -189,7 +179,6 @@ graph LR
 ### Troubleshooting
 - HUONG_DAN.md → FAQ section
 - README.md → Troubleshooting
-- CHECKLIST.md → Common issues
 
 ---
 
@@ -216,7 +205,6 @@ graph LR
 | Tài liệu kỹ thuật | README.md |
 | Xem kiến trúc | DIAGRAMS.md |
 | So sánh versions | COMPARISON.md |
-| Cải thiện server | ENHANCEMENT_SUMMARY.md |
 | Plan tương lai | ROADMAP.md |
 | Code examples | examples.py |
 | Advanced features | advanced_tools.py |
@@ -229,7 +217,6 @@ graph LR
 | Không biết bắt đầu từ đâu | QUICKSTART.md |
 | Lỗi khi cài đặt | HUONG_DAN.md FAQ |
 | Server không chạy | README.md Troubleshooting |
-| Claude không connect | CHECKLIST.md Step 4-5 |
 | Muốn thêm features | ROADMAP.md |
 | Cần optimize performance | COMPARISON.md + server_enhanced.py |
 
@@ -255,7 +242,6 @@ graph LR
 **Total: ~100 minutes for deep understanding**
 
 ### Phát triển (Development)
-1. **ENHANCEMENT_SUMMARY.md** - 15 min
 2. **ROADMAP.md** - 45 min
 3. **advanced_tools.py** (study) - 30 min
 4. **Implement features** - varies
@@ -277,7 +263,6 @@ graph LR
 ### Step 3: Check Troubleshooting
 - README.md - Troubleshooting section
 - HUONG_DAN.md - FAQ section
-- CHECKLIST.md - Common issues
 
 ### Step 4: External Resources
 - MCP Docs: https://modelcontextprotocol.io
