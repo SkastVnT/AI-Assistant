@@ -1,4 +1,4 @@
-﻿# Character Profile Fallback
+# Character Profile Fallback
 
 This document describes the **unknown / low-data character profile** layer
 that lives in `services/chatbot/core/character_understanding.py`. It is a
@@ -24,7 +24,7 @@ image. The fallback layer prevents this.
 
 `resolve_character()` tries sources in this order:
 
-1. `selected_character` payload (UI picker â€” trusted)
+1. `selected_character` payload (UI picker — trusted)
 2. **Manual override** (`config/character_overrides.json`)
 3. Local `CharacterRegistry` (`app/storage/character_db/`)
 4. SAA WAI character DB
@@ -40,13 +40,13 @@ The `mode` values exposed on the result:
 | `ambiguous` | Multiple candidates within the confidence band; identity not pinned | `False` |
 | `low_data_profile` | Manual override matched (curated text, no certified LoRA) | `False` unless the override sets both `lora_hint` AND `safe_to_attach_lora: true` |
 | `unresolved_unknown` | Prompt looks character-named but no source recognized it | `False` |
-| `""` (empty â€” `no_character_detected`) | Prompt has no character reference at all (generic art, scenery, abstract) | `False` (irrelevant â€” nothing to attach) |
+| `""` (empty — `no_character_detected`) | Prompt has no character reference at all (generic art, scenery, abstract) | `False` (irrelevant — nothing to attach) |
 
 ### Why we never *guess* an unknown character
 
 The resolver refuses to substitute a same-named or near-name match from
 a different franchise. Guessing produces confidently wrong images: wrong
-hair, wrong outfit, wrong weapon, wrong universe â€” usually after the
+hair, wrong outfit, wrong weapon, wrong universe — usually after the
 2000-second ComfyUI run has already finished. The four "did not resolve
 cleanly" outcomes (`ambiguous`, `low_data_profile` without explicit LoRA
 opt-in, `unresolved_unknown`, and empty) all set
@@ -54,7 +54,7 @@ opt-in, `unresolved_unknown`, and empty) all set
 
 - runs the prompt **without** a character LoRA (safer, generic identity),
 - short-circuits via the preflight gate (see below), or
-- defers to the user via `selected_character` (Prompt 5 frontend picker â€”
+- defers to the user via `selected_character` (Prompt 5 frontend picker —
   not yet shipped; will further improve accuracy by removing the resolver
   guess entirely for the supplied request).
 
@@ -64,7 +64,7 @@ There is no dedicated `mode` value for original characters. Prompts
 containing phrases like "OC", "original character", or "my character"
 are treated by `extract_prompt_entities` as having no canonical name; the
 resolver then returns `""` (`no_character_detected`) so nothing is pinned
-or attached. This is intentional â€” original characters by definition do
+or attached. This is intentional — original characters by definition do
 not belong in the registry.
 
 ## Why `low_data_profile` does not auto-attach LoRA
@@ -88,7 +88,7 @@ hint is auto-filled.
 ## Adding a new character without code changes
 
 Drop a JSON entry into `services/chatbot/config/character_overrides.json`
-(create the file if it does not exist â€” it is gitignored). Schema:
+(create the file if it does not exist — it is gitignored). Schema:
 
 ```json
 {
@@ -117,9 +117,9 @@ A copy with all available fields lives in
 
 The override file is loaded **lazily and fail-safe**:
 
-- missing file â†’ empty overrides
-- invalid JSON â†’ empty overrides + debug-level log line
-- non-dict root â†’ empty overrides
+- missing file → empty overrides
+- invalid JSON → empty overrides + debug-level log line
+- non-dict root → empty overrides
 
 The system never crashes because of override-file problems.
 
@@ -127,8 +127,8 @@ The system never crashes because of override-file problems.
 
 The series hint disambiguates same-named characters:
 
-- `"Iroha trong Kaguya Cosmic Princess"` â†’ `unknown:iroha@cosmic_princess_kaguya`
-- `"Iroha trong Blue Archive"` â†’ `iroha_blue_archive@blue_archive` (SAA hit)
+- `"Iroha trong Kaguya Cosmic Princess"` → `unknown:iroha@cosmic_princess_kaguya`
+- `"Iroha trong Blue Archive"` → `iroha_blue_archive@blue_archive` (SAA hit)
 
 When a series hint is present and **no source matches it**, the resolver
 returns an unknown profile for that exact `name@series` combo. It does
@@ -162,7 +162,7 @@ the frontend under `understanding`:
 
 Frontend / picker integrations (Phase 5+) will use `provisional_id` and
 `needs_review` to surface a confirmation prompt to the user, and pass
-the same id back as `selected_character` on the next request â€” at which
+the same id back as `selected_character` on the next request — at which
 point Priority 1 short-circuits all further heuristics.
 
 ## What is intentionally not done
@@ -185,16 +185,16 @@ the full non-goals list.
 
 The reasoning route (`POST /api/reasoning-image-gen/generate`) runs two
 cheap, opt-in checks **before** ComfyUI is invoked. Both are pure-Python
-heuristics â€” no GPU, no network.
+heuristics — no GPU, no network.
 
 ### Preflight risk gate
 
 Computed by `_assess_preflight()` from the resolver result + prompt:
 
-- `risk_level` â€” `"low" | "medium" | "high"`
-- `multiple_characters` â€” `True` when more than one character name is
+- `risk_level` — `"low" | "medium" | "high"`
+- `multiple_characters` — `True` when more than one character name is
   detected in the prompt
-- `blocking_reason` â€” short tag explaining a `high` verdict
+- `blocking_reason` — short tag explaining a `high` verdict
   (e.g. `unresolved_unknown_no_traits`, `multiple_unknown_characters`)
 
 Opt-in payload flags:
@@ -220,7 +220,7 @@ payload + preflight result and returns:
 ```
 
 High-cost signals: multi-panel layouts (`grid_2x2`, `comic`,
-`storyboard`, â€¦), `num_panels > 1`, total pixels â‰¥ 2 MP, `upscale` /
+`storyboard`, …), `num_panels > 1`, total pixels ≥ 2 MP, `upscale` /
 `hires_fix`, `attached_images >= 3`, correction-loop passes > 1, and any
 `risk_level == "high"` from preflight.
 
@@ -229,7 +229,7 @@ Opt-in payload flags:
 | Payload flag | Effect |
 |---|---|
 | `max_cost_level: "low" \| "medium" \| "high"` | When the estimate exceeds this cap, the route returns 200 with `needs_confirmation: true` and **does not** call ComfyUI. |
-| `budget_mode: "fast"` | Sets `recommended_mode: "fast"` in the cost payload as a hint to the caller. The route does not currently auto-downgrade panel count or layout â€” the caller decides. |
+| `budget_mode: "fast"` | Sets `recommended_mode: "fast"` in the cost payload as a hint to the caller. The route does not currently auto-downgrade panel count or layout — the caller decides. |
 
 The `cost` block is always attached to the response (preflight-only
 return, blocked return, and successful generate return), so a UI can
@@ -241,7 +241,7 @@ display the estimate even when nothing is gated.
    unknown character with no traits is flagged `unresolved_unknown_no_traits`
    in microseconds. The user can supply a manual override or pick a
    character via the picker before the 2000s pipeline runs.
-2. **Expensive shapes are surfaced early.** A 3Ã—3 grid with 9 panels is
+2. **Expensive shapes are surfaced early.** A 3×3 grid with 9 panels is
    classified `high` cost before the planner expands it. The caller can
    shrink the layout or confirm explicitly.
 3. **Wrong-LoRA / wrong-reference attachments are prevented.** When
@@ -252,21 +252,21 @@ display the estimate even when nothing is gated.
    `preflight_only: true` the UI can ask "Who do you mean?" or "Add a
    reference image first" without burning GPU time.
 
-Frontend integration (Prompt 5 â€” `selected_character` picker) will
+Frontend integration (Prompt 5 — `selected_character` picker) will
 further improve accuracy by short-circuiting the resolver entirely when
 the user has already pinned an identity.
 
 ## Frontend surfaces
 
-These are documentation pointers â€” implementation lives in
+These are documentation pointers — implementation lives in
 `services/chatbot/static/js/modules/`.
 
 ### `selected_character` vs free-text prompt
 
 | Source | Trust | Resolver behaviour |
 |---|---|---|
-| `selected_character` (UI picker / chip) | **Trusted** â€” Priority 1, no heuristics run | `mode = resolved_known` and `safe_to_attach_lora` follow the picked entry's flags |
-| Prompt text only | Heuristic â€” runs the full priority chain | May land in `ambiguous`, `unresolved_unknown`, or empty mode |
+| `selected_character` (UI picker / chip) | **Trusted** — Priority 1, no heuristics run | `mode = resolved_known` and `safe_to_attach_lora` follow the picked entry's flags |
+| Prompt text only | Heuristic — runs the full priority chain | May land in `ambiguous`, `unresolved_unknown`, or empty mode |
 
 When the user picks a character via the chip / picker, the request body
 includes `selected_character: { canonical_id, character_slug, series_slug,
@@ -278,7 +278,7 @@ the full chain and may need preflight to gate identity risk.
 ### Compact character preview UI
 
 Rendered from `core.character_preview.build_preview()` and the
-`/api/characters/preview` endpoint. The preview is a UI-only artifact â€”
+`/api/characters/preview` endpoint. The preview is a UI-only artifact —
 it never causes generation, never writes to storage, and never decides
 LoRA attachment.
 

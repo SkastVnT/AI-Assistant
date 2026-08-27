@@ -1,4 +1,4 @@
-﻿# Developer Onboarding Guide
+# Developer Onboarding Guide
 
 Step-by-step setup for new contributors to the AI-Assistant chatbot stack.
 
@@ -60,12 +60,12 @@ pip install -r app/requirements/profile_core_services.txt
 pip install -r services/chatbot/tests/requirements-test.txt
 ```
 
-> Do NOT run `pip install -r requirements.txt` (root) â€” that file is a legacy reference that
+> Do NOT run `pip install -r requirements.txt` (root) — that file is a legacy reference that
 > includes the full RAG + Firebase + torch stack. Always use the profile files.
 
 ---
 
-## Setting up venv-image (image services â€” optional)
+## Setting up venv-image (image services — optional)
 
 Only needed when working on Stable Diffusion or ComfyUI integrations:
 
@@ -96,11 +96,11 @@ The env loader (`services/shared_env.py`) looks for `app/config/.env_dev` first,
 ## Running the chatbot (browser mode)
 
 ```powershell
-# Terminal 1 â€” activate venv-core
+# Terminal 1 — activate venv-core
 venv-core\Scripts\activate
 cd services\chatbot
 python run.py
-# â†’ http://127.0.0.1:5000
+# → http://127.0.0.1:5000
 ```
 
 ---
@@ -108,12 +108,12 @@ python run.py
 ## Running the desktop wrapper (Electron)
 
 ```powershell
-# Terminal 1 â€” activate venv-core, start backend
+# Terminal 1 — activate venv-core, start backend
 venv-core\Scripts\activate
 cd services\chatbot
 python run.py
 
-# Terminal 2 â€” start Electron
+# Terminal 2 — start Electron
 cd app\electron
 npm install
 npm run dev
@@ -126,7 +126,7 @@ The Electron wrapper auto-spawns the backend unless it's already running. In pro
 ## Running tests
 
 ```powershell
-# Default gate â€” runs only fast, offline tests
+# Default gate — runs only fast, offline tests
 venv-core\Scripts\activate
 cd services\chatbot
 ..\..\venv-core\Scripts\python.exe -m pytest tests/ `
@@ -175,9 +175,9 @@ Example: `feat(stream): add conversation_id to SSE complete payload`
 
 - Primary chat endpoint: `POST /chat/stream` (SSE) in `services/chatbot/routes/stream.py`
 - Flask monolith entry: `services/chatbot/chatbot_main.py` (started via `run.py`)
-- API keys and constants: `services/chatbot/core/config.py` (reads from env â€” never hardcode)
+- API keys and constants: `services/chatbot/core/config.py` (reads from env — never hardcode)
 - MongoDB setup: `services/chatbot/config/mongodb_config.py` (separate from `core/config.py`)
-- Env loader: `services/shared_env.py` â†’ call `load_shared_env(__file__)` once per service
+- Env loader: `services/shared_env.py` → call `load_shared_env(__file__)` once per service
 
 Full architecture: [AGENTS.md](../../.claude/skills/repo-guidelines/AGENTS.md)
 
@@ -193,7 +193,7 @@ pip install -r app/requirements/profile_core_services.txt
 ```
 
 ### Tests fail with `AttributeError: module 'pytest' has no attribute 'mark.asyncio'`
-`pytest-asyncio` is not installed. Those tests are marked `agentic` and excluded from the default gate â€” you don't need them for normal development.
+`pytest-asyncio` is not installed. Those tests are marked `agentic` and excluded from the default gate — you don't need them for normal development.
 
 ### Port 5000 already in use
 ```powershell

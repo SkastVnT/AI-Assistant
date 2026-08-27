@@ -1,4 +1,4 @@
-﻿# STORAGE_CURATION_ROADMAP.md
+# STORAGE_CURATION_ROADMAP.md
 
 How generated images and user-supplied references are curated **today**,
 what is intentionally deferred, and where future work plugs in. Read
@@ -33,9 +33,9 @@ and emits a curation report under `app/storage/metadata/curation/`.
 | File | Contents |
 |---|---|
 | `rejected.jsonl` | Failed a hard gate (extension, size, dimension). |
-| `duplicates.jsonl` | Exact (sha1) or near-dup (dHash Hamming â‰¤ 5). |
-| `candidates.jsonl` | Decoded cleanly but cannot auto-promote â€” review. |
-| `promote_candidates.jsonl` | Score â‰¥ 90 **and** governance not blocked. Still requires a human to actually promote. |
+| `duplicates.jsonl` | Exact (sha1) or near-dup (dHash Hamming ≤ 5). |
+| `candidates.jsonl` | Decoded cleanly but cannot auto-promote — review. |
+| `promote_candidates.jsonl` | Score ≥ 90 **and** governance not blocked. Still requires a human to actually promote. |
 | `failures.jsonl` | Could not be opened / decoded. |
 | `summary.json` | Counts, score histogram, governance-block reasons, estimated vision-time saved. |
 
@@ -44,8 +44,8 @@ and emits a curation report under `app/storage/metadata/curation/`.
 | Signal | Points |
 |---|---|
 | Valid (decoded) | +30 |
-| Resolution â‰¥ 512Â² | +20 |
-| File size in 50 KiB â€“ 30 MiB | +10 |
+| Resolution ≥ 512² | +20 |
+| File size in 50 KiB – 30 MiB | +10 |
 | Not blank/black/white | +15 |
 | Not blurry **or** blur skipped (cv2 missing) | +10 |
 | Sidecar / manifest metadata present | +10 |
@@ -53,8 +53,8 @@ and emits a curation report under `app/storage/metadata/curation/`.
 
 **Governance (cannot auto-promote, even at score 100):**
 
-- `mode âˆˆ {ambiguous, unresolved_unknown, low_data_profile}`
-- `data_status âˆˆ {unknown, low_data, manual_override}`
+- `mode ∈ {ambiguous, unresolved_unknown, low_data_profile}`
+- `data_status ∈ {unknown, low_data, manual_override}`
 - `needs_review: true`
 - Missing `canonical_id`
 - No manifest at all (origin cannot be trusted)
@@ -98,9 +98,9 @@ abstractions before the capability lands.
 
 | Future capability | Hook |
 |---|---|
-| Reasoning runner ingests per-character reference bytes | `image_pipeline.reasoning.execution.run_panel` â€” also flip `supported_by_pipeline` to `True` in `_collect_request_references()` in [`services/chatbot/routes/reasoning_image_gen.py`](../../services/chatbot/routes/reasoning_image_gen.py). |
+| Reasoning runner ingests per-character reference bytes | `image_pipeline.reasoning.execution.run_panel` — also flip `supported_by_pipeline` to `True` in `_collect_request_references()` in [`services/chatbot/routes/reasoning_image_gen.py`](../../services/chatbot/routes/reasoning_image_gen.py). |
 | Curator promotes a candidate into the registry | New CLI subcommand on `app/scripts/curate_image_storage.py` (e.g. `--promote <hash>`). Must also write a registry entry under `app/storage/character_db/` and an audit log. |
-| Vision-assisted scoring (opt-in) | New `--use-vision` flag on the curator. Must default OFF and must not change the existing rubric â€” only **add** signals. |
+| Vision-assisted scoring (opt-in) | New `--use-vision` flag on the curator. Must default OFF and must not change the existing rubric — only **add** signals. |
 | Auto-fetch of remote previews | Separate, opt-in script. The chatbot itself must continue to NOT fetch remote URLs for previews. |
 
 ---

@@ -1,4 +1,4 @@
-﻿---
+---
 name: tool-response-contract
 description: "Define and enforce response-shape contracts for every tool function, route handler, SSE event, and MCP tool in the chatbot stack. Use when: adding or modifying a tool function return type, changing a route's JSON response, adding or changing an SSE event payload, modifying an MCP tool's return schema, debugging frontend crashes from missing response fields, reviewing backward compatibility of response changes, or tracing how a response shape flows from backend to frontend."
 ---
@@ -13,7 +13,7 @@ description: "Define and enforce response-shape contracts for every tool functio
 - Changing an MCP tool's `Dict[str, Any]` return schema.
 - Debugging frontend `Cannot read property X of undefined` errors.
 - Reviewing backward compatibility before deploying a response-shape change.
-- Tracing a response field from backend origin â†’ SSE wire â†’ frontend consumer.
+- Tracing a response field from backend origin → SSE wire → frontend consumer.
 
 ---
 
@@ -30,7 +30,7 @@ description: "Define and enforce response-shape contracts for every tool functio
 6. DOCUMENT in response impact summary        (Section 9 below)
 ```
 
-**Rule â€” trace before edit:** Before changing *any* return shape, you MUST identify every consumer of that output. Search downstream: if a tool function â†’ find where stream.py reads it; if an SSE event â†’ find the frontend callback; if a route â†’ find the JS fetch call. Do NOT modify a response shape without confirming the consumer list.
+**Rule — trace before edit:** Before changing *any* return shape, you MUST identify every consumer of that output. Search downstream: if a tool function → find where stream.py reads it; if an SSE event → find the frontend callback; if a route → find the JS fetch call. Do NOT modify a response shape without confirming the consumer list.
 
 ---
 
@@ -40,8 +40,8 @@ description: "Define and enforce response-shape contracts for every tool functio
 
 | Layer | Files | Notes |
 |-------|-------|-------|
-| Tool functions | `services/chatbot/core/tools.py` | Return type must stay `str` (except `reverse_image_search` â†’ `dict`) |
-| Stream contract | `services/chatbot/core/stream_contract.py` | `build_complete_event_payload()` â€” add fields only, never remove |
+| Tool functions | `services/chatbot/core/tools.py` | Return type must stay `str` (except `reverse_image_search` → `dict`) |
+| Stream contract | `services/chatbot/core/stream_contract.py` | `build_complete_event_payload()` — add fields only, never remove |
 | SSE emitter | `services/chatbot/routes/stream.py` | `_emit()` helper and all `yield _emit(...)` call sites |
 | Route handlers | `services/chatbot/routes/*.py` | Follow the existing pattern for that route module |
 | MCP tools | `services/mcp-server/server.py` | All `@mcp.tool()` functions return `Dict[str, Any]` |
@@ -51,7 +51,7 @@ description: "Define and enforce response-shape contracts for every tool functio
 
 | Zone | Why |
 |------|-----|
-| `ComfyUI/`, `app/image_pipeline/` | Image services â€” separate response contracts |
+| `ComfyUI/`, `app/image_pipeline/` | Image services — separate response contracts |
 | `services/stable-diffusion/`, `services/edit-image/` | Image services |
 | Flask route response shapes | Preserve the monolith contract consumed by the UI |
 | `services/chatbot/core/chatbot.py` model dispatch | Provider routing, not response contracts |
@@ -66,20 +66,20 @@ description: "Define and enforce response-shape contracts for every tool functio
 
 | Function | Return | Success shape | Error shape |
 |----------|--------|---------------|-------------|
-| `google_search_tool()` | `str` | Markdown `"ðŸ” **Káº¿t quáº£...**\n..."` | `"âŒ API Key khÃ´ng Ä‘Æ°á»£c cáº¥u hÃ¬nh"` |
-| `github_search_tool()` | `str` | Markdown string | `"âŒ Lá»—i: {e}"` |
-| `saucenao_search_tool()` | `str` | Markdown string | `"âŒ Lá»—i: {e}"` |
-| `serpapi_web_search()` | `str` | Markdown string | `"âŒ ..."` or empty `""` |
-| `serpapi_reverse_image()` | `str` | Markdown string (cascades engines) | `"âŒ ..."` |
-| `serpapi_image_search()` | `str` | Markdown string | `"âŒ ..."` |
+| `google_search_tool()` | `str` | Markdown `"🔍 **Kết quả...**\n..."` | `"❌ API Key không được cấu hình"` |
+| `github_search_tool()` | `str` | Markdown string | `"❌ Lỗi: {e}"` |
+| `saucenao_search_tool()` | `str` | Markdown string | `"❌ Lỗi: {e}"` |
+| `serpapi_web_search()` | `str` | Markdown string | `"❌ ..."` or empty `""` |
+| `serpapi_reverse_image()` | `str` | Markdown string (cascades engines) | `"❌ ..."` |
+| `serpapi_image_search()` | `str` | Markdown string | `"❌ ..."` |
 | `reverse_image_search()` | `dict` | `{"sources": [...], "similar": [...], "knowledge": str\|None, "summary": str}` | `{"error": "message"}` |
 
 **How tool results reach the frontend:** Search results are **injected into the user message** as text before sending to the LLM:
 
 ```python
-# stream.py â€” search result injection
+# stream.py — search result injection
 if search_results:
-    message = f"{message}\n\n---\nðŸ“‹ Dá»® LIá»†U THá»°C Táº¾ Tá»ª WEB:\n{search_results}\n---\n"
+    message = f"{message}\n\n---\n📋 DỮ LIỆU THỰC TẾ TỪ WEB:\n{search_results}\n---\n"
 ```
 
 Tool results are **NOT** sent as separate SSE events. The model sees them in context and incorporates them into its response.
@@ -87,7 +87,7 @@ Tool results are **NOT** sent as separate SSE events. The model sees them in con
 ### reverse_image_search() detailed contract
 
 ```python
-# Success â€” guaranteed keys:
+# Success — guaranteed keys:
 {
     "sources": [
         {"title": str, "author": str|None, "url": str,
@@ -111,7 +111,7 @@ Tool results are **NOT** sent as separate SSE events. The model sees them in con
 
 **Emitter helper:** `_emit(event, payload)` in `stream.py` wraps payload with `with_request_id()`.
 
-### Event 1: `metadata` â€” emitted first
+### Event 1: `metadata` — emitted first
 
 ```python
 {
@@ -126,7 +126,7 @@ Tool results are **NOT** sent as separate SSE events. The model sees them in con
     "timestamp": str,                  # ISO format
 }
 ```
-**Consumer:** Not explicitly handled by a named callback in current frontend â€” sent for informational/debug use.
+**Consumer:** Not explicitly handled by a named callback in current frontend — sent for informational/debug use.
 
 ### Event 2: `thinking_start`
 
@@ -134,8 +134,8 @@ Tool results are **NOT** sent as separate SSE events. The model sees them in con
 {
     "category": str,                   # detect_category() result
     "timestamp": str,                  # ISO format
-    "mode": str,                       # OPTIONAL â€” "multi-thinking" only
-    "label": str,                      # OPTIONAL â€” "4-Agents Reasoning"
+    "mode": str,                       # OPTIONAL — "multi-thinking" only
+    "label": str,                      # OPTIONAL — "4-Agents Reasoning"
 }
 ```
 **Consumer:** `callbacks.onThinkingStart(data)`
@@ -148,7 +148,7 @@ Tool results are **NOT** sent as separate SSE events. The model sees them in con
     "step_index": int,                 # Sequential number
     "category": str,
     "is_reasoning_chunk": bool,        # True if from model native reasoning
-    "trajectory_id": str,              # OPTIONAL â€” multi-thinking only
+    "trajectory_id": str,              # OPTIONAL — multi-thinking only
 }
 ```
 **Consumer:** `callbacks.onThinking(data)`
@@ -161,8 +161,8 @@ Tool results are **NOT** sent as separate SSE events. The model sees them in con
     "steps": list[str],               # All thinking steps
     "category": str,
     "duration_ms": int,
-    "rounds": int,                     # OPTIONAL â€” multi-thinking only
-    "trajectories": int,              # OPTIONAL â€” multi-thinking only
+    "rounds": int,                     # OPTIONAL — multi-thinking only
+    "trajectories": int,              # OPTIONAL — multi-thinking only
 }
 ```
 **Consumer:** `callbacks.onThinkingEnd(data)`
@@ -177,7 +177,7 @@ Tool results are **NOT** sent as separate SSE events. The model sees them in con
 ```
 **Consumer:** `callbacks.onChunk(data)`
 
-### Event 6: `complete` â€” emitted last (final event)
+### Event 6: `complete` — emitted last (final event)
 
 Payload built by `build_complete_event_payload()` in `core/stream_contract.py`:
 
@@ -200,28 +200,28 @@ Payload built by `build_complete_event_payload()` in `core/stream_contract.py`:
     "time_to_first_chunk": float,      # OPTIONAL
 }
 ```
-**Consumer:** `callbacks.onComplete(data)` â€” result stored as final response.
+**Consumer:** `callbacks.onComplete(data)` — result stored as final response.
 
 ### Event 7: `error`
 
 ```python
 {
     "error": str,                      # Error message
-    "request_id": str,                 # OPTIONAL â€” if available
+    "request_id": str,                 # OPTIONAL — if available
 }
 ```
 **Consumer:** `callbacks.onError(data)`
 
-### Event 8: `suggestions` â€” placeholder (not yet implemented)
+### Event 8: `suggestions` — placeholder (not yet implemented)
 
 ```python
 {}  # Structure TBD
 ```
-**Consumer:** `callbacks.onSuggestions(data)` â€” registered but not triggered.
+**Consumer:** `callbacks.onSuggestions(data)` — registered but not triggered.
 
 ### Keepalive
 
-SSE comment line `": keepalive\n\n"` â€” not a named event.
+SSE comment line `": keepalive\n\n"` — not a named event.
 
 ---
 
@@ -234,9 +234,9 @@ SSE comment line `": keepalive\n\n"` â€” not a named event.
 | `conversations.py` | Bare dict or `{"conversations": [...]}` | `{"error": "..."}, 4xx/5xx` | No `success` field |
 | `mcp.py` | `{"success": true, ...}` | `{"success": false, "error": "..."}, 4xx/5xx` | Always has `success` |
 | `image_gen.py` | `{"success": true, "image_id": ..., ...}` | `{"error": "..."}, 400/403/429` | `success` only on success |
-| `memory.py` | `{"success": true, "memory": ...}` or `{"memories": [...]}` | `{"error": "..."}, 4xx/5xx` | Mixed â€” some have `success`, some don't |
+| `memory.py` | `{"success": true, "memory": ...}` or `{"memories": [...]}` | `{"error": "..."}, 4xx/5xx` | Mixed — some have `success`, some don't |
 | `main.py` (`/chat`) | `{"success": true, "response": ..., ...}` | `{"error": "..."}, 500` | Always has `success` |
-| `models.py` | `MODEL_CATALOG` dict | â€” | Static data |
+| `models.py` | `MODEL_CATALOG` dict | — | Static data |
 
 ### Conversations (conversations.py)
 
@@ -264,9 +264,9 @@ SSE comment line `": keepalive\n\n"` â€” not a named event.
 | Endpoint | Success | Error |
 |----------|---------|-------|
 | `POST /api/image-gen/generate` | `{"success": true, "image_id": str, "images": [...], "provider": str, "model": str, "prompt": str, "timestamp": str}` | `{"error": "..."}, 400/403/429` or `{"error": "...", "quota_exceeded": true}, 403` |
-| `GET /api/image-gen/health` | Health status dict | â€” |
-| `GET /api/image-gen/providers` | Provider list dict | â€” |
-| `GET /api/image-gen/styles` | Styles dict | â€” |
+| `GET /api/image-gen/health` | Health status dict | — |
+| `GET /api/image-gen/providers` | Provider list dict | — |
+| `GET /api/image-gen/styles` | Styles dict | — |
 
 ### Memory (memory.py)
 
@@ -284,7 +284,7 @@ SSE comment line `": keepalive\n\n"` â€” not a named event.
 | Endpoint | Success | Error |
 |----------|---------|-------|
 | `POST /chat` | `{"success": true, "response": str, "model": str, "context": str, "deep_thinking": bool, "thinking_process": str, "tools": [...], "timestamp": str}` | `{"error": "..."}, 500` |
-| `GET /api/health/databases` | `{"ok": bool, ...}, 200\|503` | â€” |
+| `GET /api/health/databases` | `{"ok": bool, ...}, 200\|503` | — |
 
 ### HTTP status code reference
 
@@ -311,7 +311,7 @@ All `@mcp.tool()` functions in `services/mcp-server/server.py` return `Dict[str,
 {"query": str, "file_type": str, "total_found": int,
  "results": [{"filename": str, "path": str, "full_path": str, "size": int}]}
 # Error:
-{"error": "File khÃ´ng tá»“n táº¡i: {file_path}"}
+{"error": "File không tồn tại: {file_path}"}
 ```
 
 ### read_file_content()
@@ -320,7 +320,7 @@ All `@mcp.tool()` functions in `services/mcp-server/server.py` return `Dict[str,
 # Success:
 {"file_path": str, "total_lines": int, "lines_read": int, "truncated": bool, "content": str}
 # Error:
-{"error": "Lá»—i Ä‘á»c file: {e}"}
+{"error": "Lỗi đọc file: {e}"}
 ```
 
 ### list_directory()
@@ -361,7 +361,7 @@ All `@mcp.tool()` functions in `services/mcp-server/server.py` return `Dict[str,
 
 ## Frontend consumer map
 
-**File:** `services/chatbot/static/js/modules/api-service.js` (lines ~96â€“205)
+**File:** `services/chatbot/static/js/modules/api-service.js` (lines ~96–205)
 
 ### SSE callback dispatch
 
@@ -377,17 +377,17 @@ switch (currentEvent) {
 }
 ```
 
-### Callback â†’ required data keys
+### Callback → required data keys
 
 | Callback | Required keys | Optional keys |
 |----------|---------------|---------------|
 | `onThinkingStart` | `category`, `timestamp` | `mode`, `label` |
 | `onThinking` | `step`, `step_index`, `category`, `is_reasoning_chunk` | `trajectory_id` |
 | `onThinkingEnd` | `summary`, `steps`, `category`, `duration_ms` | `rounds`, `trajectories` |
-| `onChunk` | `content`, `chunk_index` | â€” |
+| `onChunk` | `content`, `chunk_index` | — |
 | `onComplete` | All 14 fields from `build_complete_event_payload()` | `time_to_first_chunk` |
 | `onError` | `error` | `request_id` |
-| `onSuggestions` | â€” | TBD (not implemented) |
+| `onSuggestions` | — | TBD (not implemented) |
 
 ### Non-SSE API consumers
 
@@ -405,7 +405,7 @@ When modifying a response shape, assess impact across three outcome categories:
 
 ### Success path
 
-The happy path works end-to-end: backend returns expected shape â†’ SSE events carry all required keys â†’ frontend callback processes without error â†’ UI renders correctly.
+The happy path works end-to-end: backend returns expected shape → SSE events carry all required keys → frontend callback processes without error → UI renders correctly.
 
 **Monitor points:**
 - Tool function returns correct type (`str` or `dict` per registry)
@@ -419,21 +419,21 @@ The happy path works end-to-end: backend returns expected shape â†’ SSE eve
 The request completes but with degraded output: optional fields are `null`, search returns empty, thinking mode falls back to simpler mode.
 
 **Monitor points:**
-- Optional SSE fields (`trajectory_id`, `rounds`, `mode`, `label`) may be absent â€” frontend must not crash
+- Optional SSE fields (`trajectory_id`, `rounds`, `mode`, `label`) may be absent — frontend must not crash
 - `time_to_first_chunk` in complete event may be `None`
-- Tool function returns `""` (empty string) on search failure â€” message injection is skipped (this is correct)
-- `reverse_image_search()` returns `{"sources": [], "similar": [], "knowledge": null, "summary": "no results"}` â€” valid partial success
+- Tool function returns `""` (empty string) on search failure — message injection is skipped (this is correct)
+- `reverse_image_search()` returns `{"sources": [], "similar": [], "knowledge": null, "summary": "no results"}` — valid partial success
 
 ### Failure path
 
 An error terminates the request or stream.
 
 **Monitor points:**
-- Tool functions: return error string `"âŒ ..."` (6 functions) or `{"error": "..."}` (1 function)
+- Tool functions: return error string `"❌ ..."` (6 functions) or `{"error": "..."}` (1 function)
 - Routes: return `jsonify({"error": "..."}), 4xx/5xx`
 - SSE stream: emit `error` event with `{"error": str, "request_id": str|null}`, then stop
-- MCP tools: return `{"error": "..."}` â€” never raise exceptions to the client
-- Frontend: `onError(data)` callback fires â€” must handle gracefully
+- MCP tools: return `{"error": "..."}` — never raise exceptions to the client
+- Frontend: `onError(data)` callback fires — must handle gracefully
 
 ---
 
@@ -447,7 +447,7 @@ After every response-shape change, append this to your PR description or commit 
 **Surface changed:** [tool function | route handler | SSE event | MCP tool]
 **File(s) modified:** [list files]
 **Change type:** [additive | modification | removal]
-**Backward compatible:** [yes | no â€” if no, explain migration]
+**Backward compatible:** [yes | no — if no, explain migration]
 
 **Consumers affected:**
 - [ ] stream.py injection (tool functions only)
@@ -457,22 +457,22 @@ After every response-shape change, append this to your PR description or commit 
 
 **Fields added:** [list new fields, or "none"]
 **Fields removed:** [list removed fields, or "none"]
-**Fields modified:** [list changed fields with oldâ†’new type, or "none"]
+**Fields modified:** [list changed fields with old→new type, or "none"]
 
-**Tested:** [how verified â€” unit test, manual SSE check, frontend console]
+**Tested:** [how verified — unit test, manual SSE check, frontend console]
 ```
 
 ---
 
 ## Backward compatibility rules
 
-1. **Prefer additive changes.** Adding a new field to a response dict is always safe if the frontend ignores unknown keys (it does â€” `JSON.parse` keeps extra fields).
+1. **Prefer additive changes.** Adding a new field to a response dict is always safe if the frontend ignores unknown keys (it does — `JSON.parse` keeps extra fields).
 2. **Never remove a field** that a frontend callback reads without updating the frontend first.
-3. **Never change a field's type** (e.g. `str` â†’ `dict`, `int` â†’ `str`) without updating all consumers.
-4. **Never change a field's name** (`thinking_steps` â†’ `thinkingSteps`) â€” frontend keys are case-sensitive.
-5. **Never change a tool function's return type** from `str` to `dict` (or vice versa) â€” stream.py injection expects strings.
+3. **Never change a field's type** (e.g. `str` → `dict`, `int` → `str`) without updating all consumers.
+4. **Never change a field's name** (`thinking_steps` → `thinkingSteps`) — frontend keys are case-sensitive.
+5. **Never change a tool function's return type** from `str` to `dict` (or vice versa) — stream.py injection expects strings.
 6. **New optional fields** must default to `None`/`null` and be documented in the SSE catalog above.
-7. **MCP tools** must always return `Dict[str, Any]` â€” never raise exceptions to the transport.
+7. **MCP tools** must always return `Dict[str, Any]` — never raise exceptions to the transport.
 
 ---
 
@@ -480,18 +480,18 @@ After every response-shape change, append this to your PR description or commit 
 
 Before merging any response-shape change:
 
-- [ ] **Return type matches contract** â€” tool function returns `str` (or `dict` for `reverse_image_search` only)
-- [ ] **All required SSE keys present** â€” cross-reference callback â†’ required keys table above
-- [ ] **HTTP status code correct** â€” 200 for success, 4xx for client error, 5xx for server error
-- [ ] **`request_id` propagated** â€” via `with_request_id(payload, request_id)` in stream events
-- [ ] **Field names exact case** â€” `thinking_steps` not `thinkingSteps`, `elapsed_time` not `elapsedTime`
-- [ ] **Optional fields marked** â€” new optional fields default to `None` and are noted in this skill
-- [ ] **Frontend callback tested** â€” verify the JS callback parses the changed event without error
-- [ ] **Error shape consistent** â€” routes: `{"error": "..."}` with proper HTTP code; tools: error string; MCP: `{"error": "..."}`
-- [ ] **Search results injected correctly** â€” tool results go into message context, NOT as separate SSE events
-- [ ] **`build_complete_event_payload` kwargs match** â€” if adding a field to complete event, update both the function and the call site
-- [ ] **Backward compatible** â€” no field removals, no type changes, no renames without consumer updates
-- [ ] **Response impact summary written** â€” template in Section 9 above, filled in PR/commit
+- [ ] **Return type matches contract** — tool function returns `str` (or `dict` for `reverse_image_search` only)
+- [ ] **All required SSE keys present** — cross-reference callback → required keys table above
+- [ ] **HTTP status code correct** — 200 for success, 4xx for client error, 5xx for server error
+- [ ] **`request_id` propagated** — via `with_request_id(payload, request_id)` in stream events
+- [ ] **Field names exact case** — `thinking_steps` not `thinkingSteps`, `elapsed_time` not `elapsedTime`
+- [ ] **Optional fields marked** — new optional fields default to `None` and are noted in this skill
+- [ ] **Frontend callback tested** — verify the JS callback parses the changed event without error
+- [ ] **Error shape consistent** — routes: `{"error": "..."}` with proper HTTP code; tools: error string; MCP: `{"error": "..."}`
+- [ ] **Search results injected correctly** — tool results go into message context, NOT as separate SSE events
+- [ ] **`build_complete_event_payload` kwargs match** — if adding a field to complete event, update both the function and the call site
+- [ ] **Backward compatible** — no field removals, no type changes, no renames without consumer updates
+- [ ] **Response impact summary written** — template in Section 9 above, filled in PR/commit
 
 ---
 
@@ -500,10 +500,10 @@ Before merging any response-shape change:
 | Issue | Where | Correct behavior |
 |-------|-------|-----------------|
 | Routes use mixed patterns for success (`success: true` vs bare dict) | `conversations.py` vs `mcp.py` | New routes should include `success` field for clarity. Do not refactor existing routes unless asked. |
-| `reverse_image_search()` is the only tool returning `dict` | `core/tools.py` | Keep it as-is â€” `stream.py` handles both `str` and `dict` returns from this function |
-| `metadata` SSE event has no named frontend callback | `api-service.js` | Informational event â€” frontend may handle it later |
-| `suggestions` event type registered but not implemented | `stream.py` / `api-service.js` | Placeholder â€” do not emit until schema is defined |
-| Error messages in Vietnamese (`"âŒ Lá»—i..."`, `"File khÃ´ng tá»“n táº¡i"`) | `tools.py`, `server.py` | Existing convention â€” do not change to English unless refactoring i18n |
+| `reverse_image_search()` is the only tool returning `dict` | `core/tools.py` | Keep it as-is — `stream.py` handles both `str` and `dict` returns from this function |
+| `metadata` SSE event has no named frontend callback | `api-service.js` | Informational event — frontend may handle it later |
+| `suggestions` event type registered but not implemented | `stream.py` / `api-service.js` | Placeholder — do not emit until schema is defined |
+| Error messages in Vietnamese (`"❌ Lỗi..."`, `"File không tồn tại"`) | `tools.py`, `server.py` | Existing convention — do not change to English unless refactoring i18n |
 
 ---
 
@@ -522,14 +522,14 @@ Before merging any response-shape change:
 | `services/chatbot/routes/main.py` | `/chat`, health responses | ~119, ~413 |
 | `services/chatbot/routes/models.py` | Model catalog | ~31 |
 | `services/mcp-server/server.py` | MCP tool return schemas | ~119, ~213, ~257, ~319, ~361, ~420 |
-| `services/chatbot/static/js/modules/api-service.js` | Frontend SSE parser + API consumers | ~96â€“205 |
+| `services/chatbot/static/js/modules/api-service.js` | Frontend SSE parser + API consumers | ~96–205 |
 
 ---
 
 ## Related skills
 
-- **search-tool-cascade** â€” tool selection and fallback order
-- **core-chatbot-routing-audit** â€” request path and tool dispatch wiring
-- **mcp-tool-authoring** â€” MCP tool registration and return contracts
-- **thinking-mode-routing** â€” thinking event lifecycle
-- **docs-drift-sync** â€” update docs when response schemas change
+- **search-tool-cascade** — tool selection and fallback order
+- **core-chatbot-routing-audit** — request path and tool dispatch wiring
+- **mcp-tool-authoring** — MCP tool registration and return contracts
+- **thinking-mode-routing** — thinking event lifecycle
+- **docs-drift-sync** — update docs when response schemas change

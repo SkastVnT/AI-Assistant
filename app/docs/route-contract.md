@@ -1,4 +1,4 @@
-﻿# Route Contract â€” AI-Assistant Chatbot
+# Route Contract — AI-Assistant Chatbot
 
 This document is the authoritative reference for the chatbot HTTP surface.
 It is generated from `chatbot_main.py` (inline routes) and the blueprints in `routes/`.
@@ -11,8 +11,8 @@ The regression test that guards this contract is `tests/test_route_contract.py`.
 
 Routes are registered in two ways:
 
-1. **Inline on `app`** â€” defined directly in `chatbot_main.py` with `@app.route(...)`.
-2. **Blueprints** â€” imported and registered at the bottom of `chatbot_main.py` via individual
+1. **Inline on `app`** — defined directly in `chatbot_main.py` with `@app.route(...)`.
+2. **Blueprints** — imported and registered at the bottom of `chatbot_main.py` via individual
    `app.register_blueprint(...)` calls inside `try/except ImportError` blocks.
 
 The `register_blueprints()` function in `routes/__init__.py` is a legacy helper and is
@@ -24,7 +24,7 @@ The `register_blueprints()` function in `routes/__init__.py` is a legacy helper 
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/` | Root â€” create/restore session, redirect to `/c/<id>` |
+| GET | `/` | Root — create/restore session, redirect to `/c/<id>` |
 | GET | `/c/<conversation_id>` | Conversation permalink (regex `[A-Za-z0-9_\-]{1,64}`) |
 | GET | `/mobile` | Mobile redirect |
 | GET | `/desktop` | Desktop redirect |
@@ -128,7 +128,7 @@ The `register_blueprints()` function in `routes/__init__.py` is a legacy helper 
 ## Primary endpoint
 
 ```
-POST /chat/stream   (stream_bp â€” routes/stream.py)
+POST /chat/stream   (stream_bp — routes/stream.py)
 ```
 
 This is the canonical chat endpoint. All UI interactions go through here. It returns
@@ -151,7 +151,7 @@ compatibility with older clients.
    routes are separate. Both sets should remain registered until the inline routes are removed.
 
 4. **Conditional routes**: `reasoning_image_gen_bp` is only registered when
-   `REASONING_PIPELINE=true`. This is intentional â€” the route should NOT appear in the URL map
+   `REASONING_PIPELINE=true`. This is intentional — the route should NOT appear in the URL map
    when the flag is off.
 
 5. **Auth blueprint**: `auth_bp` import is attempted but expected to fail gracefully (it was

@@ -1,4 +1,4 @@
-﻿---
+---
 name: chat-ui-sync
 description: "Keep the chat UI synchronized with backend routes, tool selectors, mode selectors, and response rendering for the core chatbot. Use when: adding or changing a UI control that calls a backend route, modifying a tool or mode selector, changing a route that the frontend depends on, debugging broken rendering or missing UI state, reviewing whether a functional change needs a UI update, or checking that the frontend and backend agree on payload field names."
 ---
@@ -31,15 +31,15 @@ description: "Keep the chat UI synchronized with backend routes, tool selectors,
 1. IDENTIFY the UI control being changed        (HTML element + ID/class)
 2. TRACE the JS handler                          (which module, which function)
 3. TRACE the backend route                       (URL, method, payload fields)
-4. CHECK payload field agreement                  (frontend key names â†” backend data.get() keys)
-5. CHECK response field agreement                 (backend return keys â†” frontend callback keys)
+4. CHECK payload field agreement                  (frontend key names ↔ backend data.get() keys)
+5. CHECK response field agreement                 (backend return keys ↔ frontend callback keys)
 6. IMPLEMENT change in both layers               (or confirm only one layer needs editing)
 7. VERIFY with UI sync checklist                  (Section 11 below)
 ```
 
-**Rule â€” mention both files:** When describing a functional change, always name the frontend file(s) AND the backend file(s) involved. A change to `main.js` that affects `tools` payload must acknowledge `stream.py` reads `data.get('tools', [])`.
+**Rule — mention both files:** When describing a functional change, always name the frontend file(s) AND the backend file(s) involved. A change to `main.js` that affects `tools` payload must acknowledge `stream.py` reads `data.get('tools', [])`.
 
-**Rule â€” no visual-only edits for functional tasks:** If the user asks to "fix the search button" or "add a new tool," do not make CSS-only changes. Trace the full path: HTML element â†’ JS event â†’ backend route â†’ response rendering.
+**Rule — no visual-only edits for functional tasks:** If the user asks to "fix the search button" or "add a new tool," do not make CSS-only changes. Trace the full path: HTML element → JS event → backend route → response rendering.
 
 ---
 
@@ -48,38 +48,38 @@ description: "Keep the chat UI synchronized with backend routes, tool selectors,
 The chat UI is a three-layer system:
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚  UI Layer (HTML + CSS)                                  â”‚
-â”‚  templates/index.html â€” controls, inputs, layout        â”‚
-â”‚  static/css/app.css   â€” styling                         â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚  Handler Layer (JavaScript modules)                     â”‚
-â”‚  main.js           â€” orchestration, event bindings      â”‚
-â”‚  api-service.js    â€” fetch + SSE communication          â”‚
-â”‚  chat-manager.js   â€” localStorage persistence           â”‚
-â”‚  message-renderer.js â€” markdown â†’ DOM rendering         â”‚
-â”‚  ui-utils.js       â€” theme, sidebar, accessibility      â”‚
-â”‚  image-gen-v2.js   â€” image gen modal                    â”‚
-â”‚  video-gen.js      â€” video gen modal                    â”‚
-â”‚  memory-manager.js â€” memory CRUD                        â”‚
-â”‚  mcp.js            â€” MCP sidebar                        â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚  Backend Layer (Flask routes)                           â”‚
-â”‚  routes/stream.py  â€” POST /chat/stream (SSE)           â”‚
-â”‚  routes/main.py    â€” /, /chat, /clear, /history         â”‚
-â”‚  routes/image_gen.py â€” /api/image-gen/*                 â”‚
-â”‚  routes/memory.py  â€” /api/memory/*                      â”‚
-â”‚  routes/conversations.py â€” /conversations/*             â”‚
-â”‚  routes/mcp.py     â€” /api/mcp/*                         â”‚
-â”‚  routes/models.py  â€” model catalog                      â”‚
-â”‚  routes/auth.py    â€” /api/auth/*                        â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+┌─────────────────────────────────────────────────────────┐
+│  UI Layer (HTML + CSS)                                  │
+│  templates/index.html — controls, inputs, layout        │
+│  static/css/app.css   — styling                         │
+├─────────────────────────────────────────────────────────┤
+│  Handler Layer (JavaScript modules)                     │
+│  main.js           — orchestration, event bindings      │
+│  api-service.js    — fetch + SSE communication          │
+│  chat-manager.js   — localStorage persistence           │
+│  message-renderer.js — markdown → DOM rendering         │
+│  ui-utils.js       — theme, sidebar, accessibility      │
+│  image-gen-v2.js   — image gen modal                    │
+│  video-gen.js      — video gen modal                    │
+│  memory-manager.js — memory CRUD                        │
+│  mcp.js            — MCP sidebar                        │
+├─────────────────────────────────────────────────────────┤
+│  Backend Layer (Flask routes)                           │
+│  routes/stream.py  — POST /chat/stream (SSE)           │
+│  routes/main.py    — /, /chat, /clear, /history         │
+│  routes/image_gen.py — /api/image-gen/*                 │
+│  routes/memory.py  — /api/memory/*                      │
+│  routes/conversations.py — /conversations/*             │
+│  routes/mcp.py     — /api/mcp/*                         │
+│  routes/models.py  — model catalog                      │
+│  routes/auth.py    — /api/auth/*                        │
+└─────────────────────────────────────────────────────────┘
 ```
 
 **Data flow:**
 ```
-User action â†’ event listener (main.js) â†’ API call (api-service.js) â†’ Flask route
-    â† SSE events / JSON response â† callbacks â† message-renderer.js â† DOM update
+User action → event listener (main.js) → API call (api-service.js) → Flask route
+    ← SSE events / JSON response ← callbacks ← message-renderer.js ← DOM update
 ```
 
 ---
@@ -110,22 +110,22 @@ User action â†’ event listener (main.js) â†’ API call (api-service.js)
 |------|-----|
 | `ComfyUI/`, `app/image_pipeline/` | Separate UI stack |
 | `services/stable-diffusion/`, `services/edit-image/` | Image services |
-| `services/chatbot/routes/` | Flask route handlers â€” keep UI call sites aligned |
+| `services/chatbot/routes/` | Flask route handlers — keep UI call sites aligned |
 | `templates/admin.html`, `templates/login.html` | Admin/auth UI, not part of chat flow |
 
 ---
 
-## UI control â†’ backend route map
+## UI control → backend route map
 
 ### Primary chat flow
 
 | UI Control | Element ID | JS Module | Backend Route | Payload Field(s) |
 |------------|-----------|-----------|---------------|-------------------|
-| Send button | `#sendBtn` | `main.js` â†’ `sendMessage()` | `POST /chat/stream` | Full payload (see Section 5) |
+| Send button | `#sendBtn` | `main.js` → `sendMessage()` | `POST /chat/stream` | Full payload (see Section 5) |
 | Message input | `#messageInput` | `main.js` (Enter key) | `POST /chat/stream` | `message` |
-| Stop button | `#stopGenerationBtn` | `main.js` â†’ `AbortController.abort()` | â€” (client-side cancel) | â€” |
-| Clear chat | `#clearBtn` | `main.js` | â€” (localStorage only) | â€” |
-| New chat | `#newChatBtn` | `chat-manager.js` | â€” (localStorage only) | â€” |
+| Stop button | `#stopGenerationBtn` | `main.js` → `AbortController.abort()` | — (client-side cancel) | — |
+| Clear chat | `#clearBtn` | `main.js` | — (localStorage only) | — |
+| New chat | `#newChatBtn` | `chat-manager.js` | — (localStorage only) | — |
 
 ### Model and mode selectors
 
@@ -151,7 +151,7 @@ User action â†’ event listener (main.js) â†’ API call (api-service.js)
 | `#serpapiBaiduBtn` | `serpapi-baidu` | `serpapi-baidu` | `stream.py` L402 |
 | `#serpapiImagesBtn` | `serpapi-images` | `serpapi-images` | `stream.py` L417 |
 
-**Tool binding source:** `index.html` inline script, `setupToolItemClicks()` function (~L1858). The `toolBindings` array maps button IDs â†’ tool string names.
+**Tool binding source:** `index.html` inline script, `setupToolItemClicks()` function (~L1858). The `toolBindings` array maps button IDs → tool string names.
 
 **Tool state:** `activeTools` Set in `index.html` inline script, exposed globally via `window.getActiveTools()`. `main.js` reads: `window.getActiveTools ? window.getActiveTools() : Array.from(this.activeTools)`.
 
@@ -181,9 +181,9 @@ User action â†’ event listener (main.js) â†’ API call (api-service.js)
 
 ## `/chat/stream` payload contract
 
-This is the critical contract. The frontend assembles the body in `api-service.js` L112â€“125, the backend reads it in `stream.py` L247â€“265.
+This is the critical contract. The frontend assembles the body in `api-service.js` L112–125, the backend reads it in `stream.py` L247–265.
 
-### Frontend â†’ Backend field mapping
+### Frontend → Backend field mapping
 
 | Frontend key (`api-service.js`) | Backend key (`stream.py`) | Type | Default |
 |--------------------------------|---------------------------|------|---------|
@@ -202,11 +202,11 @@ This is the critical contract. The frontend assembles the body in `api-service.j
 | `skill` | `skill` | str (skill ID) | `""` |
 | `skill_auto_route` | `skill_auto_route` | str `"true"`/`"false"` | `"true"` |
 
-**Known quirk â€” `thinking_mode` default mismatch:** Frontend defaults to `"instant"`, backend defaults to `"auto"`. Both resolve to `deep_thinking = false`, so behavior matches. Do not "fix" this by changing either default without testing both paths.
+**Known quirk — `thinking_mode` default mismatch:** Frontend defaults to `"instant"`, backend defaults to `"auto"`. Both resolve to `deep_thinking = false`, so behavior matches. Do not "fix" this by changing either default without testing both paths.
 
 ---
 
-## SSE event â†’ frontend callback map
+## SSE event → frontend callback map
 
 | SSE Event | Frontend Callback | Renderer Method | Key Data Fields |
 |-----------|-------------------|-----------------|-----------------|
@@ -223,7 +223,7 @@ This is the critical contract. The frontend assembles the body in `api-service.j
 
 ## Model selector binding details
 
-**HTML:** `index.html` L523â€“630. Items are `div.model-dropdown__item[data-model]` inside `#modelDropdown`.
+**HTML:** `index.html` L523–630. Items are `div.model-dropdown__item[data-model]` inside `#modelDropdown`.
 
 **Current models in HTML:**
 
@@ -248,13 +248,13 @@ This is the critical contract. The frontend assembles the body in `api-service.j
 2. Ensure `core/config.py` has the API key configured for the provider.
 3. Ensure `core/chatbot.py` routes `model="new-id"` to the correct provider.
 4. Update `routes/models.py` `MODEL_CATALOG` if used.
-5. No JS module changes needed â€” the inline click handler is generic.
+5. No JS module changes needed — the inline click handler is generic.
 
 ---
 
 ## Thinking mode selector binding details
 
-**HTML:** `index.html` L640â€“665. Options are `div.thinking-mode-option[data-mode]` inside `#thinkingModeDropdown`.
+**HTML:** `index.html` L640–665. Options are `div.thinking-mode-option[data-mode]` inside `#thinkingModeDropdown`.
 
 **Current modes:**
 
@@ -265,7 +265,7 @@ This is the critical contract. The frontend assembles the body in `api-service.j
 
 **JS binding:** `index.html` inline script (~L1762). `selectThinkingMode(mode, icon, label)` updates `#thinkingModeValue`, `#thinkingModeLabel`, `#thinkingModeIcon`, saves to `localStorage.thinkingMode`.
 
-**Backend reads:** `data.get('thinking_mode', 'auto')` in `stream.py` L260. Maps to `deep_thinking` boolean at L261â€“265.
+**Backend reads:** `data.get('thinking_mode', 'auto')` in `stream.py` L260. Maps to `deep_thinking` boolean at L261–265.
 
 **Note:** Only `instant` and `multi-thinking` are exposed in the current UI. Backend also supports `thinking`, `deep`, and `auto` but these have no UI selectors.
 
@@ -275,19 +275,19 @@ This is the critical contract. The frontend assembles the body in `api-service.j
 
 ```
 User clicks tool button (e.g., #googleSearchBtn)
-  â†’ index.html: setupToolItemClicks() reads toolBindings array
-  â†’ toggleToolActive('google-search', buttonElement)
-  â†’ activeTools Set: add/remove 'google-search'
-  â†’ updateActiveToolsDisplay() â†’ shows badge in #activeToolsDisplay
-  â†’ window.getActiveTools() now returns ['google-search']
+  → index.html: setupToolItemClicks() reads toolBindings array
+  → toggleToolActive('google-search', buttonElement)
+  → activeTools Set: add/remove 'google-search'
+  → updateActiveToolsDisplay() → shows badge in #activeToolsDisplay
+  → window.getActiveTools() now returns ['google-search']
   
 User clicks Send:
-  â†’ main.js L580: activeTools = window.getActiveTools()
-  â†’ main.js L1123: passed as tools: activeTools to sendStreamMessage()
-  â†’ api-service.js L124: body.tools = params.tools
-  â†’ POST /chat/stream with body { ..., tools: ['google-search'] }
-  â†’ stream.py L321: tools = data.get('tools', [])
-  â†’ stream.py L111: if "google-search" in tools â†’ runs web search
+  → main.js L580: activeTools = window.getActiveTools()
+  → main.js L1123: passed as tools: activeTools to sendStreamMessage()
+  → api-service.js L124: body.tools = params.tools
+  → POST /chat/stream with body { ..., tools: ['google-search'] }
+  → stream.py L321: tools = data.get('tools', [])
+  → stream.py L111: if "google-search" in tools → runs web search
 ```
 
 **Deep Research special case:** When `deep-research` is activated, the inline handler also: (1) auto-enables `google-search`, (2) switches thinking mode to `multi-thinking`.
@@ -327,27 +327,27 @@ If a stream completes but the `complete` callback fails to fire (e.g., malformed
 These IDs are read or written at runtime. Renaming them breaks functionality.
 
 **Critical (send flow):**
-- `#messageInput` â€” value read, disabled toggled
-- `#sendBtn` â€” disabled toggled
-- `#chatContainer` â€” messages appended
-- `#thinkingModeValue` â€” value read for payload
-- `#modelSelect` â€” value read for payload (hidden select)
+- `#messageInput` — value read, disabled toggled
+- `#sendBtn` — disabled toggled
+- `#chatContainer` — messages appended
+- `#thinkingModeValue` — value read for payload
+- `#modelSelect` — value read for payload (hidden select)
 
 **Selectors:**
-- `#modelSelectorBtn`, `#modelDropdown`, `#modelSelectorLabel` â€” model picker
-- `#thinkingModeBtn`, `#thinkingModeDropdown`, `#thinkingModeLabel`, `#thinkingModeIcon` â€” mode picker
-- `#toolsMenuBtn`, `#toolsMenuDropdown` â€” tools grid
-- `#activeToolsDisplay` â€” active tool badges
+- `#modelSelectorBtn`, `#modelDropdown`, `#modelSelectorLabel` — model picker
+- `#thinkingModeBtn`, `#thinkingModeDropdown`, `#thinkingModeLabel`, `#thinkingModeIcon` — mode picker
+- `#toolsMenuBtn`, `#toolsMenuDropdown` — tools grid
+- `#activeToolsDisplay` — active tool badges
 
 **Tool buttons (from `toolBindings` array):**
 - `#imageGenToolBtn`, `#img2imgToolBtn`, `#googleSearchBtn`, `#deepResearchToolBtn`, `#githubBtn`, `#saucenaoBtn`, `#googleLensBtn`, `#serpapiBingBtn`, `#serpapiBaiduBtn`, `#serpapiImagesBtn`
 
 **State:**
-- `#stopGenerationBtn` â€” stop streaming
-- `#darkModeBtn`, `#eyeCareBtn` â€” theme
-- `#sidebarToggleBtn` â€” sidebar
-- `#newChatBtn` â€” new conversation
-- `#fileInput` â€” file upload
+- `#stopGenerationBtn` — stop streaming
+- `#darkModeBtn`, `#eyeCareBtn` — theme
+- `#sidebarToggleBtn` — sidebar
+- `#newChatBtn` — new conversation
+- `#fileInput` — file upload
 
 ---
 
@@ -398,39 +398,39 @@ These IDs are read or written at runtime. Renaming them breaks functionality.
 
 ### Pitfall 1: Adding a tool button without a backend handler
 
-âŒ Add `<button id="newToolBtn">` + entry in `toolBindings` â†’ tool name gets sent in `tools[]` â†’ backend ignores it silently.
+❌ Add `<button id="newToolBtn">` + entry in `toolBindings` → tool name gets sent in `tools[]` → backend ignores it silently.
 
-âœ… Also add handler in `stream.py` like the existing `if 'tool-name' in tools:` blocks.
+✅ Also add handler in `stream.py` like the existing `if 'tool-name' in tools:` blocks.
 
 ### Pitfall 2: Renaming a route URL only in backend
 
-âŒ Change `/api/memory/save` to `/api/memories` in `memory.py` â†’ `memory-manager.js` still fetches old URL â†’ 404.
+❌ Change `/api/memory/save` to `/api/memories` in `memory.py` → `memory-manager.js` still fetches old URL → 404.
 
-âœ… Update both the route in `memory.py` AND the fetch URL in `memory-manager.js`.
+✅ Update both the route in `memory.py` AND the fetch URL in `memory-manager.js`.
 
 ### Pitfall 3: Adding a payload field only in frontend
 
-âŒ Add `body.newField = value` in `api-service.js` but never read `data.get('newField')` in `stream.py` â†’ field is silently dropped.
+❌ Add `body.newField = value` in `api-service.js` but never read `data.get('newField')` in `stream.py` → field is silently dropped.
 
-âœ… Add reading logic in the backend route handler.
+✅ Add reading logic in the backend route handler.
 
 ### Pitfall 4: Changing an element ID without updating `toolBindings`
 
-âŒ Rename `#googleSearchBtn` to `#webSearchBtn` in HTML â†’ `setupToolItemClicks()` looks for `#googleSearchBtn` â†’ `document.getElementById` returns null â†’ no event listener â†’ button is dead.
+❌ Rename `#googleSearchBtn` to `#webSearchBtn` in HTML → `setupToolItemClicks()` looks for `#googleSearchBtn` → `document.getElementById` returns null → no event listener → button is dead.
 
-âœ… Update both the HTML ID and the `toolBindings` array entry.
+✅ Update both the HTML ID and the `toolBindings` array entry.
 
 ### Pitfall 5: CSS-only edit that accidentally breaks logic
 
-âŒ Remove `.active` class styling â†’ class is still toggled by JS â†’ visually no highlight but logically the tool IS selected â†’ user confusion.
+❌ Remove `.active` class styling → class is still toggled by JS → visually no highlight but logically the tool IS selected → user confusion.
 
-âœ… Keep the class; only change its visual styles.
+✅ Keep the class; only change its visual styles.
 
 ### Pitfall 6: Changing thinking mode options without backend mapping
 
-âŒ Add `data-mode="deep-think"` in HTML â†’ `selectThinkingMode('deep-think', ...)` stores the value â†’ backend reads `thinking_mode = 'deep-think'` â†’ falls through to default, unexpected behavior.
+❌ Add `data-mode="deep-think"` in HTML → `selectThinkingMode('deep-think', ...)` stores the value → backend reads `thinking_mode = 'deep-think'` → falls through to default, unexpected behavior.
 
-âœ… Check `stream.py` L261â€“265 to ensure the backend maps the new mode value correctly.
+✅ Check `stream.py` L261–265 to ensure the backend maps the new mode value correctly.
 
 ---
 
@@ -438,15 +438,15 @@ These IDs are read or written at runtime. Renaming them breaks functionality.
 
 The existing UI controls are functional and battle-tested. When modifying them:
 
-1. **Model selector options are hardcoded in HTML.** Adding/removing a model requires editing `index.html`. The JS handler is generic â€” it reads `data-model` from any child of `#modelDropdown`.
+1. **Model selector options are hardcoded in HTML.** Adding/removing a model requires editing `index.html`. The JS handler is generic — it reads `data-model` from any child of `#modelDropdown`.
 
 2. **Thinking mode options are hardcoded in HTML.** Only `instant` and `multi-thinking` are exposed. Backend supports more modes but they are intentionally hidden from the UI.
 
-3. **Tool button bindings are in an inline script.** The `toolBindings` array in `index.html` (~L1858) is the single source of truth for button ID â†’ tool name mapping. Do not add tool click handlers in `main.js` that duplicate this.
+3. **Tool button bindings are in an inline script.** The `toolBindings` array in `index.html` (~L1858) is the single source of truth for button ID → tool name mapping. Do not add tool click handlers in `main.js` that duplicate this.
 
-4. **`activeTools` Set lives only in the inline script scope.** It is exposed globally via `window.getActiveTools()`. `main.js` has its own `this.activeTools` Set that is used as a fallback if `window.getActiveTools` is undefined. Do not assume one is always authoritative â€” check both.
+4. **`activeTools` Set lives only in the inline script scope.** It is exposed globally via `window.getActiveTools()`. `main.js` has its own `this.activeTools` Set that is used as a fallback if `window.getActiveTools` is undefined. Do not assume one is always authoritative — check both.
 
-5. **`deep_thinking` boolean is legacy but still sent.** Frontend computes it from `thinkingMode`, backend also derives it from `thinking_mode`. Do not remove `deep_thinking` from the payload â€” older code paths may still reference it.
+5. **`deep_thinking` boolean is legacy but still sent.** Frontend computes it from `thinkingMode`, backend also derives it from `thinking_mode`. Do not remove `deep_thinking` from the payload — older code paths may still reference it.
 
 6. **Image generation tools bypass `/chat/stream`.** `image-generation` and `img2img` in the `tools[]` array are intercepted client-side in `main.js` and routed to dedicated gen flows. They never reach `stream.py`.
 
@@ -456,18 +456,18 @@ The existing UI controls are functional and battle-tested. When modifying them:
 
 Before merging any change that touches both frontend and backend:
 
-- [ ] **Route URL matches between JS and Python** â€” hardcoded URLs in JS modules match route decorators in `routes/*.py`
-- [ ] **Payload field names agree** â€” `api-service.js` body keys match `stream.py` `data.get()` keys exactly (snake_case)
-- [ ] **SSE event type names match** â€” `stream.py` `_emit('event_name', ...)` matches `api-service.js` `switch(currentEvent)` cases
-- [ ] **SSE payload keys match callback expectations** â€” every key the frontend reads from event data is emitted by the backend
-- [ ] **Element IDs unchanged or updated in all references** â€” HTML ID, JS `getElementById`, `toolBindings` array all agree
-- [ ] **Tool name in `toolBindings` matches backend `if 'name' in tools`** â€” frontend tool string == backend tool string
-- [ ] **Model `data-model` values match backend routing** â€” `chatbot.py` and `config.py` recognize all model IDs in the HTML
-- [ ] **Thinking mode `data-mode` values have backend mapping** â€” `stream.py` L261â€“265 handles all mode values in the HTML
-- [ ] **Loading/disabled states restored on all exit paths** â€” `complete`, `error`, `abort`, and exception paths all re-enable send
-- [ ] **No new hardcoded URLs added** â€” if adding a new API call, verify the URL exists as a registered route
-- [ ] **`window.getActiveTools()` and `this.activeTools` stay in sync** â€” if modifying tool state, check both inline script and `main.js`
-- [ ] **localStorage keys not renamed without migration** â€” renaming breaks returning users' saved state
+- [ ] **Route URL matches between JS and Python** — hardcoded URLs in JS modules match route decorators in `routes/*.py`
+- [ ] **Payload field names agree** — `api-service.js` body keys match `stream.py` `data.get()` keys exactly (snake_case)
+- [ ] **SSE event type names match** — `stream.py` `_emit('event_name', ...)` matches `api-service.js` `switch(currentEvent)` cases
+- [ ] **SSE payload keys match callback expectations** — every key the frontend reads from event data is emitted by the backend
+- [ ] **Element IDs unchanged or updated in all references** — HTML ID, JS `getElementById`, `toolBindings` array all agree
+- [ ] **Tool name in `toolBindings` matches backend `if 'name' in tools`** — frontend tool string == backend tool string
+- [ ] **Model `data-model` values match backend routing** — `chatbot.py` and `config.py` recognize all model IDs in the HTML
+- [ ] **Thinking mode `data-mode` values have backend mapping** — `stream.py` L261–265 handles all mode values in the HTML
+- [ ] **Loading/disabled states restored on all exit paths** — `complete`, `error`, `abort`, and exception paths all re-enable send
+- [ ] **No new hardcoded URLs added** — if adding a new API call, verify the URL exists as a registered route
+- [ ] **`window.getActiveTools()` and `this.activeTools` stay in sync** — if modifying tool state, check both inline script and `main.js`
+- [ ] **localStorage keys not renamed without migration** — renaming breaks returning users' saved state
 
 ---
 
@@ -479,7 +479,7 @@ Before merging any change that touches both frontend and backend:
 | `services/chatbot/static/js/main.js` | App orchestration, `sendMessage()`, event listeners | L38 (`activeTools`), L580 (tool read), L1112 (`sendStreamMessage` call) |
 | `services/chatbot/static/js/modules/api-service.js` | Payload assembly, SSE parsing, fetch calls | L102 (`sendStreamMessage`), L112 (body), L129 (fetch URL) |
 | `services/chatbot/static/js/modules/chat-manager.js` | localStorage persistence, session management | `saveSessions()`, `loadSessions()`, `switchChat()` |
-| `services/chatbot/static/js/modules/message-renderer.js` | Markdown â†’ DOM, thinking blocks, code highlighting | `addMessage()`, `appendChunk()`, `createThinkingSection()` |
+| `services/chatbot/static/js/modules/message-renderer.js` | Markdown → DOM, thinking blocks, code highlighting | `addMessage()`, `appendChunk()`, `createThinkingSection()` |
 | `services/chatbot/static/js/modules/ui-utils.js` | Theme toggle, sidebar, element caching | `toggleDarkMode()`, `toggleSidebar()`, `initElements()` |
 | `services/chatbot/static/js/modules/image-gen-v2.js` | Image gen modal UI | Calls `/api/image-gen/generate` |
 | `services/chatbot/static/js/modules/video-gen.js` | Video gen modal UI | Calls `/api/video/generate` |
@@ -498,8 +498,8 @@ Before merging any change that touches both frontend and backend:
 
 ## Related skills
 
-- **tool-response-contract** â€” exact response shapes for every route, SSE event, and tool function
-- **core-chatbot-routing-audit** â€” Flask blueprint registration and request path tracing
-- **search-tool-cascade** â€” tool fallback order and auto-trigger logic
-- **thinking-mode-routing** â€” thinking mode lifecycle (UI selector â†’ backend â†’ SSE events)
-- **provider-env-matrix** â€” model IDs, API keys, and provider routing
+- **tool-response-contract** — exact response shapes for every route, SSE event, and tool function
+- **core-chatbot-routing-audit** — Flask blueprint registration and request path tracing
+- **search-tool-cascade** — tool fallback order and auto-trigger logic
+- **thinking-mode-routing** — thinking mode lifecycle (UI selector → backend → SSE events)
+- **provider-env-matrix** — model IDs, API keys, and provider routing

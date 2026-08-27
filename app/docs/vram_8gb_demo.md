@@ -1,4 +1,4 @@
-﻿# 8 GB VRAM â€” Laptop Demo Setup
+# 8 GB VRAM — Laptop Demo Setup
 
 **Purpose:** Run the same core anime pipeline flow on an 8 GB VRAM laptop for workflow prototyping. Not a production-quality run — quality trade-offs are intentional.
 
@@ -15,14 +15,14 @@
 ## Quick start
 
 ```bash
-# Windows â€” PowerShell
+# Windows — PowerShell
 $env:ANIME_PIPELINE_CONFIG = "app/configs_vps/anime_pipeline_laptop.yaml"
 $env:REASONING_PIPELINE = "true"
 python services/chatbot/run.py
 ```
 
 ```bash
-# Windows â€” cmd
+# Windows — cmd
 set ANIME_PIPELINE_CONFIG=app/configs_vps/anime_pipeline_laptop.yaml
 set REASONING_PIPELINE=true
 python services/chatbot/run.py
@@ -51,7 +51,7 @@ python main.py --lowvram --cpu-vae --use-split-cross-attention
 | `--cpu-vae` | Runs VAE decode on CPU (saves ~1.5 GB GPU) |
 | `--use-split-cross-attention` | Reduces peak attention VRAM |
 
-The laptop config already sets `cpu_vae_offload: true` (via `lowvram` profile) and `unload_between_passes: true` â€” these are the ComfyUI API equivalents of the above flags at the workflow level.
+The laptop config already sets `cpu_vae_offload: true` (via `lowvram` profile) and `unload_between_passes: true` — these are the ComfyUI API equivalents of the above flags at the workflow level.
 
 ---
 
@@ -59,7 +59,7 @@ The laptop config already sets `cpu_vae_offload: true` (via `lowvram` profile) a
 
 Edit `app/configs_vps/anime_pipeline_laptop.yaml` and change the three `checkpoint:` lines (composition, beauty, final) to one of:
 
-### Option A â€” SDXL fp8 (recommended, ~4 GB)
+### Option A — SDXL fp8 (recommended, ~4 GB)
 
 ```yaml
 checkpoint: "waiIllustriousSDXL_v160_fp8.safetensors"
@@ -68,14 +68,14 @@ type: sdxl
 
 Same WAI Illustrious series as production. fp8 quantization halves VRAM without major quality loss at 20 steps. Download: civitai.com search "WAI Illustrious fp8".
 
-### Option B â€” SD 1.5 anime (~2 GB, maximum headroom)
+### Option B — SD 1.5 anime (~2 GB, maximum headroom)
 
 ```yaml
 checkpoint: "anything-v5-PrtRE.safetensors"
-type: sd15      # â† must change this line too
+type: sd15      # ← must change this line too
 ```
 
-Compatible models: `anything-v5`, `counterfeitV30`, `dreamshaper_8`, `majicmixRealistic`. The ComfyUI KSampler graph is identical â€” only the checkpoint file changes. SD 1.5 native resolution is 512â€“768px; the laptop config sets portrait to 768Ã—1024 which is safe.
+Compatible models: `anything-v5`, `counterfeitV30`, `dreamshaper_8`, `majicmixRealistic`. The ComfyUI KSampler graph is identical — only the checkpoint file changes. SD 1.5 native resolution is 512–768px; the laptop config sets portrait to 768×1024 which is safe.
 
 Also update resolutions for SD 1.5 in the YAML:
 ```yaml
@@ -91,14 +91,14 @@ resolutions:
     height: 768
 ```
 
-### Option C â€” SDXL base 1.0 fp8 (~4 GB, generic fallback)
+### Option C — SDXL base 1.0 fp8 (~4 GB, generic fallback)
 
 ```yaml
 checkpoint: "sd_xl_base_1.0_fp8.safetensors"
 type: sdxl
 ```
 
-Use when no WAI fp8 download is available. Lacks anime tuning â€” output quality is noticeably lower but the pipeline logic is fully exercised.
+Use when no WAI fp8 download is available. Lacks anime tuning — output quality is noticeably lower but the pipeline logic is fully exercised.
 
 ---
 
@@ -107,7 +107,7 @@ Use when no WAI fp8 download is available. Lacks anime tuning â€” output qu
 | Parameter | Production (12 GB) | Laptop demo (8 GB) |
 |---|---|---|
 | VRAM profile | normalvram | lowvram |
-| Max resolution | 832Ã—1216 | 768Ã—1024 |
+| Max resolution | 832×1216 | 768×1024 |
 | Step cap | 35 | 25 |
 | Composition steps | 28 | 20 |
 | Beauty steps | 30 | 15 |
@@ -117,7 +117,7 @@ Use when no WAI fp8 download is available. Lacks anime tuning â€” output qu
 | Quality threshold | 0.80 | 0.60 |
 | Eye-refine pass | enabled | disabled |
 | LoRAs | 2 default LoRAs | none |
-| Upscale factor | 2Ã— | 2Ã— (same) |
+| Upscale factor | 2× | 2× (same) |
 
 ---
 
@@ -127,16 +127,16 @@ The same high-level flow is exercised; quality-only stages such as structure loc
 or detail repair may be disabled by the low-VRAM profile:
 
 ```
-1. capability_router.classify()    â†’ determines if image-gen is needed
-2. prompt_revision.revise()        â†’ rewrites prompt for anime style
-3. prompt_parser.parse()           â†’ decomposes into panel/character tokens
-4. execution_plan.plan_panel()     â†’ selects model from step.model string
-5. comfy_workflow_builder.build()  â†’ generates ComfyUI JSON graph
-6. runner.run_panel()              â†’ submits to local ComfyUI
-7. critique loop                   â†’ vision LLM scores output (API call)
+1. capability_router.classify()    → determines if image-gen is needed
+2. prompt_revision.revise()        → rewrites prompt for anime style
+3. prompt_parser.parse()           → decomposes into panel/character tokens
+4. execution_plan.plan_panel()     → selects model from step.model string
+5. comfy_workflow_builder.build()  → generates ComfyUI JSON graph
+6. runner.run_panel()              → submits to local ComfyUI
+7. critique loop                   → vision LLM scores output (API call)
 ```
 
-The pipeline is model-agnostic. `workflow_builder.py` only reads `pc.checkpoint` â€” it does not branch on `model_type`. Swapping to any checkpoint exercises the full flow.
+The pipeline is model-agnostic. `workflow_builder.py` only reads `pc.checkpoint` — it does not branch on `model_type`. Swapping to any checkpoint exercises the full flow.
 
 ---
 
@@ -166,9 +166,9 @@ ANIME_PIPELINE_DETECTION_INPAINT=0
 
 | Symptom | Fix |
 |---|---|
-| `CUDA out of memory` on composition | Reduce portrait to 640Ã—896, or add `--lowvram` flag to ComfyUI |
+| `CUDA out of memory` on composition | Reduce portrait to 640×896, or add `--lowvram` flag to ComfyUI |
 | `CUDA out of memory` on beauty | Set `ANIME_PIPELINE_MAX_REFINE_ROUNDS=1` and reduce `denoise_strength: 0.25` |
 | VAE decode OOM | Restart ComfyUI with `--cpu-vae` flag |
 | ControlNet node error | Confirm `structure_lock.layers: []` in laptop YAML (default is empty) |
 | Model not found | Check the checkpoint filename matches exactly what's in ComfyUI's `models/checkpoints/` |
-| Slow first run | fp8 checkpoints have a longer first-load time â€” expected |
+| Slow first run | fp8 checkpoints have a longer first-load time — expected |

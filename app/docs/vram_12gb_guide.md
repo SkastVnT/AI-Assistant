@@ -1,4 +1,4 @@
-﻿# Running the Layered Anime Pipeline on 12 GB VRAM
+# Running the Layered Anime Pipeline on 12 GB VRAM
 
 This guide covers practical limits, default settings, and tuning knobs
 for running the multi-pass anime pipeline on a 12 GB VRAM GPU
@@ -12,8 +12,8 @@ The pipeline supports three VRAM profiles, set via YAML or env var:
 
 | Profile      | Max Res | Steps | ControlNet | CPU VAE | Upscale | Previews |
 |-------------|---------|-------|------------|---------|---------|----------|
-| `normalvram` | 1216    | 35    | 2 layers   | No      | 2Ã—      | On       |
-| `lowvram`    | 1024    | 25    | 1 layer    | Yes     | 1.5Ã—    | Off      |
+| `normalvram` | 1216    | 35    | 2 layers   | No      | 2×      | On       |
+| `lowvram`    | 1024    | 25    | 1 layer    | Yes     | 1.5×    | Off      |
 | `auto`       | Reads `ANIME_PIPELINE_VRAM_PROFILE` env var, defaults to `normalvram` |
 
 ### Setting the profile
@@ -33,14 +33,14 @@ export ANIME_PIPELINE_VRAM_PROFILE=lowvram
 
 ## Default Resolutions (SDXL-safe)
 
-These are the **generation** resolutions â€” upscaling happens after
+These are the **generation** resolutions — upscaling happens after
 all passes are complete.
 
 | Orientation | normalvram     | lowvram        |
 |------------|----------------|----------------|
-| Portrait   | 832 Ã— 1216     | 832 Ã— 1024     |
-| Landscape  | 1216 Ã— 832     | 1024 Ã— 832     |
-| Square     | 1024 Ã— 1024    | 1024 Ã— 1024    |
+| Portrait   | 832 × 1216     | 832 × 1024     |
+| Landscape  | 1216 × 832     | 1024 × 832     |
+| Square     | 1024 × 1024    | 1024 × 1024    |
 
 **Rule:** never start generation above 1216 on any dimension for
 12 GB.  Upscale only after the composition is structurally stable.
@@ -56,20 +56,20 @@ The pipeline uses **sequential loading** by default:
 - `unload_between_passes: true` in YAML
 - Before each stage, the orchestrator calls `POST /free` to ComfyUI
   to unload the previous model and free VRAM
-- Each pass loads its own checkpoint (composition â†’ beauty â†’ final)
+- Each pass loads its own checkpoint (composition → beauty → final)
 - The upscale model (~100 MB) loads after the main checkpoint is freed
 
-**Cost:** ~2â€“4 s extra per model swap.  Worth it for OOM prevention.
+**Cost:** ~2–4 s extra per model swap.  Worth it for OOM prevention.
 
 ---
 
 ## CPU VAE Fallback
 
-SDXL VAE decode uses ~1.5 GB at 1024Ã—1024.  On `lowvram` profile,
+SDXL VAE decode uses ~1.5 GB at 1024×1024.  On `lowvram` profile,
 the pipeline enables `cpu_vae_offload: true`.
 
 When enabled, ComfyUI decodes the VAE on CPU instead of GPU.
-This is slower (~3â€“5 s per decode) but prevents the VAE decode
+This is slower (~3–5 s per decode) but prevents the VAE decode
 from competing with the UNet for VRAM.
 
 **When to enable:**
@@ -103,14 +103,14 @@ If a ComfyUI job fails with an OOM error, the pipeline retries
 automatically:
 
 ```
-Attempt 1: original resolution (e.g. 832Ã—1216)
-   â†“ OOM
-Attempt 2: resolution - 128 â†’ 704Ã—1088
-   â†“ OOM
-Attempt 3: resolution - 128 â†’ 576Ã—960
-   â†“ OOM (retries exhausted)
+Attempt 1: original resolution (e.g. 832×1216)
+   ↓ OOM
+Attempt 2: resolution - 128 → 704×1088
+   ↓ OOM
+Attempt 3: resolution - 128 → 576×960
+   ↓ OOM (retries exhausted)
 Escalate:  switch to lowvram profile, clamp to 1024 max
-   â†“ final attempt at lowvram settings
+   ↓ final attempt at lowvram settings
 ```
 
 ### Retry parameters
@@ -141,13 +141,13 @@ Example log output:
 
 | Scenario | Feasible | Notes |
 |----------|----------|-------|
-| Single SDXL pass at 832Ã—1216 | Yes | ~8 GB peak |
+| Single SDXL pass at 832×1216 | Yes | ~8 GB peak |
 | + 1 ControlNet layer | Yes | ~9.5 GB peak |
 | + 2 ControlNet layers | Tight | ~11 GB peak, may need unload |
 | + 3 ControlNet layers | No | Use max 2, or switch to lowvram |
-| Ultimate SD Upscale (tiled) at 2Ã— | Yes | Tiles process sequentially |
-| Simple upscale 4Ã— model | Yes | Model is ~100 MB |
-| Two SDXL models loaded | No | ~13 GB â€” always unload between |
+| Ultimate SD Upscale (tiled) at 2× | Yes | Tiles process sequentially |
+| Simple upscale 4× model | Yes | Model is ~100 MB |
+| Two SDXL models loaded | No | ~13 GB — always unload between |
 
 ---
 

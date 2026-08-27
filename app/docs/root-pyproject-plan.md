@@ -1,9 +1,9 @@
-﻿# Root pyproject.toml â€” Dependency Groups Plan
+# Root pyproject.toml — Dependency Groups Plan
 
 > **Scope:** Design document for consolidating all requirements files into a single
 > root `pyproject.toml` with `[project.optional-dependencies]` groups.
-> **Status:** P1.2 â€” plan only. No packages deleted, upgraded, or moved yet.
-> **Pre-requisites before migration:** P1.3 lockfile strategy settled, pymongo 3â†’4
+> **Status:** P1.2 — plan only. No packages deleted, upgraded, or moved yet.
+> **Pre-requisites before migration:** P1.3 lockfile strategy settled, pymongo 3→4
 > upgrade risk resolved, `ultralytics` moved out of core profile.
 > **Cross-reference:** [docs/dependency-contract.md](dependency-contract.md)
 
@@ -51,14 +51,14 @@ Runtime dependencies for the Flask chatbot and the MCP server.
 | python-socketio | >=5.10.0 | chunk_2_web |
 | werkzeug | >=3.0.0 | chunk_2_web |
 | eventlet | >=0.33.0 | chunk_2_web |
-| fastapi | >=0.94.0 | chunk_2_web Â¹ |
-| uvicorn | >=0.20.0 | chunk_2_web Â¹ |
+| fastapi | >=0.94.0 | chunk_2_web ¹ |
+| uvicorn | >=0.20.0 | chunk_2_web ¹ |
 | python-multipart | >=0.0.6 | chunk_2_web |
 | watchdog | >=2.0.0 | chunk_2_web |
 | aiofiles | >=23.0.0 | chunk_2_web |
-| starlette | >=0.27.0 | chunk_2_web Â¹ |
-| pymongo | >=4.6.0 | chunk_3_database Â² |
-| dnspython | >=2.4.0 | chunk_3_database Â² |
+| starlette | >=0.27.0 | chunk_2_web ¹ |
+| pymongo | >=4.6.0 | chunk_3_database ² |
+| dnspython | >=2.4.0 | chunk_3_database ² |
 | redis | >=5.0.0 | chunk_3_database |
 | clickhouse-connect | >=0.7.7 | chunk_3_database |
 | pandas | >=2.0.0 | chunk_3_database |
@@ -69,25 +69,25 @@ Runtime dependencies for the Flask chatbot and the MCP server.
 | google-genai | >=1.56.0 | chunk_4_ai_apis |
 | httpx | >=0.27.0 | chunk_4_ai_apis |
 | anyio | >=4.0.0 | chunk_4_ai_apis |
-| Pillow | >=10.3.0 | profile_core_services Â³ |
-| mcp[cli] | >=1.27.1 | reconciled â´ |
+| Pillow | >=10.3.0 | profile_core_services ³ |
+| mcp[cli] | >=1.27.1 | reconciled ⁴ |
 
 **Footnotes:**
 
-Â¹ `fastapi`, `uvicorn`, `starlette` â€” FastAPI was removed as a runtime path in May 2026.
+¹ `fastapi`, `uvicorn`, `starlette` — FastAPI was removed as a runtime path in May 2026.
 These packages remain in `core` because the MCP SDK (`mcp[cli]`) pulls them in
 transitively. Do not remove until the MCP transitive dep tree is verified clean.
 Mark clearly as "retained for transitive dep, not an active request handler."
 
-Â² `pymongo`/`dnspython` â€” declared floor is `>=4.6.0`/`>=2.4.0` but installed
+² `pymongo`/`dnspython` — declared floor is `>=4.6.0`/`>=2.4.0` but installed
 versions are 3.12.0/1.16.0 (see Section 4, Conflict #1). The declared floors
 are correct targets; the installed versions are the blocker. Do not lower the
 declared floor; fix the install in a dedicated upgrade job before migrating.
 
-Â³ `Pillow` â€” added to core in May 2026 for the anime pipeline orchestrator's
+³ `Pillow` — added to core in May 2026 for the anime pipeline orchestrator's
 reference-image encode/decode. Not in the original chunk files.
 
-â´ `mcp[cli]` â€” `profile_core_services.txt` declares `>=1.0.0`; `services/mcp-server/requirements.txt`
+⁴ `mcp[cli]` — `profile_core_services.txt` declares `>=1.0.0`; `services/mcp-server/requirements.txt`
 declares `>=1.27.1`. Reconcile to `>=1.27.1` at migration time.
 
 ---
@@ -136,12 +136,12 @@ Code quality, monitoring, and optional UI tools. Not required at runtime.
 | wandb | >=0.15.0 | chunk_10_tools |
 | GitPython | >=3.1.0 | chunk_10_tools |
 | jsonmerge | >=1.9.0 | chunk_10_tools |
-| gradio | >=3.0.0 | profile_core_services âµ |
+| gradio | >=3.0.0 | profile_core_services ⁵ |
 
-âµ `gradio` â€” currently declared in `profile_core_services.txt` as a runtime dep,
+⁵ `gradio` — currently declared in `profile_core_services.txt` as a runtime dep,
 but it is only used by optional UI routes. Move to `dev` in migration. **Flag
 for removal from `profile_core_services.txt`** before or during the app factory
-job (P1.5) â€” it is the largest unnecessary transitive pull in `venv-core`.
+job (P1.5) — it is the largest unnecessary transitive pull in `venv-core`.
 
 ---
 
@@ -210,7 +210,7 @@ Recommended split at migration time: consider a `doc-light` sub-group
 ### `image`
 
 Full diffusion, upscale, and ML core stack. Requires PyTorch CUDA wheels
-installed separately (not pinned here â€” see [vram_12gb_guide.md](vram_12gb_guide.md)).
+installed separately (not pinned here — see [vram_12gb_guide.md](vram_12gb_guide.md)).
 
 | Package | Version floor | Source |
 |---|---|---|
@@ -247,9 +247,9 @@ installed separately (not pinned here â€” see [vram_12gb_guide.md](vram_12g
 | facexlib | >=0.2.5 | chunk_9_upscale |
 | gfpgan | >=1.3.5 | chunk_9_upscale |
 | realesrgan | >=0.3.0 | chunk_9_upscale |
-| ultralytics | >=8.0.0 | profile_core_services â¶ |
+| ultralytics | >=8.0.0 | profile_core_services ⁶ |
 
-â¶ `ultralytics` â€” currently in `profile_core_services.txt` (core venv) because
+⁶ `ultralytics` — currently in `profile_core_services.txt` (core venv) because
 the anime pipeline imports it when `IMAGE_PIPELINE_V2=true`. It pulls in
 `torch`/`torchvision`/`opencv-python` transitively, making `venv-core`
 significantly heavier. **Move to `image` group at migration time.** The anime
@@ -270,28 +270,28 @@ iterate over all groups.
 ## 3. Conflicts and Tensions
 
 These must be resolved **before** the actual migration job runs.
-Do not close this doc until all items are marked âœ“.
+Do not close this doc until all items are marked ✓.
 
 | # | Conflict | Blocker? | Resolution path |
 |---|---|---|---|
-| 1 | `pymongo` 3.12.0 installed vs `>=4.6.0` declared. PyMongo 4.x has breaking API changes (`count()` removed, find behavior). | **Yes** â€” migration cannot pin >=4.6.0 while 3.12.0 is installed. | Audit all pymongo call sites; upgrade in a dedicated job before migration. |
-| 2 | `fastapi`/`uvicorn`/`starlette` in `core` â€” FastAPI is not an active runtime path but MCP SDK depends on it transitively. | No â€” keep in `core`; document clearly. | Verify MCP transitive dep tree before removing. |
-| 3 | `mcp[cli]` version skew: `>=1.0.0` in `profile_core_services.txt` vs `>=1.27.1` in `services/mcp-server/requirements.txt`. | Minor â€” no current breakage. | Reconcile to `>=1.27.1` at migration time. |
-| 4 | `numpy<2.0.0` hard upper bound in chunk_1 â€” future torch upgrades may require NumPy 2.x. | Not now. | Test before loosening; do not change the cap without a torch compatibility check. |
-| 5 | `gradio>=3.0.0` in `profile_core_services.txt` â€” declared as runtime dep, but is dev/optional only. | No â€” but inflates `venv-core`. | Move to `dev` group at migration. Flag for removal from core profile in P1.5 (app factory). |
-| 6 | `services/chatbot/requirements.txt` header reads `Python: 3.10.6` â€” stale since P1.1 pinned 3.11.9. | No â€” documentation only. | Fix header in P1.8 (route/docs cleanup). |
+| 1 | `pymongo` 3.12.0 installed vs `>=4.6.0` declared. PyMongo 4.x has breaking API changes (`count()` removed, find behavior). | **Yes** — migration cannot pin >=4.6.0 while 3.12.0 is installed. | Audit all pymongo call sites; upgrade in a dedicated job before migration. |
+| 2 | `fastapi`/`uvicorn`/`starlette` in `core` — FastAPI is not an active runtime path but MCP SDK depends on it transitively. | No — keep in `core`; document clearly. | Verify MCP transitive dep tree before removing. |
+| 3 | `mcp[cli]` version skew: `>=1.0.0` in `profile_core_services.txt` vs `>=1.27.1` in `services/mcp-server/requirements.txt`. | Minor — no current breakage. | Reconcile to `>=1.27.1` at migration time. |
+| 4 | `numpy<2.0.0` hard upper bound in chunk_1 — future torch upgrades may require NumPy 2.x. | Not now. | Test before loosening; do not change the cap without a torch compatibility check. |
+| 5 | `gradio>=3.0.0` in `profile_core_services.txt` — declared as runtime dep, but is dev/optional only. | No — but inflates `venv-core`. | Move to `dev` group at migration. Flag for removal from core profile in P1.5 (app factory). |
+| 6 | `services/chatbot/requirements.txt` header reads `Python: 3.10.6` — stale since P1.1 pinned 3.11.9. | No — documentation only. | Fix header in P1.8 (route/docs cleanup). |
 
 ---
 
 ## 4. Phased Migration Path
 
-### Phase 0 (current â€” P1.2)
+### Phase 0 (current — P1.2)
 
 Document only. No file changes to requirements files or pyproject.toml.
 
 ### Phase 1 (P1.3)
 
-Choose a lock tool (`pip-tools` / `uv` / `poetry`) â€” one tool only.
+Choose a lock tool (`pip-tools` / `uv` / `poetry`) — one tool only.
 Generate scoped lock files per group using this plan as the group definition.
 See [docs/supply-chain.md](supply-chain.md) (to be created in P1.3).
 
@@ -341,7 +341,7 @@ the lock-file strategy (Phase 1) provides an equivalent freeze artifact.
 
 ---
 
-## 5. Install Reference (current state â†’ target state)
+## 5. Install Reference (current state → target state)
 
 | Scenario | Current command | Target command |
 |---|---|---|

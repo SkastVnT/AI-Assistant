@@ -1,4 +1,4 @@
-﻿---
+---
 name: character-picker-integration
 description: "Maintain the character picker, character registry, and local job queue tier added to AI-Assistant. Use when: editing app/storage/character_db/ data files; modifying core/character_registry.py or core/job_queue.py; changing /api/characters/* or /api/jobs/* routes; touching the character-picker.js / job-queue-panel.js frontend modules; integrating character_key into a new image-gen flow; or extending the queue lifecycle with new states."
 ---
@@ -19,45 +19,45 @@ description: "Maintain the character picker, character registry, and local job q
 ## Architecture summary
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ Frontend                                                     â”‚
-â”‚  templates/index.html  â†’ buttons: characterPickerBtn,         â”‚
-â”‚                          jobQueueBtn (topbar)                 â”‚
-â”‚  static/js/modules/character-picker.js                        â”‚
-â”‚    window.openCharacterPicker(onSelect)                       â”‚
-â”‚    fires document event 'character:selected'                  â”‚
-â”‚    sets window.selectedCharacter + body[data-character-key]   â”‚
-â”‚  static/js/modules/job-queue-panel.js                         â”‚
-â”‚    window.openJobQueuePanel() â€” polls /api/jobs every 3.5s    â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚ Backend (Flask blueprints)                                   â”‚
-â”‚  routes/characters.py  â†’ /api/characters/*                    â”‚
-â”‚  routes/jobs.py        â†’ /api/jobs/*                          â”‚
-â”‚  routes/anime_pipeline.py â†’ enriched: accepts character_key,  â”‚
-â”‚                              writes to JobQueue               â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚ Core singletons                                              â”‚
-â”‚  core/character_registry.py â€” CharacterRegistry, get_registry()â”‚
-â”‚  core/job_queue.py          â€” JobQueue, get_queue()           â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚ Data                                                         â”‚
-â”‚  app/storage/character_db/characters.json                         â”‚
-â”‚  app/storage/character_db/series_aliases.json                     â”‚
-â”‚  app/storage/metadata/<job_id>.json  (manifest, written by        â”‚
-â”‚                                    ResultStore â€” pre-existing)â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+┌──────────────────────────────────────────────────────────────┐
+│ Frontend                                                     │
+│  templates/index.html  → buttons: characterPickerBtn,         │
+│                          jobQueueBtn (topbar)                 │
+│  static/js/modules/character-picker.js                        │
+│    window.openCharacterPicker(onSelect)                       │
+│    fires document event 'character:selected'                  │
+│    sets window.selectedCharacter + body[data-character-key]   │
+│  static/js/modules/job-queue-panel.js                         │
+│    window.openJobQueuePanel() — polls /api/jobs every 3.5s    │
+├──────────────────────────────────────────────────────────────┤
+│ Backend (Flask blueprints)                                   │
+│  routes/characters.py  → /api/characters/*                    │
+│  routes/jobs.py        → /api/jobs/*                          │
+│  routes/anime_pipeline.py → enriched: accepts character_key,  │
+│                              writes to JobQueue               │
+├──────────────────────────────────────────────────────────────┤
+│ Core singletons                                              │
+│  core/character_registry.py — CharacterRegistry, get_registry()│
+│  core/job_queue.py          — JobQueue, get_queue()           │
+├──────────────────────────────────────────────────────────────┤
+│ Data                                                         │
+│  app/storage/character_db/characters.json                         │
+│  app/storage/character_db/series_aliases.json                     │
+│  app/storage/metadata/<job_id>.json  (manifest, written by        │
+│                                    ResultStore — pre-existing)│
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ## Endpoint contract
 
 | Method | URL | Purpose | Response |
 |---|---|---|---|
-| GET | `/api/characters` | List/search; params `q`, `series`, `limitâ‰¤200` | `{characters: [...], count, query, series_filter}` |
+| GET | `/api/characters` | List/search; params `q`, `series`, `limit≤200` | `{characters: [...], count, query, series_filter}` |
 | GET | `/api/characters/series` | List unique series | `{series: [{key, name}]}` |
 | GET | `/api/characters/<key>` | Get one + collisions | `{character: {...}, collisions: [...]}` |
 | GET | `/api/characters/<key>/thumbnail` | Binary PNG/WebP | image bytes / 404 |
 | POST | `/api/characters/reload` | Reload registry from disk | `{reloaded, count}` |
-| POST | `/api/characters/resolve` | Body `{query}` â†’ best match | `{resolved, character?}` |
+| POST | `/api/characters/resolve` | Body `{query}` → best match | `{resolved, character?}` |
 | GET | `/api/jobs` | List with `state`, `limit` filters | `{jobs, count, stats}` |
 | GET | `/api/jobs/stats` | Counts by state | `{total, by_state, history_limit}` |
 | GET | `/api/jobs/<job_id>` | Job record | `{job: {...}}` or 404 |
@@ -110,9 +110,9 @@ description: "Maintain the character picker, character registry, and local job q
 ## Rules
 
 1. **No second dotenv load.** This subsystem reads no env vars. If env access becomes necessary, route through `services/shared_env.py`.
-2. **Registry singleton uses `get_registry()`** â€” do not instantiate `CharacterRegistry()` directly outside the singleton.
+2. **Registry singleton uses `get_registry()`** — do not instantiate `CharacterRegistry()` directly outside the singleton.
 3. **JobQueue is in-memory only.** Persistence lives in the existing `ResultStore` (`app/storage/metadata/<job_id>.json`). Do not duplicate.
-4. **Cancellation is cooperative.** `request_cancel()` sets a flag; pipeline code should call `q.is_cancel_requested(job_id)` between stages and abort itself. The orchestrator does NOT yet check this â€” wiring is a future task.
+4. **Cancellation is cooperative.** `request_cancel()` sets a flag; pipeline code should call `q.is_cancel_requested(job_id)` between stages and abort itself. The orchestrator does NOT yet check this — wiring is a future task.
 5. **Character JSON keys are lowercase snake_case** combining character + series, e.g. `kafka_honkai_star_rail`. Never use spaces.
 6. **Series aliases are case-insensitive** but stored case-preserving; canonical values must match a `series_key` used by some character.
 7. **Thumbnail paths are repo-relative.** The `/thumbnail` route resolves against repo root and refuses paths that escape it.
@@ -121,32 +121,32 @@ description: "Maintain the character picker, character registry, and local job q
 
 The SAA (Stand-Alone App, Electron) character picker sidecar is **opt-in** via `CHARACTER_SELECT_ENABLED=true`. It runs as a separate Electron process at port 51028.
 
-**Data files (read-only by chatbot â€” do not edit from Python):**
+**Data files (read-only by chatbot — do not edit from Python):**
 
 | File | Contents | Loaded by |
 |---|---|---|
 | `app/character_select_stand_alone_app-main/data/wai_characters.csv` | 5149 verified WAI SDXL characters (key, display_name, series, tags) | `app/image_pipeline/anime_pipeline/saa_character_db.py` at import time |
 | `app/character_select_stand_alone_app-main/data/danbooru_e621_merged.csv` | Tag autocomplete vocabulary | `saa_character_db.py` at import time |
-| `app/character_select_stand_alone_app-main/data/wai_character_thumbs.json` | Character thumbnail index (key â†’ URL/path) | `saa_character_db.py` at import time |
+| `app/character_select_stand_alone_app-main/data/wai_character_thumbs.json` | Character thumbnail index (key → URL/path) | `saa_character_db.py` at import time |
 
 **Integration levels:**
 
-1. `app/image_pipeline/anime_pipeline/saa_character_db.py` â€” reads the CSV/JSON files above at import time and builds in-memory indexes. Used by the 7-agent anime pipeline.
-2. `services/chatbot/core/character_select_adapter.py` â€” HTTP probe to the SAA sidecar for status/reachability. Mirrors `hermes_adapter` contract: gates on `CHARACTER_SELECT_ENABLED`, returns `{success, result, error, elapsed_s}`.
-3. `services/chatbot/routes/characters.py` â€” when `extended=true` param is present on `/api/characters`, augments local registry results with WAI characters from SAA database (5149 additional chars).
-4. `services/chatbot/routes/character_select.py` â€” `/api/character-select/status`, `/api/character-select/url`, and `/api/local-image-gen/recent` proxy endpoints for the sidecar.
+1. `app/image_pipeline/anime_pipeline/saa_character_db.py` — reads the CSV/JSON files above at import time and builds in-memory indexes. Used by the 7-agent anime pipeline.
+2. `services/chatbot/core/character_select_adapter.py` — HTTP probe to the SAA sidecar for status/reachability. Mirrors `hermes_adapter` contract: gates on `CHARACTER_SELECT_ENABLED`, returns `{success, result, error, elapsed_s}`.
+3. `services/chatbot/routes/characters.py` — when `extended=true` param is present on `/api/characters`, augments local registry results with WAI characters from SAA database (5149 additional chars).
+4. `services/chatbot/routes/character_select.py` — `/api/character-select/status`, `/api/character-select/url`, and `/api/local-image-gen/recent` proxy endpoints for the sidecar.
 
 **Rules:**
-- `saa_character_db.py` loads at **import time** â€” any import failure silently degrades extended search (no hard crash).
+- `saa_character_db.py` loads at **import time** — any import failure silently degrades extended search (no hard crash).
 - SAA CSV/JSON files are owned by the SAA Electron app. Do not parse or modify them outside `saa_character_db.py`.
-- The SAA sidecar port (51028) is not configurable from the chatbot â€” it is hardcoded in the Electron app.
+- The SAA sidecar port (51028) is not configurable from the chatbot — it is hardcoded in the Electron app.
 
 ## File monitor
 
 | File | What to verify when changing |
 |---|---|
 | `app/storage/character_db/characters.json` | Valid JSON; every record has `key, display_name, series, series_key, character_tag`. |
-| `app/storage/character_db/series_aliases.json` | Map of alias â†’ canonical `series_key` that exists in characters.json. |
+| `app/storage/character_db/series_aliases.json` | Map of alias → canonical `series_key` that exists in characters.json. |
 | `core/character_registry.py` | Run `tests/test_character_registry.py`. |
 | `core/job_queue.py` | Run `tests/test_job_queue.py`. |
 | `core/character_select_adapter.py` | Verify probe URL uses env var; check `CHARACTER_SELECT_ENABLED` gate. |
@@ -163,9 +163,9 @@ The SAA (Stand-Alone App, Electron) character picker sidecar is **opt-in** via `
 
 ## Forbidden
 
-- Do not hardcode characters in Python â€” extend `characters.json` instead.
+- Do not hardcode characters in Python — extend `characters.json` instead.
 - Do not couple registry/queue to MongoDB or Firebase. They are intentionally local + stateless across restarts.
-- Do not import this subsystem from `app/image_pipeline/` (data flow is Flask route â†’ orchestrator one-way).
+- Do not import this subsystem from `app/image_pipeline/` (data flow is Flask route → orchestrator one-way).
 - Do not introduce a websocket/long-poll for the queue; HTTP polling at 3.5s is sufficient.
 
 ## How to add a new character
@@ -177,7 +177,7 @@ The SAA (Stand-Alone App, Electron) character picker sidecar is **opt-in** via `
 
 ## How to add a series alias
 
-1. Edit `app/storage/character_db/series_aliases.json` â€” add `"<alias>": "<canonical_series_key>"`.
+1. Edit `app/storage/character_db/series_aliases.json` — add `"<alias>": "<canonical_series_key>"`.
 2. Reload via `POST /api/characters/reload`.
 3. Verify with `GET /api/characters?series=<alias>` returns the right characters.
 

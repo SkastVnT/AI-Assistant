@@ -1,4 +1,4 @@
-﻿---
+---
 name: service-health-check-audit
 description: "Debug startup failures, port drift, and service health for the core chatbot stack. Use when: a service fails to start, a health check returns unexpected results, ports or entry points are mismatched across scripts and docs, dependency profiles need verification, Docker or CI startup assumptions need checking, or runtime behavior no longer matches documentation."
 ---
@@ -23,7 +23,7 @@ Do **not** use this skill for ComfyUI, Stable Diffusion, or image pipeline issue
 | Service | Port | Entry point | Health endpoint | venv | Transport |
 |---|---|---|---|---|---|
 | ChatBot | **5000** | `services/chatbot/run.py` or `chatbot_main.py` | `GET /health` | `venv-core` | HTTP |
-| MCP Server | **stdio** | `services/mcp-server/server.py` | *(none â€” stdio)* | `venv-core` | stdio |
+| MCP Server | **stdio** | `services/mcp-server/server.py` | *(none — stdio)* | `venv-core` | stdio |
 | Stable Diffusion | **7861** | `services/stable-diffusion/` | `GET /sdapi/v1/options` | `venv-image` | HTTP |
 | Edit Image | **8100** | `services/edit-image/` | varies | `venv-image` | HTTP |
 
@@ -35,7 +35,7 @@ Do **not** use this skill for ComfyUI, Stable Diffusion, or image pipeline issue
 | `app/scripts/health-check-all.sh` | MCP = 8000 (HTTP) | MCP = stdio (no port) |
 | `app/scripts/start-mcp-server.sh` | MCP = 8000 (HTTP) | MCP = stdio |
 | `app/config/config.yml` | MCP = 8000, ComfyUI = 8189 | MCP = stdio, ComfyUI = 8188 |
-| Various scripts | `speech2text` (5001), `text2sql` (5002) | Archived â€” no longer in `services/` |
+| Various scripts | `speech2text` (5001), `text2sql` (5002) | Archived — no longer in `services/` |
 
 **Authoritative source for ports**: `README.md` service table.
 
@@ -69,11 +69,11 @@ Docker healthcheck uses: `curl -f http://localhost:5000/health`
 
 When a service fails to start, follow this sequence exactly. Do not skip steps.
 
-### Step 1 â€” Verify the environment
+### Step 1 — Verify the environment
 
 ```
 Check                                   How
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+─────────────────────────────────────── ────────────────────────────────
 Python version                          python --version (expect 3.10+)
 Active venv                             which python / where python
 Correct venv for service                venv-core for chatbot/MCP, venv-image for SD/edit
@@ -82,18 +82,18 @@ Shared env file exists                  ls app/config/.env or .env_dev
 Startup env vars set                    echo $FLASK_PORT, echo $CHATBOT_PORT
 ```
 
-### Step 2 â€” Verify the entry point
+### Step 2 — Verify the entry point
 
 ```
 Check                                   How
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+─────────────────────────────────────── ────────────────────────────────
 Entry file exists                       ls services/chatbot/run.py
 Entry file is syntactically valid       python -m py_compile services/chatbot/run.py
 Shared env import works                 python -c "from services.shared_env import load_shared_env"
 Core config imports cleanly             cd services/chatbot && python -c "from core.config import *"
 ```
 
-### Step 3 â€” Attempt a controlled start
+### Step 3 — Attempt a controlled start
 
 ```
 # Local (Flask monolith)
@@ -104,12 +104,12 @@ docker-compose -f app/config/docker-compose.yml up chatbot
 ```
 
 Watch for:
-- `ImportError` / `ModuleNotFoundError` â†’ wrong venv or missing package.
-- `Address already in use` â†’ port 5000 already occupied.
-- `KeyError` or missing env var â†’ shared env not loaded or variable missing from `.env`.
-- `ConnectionRefusedError` to MongoDB/Redis â†’ database not running.
+- `ImportError` / `ModuleNotFoundError` → wrong venv or missing package.
+- `Address already in use` → port 5000 already occupied.
+- `KeyError` or missing env var → shared env not loaded or variable missing from `.env`.
+- `ConnectionRefusedError` to MongoDB/Redis → database not running.
 
-### Step 4 â€” Verify health
+### Step 4 — Verify health
 
 ```
 # HTTP health check
@@ -122,7 +122,7 @@ curl http://localhost:5000/api/db-health
 {"status": "healthy", "service": "chatbot"}
 ```
 
-### Step 5 â€” Report findings
+### Step 5 — Report findings
 
 Use the output format below.
 
@@ -141,7 +141,7 @@ cd services/mcp-server && python -c "from server import mcp; print('OK')"
 # Check FastMCP is installed
 pip show mcp
 
-# Run interactively (stdio â€” will wait for input)
+# Run interactively (stdio — will wait for input)
 cd services/mcp-server && python server.py
 ```
 
@@ -197,7 +197,7 @@ When changing startup behavior, verify these workflow files still work:
 - Dependencies: `tests/requirements-test.txt` + `requirements.txt`
 - `TESTING=True` disables live service connections
 - `MONGODB_ENABLED=False` uses mocks instead of real DB
-- No actual service startup â€” tests run against imported modules
+- No actual service startup — tests run against imported modules
 
 **If you change any of these, update the workflow file**:
 - Entry point file name or location
@@ -233,7 +233,7 @@ venv-core/Scripts/python -m pip check
 
 # Check for image-ai leakage into core
 venv-core/Scripts/pip list | findstr /i "torch diffusers transformers"
-# Should return nothing â€” these belong in venv-image
+# Should return nothing — these belong in venv-image
 
 # Check profile file exists
 ls app/requirements/profile_core_services.txt
@@ -246,11 +246,11 @@ ls app/requirements/profile_image_ai_services.txt
 
 After resolving any startup or health issue, check:
 
-- [ ] `README.md` service table â€” ports, entry points, and commands still match reality.
-- [ ] `app/scripts/README.md` â€” if you touched a script, update the script docs.
-- [ ] `app/config/config.yml` â€” if ports changed, update the YAML.
-- [ ] `app/config/model_config.py` â€” `ServiceConfig` port values match.
-- [ ] Docker healthcheck URLs â€” if the health endpoint path changed.
+- [ ] `README.md` service table — ports, entry points, and commands still match reality.
+- [ ] `app/scripts/README.md` — if you touched a script, update the script docs.
+- [ ] `app/config/config.yml` — if ports changed, update the YAML.
+- [ ] `app/config/model_config.py` — `ServiceConfig` port values match.
+- [ ] Docker healthcheck URLs — if the health endpoint path changed.
 
 **Main `README.md` is authoritative.** If `app/scripts/README.md` conflicts, `README.md` wins.
 
@@ -258,11 +258,11 @@ After resolving any startup or health issue, check:
 
 ## Do not touch unless the failing path reaches them
 
-- `ComfyUI/` and `services/edit-image/ComfyUI/` â€” external dependency subtrees.
-- `app/image_pipeline/` â€” image pipeline internals.
-- `services/stable-diffusion/` â€” unless SD is the actual failing service.
-- `services/edit-image/` â€” unless edit-image is the actual failing service.
-- `venv-core/` or `venv-image/` â€” generated, never edit manually.
+- `ComfyUI/` and `services/edit-image/ComfyUI/` — external dependency subtrees.
+- `app/image_pipeline/` — image pipeline internals.
+- `services/stable-diffusion/` — unless SD is the actual failing service.
+- `services/edit-image/` — unless edit-image is the actual failing service.
+- `venv-core/` or `venv-image/` — generated, never edit manually.
 
 ---
 
@@ -270,13 +270,13 @@ After resolving any startup or health issue, check:
 
 After every health check or startup debug session, report:
 
-1. **Observed behavior** â€” what actually happened (error message, HTTP status, log output).
-2. **Expected behavior** â€” what should have happened instead.
-3. **Root cause guess** â€” most likely explanation, with supporting evidence.
-4. **Files affected** â€” which files contribute to the problem.
-5. **Fix applied** â€” what was changed (if anything).
-6. **Next verification step** â€” how to confirm the fix works.
-7. **Docs impact** â€” whether any docs need updating after the fix.
+1. **Observed behavior** — what actually happened (error message, HTTP status, log output).
+2. **Expected behavior** — what should have happened instead.
+3. **Root cause guess** — most likely explanation, with supporting evidence.
+4. **Files affected** — which files contribute to the problem.
+5. **Fix applied** — what was changed (if anything).
+6. **Next verification step** — how to confirm the fix works.
+7. **Docs impact** — whether any docs need updating after the fix.
 
 ---
 

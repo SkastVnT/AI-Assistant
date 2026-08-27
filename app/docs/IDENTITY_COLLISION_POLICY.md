@@ -1,4 +1,4 @@
-﻿# IDENTITY_COLLISION_POLICY.md
+# IDENTITY_COLLISION_POLICY.md
 
 Short, normative summary of how the chatbot handles character-identity
 ambiguity in image-generation requests. Full background and code map
@@ -20,7 +20,7 @@ live in
    candidate, OR a manual override that explicitly opts in via both
    `lora_hint` and `safe_to_attach_lora: true`. All other modes
    (`ambiguous`, `low_data_profile` without opt-in, `unresolved_unknown`,
-   empty/`no_character_detected`) â†’ `False`.
+   empty/`no_character_detected`) → `False`.
 4. **Original characters are never resolved.** Phrases like "OC",
    "original character", "my character" produce `no_character_detected`.
 5. **High-risk identity blocks expensive runs (opt-in).** When the
@@ -28,14 +28,14 @@ live in
    (e.g. `unresolved_unknown_no_traits`, `multiple_unknown_characters`)
    short-circuits the request before ComfyUI is invoked.
 6. **`selected_character` overrides everything.** When the UI passes a
-   trusted picker selection (Prompt 5 â€” frontend in progress), Priority
+   trusted picker selection (Prompt 5 — frontend in progress), Priority
    1 wins and no resolver heuristics run for that request.
 
-## Resolver mode â†’ LoRA attachment quick reference
+## Resolver mode → LoRA attachment quick reference
 
 | `mode` | `safe_to_attach_lora` |
 |---|---|
-| `resolved_known` | `True` (gated by route confidence â‰¥ 0.8) |
+| `resolved_known` | `True` (gated by route confidence ≥ 0.8) |
 | `low_data_profile` | `True` only if override sets both `lora_hint` and `safe_to_attach_lora: true` |
 | `ambiguous` | `False` |
 | `unresolved_unknown` | `False` |

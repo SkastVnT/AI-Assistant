@@ -1,4 +1,4 @@
-﻿# Supply Chain Strategy â€” AI-Assistant
+# Supply Chain Strategy — AI-Assistant
 
 This document defines how dependency locking, auditing, and SBOM generation work for this project.
 
@@ -36,9 +36,9 @@ One lock file per dependency group. Inputs are the group source files from `app/
 
 Lock files live in `locks/` at the repo root and are committed to source control.
 
-> **Status (May 2026):** Lock files are NOT yet generated. A pymongo 3â†’4 version conflict between
+> **Status (May 2026):** Lock files are NOT yet generated. A pymongo 3→4 version conflict between
 > `services/chatbot/requirements.txt` (pins `pymongo==3.12.3`) and `profile_core_services.txt`
-> (unpinned) must be resolved first. See [root-pyproject-plan.md Â§ Conflicts](root-pyproject-plan.md)
+> (unpinned) must be resolved first. See [root-pyproject-plan.md § Conflicts](root-pyproject-plan.md)
 > Conflict #1 for details. Lock generation is gated on that resolution (P2 milestone).
 
 ---
@@ -72,7 +72,7 @@ pip-sync locks/core.lock.txt
 When adding or upgrading a package:
 1. Edit the appropriate source file in `app/requirements/` or the service `requirements.txt`.
 2. Re-run `pip-compile` for the affected group(s).
-3. Review the diff â€” confirm only expected changes appear.
+3. Review the diff — confirm only expected changes appear.
 4. Commit both the source edit and the updated lock file together.
 
 Do **not** edit lock files by hand.
@@ -107,7 +107,7 @@ foreach ($group in @("core", "mcp", "test", "image")) {
 ## CI integration (planned, P2)
 
 Once lock files exist, the CI `security-scan.yml` step should:
-1. Run `pip-audit -r locks/core.lock.txt` â€” fail on HIGH/CRITICAL.
+1. Run `pip-audit -r locks/core.lock.txt` — fail on HIGH/CRITICAL.
 2. Produce a CycloneDX SBOM artifact per group.
 3. Upload SBOMs to the `security-reports-*` artifact bucket.
 
@@ -123,7 +123,7 @@ The current `security-scan.yml` already audits `profile_core_services.txt` as an
 
 2. **Do not mix venv-core and venv-image packages.**
    `torch`, `diffusers`, `gradio` belong only in `venv-image`.
-   See [dependency-contract.md Â§ Dependency profiles](dependency-contract.md) for the full boundary.
+   See [dependency-contract.md § Dependency profiles](dependency-contract.md) for the full boundary.
 
 3. **pip-audit must not be silenced** with `continue-on-error: true` in CI.
    A decorative scan is equivalent to no scan.
