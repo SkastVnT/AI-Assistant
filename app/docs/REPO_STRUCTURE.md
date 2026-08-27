@@ -28,7 +28,8 @@
     image_pipeline/       anime_pipeline (live) + deferred subtrees
     rag/
     requirements/         profiles + freeze snapshots
-    scripts/
+    patches/              local patches applied to the ComfyUI submodule
+    scripts/              service + repo scripts (openapi.js, apply_patches.py)
     src/
     storage/
   services/
@@ -37,8 +38,6 @@
     edit-image/           ComfyUI integration (submodule custom_nodes)
     mcp-server/
     stable-diffusion/
-  scripts/                repo-level scripts (openapi.js, apply_patches.py)
-  patches/                local patches applied to ComfyUI submodule
   ComfyUI/                submodule, pinned upstream v0.7.0
   private/                submodule, archived material
   .github/                workflows + skills

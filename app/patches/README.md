@@ -8,7 +8,7 @@ patch files and are applied on top after checkout.
 
 ```bash
 # Windows PowerShell / Git Bash / Linux
-python scripts/apply_patches.py
+python app/scripts/apply_patches.py
 ```
 
 Idempotent: already-applied patches are detected and skipped.
@@ -22,7 +22,7 @@ Idempotent: already-applied patches are detected and skipped.
 ## When bumping the ComfyUI pin
 
 1. `git -C ComfyUI fetch --tags && git -C ComfyUI checkout vX.Y.Z`
-2. `python scripts/apply_patches.py` — if a patch no longer applies, check
+2. `python app/scripts/apply_patches.py` — if a patch no longer applies, check
    whether upstream fixed it. If so, delete the patch and this table row.
 3. Commit the new submodule SHA.
 

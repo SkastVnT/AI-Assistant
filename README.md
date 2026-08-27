@@ -85,11 +85,11 @@ The root `docker-compose.yml` remains the compatibility entrypoint for local Doc
 
 ```bash
 git submodule update --init --recursive
-python scripts/apply_patches.py
+python app/scripts/apply_patches.py
 ```
 
-`ComfyUI/` is pinned to upstream v0.7.0; `scripts/apply_patches.py` applies the
-local fixes in `patches/` on top. See [patches/README.md](patches/README.md).
+`ComfyUI/` is pinned to upstream v0.7.0; `app/scripts/apply_patches.py` applies the
+local fixes in `app/patches/` on top. See [app/patches/README.md](app/patches/README.md).
 
 ## Environment Setup
 

@@ -7,8 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-PATCHES = ROOT / "patches"
+ROOT = Path(__file__).resolve().parents[2]
+PATCHES = ROOT / "app" / "patches"
 TARGET = ROOT / "ComfyUI"
 
 
@@ -47,7 +47,7 @@ def main() -> int:
             failed += 1
 
     if failed:
-        print(f"\n{failed} patch(es) failed - see patches/README.md", file=sys.stderr)
+        print(f"\n{failed} patch(es) failed - see app/patches/README.md", file=sys.stderr)
     return 1 if failed else 0
 
 
