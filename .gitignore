@@ -396,7 +396,6 @@ app/app/
 
 # SAA standalone app copy inside app/ — examples & generated images
 app/character_select_stand_alone_app-main/
-app/character_select_stand_alone_app-main-bak/
 
 # ============================================
 # IMAGE FILES (generated / output)
