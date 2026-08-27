@@ -1,0 +1,6 @@
+# Patch files must keep LF endings or `git apply` fails on Windows checkouts.
+*.patch -text
+*.diff -text
+
+# Shell scripts need LF to run under bash/WSL/Docker.
+*.sh text eol=lf

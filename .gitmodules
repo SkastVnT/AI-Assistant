@@ -50,3 +50,7 @@
 	path = services/stable-diffusion_upstream
 	url = https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
 	ignore = dirty
+[submodule "ComfyUI"]
+	path = ComfyUI
+	url = https://github.com/comfyanonymous/ComfyUI.git
+	ignore = dirty

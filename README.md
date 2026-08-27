@@ -20,7 +20,7 @@ AI-Assistant is a local-first AI workspace that combines a Python chatbot servic
 | Shared service code | `services/shared_env.py`, `app/src/` | Shared environment loading, cache, database, health, security helpers |
 | MCP server | `services/mcp-server/` | FastMCP stdio server used by the chatbot |
 | Image pipeline | `app/image_pipeline/` | Local reasoning/anime pipeline modules |
-| ComfyUI/edit image | `ComfyUI/`, `services/edit-image/` | Local image workflow runtimes and integrations |
+| ComfyUI/edit image | `ComfyUI/` (submodule), `services/edit-image/` | Local image workflow runtimes and integrations |
 | RAG | `app/rag/` | API, worker, libraries, tests, and compose file |
 | Desktop | `app/electron/` | Electron wrapper and installer workflow |
 | Deployment | `docker-compose.yml`, `app/docker/` | Local Docker entrypoint and supporting assets |
@@ -83,6 +83,18 @@ docker compose config
 ```
 
 The root `docker-compose.yml` remains the compatibility entrypoint for local Docker usage.
+
+## Submodules
+
+`ComfyUI/` and `private/` are submodules. After a fresh clone:
+
+```bash
+git submodule update --init --recursive
+python scripts/apply_patches.py
+```
+
+`ComfyUI/` is pinned to upstream v0.7.0; `scripts/apply_patches.py` applies the
+local fixes in `patches/` on top. See [patches/README.md](patches/README.md).
 
 ## Environment Setup
 

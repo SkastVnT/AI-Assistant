@@ -1,0 +1,26 @@
+diff --git a/comfy/model_management.py b/comfy/model_management.py
+index 87baedd7..57b68756 100644
+--- a/comfy/model_management.py
++++ b/comfy/model_management.py
+@@ -1045,7 +1045,7 @@ def get_offload_stream(device):
+     if NUM_STREAMS == 0:
+         return None
+ 
+-    if torch.compiler.is_compiling():
++    if hasattr(torch.compiler, "is_compiling") and torch.compiler.is_compiling():
+         return None
+ 
+     if device in STREAMS:
+diff --git a/comfy/ops.py b/comfy/ops.py
+index 16889bb8..0289dc25 100644
+--- a/comfy/ops.py
++++ b/comfy/ops.py
+@@ -25,7 +25,7 @@ import comfy.rmsnorm
+ import json
+ 
+ def run_every_op():
+-    if torch.compiler.is_compiling():
++    if hasattr(torch.compiler, "is_compiling") and torch.compiler.is_compiling():
+         return
+ 
+     comfy.model_management.throw_exception_if_processing_interrupted()
