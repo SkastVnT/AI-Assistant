@@ -487,10 +487,9 @@ def save_to_mongodb(image_data: dict[str, Any]) -> str | None:
     Returns:
         Document ID or None if failed
     """
-    if not images_collection:
-        if not _try_connect_mongodb():
-            logger.warning("[MongoDB] Not connected and reconnect failed")
-            return None
+    if not images_collection and not _try_connect_mongodb():
+        logger.warning("[MongoDB] Not connected and reconnect failed")
+        return None
 
     try:
         payload = dict(image_data)

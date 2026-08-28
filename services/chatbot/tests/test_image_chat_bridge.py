@@ -16,8 +16,9 @@ pipeline (`anime_pipeline_service.stream_pipeline`) and the caption LLM
 (`chatbot.chat_stream`) are stubbed so the test is fast and offline.
 """
 
-import core.anime_pipeline_service as aps
 import routes.stream as stream_mod
+
+import core.anime_pipeline_service as aps
 
 
 class _FakeChatbot:

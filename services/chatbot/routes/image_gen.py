@@ -1197,8 +1197,9 @@ def serve_image(image_id: str):
     if not img_bytes:
         # Fall back to cloud URL if available in MongoDB
         try:
-            from core.image_storage import images_collection
             from flask import redirect
+
+            from core.image_storage import images_collection
 
             if images_collection is not None:
                 doc = images_collection.find_one(

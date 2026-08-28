@@ -28,18 +28,16 @@ sys.path.insert(0, str(_root))
 sys.path.insert(0, str(_root / "services" / "chatbot"))
 
 import pytest
-
+from image_pipeline.anime_pipeline.agents import detection_inpaint as di
 from image_pipeline.anime_pipeline.comfy_client import (
     ComfyClient,
     guess_model_family,
 )
-from image_pipeline.anime_pipeline.agents import detection_inpaint as di
 from image_pipeline.anime_pipeline.result_store import ResultStore
 from image_pipeline.anime_pipeline.schemas import (
     AnimePipelineJob,
     AnimePipelineStatus,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════
 # guess_model_family

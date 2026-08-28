@@ -54,10 +54,10 @@ from image_pipeline.anime_pipeline.schemas import (
     ControlInput,
     CritiqueReport,
     PassConfig,
+    RankCandidate,
     RefineAction,
     RefineActionType,
     RefineDecision,
-    RankCandidate,
 )
 
 # ── Fixtures ─────────────────────────────────────────────────────────

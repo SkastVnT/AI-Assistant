@@ -10,7 +10,6 @@ Steps:
   6. Token saved to: services/chatbot/config/google-oauth-token.json  (auto-managed)
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -31,9 +30,9 @@ def main():
         sys.exit(1)
 
     try:
-        from google_auth_oauthlib.flow import InstalledAppFlow
         from google.auth.transport.requests import Request
         from google.oauth2.credentials import Credentials
+        from google_auth_oauthlib.flow import InstalledAppFlow
     except ImportError:
         print("ERROR: Missing library. Run: pip install google-auth-oauthlib")
         sys.exit(1)
@@ -55,7 +54,7 @@ def main():
         print(f"\nToken saved to: {TOKEN_JSON}")
 
     print("\nDone! Add this line to .env if not already there:")
-    print(f"  GOOGLE_DRIVE_OAUTH_TOKEN_PATH=config/google-oauth-token.json")
+    print("  GOOGLE_DRIVE_OAUTH_TOKEN_PATH=config/google-oauth-token.json")
     print("\nThen restart the server.")
 
 if __name__ == "__main__":

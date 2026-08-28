@@ -385,9 +385,12 @@ def stream_pipeline():
         # The first call to _enrich_with_character triggers importing
         # image_pipeline.anime_pipeline which loads torch/PIL/numpy etc.
         # — that's why it must run inside the generator, not before it.
-        from core.anime_pipeline_service import validate_request
+        from core.anime_pipeline_service import (
+            comfyui_reachable,
+            pipeline_enabled,
+            validate_request,
+        )
         from core.anime_pipeline_service import stream_pipeline as _stream
-        from core.anime_pipeline_service import comfyui_reachable, pipeline_enabled
 
         data = _enrich_with_character(dict(raw_data))
         data.pop("_resolved_character", None)  # captured above for queue metadata

@@ -54,7 +54,7 @@ if not IMGBB_KEY:
 
 LIMIT = int(os.getenv("LIMIT", "0"))
 
-from core.image_storage import images_collection, _try_connect_mongodb  # noqa: E402
+from core.image_storage import _try_connect_mongodb, images_collection  # noqa: E402
 
 if images_collection is None:
     _try_connect_mongodb()

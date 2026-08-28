@@ -41,7 +41,7 @@ X509_CERT = os.getenv("MONGODB_X509_CERT_PATH", "").strip()
 TLS_INVALID = os.getenv("MONGODB_TLS_ALLOW_INVALID_CERTIFICATES", "false").lower() == "true"
 DB_NAME = os.getenv("MONGODB_DB_NAME", "ai_assistant_v2")
 
-kw = dict(serverSelectionTimeoutMS=8000, tls=True, tlsAllowInvalidCertificates=TLS_INVALID)
+kw = {"serverSelectionTimeoutMS": 8000, "tls": True, "tlsAllowInvalidCertificates": TLS_INVALID}
 if X509_CERT and Path(X509_CERT).exists():
     kw["tlsCertificateKeyFile"] = X509_CERT
     kw["authMechanism"] = "MONGODB-X509"
