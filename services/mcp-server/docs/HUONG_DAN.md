@@ -34,7 +34,7 @@
 Mở Command Prompt tại thư mục `services/mcp-server`:
 
 ```bash
-cd C:\Users\Asus\Downloads\Compressed\AI-Assistant\services\mcp-server
+cd <duong-dan-toi-repo>\AI-Assistant\services\mcp-server
 pip install "mcp[cli]"
 ```
 

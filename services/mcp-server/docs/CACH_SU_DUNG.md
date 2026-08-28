@@ -29,7 +29,7 @@ Chạy file cấu hình có sẵn:
 
 ```bash
 # Mở PowerShell tại thư mục dự án
-cd C:\Users\Asus\Downloads\Compressed\AI-Assistant\services\mcp-server
+cd <duong-dan-toi-repo>\AI-Assistant\services\mcp-server
 
 # Copy config vào Claude Desktop
 copy config.json "%APPDATA%\Claude\claude_desktop_config.json"

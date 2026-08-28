@@ -53,12 +53,12 @@ Mở browser: `http://localhost:5000`
 ### 4. Chọn Folder
 
 1. Click button **📁 Chọn folder**
-2. Nhập đường dẫn folder (ví dụ: `C:\Users\Asus\Projects\MyCode`)
+2. Nhập đường dẫn folder (ví dụ: `C:\Users\<ten-user>\Projects\MyCode`)
 3. Click **✓ Thêm Folder**
 
 **Ví dụ đường dẫn:**
 ```
-C:\Users\Asus\Downloads\Compressed\AI-Assistant
+C:\Users\<ten-user>\Projects\AI-Assistant
 D:\Code\Python\my-project
 C:\dev\react-app
 ```
