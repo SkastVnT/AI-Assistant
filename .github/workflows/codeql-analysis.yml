@@ -31,7 +31,6 @@ jobs:
             - services/
             - app/src/
             - app/image_pipeline/
-            - app/rag/
           paths-ignore:
             - '**/tests/**'
             - '**/test_*'

@@ -167,7 +167,7 @@ Bundled (see `prepare-payload.js`):
 - `app/config/` (includes `.env.example`; real `.env` files are excluded)
 - `app/src/`, `app/scripts/`, `app/requirements/`
 - `ComfyUI/` (minus `output/`, `temp/`, `user/`)
-- `app/image_pipeline/`, `app/configs_vps/`, `app/rag/`
+- `app/image_pipeline/`, `app/configs_vps/`
 - Curated `app/storage/` (character DBs, prompts, references)
 - `LORA/` (minus `old/`, `new_1/`, `new_2/`, `*.zip`)
 - `python311/` portable runtime

@@ -26,7 +26,6 @@
     docs/
     electron/             desktop shell
     image_pipeline/       anime_pipeline (live) + deferred subtrees
-    rag/
     requirements/         profiles + freeze snapshots
     patches/              local patches applied to the ComfyUI submodule
     scripts/              service + repo scripts (openapi.js, apply_patches.py)

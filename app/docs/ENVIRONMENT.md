@@ -10,7 +10,6 @@ Environment files are local configuration and must not be committed. Use example
 | `app/config/.env` | Local shared config |
 | `services/chatbot/.env.example` | Chatbot-local template |
 | `services/chatbot/.env` | Chatbot-local overrides |
-| `app/rag/.env.example` | RAG template |
 
 ## Common Variables
 

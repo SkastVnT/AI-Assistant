@@ -38,7 +38,6 @@ const COPY_ITEMS = [
     { src: 'ComfyUI',                                         dst: 'ComfyUI',                                         required: true  },
     { src: 'app/image_pipeline',                              dst: 'app/image_pipeline',                              required: true  },
     { src: 'app/configs_vps',                                 dst: 'app/configs_vps',                                 required: true  },
-    { src: 'app/rag',                                         dst: 'app/rag',                                         required: false },
     { src: 'app/storage/character_db',                        dst: 'app/storage/character_db',                        required: false },
     { src: 'app/storage/character_loras',                     dst: 'app/storage/character_loras',                     required: false },
     { src: 'app/storage/character_refs',                      dst: 'app/storage/character_refs',                      required: false },

@@ -101,11 +101,6 @@ function backendFiles() {
       file.endsWith(".py") && !file.endsWith("__init__.py")
     )
   );
-  files.push(
-    ...walkFiles(path.join(ROOT, "app/rag/apps/api"), (file) =>
-      file.endsWith(".py")
-    )
-  );
 
   return [...new Set(files.filter(exists))].sort();
 }
@@ -343,13 +338,10 @@ function toOpenApiPath(routePath) {
 }
 
 function includePrefixFor(file) {
-  if (file.endsWith("app/rag/apps/api/routes/ingest.py")) return "/api/v1";
-  if (file.endsWith("app/rag/apps/api/routes/query.py")) return "/api/v1";
   return "";
 }
 
 function serviceFor(file) {
-  if (file.startsWith("app/rag/")) return "rag";
   if (file.startsWith("services/clip-embed/")) return "clip";
   return "chatbot";
 }

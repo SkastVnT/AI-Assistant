@@ -153,7 +153,7 @@ If you discover a security vulnerability, please report it responsibly:
 
 #### 17. RAG Auth Backend Default
 
-**Status:** ⚠️ By design, needs deployment attention — `app/rag/libs/auth/middleware.py` defaults to `AUTH_BACKEND=none` (trusts `x-tenant-id`/`x-user-id` headers without validation). Set `AUTH_BACKEND=api_key` in any production RAG deployment.
+**Status:** ⚠️ Moved — the RAG service now lives in [rag-eval-gate](https://github.com/SkastVnT/rag-eval-gate); this item tracks there. `libs/auth/middleware.py` defaults to `AUTH_BACKEND=none` (trusts `x-tenant-id`/`x-user-id` headers without validation). Set `AUTH_BACKEND=api_key` in any production RAG deployment.
 
 #### 18. Rate Limiting Scope
 

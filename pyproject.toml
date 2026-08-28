@@ -16,7 +16,6 @@ exclude = [
     "image_pipeline",
     "private",
     "private copy",
-    "rag",
     ".git",
     "node_modules",
 ]

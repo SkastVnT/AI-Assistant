@@ -10,7 +10,8 @@ AI-Assistant is a local-first AI workspace that combines a Python chatbot servic
 - Multi-provider chat across hosted and local LLM providers.
 - Image generation through hosted providers and local ComfyUI/Stable Diffusion paths.
 - Video generation through OpenAI Sora-compatible routes.
-- RAG services, optional sidecars, Docker support, and an Electron desktop app.
+- Optional sidecars, Docker support, and an Electron desktop app.
+- RAG lives in its own repository: [rag-eval-gate](https://github.com/SkastVnT/rag-eval-gate).
 
 ## Architecture
 
@@ -21,7 +22,6 @@ AI-Assistant is a local-first AI workspace that combines a Python chatbot servic
 | MCP server | `services/mcp-server/` | FastMCP stdio server used by the chatbot |
 | Image pipeline | `app/image_pipeline/` | Local reasoning/anime pipeline modules |
 | ComfyUI/edit image | `ComfyUI/` (submodule), `services/edit-image/` | Local image workflow runtimes and integrations |
-| RAG | `app/rag/` | API, worker, libraries, tests, and compose file |
 | Desktop | `app/electron/` | Electron wrapper and installer workflow |
 | Deployment | `docker-compose.yml`, `app/docker/` | Local Docker entrypoint and supporting assets |
 
@@ -111,7 +111,6 @@ At least one LLM API key is required for hosted chat. Local image, video, and Co
 | Stable Diffusion | `7861` | `services/stable-diffusion/` | Local image backend |
 | Edit Image / ComfyUI | `8100` | `services/edit-image/` | ComfyUI-backed image editing |
 | CLIP embed sidecar | `8200` | `services/clip-embed/server.py` | Optional image-RAG encoder (venv-image); off unless `RAG_IMAGE_ENABLED=true` |
-| RAG API | service config | `app/rag/apps/api/` | Uses `app/rag/docker-compose.yml` for local infra |
 | Electron | app window | `app/electron/` | Desktop shell around the chatbot |
 
 ## Development Commands

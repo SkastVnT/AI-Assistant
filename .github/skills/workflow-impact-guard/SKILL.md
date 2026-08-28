@@ -17,7 +17,7 @@ description: "Reason about the impact of chatbot/core changes on GitHub workflow
 ## Do not use for
 
 - ComfyUI, image pipeline, or Stable Diffusion workflow changes — those are out of scope.
-- RAG subsystem changes — `rag-eval.yml` triggers only on `app/rag/**` paths.
+- RAG moved out of this repo: see [rag-eval-gate](https://github.com/SkastVnT/rag-eval-gate).
 - Writing workflow YAML from scratch — this skill is for impact assessment, not authoring.
 
 ---
@@ -91,15 +91,6 @@ Six workflows exist under `.github/workflows/`. Each has different triggers, sco
 | Output | PR comment summary |
 
 **What breaks this:** Adding a dependency with a critical vulnerability. Adding a GPL-3.0 or AGPL-3.0 licensed package. Note: this only runs on PRs that touch requirements or workflow files.
-
-### 6. `rag-eval.yml` — RAG Evaluation
-
-| Property | Value |
-|----------|-------|
-| Triggers | PRs to `main` or `feat/adv_RAG` that change `app/rag/**` |
-| Scope | RAG subsystem only |
-
-**Not affected by chatbot changes.** Ignore for chatbot-only work.
 
 ---
 
