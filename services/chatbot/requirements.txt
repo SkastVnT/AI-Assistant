@@ -36,7 +36,7 @@ pymupdf>=1.28.2
 
 # ============= AI APIs =============
 openai>=2.44.0  # Videos API (Sora 2) requires >=2.29
-google-genai>=2.14.0
+google-genai>=2.20.0
 
 # ============= IMAGE PROCESSING =============
 Pillow>=12.3.0
