@@ -95,7 +95,7 @@ opencv-contrib-python>=4.13.0.92
 # falling back to Vision OCR. They were installed transitively in venv-core
 # but never declared, so a fresh profile install silently lost tiers 1-2.
 pdfplumber>=0.11.9
-pypdf>=6.15.0
+pypdf>=6.16.1
 
 # markitdown: universal file-to-markdown converter (pptx, epub, html, zip, audio, youtube)
 # Used by ocr_integration.py as fallback for unsupported formats
